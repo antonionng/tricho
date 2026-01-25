@@ -1,0 +1,55 @@
+export const subscriptionTiers = [
+  {
+    id: "individual",
+    name: "Individual",
+    price: 4.99,
+    interval: "month",
+    stripePriceId: process.env.STRIPE_PRICE_ID_INDIVIDUAL,
+    features: [
+      "Monthly digital magazine",
+      "Podcast archive access",
+      "Community features",
+      "Monthly Zoom education",
+    ],
+  },
+  {
+    id: "trichologist",
+    name: "Trichologist",
+    price: 9.99,
+    interval: "month",
+    stripePriceId: process.env.STRIPE_PRICE_ID_TRICHOLOGIST,
+    features: [
+      "All individual benefits",
+      "25% off event tickets",
+      "Professional profile listing",
+      "Networking access",
+    ],
+  },
+  {
+    id: "business-standard",
+    name: "Business Standard",
+    price: 150,
+    interval: "month",
+    stripePriceId: process.env.STRIPE_PRICE_ID_BUSINESS_STANDARD,
+    features: [
+      "Half-page digital magazine feature monthly",
+      "Exhibition add-on options",
+      "Directory listing",
+    ],
+  },
+  {
+    id: "business-luxury",
+    name: "Business Luxury",
+    price: 3500,
+    interval: "year",
+    stripePriceId: process.env.STRIPE_PRICE_ID_BUSINESS_LUXURY,
+    features: [
+      "Full-page magazine feature",
+      "Exhibition included (all events)",
+      "Speaking slot at event",
+      "Podcast guest feature",
+      "Guest on 2 Zoom education sessions",
+      "2 event tickets included",
+    ],
+  },
+];
