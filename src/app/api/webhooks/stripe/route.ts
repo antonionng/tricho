@@ -17,17 +17,18 @@ function getPeriodEnd(subscription: Stripe.Subscription): Date | null {
 }
 
 export async function POST(req: Request) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!process.env.STRIPE_SECRET_KEY || !webhookSecret) {
+    return new NextResponse("Stripe webhook is not configured", { status: 503 });
+  }
+
   const body = await req.text();
   const signature = (await headers()).get("Stripe-Signature") as string;
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return new NextResponse(`Webhook Error: ${message}`, { status: 400 });
