@@ -32,8 +32,8 @@ export default async function CommunityPage({
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <header className="mb-8 space-y-2">
-        <p className="text-sm font-medium text-primary uppercase tracking-wide">Rooms</p>
-        <h1 className="font-display text-4xl font-semibold tracking-tight">{room.label}</h1>
+        <p className="tricho-caps text-foreground/40">Rooms</p>
+        <h1 className="tricho-title text-4xl">{room.label}</h1>
         <p className="text-muted-foreground max-w-2xl">{room.blurb}</p>
       </header>
 

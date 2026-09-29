@@ -47,7 +47,7 @@ export function Composer({
         placeholder="What do you want the room to weigh in on?"
         className="w-full p-3 rounded-xl border border-border/60 bg-background text-sm outline-none resize-y"
       />
-      <Button type="submit" className="rounded-full h-10 px-6">
+      <Button type="submit" className="rounded-2xl h-10 px-6">
         Post
       </Button>
     </form>

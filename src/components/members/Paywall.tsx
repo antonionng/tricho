@@ -9,11 +9,11 @@ export function Paywall({ title, body }: { title: string; body: string }) {
         <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Members only
         </p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="tricho-title text-3xl">{title}</h1>
         <p className="text-muted-foreground leading-relaxed">
           {body} Included with membership at £{flagshipTier.price}/month.
         </p>
-        <Button asChild className="rounded-full h-11 px-8">
+        <Button asChild className="rounded-2xl h-11 px-8">
           <Link href="/join">Become a member</Link>
         </Button>
       </div>

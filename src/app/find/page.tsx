@@ -21,13 +21,11 @@ export default function FindPage() {
     <div className="min-h-screen bg-background py-16 px-4">
       <div className="container mx-auto max-w-3xl space-y-10">
         <header className="space-y-4 text-center">
-          <p className="text-sm font-medium text-primary uppercase tracking-wide">
-            Who should I see?
-          </p>
-          <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight">
+          <p className="tricho-caps text-foreground/40">Who should I see?</p>
+          <h1 className="tricho-title text-4xl md:text-5xl">
             A plain guide before you open the directory
           </h1>
-          <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+          <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto font-medium">
             This is education and signposting only. It is not a diagnosis. If you are worried or
             something is changing quickly, speak to a GP or urgent care.
           </p>
@@ -37,23 +35,22 @@ export default function FindPage() {
           {PATHS.map((path) => (
             <article
               key={path.title}
-              className="rounded-2xl border border-border/50 bg-card p-6 md:p-8 space-y-2 shadow-sm"
+              className="rounded-3xl border border-black/10 bg-card/80 p-6 md:p-8 space-y-2"
             >
-              <h2 className="text-xl font-semibold">{path.title}</h2>
-              <p className="text-muted-foreground leading-relaxed">{path.body}</p>
+              <h2 className="text-xl font-bold tracking-tight">{path.title}</h2>
+              <p className="text-muted-foreground leading-relaxed font-medium">{path.body}</p>
             </article>
           ))}
         </div>
 
-        <div className="rounded-2xl bg-primary text-primary-foreground p-8 text-center space-y-4">
-          <h2 className="font-display text-2xl font-semibold">Ready to find someone?</h2>
-          <p className="opacity-90 text-sm">
+        <div className="rounded-3xl bg-foreground text-primary-foreground p-8 text-center space-y-4">
+          <h2 className="tricho-title text-2xl md:text-3xl">Ready to find someone?</h2>
+          <p className="opacity-70 text-sm font-medium">
             The directory shows professionals who have asked to be listed. Members are marked.
           </p>
           <Button
             asChild
-            variant="secondary"
-            className="rounded-full bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+            className="rounded-2xl bg-primary-foreground text-foreground hover:bg-white"
           >
             <Link href="/directory">Open the directory</Link>
           </Button>

@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 const links = [
   { href: "/members", label: "Home", icon: Home, exact: true },
@@ -34,10 +35,10 @@ export function MemberShell({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-black/10 bg-background/90 backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between gap-4">
-          <Link href="/members" className="font-display text-lg font-semibold">
-            Trichollective
+          <Link href="/members">
+            <BrandMark size="sm" />
           </Link>
           <nav className="hidden lg:flex items-center gap-1">
             {links.map((link) => {
@@ -50,7 +51,7 @@ export function MemberShell({
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
+                    "inline-flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-sm transition-colors",
                     active
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -66,7 +67,7 @@ export function MemberShell({
             {name || "Member"}
           </div>
         </div>
-        <div className="lg:hidden border-t border-border/40 overflow-x-auto">
+        <div className="lg:hidden border-t border-black/10 overflow-x-auto">
           <div className="flex gap-1 px-3 py-2 min-w-max">
             {links.map((link) => {
               const active = link.exact
@@ -77,7 +78,7 @@ export function MemberShell({
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-xs whitespace-nowrap",
+                    "rounded-2xl px-3 py-1.5 text-xs whitespace-nowrap",
                     active
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground"

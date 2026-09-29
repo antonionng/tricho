@@ -13,8 +13,8 @@ export default async function BillingPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-xl space-y-8">
       <header className="space-y-2">
-        <p className="text-sm font-medium text-primary uppercase tracking-wide">Billing</p>
-        <h1 className="font-display text-4xl font-semibold tracking-tight">Your plan</h1>
+        <p className="tricho-caps text-foreground/40">Billing</p>
+        <h1 className="tricho-title text-4xl">Your plan</h1>
       </header>
 
       <div className="rounded-2xl border border-border/50 bg-card p-6 space-y-4 shadow-sm">
@@ -37,12 +37,12 @@ export default async function BillingPage() {
 
         {ctx.membership.isActive ? (
           <form action="/api/billing/portal" method="POST">
-            <Button type="submit" className="rounded-full w-full h-11">
+            <Button type="submit" className="rounded-2xl w-full h-11">
               Manage billing in Stripe
             </Button>
           </form>
         ) : (
-          <Button asChild className="rounded-full w-full h-11">
+          <Button asChild className="rounded-2xl w-full h-11">
             <Link href="/join">Start membership</Link>
           </Button>
         )}

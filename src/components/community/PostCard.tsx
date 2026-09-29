@@ -37,7 +37,7 @@ export function PostCard({ post }: { post: FeedPost }) {
             <span className="text-xs text-muted-foreground">·</span>
             <span className="text-xs text-muted-foreground capitalize">{post.author.role}</span>
             {post.pinned && (
-              <span className="text-[10px] uppercase tracking-wide rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+              <span className="text-[10px] uppercase tracking-wide rounded-2xl bg-muted px-2 py-0.5 text-muted-foreground">
                 Start here
               </span>
             )}

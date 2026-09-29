@@ -59,7 +59,7 @@ export function JoinPlans({ tiers }: { tiers: PublicTier[] }) {
 
   return (
     <>
-      <div className="max-w-md mx-auto mb-10 rounded-2xl border border-border/50 bg-card p-5 space-y-3">
+      <div className="max-w-md mx-auto mb-10 rounded-3xl border border-black/10 bg-card/80 p-5 space-y-3">
         <label className="text-sm font-medium">I am joining as</label>
         <select
           value={profession}
@@ -93,12 +93,12 @@ export function JoinPlans({ tiers }: { tiers: PublicTier[] }) {
             key={tier.id}
             className={
               tier.featured
-                ? "rounded-2xl bg-primary text-primary-foreground p-8 flex flex-col shadow-lg md:scale-[1.02]"
-                : "rounded-2xl border border-border/50 bg-card p-8 flex flex-col shadow-sm"
+                ? "rounded-3xl bg-primary text-primary-foreground p-8 flex flex-col md:scale-[1.02]"
+                : "rounded-3xl border border-black/10 bg-card/80 p-8 flex flex-col"
             }
           >
             {tier.featured && (
-              <span className="text-xs font-medium bg-primary-foreground/15 rounded-full px-3 py-1 w-fit mb-3">
+              <span className="text-xs font-medium bg-primary-foreground/15 rounded-2xl px-3 py-1 w-fit mb-3">
                 Most popular
               </span>
             )}
@@ -127,8 +127,8 @@ export function JoinPlans({ tiers }: { tiers: PublicTier[] }) {
               disabled={loading !== null}
               className={
                 tier.featured
-                  ? "mt-8 rounded-full h-12 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                  : "mt-8 rounded-full h-12"
+                  ? "mt-8 rounded-2xl h-12 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                  : "mt-8 rounded-2xl h-12"
               }
             >
               {loading === tier.id ? "Loading…" : `Choose ${tier.name}`}

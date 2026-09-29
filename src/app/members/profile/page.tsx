@@ -29,8 +29,8 @@ export default async function ProfilePage({
   return (
     <div className="container mx-auto px-4 py-8 max-w-xl space-y-8">
       <header className="space-y-2">
-        <p className="text-sm font-medium text-primary uppercase tracking-wide">Public listing</p>
-        <h1 className="font-display text-4xl font-semibold tracking-tight">Your profile</h1>
+        <p className="tricho-caps text-foreground/40">Public listing</p>
+        <h1 className="tricho-title text-4xl">Your profile</h1>
         <p className="text-sm text-muted-foreground">
           This appears in the directory as a Member listing. Phone stays private.
         </p>
@@ -110,7 +110,7 @@ export default async function ProfilePage({
             className="w-full p-3 rounded-xl border border-border/60 bg-background text-sm resize-y"
           />
         </label>
-        <Button type="submit" className="w-full rounded-full h-11">
+        <Button type="submit" className="w-full rounded-2xl h-11">
           Publish to the directory
         </Button>
       </form>

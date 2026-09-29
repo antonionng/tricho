@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import { DM_Sans, Fraunces, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
   subsets: ["latin"],
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const geistMono = Geist_Mono({
@@ -32,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSans.variable} ${fraunces.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${sourceSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground overflow-x-hidden`}
       >
         <SiteChrome>{children}</SiteChrome>
       </body>

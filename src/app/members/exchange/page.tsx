@@ -31,8 +31,8 @@ export default async function ExchangePage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <header className="mb-10 space-y-2 max-w-2xl">
-        <p className="text-sm font-medium text-primary uppercase tracking-wide">Exchange</p>
-        <h1 className="font-display text-4xl font-semibold tracking-tight">Shared tools</h1>
+        <p className="tricho-caps text-foreground/40">Exchange</p>
+        <h1 className="tricho-title text-4xl">Shared tools</h1>
         <p className="text-muted-foreground">
           Resources, referral services, and exhibitor tools from inside the membership.
         </p>
@@ -71,7 +71,7 @@ export default async function ExchangePage() {
           className="rounded-2xl bg-primary text-primary-foreground p-6 space-y-4 h-fit"
         >
           <p className="text-xs uppercase tracking-wide opacity-70">Propose an entry</p>
-          <h2 className="font-display text-2xl font-semibold">List a resource</h2>
+          <h2 className="tricho-title text-2xl">List a resource</h2>
           <input
             name="title"
             required
@@ -100,7 +100,7 @@ export default async function ExchangePage() {
           />
           <Button
             type="submit"
-            className="w-full rounded-full h-11 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+            className="w-full rounded-2xl h-11 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
           >
             Publish
           </Button>

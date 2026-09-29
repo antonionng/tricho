@@ -64,7 +64,7 @@ export default async function AdminListingsPage() {
                     {professionById(item.profession)?.label} · {item.city}
                   </p>
                 </div>
-                <span className="text-xs rounded-full bg-amber-100 text-amber-900 px-3 py-1">
+                <span className="text-xs rounded-2xl bg-amber-100 text-amber-900 px-3 py-1">
                   Pending
                 </span>
               </div>
@@ -83,14 +83,14 @@ export default async function AdminListingsPage() {
                 <form action={reviewListing}>
                   <input type="hidden" name="id" value={item.id} />
                   <input type="hidden" name="decision" value="approve" />
-                  <Button type="submit" className="rounded-full h-10 px-5">
+                  <Button type="submit" className="rounded-2xl h-10 px-5">
                     Approve
                   </Button>
                 </form>
                 <form action={reviewListing}>
                   <input type="hidden" name="id" value={item.id} />
                   <input type="hidden" name="decision" value="reject" />
-                  <Button type="submit" variant="outline" className="rounded-full h-10 px-5">
+                  <Button type="submit" variant="outline" className="rounded-2xl h-10 px-5">
                     Reject
                   </Button>
                 </form>

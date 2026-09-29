@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 const publicNav = [
   { name: "Find someone", href: "/find" },
@@ -25,11 +26,11 @@ export function PublicNavbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/90 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 w-full border-b border-black/10 bg-background/90 backdrop-blur-md">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="font-display text-xl font-semibold tracking-tight">
-            Trichollective
+          <Link href="/" className="z-10">
+            <BrandMark size="sm" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -38,10 +39,10 @@ export function PublicNavbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "text-sm transition-colors",
+                  "tricho-caps text-[11px] transition-opacity",
                   pathname === item.href || pathname.startsWith(item.href + "/")
-                    ? "text-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "opacity-100"
+                    : "opacity-50 hover:opacity-100"
                 )}
               >
                 {item.name}
@@ -52,11 +53,11 @@ export function PublicNavbar() {
           <div className="hidden md:flex items-center gap-3">
             <Link
               href="/login"
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="tricho-caps text-[11px] opacity-50 hover:opacity-100 transition-opacity"
             >
               Sign in
             </Link>
-            <Button asChild className="rounded-full h-10 px-5">
+            <Button asChild className="rounded-2xl h-10 px-5 tricho-caps text-[11px]">
               <Link href="/join">Join for £12</Link>
             </Button>
           </div>
@@ -68,25 +69,31 @@ export function PublicNavbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-background">
+              <SheetContent side="right" className="bg-background rounded-l-3xl">
                 <SheetHeader>
-                  <SheetTitle className="font-display text-left">Trichollective</SheetTitle>
+                  <SheetTitle className="text-left">
+                    <BrandMark size="sm" />
+                  </SheetTitle>
                 </SheetHeader>
-                <div className="mt-8 flex flex-col gap-4">
+                <div className="mt-8 flex flex-col gap-5">
                   {publicNav.map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
                       onClick={() => setIsOpen(false)}
-                      className="text-lg"
+                      className="text-2xl font-extrabold uppercase tracking-tight"
                     >
                       {item.name}
                     </Link>
                   ))}
-                  <Link href="/login" onClick={() => setIsOpen(false)}>
+                  <Link
+                    href="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="tricho-caps opacity-60"
+                  >
                     Sign in
                   </Link>
-                  <Button asChild className="rounded-full mt-2">
+                  <Button asChild className="rounded-2xl mt-2 h-12">
                     <Link href="/join" onClick={() => setIsOpen(false)}>
                       Join for £12
                     </Link>

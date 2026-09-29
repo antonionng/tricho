@@ -83,7 +83,7 @@ export function AssistantChat({
                 <p className="text-sm font-medium text-primary inline-flex items-center gap-2">
                   <Sparkles className="h-4 w-4" /> Tricho-AI
                 </p>
-                <h1 className="font-display text-4xl font-semibold tracking-tight">
+                <h1 className="tricho-title text-4xl">
                   Clinical decision support
                 </h1>
                 <p className="text-muted-foreground max-w-xl leading-relaxed">
@@ -164,7 +164,7 @@ export function AssistantChat({
               <Button
                 type="button"
                 onClick={() => stop()}
-                className="rounded-full h-10 w-10 p-0 shrink-0"
+                className="rounded-2xl h-10 w-10 p-0 shrink-0"
               >
                 <Square className="h-4 w-4" />
               </Button>
@@ -172,7 +172,7 @@ export function AssistantChat({
               <Button
                 type="submit"
                 disabled={!input.trim()}
-                className="rounded-full h-10 w-10 p-0 shrink-0 disabled:opacity-30"
+                className="rounded-2xl h-10 w-10 p-0 shrink-0 disabled:opacity-30"
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>

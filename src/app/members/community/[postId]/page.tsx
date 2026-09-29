@@ -60,7 +60,7 @@ export default async function ThreadPage({
           <span>{formatWhen(post.createdAt)}</span>
         </div>
         {post.title && (
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{post.title}</h1>
+          <h1 className="tricho-title text-3xl">{post.title}</h1>
         )}
         <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">{post.content}</p>
         <p className="text-xs text-muted-foreground">
@@ -100,7 +100,7 @@ export default async function ThreadPage({
             placeholder="Reply to the room"
             className="w-full p-3 rounded-xl border border-border/60 bg-background text-sm outline-none resize-y"
           />
-          <Button type="submit" className="rounded-full h-10 px-6">
+          <Button type="submit" className="rounded-2xl h-10 px-6">
             Reply
           </Button>
         </form>

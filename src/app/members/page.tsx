@@ -53,8 +53,8 @@ export default async function MembersHomePage({
       )}
 
       <header className="mb-8 space-y-2">
-        <p className="text-sm font-medium text-primary uppercase tracking-wide">Home</p>
-        <h1 className="font-display text-4xl font-semibold tracking-tight">
+        <p className="tricho-caps text-foreground/40">Home</p>
+        <h1 className="tricho-title text-4xl">
           Welcome{ctx.session.user.name ? `, ${ctx.session.user.name.split(" ")[0]}` : ""}
         </h1>
         <p className="text-muted-foreground">
@@ -87,7 +87,7 @@ export default async function MembersHomePage({
             <p className="text-sm text-muted-foreground">
               Be found in the public directory. Members are marked separately from free listings.
             </p>
-            <Button asChild className="rounded-full w-full">
+            <Button asChild className="rounded-2xl w-full">
               <Link href="/members/profile">Edit listing</Link>
             </Button>
           </div>

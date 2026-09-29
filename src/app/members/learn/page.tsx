@@ -28,8 +28,8 @@ export default async function LearnPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
       <header className="space-y-2">
-        <p className="text-sm font-medium text-primary uppercase tracking-wide">Learn</p>
-        <h1 className="font-display text-4xl font-semibold tracking-tight">
+        <p className="tricho-caps text-foreground/40">Learn</p>
+        <h1 className="tricho-title text-4xl">
           Education that is useful on day one
         </h1>
         <p className="text-muted-foreground max-w-2xl">
@@ -51,8 +51,8 @@ export default async function LearnPage() {
             className="rounded-2xl border border-border/50 bg-card p-6 space-y-2 shadow-sm hover:border-primary/30 transition-colors"
           >
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="capitalize rounded-full bg-muted px-2 py-0.5">{piece.audience}</span>
-              <span className="capitalize rounded-full bg-muted px-2 py-0.5">{piece.kind}</span>
+              <span className="capitalize rounded-2xl bg-muted px-2 py-0.5">{piece.audience}</span>
+              <span className="capitalize rounded-2xl bg-muted px-2 py-0.5">{piece.kind}</span>
             </div>
             <h2 className="text-xl font-semibold tracking-tight">{piece.title}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{piece.summary}</p>

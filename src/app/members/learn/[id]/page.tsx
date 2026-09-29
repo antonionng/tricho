@@ -31,10 +31,10 @@ export default async function LearnPiecePage({
       </Link>
       <article className="rounded-2xl border border-border/50 bg-card p-6 md:p-8 space-y-5 shadow-sm">
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="capitalize rounded-full bg-muted px-2 py-0.5">{piece.audience}</span>
-          <span className="capitalize rounded-full bg-muted px-2 py-0.5">{piece.kind}</span>
+          <span className="capitalize rounded-2xl bg-muted px-2 py-0.5">{piece.audience}</span>
+          <span className="capitalize rounded-2xl bg-muted px-2 py-0.5">{piece.kind}</span>
         </div>
-        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
+        <h1 className="tricho-title text-3xl md:text-4xl">
           {piece.title}
         </h1>
         <p className="text-muted-foreground leading-relaxed">{piece.summary}</p>
@@ -42,7 +42,7 @@ export default async function LearnPiecePage({
           {piece.body}
         </div>
       </article>
-      <Button asChild className="rounded-full">
+      <Button asChild className="rounded-2xl">
         <Link href={`/members/assistant?q=${prompt}`}>Ask Tricho-AI about this</Link>
       </Button>
     </div>

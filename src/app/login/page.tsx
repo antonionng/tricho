@@ -2,6 +2,7 @@ import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BrandMark } from "@/components/brand/BrandMark";
 import Link from "next/link";
 
 const googleEnabled = !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
@@ -19,15 +20,15 @@ export default async function LoginPage({
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-background flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center space-y-3">
-          <p className="text-sm font-medium text-primary uppercase tracking-wide">
-            Member access
+        <div className="text-center space-y-4">
+          <BrandMark size="md" className="justify-center" />
+          <h1 className="tricho-title text-4xl">Sign in</h1>
+          <p className="text-sm text-muted-foreground font-medium">
+            Welcome back to the collective.
           </p>
-          <h1 className="font-display text-4xl font-semibold tracking-tight">Sign in</h1>
-          <p className="text-sm text-muted-foreground">Welcome back to the collective.</p>
         </div>
 
-        <div className="rounded-2xl border border-border/50 bg-card p-6 space-y-5 shadow-sm">
+        <div className="rounded-3xl border border-black/10 bg-card/80 p-6 space-y-5">
           {googleEnabled && (
             <form
               action={async () => {
@@ -35,11 +36,7 @@ export default async function LoginPage({
                 await signIn("google", { redirectTo });
               }}
             >
-              <Button
-                type="submit"
-                variant="outline"
-                className="w-full rounded-full h-11"
-              >
+              <Button type="submit" variant="outline" className="w-full h-11">
                 Continue with Google
               </Button>
             </form>
@@ -63,9 +60,9 @@ export default async function LoginPage({
                 type="email"
                 required
                 placeholder="you@practice.com"
-                className="h-11 rounded-xl"
+                className="h-11"
               />
-              <Button type="submit" className="w-full rounded-full h-11">
+              <Button type="submit" className="w-full h-11">
                 Send magic link
               </Button>
             </form>
@@ -81,7 +78,7 @@ export default async function LoginPage({
                   redirectTo,
                 });
               }}
-              className="space-y-3 border-t border-border/40 pt-5"
+              className="space-y-3 border-t border-black/10 pt-5"
             >
               <p className="text-xs text-muted-foreground">Dev login (local only)</p>
               <div className="space-y-2">
@@ -92,7 +89,7 @@ export default async function LoginPage({
                   type="email"
                   required
                   placeholder="you@example.com"
-                  className="h-11 rounded-xl"
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -102,10 +99,10 @@ export default async function LoginPage({
                   name="name"
                   type="text"
                   placeholder="Dr Jane Doe"
-                  className="h-11 rounded-xl"
+                  className="h-11"
                 />
               </div>
-              <Button type="submit" className="w-full rounded-full h-11">
+              <Button type="submit" className="w-full h-11">
                 Enter
               </Button>
             </form>

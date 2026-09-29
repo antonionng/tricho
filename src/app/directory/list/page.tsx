@@ -31,10 +31,10 @@ export default async function ListPracticePage({
             membership, rooms, or Tricho-AI. When you are ready for those, join for £12 a month.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild className="rounded-full h-11 px-6">
+            <Button asChild className="rounded-2xl h-11 px-6">
               <Link href="/directory">View the directory</Link>
             </Button>
-            <Button asChild variant="outline" className="rounded-full h-11 px-6">
+            <Button asChild variant="outline" className="rounded-2xl h-11 px-6">
               <Link href="/join">Become a member</Link>
             </Button>
           </div>
@@ -134,7 +134,7 @@ export default async function ListPracticePage({
             />
           </label>
 
-          <Button type="submit" className="w-full h-12 rounded-full text-sm font-semibold">
+          <Button type="submit" className="w-full h-12 rounded-2xl text-sm font-semibold">
             Submit for review
           </Button>
         </form>

@@ -34,10 +34,8 @@ export default async function DirectoryPage({
       <section className="py-16 md:py-20 border-b border-border/40">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-6">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              Find someone
-            </p>
-            <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-foreground">
+            <p className="tricho-caps text-foreground/40">Find someone</p>
+            <h1 className="tricho-title text-4xl md:text-6xl text-foreground">
               The Directory
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
@@ -50,14 +48,14 @@ export default async function DirectoryPage({
                 name="q"
                 defaultValue={query}
                 placeholder="Search by name, specialisation, or city"
-                className="w-full pl-12 h-14 rounded-full border border-border/60 bg-card shadow-sm outline-none text-sm focus:ring-2 focus:ring-primary/25"
+                className="w-full pl-12 h-14 rounded-2xl border border-black/10 bg-card/80 outline-none text-sm focus:ring-2 focus:ring-foreground/15"
               />
             </form>
             <div className="flex flex-wrap justify-center gap-3 pt-2">
-              <Button asChild className="rounded-full h-11 px-6">
+              <Button asChild className="rounded-2xl h-11 px-6">
                 <Link href="/directory/list">List your practice (free)</Link>
               </Button>
-              <Button asChild variant="outline" className="rounded-full h-11 px-6">
+              <Button asChild variant="outline" className="rounded-2xl h-11 px-6">
                 <Link href="/join">Become a member</Link>
               </Button>
             </div>
@@ -75,10 +73,10 @@ export default async function DirectoryPage({
                   : "These are the professionals who have asked to be listed. The directory grows as people submit and as members join after each Trichollective conference."}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button asChild className="rounded-full h-11 px-6">
+                <Button asChild className="rounded-2xl h-11 px-6">
                   <Link href="/directory/list">List your practice</Link>
                 </Button>
-                <Button asChild variant="outline" className="rounded-full h-11 px-6">
+                <Button asChild variant="outline" className="rounded-2xl h-11 px-6">
                   <Link href="/find">Who should I see?</Link>
                 </Button>
               </div>
@@ -95,7 +93,7 @@ export default async function DirectoryPage({
                       {pro.name}
                     </h2>
                     <span
-                      className={`text-[11px] font-medium rounded-full px-2.5 py-1 shrink-0 ${
+                      className={`text-[11px] font-medium rounded-2xl px-2.5 py-1 shrink-0 ${
                         pro.kind === "member"
                           ? "bg-primary/10 text-primary"
                           : "bg-muted text-muted-foreground"
