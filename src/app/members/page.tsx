@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Mic, Play, Download } from "lucide-react";
 import Link from "next/link";
@@ -116,6 +117,10 @@ export default async function MembersPage() {
             <div className="space-y-6">
               <h3 className="tricho-caps text-[10px] font-black text-black/40 border-b border-black/10 pb-4">Collective Access</h3>
               <div className="flex flex-col space-y-2">
+                <Link href="/members/assistant" className="tricho-caps text-sm py-4 border-b border-black/5 hover:opacity-50 transition-opacity flex justify-between">
+                  <span>Tricho-AI Assistant</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
                 <Link href="/members/community" className="tricho-caps text-sm py-4 border-b border-black/5 hover:opacity-50 transition-opacity flex justify-between">
                   <span>The Hub</span>
                   <ArrowRight className="h-4 w-4" />
@@ -124,8 +129,12 @@ export default async function MembersPage() {
                   <span>The Exchange</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/referrals" className="tricho-caps text-sm py-4 hover:opacity-50 transition-opacity flex justify-between">
-                  <span>Registry Networking</span>
+                <Link href="/members/profile" className="tricho-caps text-sm py-4 border-b border-black/5 hover:opacity-50 transition-opacity flex justify-between">
+                  <span>Your Directory Listing</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/directory" className="tricho-caps text-sm py-4 hover:opacity-50 transition-opacity flex justify-between">
+                  <span>The Directory</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>

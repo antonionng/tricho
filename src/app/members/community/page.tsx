@@ -1,111 +1,186 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Lock, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Paywall } from "@/components/members/Paywall";
+import { prisma } from "@/lib/prisma";
+import { getMemberContext } from "@/lib/member";
+import { createPost } from "./actions";
 
-export default async function CommunityHubPage() {
-  const session = await auth();
+const SPACES = [
+  {
+    id: "lounge",
+    label: "The Lounge",
+    blurb: "Open to every member. Cases, referrals, and how you actually run a practice.",
+  },
+  {
+    id: "consultation",
+    label: "Consultation Room",
+    blurb: "Clinical discussion for trichologists, doctors, and verified professionals.",
+  },
+] as const;
 
-  if (!session) {
-    redirect("/login");
+function formatWhen(date: Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export default async function CommunityHubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ space?: string }>;
+}) {
+  const ctx = await getMemberContext();
+  if (!ctx.session) redirect("/login");
+  if (!ctx.allowed) {
+    return (
+      <Paywall
+        title="The Hub"
+        body="The private professional community is part of membership."
+      />
+    );
   }
 
-  const userRole = session.user?.role || "individual";
+  const { space: requested } = await searchParams;
+  const space = requested === "consultation" ? "consultation" : "lounge";
+  const locked = space === "consultation" && !ctx.consultation;
+
+  const posts = locked
+    ? []
+    : await prisma.communityPost.findMany({
+        where: { space },
+        orderBy: { createdAt: "desc" },
+        take: 40,
+        include: {
+          author: { select: { name: true, role: true } },
+          _count: { select: { comments: true } },
+        },
+      });
 
   return (
-    <div className="min-h-screen bg-white pt-20 pb-32">
-      <div className="container mx-auto px-4">
-        {/* Editorial Header */}
-        <div className="max-w-4xl mx-auto text-center mb-24 space-y-8">
-          <span className="vogue-caps text-gray-400">The Collective Network</span>
-          <h1 className="text-6xl md:text-8xl vogue-title uppercase tracking-tighter">
+    <div className="min-h-screen bg-[#D1D0CB] pt-16 pb-24">
+      <div className="container mx-auto px-4 max-w-5xl">
+        <header className="mb-12 space-y-4">
+          <span className="tricho-caps text-black/40">The Collective Network</span>
+          <h1 className="text-6xl md:text-8xl tricho-title uppercase tracking-tighter">
             The Hub
           </h1>
-          <p className="text-xl font-serif italic text-gray-500 max-w-2xl mx-auto">
-            A private space for discourse, referrals, and professional consultation.
+          <p className="font-sans font-medium text-black/60 max-w-xl">
+            A working room for the people who already meet at the Trichollective conference.
           </p>
+        </header>
+
+        <div className="flex gap-6 border-b border-black/10 mb-10">
+          {SPACES.map((item) => (
+            <Link
+              key={item.id}
+              href={`/members/community?space=${item.id}`}
+              className={`tricho-caps pb-4 text-xs ${
+                space === item.id
+                  ? "border-b-2 border-black text-black"
+                  : "text-black/40 hover:text-black"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 max-w-6xl mx-auto">
-          {/* General Lounge - All Members */}
-          <Card className="rounded-none border-black/5 shadow-none group cursor-pointer hover:bg-gray-50 transition-colors h-full flex flex-col">
-            <CardHeader className="p-8 pb-4">
-              <div className="flex justify-between items-start mb-6">
-                <MessageSquare className="h-6 w-6" />
-                <span className="vogue-caps text-[10px] bg-black text-white px-2 py-1">Open Access</span>
-              </div>
-              <CardTitle className="text-3xl vogue-title uppercase">The Lounge</CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 pt-0 flex-grow">
-              <p className="font-serif text-gray-500 mb-8 leading-relaxed">
-                General discussion, awareness journeys, and community support for all members of the collective.
-              </p>
-              <div className="mt-auto pt-8 border-t border-black/5 flex items-center justify-between">
-                <span className="vogue-caps text-xs">Enter Space</span>
-                <ArrowRight className="h-4 w-4 transform group-hover:translate-x-2 transition-transform" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* The Consultation Room - Trichologists Only */}
-          <Card className={`rounded-none border-black/5 shadow-none h-full flex flex-col ${userRole !== 'trichologist' && userRole !== 'admin' ? 'opacity-50' : 'group cursor-pointer hover:bg-gray-50 transition-colors'}`}>
-            <CardHeader className="p-8 pb-4">
-              <div className="flex justify-between items-start mb-6">
-                <Lock className="h-6 w-6" />
-                <span className="vogue-caps text-[10px] border border-black px-2 py-1">Trichologists Only</span>
-              </div>
-              <CardTitle className="text-3xl vogue-title uppercase">The Consultation Room</CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 pt-0 flex-grow">
-              <p className="font-serif text-gray-500 mb-8 leading-relaxed">
-                Advanced clinical discourse, referral networking, and ethical business collaboration for hair professionals.
-              </p>
-              {userRole === 'trichologist' || userRole === 'admin' ? (
-                <div className="mt-auto pt-8 border-t border-black/5 flex items-center justify-between">
-                  <span className="vogue-caps text-xs">Enter Space</span>
-                  <ArrowRight className="h-4 w-4 transform group-hover:translate-x-2 transition-transform" />
-                </div>
-              ) : (
-                <div className="mt-auto pt-8 border-t border-black/5">
-                  <span className="vogue-caps text-[10px] text-gray-400">Requires Trichologist Tier</span>
+        {locked ? (
+          <div className="border border-black/10 bg-black text-[#D1D0CB] p-12 space-y-4 max-w-2xl">
+            <Lock className="h-5 w-5" />
+            <h2 className="text-3xl tricho-title uppercase">Professionals only</h2>
+            <p className="font-sans text-sm opacity-70">
+              The Consultation Room opens once your membership is the professional tier
+              (trichologist, doctor, or business). The Lounge stays open.
+            </p>
+            <Button asChild className="tricho-caps rounded-none bg-[#D1D0CB] text-black h-12">
+              <Link href="/members/community?space=lounge">Back to the Lounge</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-[1fr_320px] gap-12">
+            <div className="space-y-4">
+              {posts.length === 0 && (
+                <div className="border border-black/10 bg-white/40 p-10">
+                  <MessageSquare className="h-5 w-5 mb-4" />
+                  <p className="font-sans font-medium text-black/70">
+                    Nothing in this room yet. Start the first thread.
+                  </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+              {posts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/members/community/${post.id}`}
+                  className="block border border-black/10 bg-white/40 hover:bg-white/70 transition-colors p-6 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="tricho-caps text-[10px] text-black/40">
+                      {post.category}
+                    </span>
+                    <span className="tricho-caps text-[10px] text-black/40">
+                      {formatWhen(post.createdAt)}
+                    </span>
+                  </div>
+                  <h2 className="font-sans font-black uppercase tracking-tight text-xl">
+                    {post.title || post.content.slice(0, 80)}
+                  </h2>
+                  {post.title && (
+                    <p className="font-sans text-sm text-black/60 line-clamp-2">
+                      {post.content}
+                    </p>
+                  )}
+                  <p className="tricho-caps text-[10px] text-black/40">
+                    {post.author.name || "Member"} · {post._count.comments} replies
+                  </p>
+                </Link>
+              ))}
+            </div>
 
-          {/* Member Directory - Peers */}
-          <Card className="rounded-none border-black/5 shadow-none group cursor-pointer hover:bg-gray-50 transition-colors h-full flex flex-col">
-            <CardHeader className="p-8 pb-4">
-              <div className="flex justify-between items-start mb-6">
-                <Users className="h-6 w-6" />
-                <span className="vogue-caps text-[10px] bg-black text-white px-2 py-1">Peer Access</span>
-              </div>
-              <CardTitle className="text-3xl vogue-title uppercase">Peer Connect</CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 pt-0 flex-grow">
-              <p className="font-serif text-gray-500 mb-8 leading-relaxed">
-                Connect with other members, find collaboration partners, and manage your private profile.
+            <aside className="space-y-4">
+              <p className="font-sans text-sm text-black/60">
+                {SPACES.find((s) => s.id === space)?.blurb}
               </p>
-              <div className="mt-auto pt-8 border-t border-black/5 flex items-center justify-between">
-                <span className="vogue-caps text-xs">Browse Registry</span>
-                <ArrowRight className="h-4 w-4 transform group-hover:translate-x-2 transition-transform" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Community Guidelines Footer */}
-        <div className="mt-32 max-w-2xl mx-auto text-center">
-          <hr className="border-black/10 mb-12" />
-          <h4 className="vogue-caps text-xs mb-4">A Note on Discourse</h4>
-          <p className="font-serif italic text-gray-400 text-sm leading-loose">
-            The Trichollective is built on trust and evidence. All communications 
-            must remain ethical, professional, and supportive of the collective's 
-            vision for better hair and scalp care.
-          </p>
-        </div>
+              <form action={createPost} className="border border-black/10 bg-white/50 p-5 space-y-4">
+                <p className="tricho-caps text-[10px]">New thread</p>
+                <input type="hidden" name="space" value={space} />
+                <input
+                  name="title"
+                  placeholder="Title"
+                  className="w-full h-11 px-3 bg-white/70 border border-black/15 text-sm outline-none"
+                />
+                <select
+                  name="category"
+                  className="w-full h-11 px-3 bg-white/70 border border-black/15 text-sm outline-none"
+                  defaultValue="discussion"
+                >
+                  <option value="discussion">Discussion</option>
+                  <option value="referral">Referral</option>
+                  <option value="resource">Resource</option>
+                </select>
+                <textarea
+                  name="content"
+                  required
+                  minLength={2}
+                  rows={5}
+                  placeholder="What do you want the room to weigh in on?"
+                  className="w-full p-3 bg-white/70 border border-black/15 text-sm outline-none resize-y"
+                />
+                <Button
+                  type="submit"
+                  className="tricho-caps w-full rounded-none bg-black text-[#D1D0CB] h-12"
+                >
+                  Post
+                </Button>
+              </form>
+            </aside>
+          </div>
+        )}
       </div>
     </div>
   );

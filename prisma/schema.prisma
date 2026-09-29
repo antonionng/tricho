@@ -10,7 +10,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -35,8 +34,9 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
-  profile TrichologistProfile?
-  posts   CommunityPost[]
+  profile  TrichologistProfile?
+  posts    CommunityPost[]
+  comments Comment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -58,14 +58,33 @@ model TrichologistProfile {
 }
 
 model CommunityPost {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  category  String   // "discussion", "referral", "resource"
+  id        String    @id @default(cuid())
+  title     String?
+  content   String    @db.Text
+  category  String
+  space     String    @default("lounge")
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([space, createdAt])
+}
+
+model Comment {
+  id       String        @id @default(cuid())
+  content  String        @db.Text
+  postId   String
+  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
 }
 
 model ExchangeItem {

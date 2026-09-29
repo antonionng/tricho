@@ -136,43 +136,51 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black/10">
-            {/* Individual */}
-            <div className="p-12 flex flex-col items-center text-center space-y-8">
-              <h3 className="tricho-caps text-xl">Individual</h3>
-              <p className="text-4xl font-sans font-black">£4.99<span className="text-base font-medium opacity-60">/month</span></p>
-              <ul className="space-y-4 font-sans font-medium text-black/50 text-sm">
-                <li>The Digital Gazette</li>
-                <li>The Audio Archive</li>
-                <li>Community Access</li>
-                <li>Monthly Zoom Education</li>
-              </ul>
-              <Button variant="outline" className="tricho-caps rounded-none border-black hover:bg-black hover:text-[#D1D0CB] transition-all px-8 py-6 h-auto">Register</Button>
-            </div>
-
-            {/* Trichologist */}
+            {/* Membership - flagship */}
             <div className="p-12 flex flex-col items-center text-center space-y-8 bg-black text-[#D1D0CB] md:scale-105 shadow-2xl z-10 border border-white/10">
-              <h3 className="tricho-caps text-xl">Trichologist</h3>
-              <p className="text-4xl font-sans font-black">£9.99<span className="text-base font-medium opacity-60">/month</span></p>
+              <span className="tricho-caps text-[10px] bg-[#D1D0CB] text-black px-2 py-1">Most Popular</span>
+              <h3 className="tricho-caps text-xl">Membership</h3>
+              <p className="text-5xl font-sans font-black">£12<span className="text-base font-medium opacity-60">/month</span></p>
               <ul className="space-y-4 font-sans font-medium opacity-80 text-sm">
-                <li>All Individual Access</li>
-                <li>25% Off Event Tickets</li>
-                <li>Directory Listing</li>
-                <li>Professional Networking</li>
+                <li>Tricho-AI Clinical Assistant</li>
+                <li>The Gazette + Audio Dispatch</li>
+                <li>The Hub Community</li>
+                <li>Verified Directory Listing</li>
+                <li>Monthly Live Education</li>
               </ul>
-              <Button className="tricho-caps rounded-none bg-[#D1D0CB] text-black px-8 py-6 h-auto hover:bg-white transition-colors">Apply Now</Button>
+              <Button asChild className="tricho-caps rounded-none bg-[#D1D0CB] text-black px-8 py-6 h-auto hover:bg-white transition-colors">
+                <Link href="/join">Become a Member</Link>
+              </Button>
             </div>
 
             {/* Business */}
             <div className="p-12 flex flex-col items-center text-center space-y-8">
               <h3 className="tricho-caps text-xl">Business</h3>
-              <p className="text-2xl font-sans font-black">From £150<span className="text-sm font-medium opacity-60">/month</span></p>
-              <ul className="space-y-4 font-serif text-black/50 text-sm">
-                <li>Circulation Features</li>
-                <li>Registry Exhibition</li>
-                <li>Speaking Opportunities</li>
-                <li>Audio Dispatch Partnerships</li>
+              <p className="text-4xl font-sans font-black">£150<span className="text-base font-medium opacity-60">/month</span></p>
+              <ul className="space-y-4 font-sans font-medium text-black/50 text-sm">
+                <li>Everything in Membership</li>
+                <li>Gazette Feature Monthly</li>
+                <li>Brand Directory Profile</li>
+                <li>Lead Delivery</li>
               </ul>
-              <Button variant="outline" className="tricho-caps rounded-none border-black hover:bg-black hover:text-[#D1D0CB] transition-all px-8 py-6 h-auto">Enquire</Button>
+              <Button asChild variant="outline" className="tricho-caps rounded-none border-black hover:bg-black hover:text-[#D1D0CB] transition-all px-8 py-6 h-auto">
+                <Link href="/join">Choose Business</Link>
+              </Button>
+            </div>
+
+            {/* Business Luxury */}
+            <div className="p-12 flex flex-col items-center text-center space-y-8">
+              <h3 className="tricho-caps text-xl">Business Luxury</h3>
+              <p className="text-4xl font-sans font-black">£3,500<span className="text-base font-medium opacity-60">/year</span></p>
+              <ul className="space-y-4 font-sans font-medium text-black/50 text-sm">
+                <li>Full-page Gazette Feature</li>
+                <li>Exhibition at All Events</li>
+                <li>Summit Speaking Slot</li>
+                <li>2 Event Tickets Included</li>
+              </ul>
+              <Button asChild variant="outline" className="tricho-caps rounded-none border-black hover:bg-black hover:text-[#D1D0CB] transition-all px-8 py-6 h-auto">
+                <Link href="/join">Enquire</Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -359,6 +367,13 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* CTA */}
+            <div className="mt-12 text-center">
+              <Button asChild className="tricho-caps rounded-none bg-[#D1D0CB] text-black hover:bg-white transition-all px-12 py-6 h-auto border-none">
+                <Link href="/members/assistant">Open Tricho-AI</Link>
+              </Button>
             </div>
 
             {/* Disclaimer */}
