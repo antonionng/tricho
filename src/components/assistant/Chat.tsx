@@ -2,25 +2,55 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, Square, Sparkles } from "lucide-react";
+import type { ProfessionId } from "@/config/rooms";
 
-const SUGGESTIONS = [
+const BY_PROFESSION: Record<string, string[]> = {
+  cosmetic: [
+    "Client has traction from tight styles — what should I ask before referring?",
+    "How do I explain shedding with telogen timing without diagnosing?",
+    "When is salon shedding a referral rather than a styling problem?",
+  ],
+  clinical: [
+    "Diffuse thinning over 6 months, normal scalp — how should I structure the consult?",
+    "What red flags would push me to refer a patchy hair loss case urgently?",
+    "Draft a client-education summary for telogen effluvium.",
+  ],
+  medical: [
+    "What should a useful trichology referral letter include?",
+    "Which baseline bloods are reasonable for unexplained shedding?",
+    "Paediatric patchy loss — what belongs with dermatology urgently?",
+  ],
+  brand: [
+    "How should I present a product education session without overclaiming?",
+  ],
+};
+
+const DEFAULT_SUGGESTIONS = [
   "Diffuse thinning over 6 months, normal scalp — how should I structure the consult?",
   "What red flags would push me to refer a patchy hair loss case urgently?",
   "Draft a client-education summary for telogen effluvium.",
-  "Which baseline bloods are reasonable for unexplained shedding?",
 ];
 
-export function AssistantChat() {
+export function AssistantChat({
+  initialPrompt,
+  profession,
+}: {
+  initialPrompt?: string;
+  profession?: ProfessionId | null;
+}) {
   const { messages, sendMessage, status, stop, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/ai/chat" }),
   });
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const started = useRef(false);
 
   const busy = status === "submitted" || status === "streaming";
+  const suggestions =
+    (profession && BY_PROFESSION[profession]) || DEFAULT_SUGGESTIONS;
 
   const submit = (text: string) => {
     const value = text.trim();
@@ -28,36 +58,45 @@ export function AssistantChat() {
     sendMessage({ text: value });
     setInput("");
     requestAnimationFrame(() =>
-      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
+      scrollRef.current?.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      })
     );
   };
 
+  useEffect(() => {
+    if (initialPrompt && !started.current && messages.length === 0) {
+      started.current = true;
+      submit(initialPrompt);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] bg-[#D1D0CB]">
-      {/* Messages */}
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-background">
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 max-w-3xl py-12 space-y-8">
+        <div className="container mx-auto px-4 max-w-3xl py-10 space-y-6">
           {messages.length === 0 && (
-            <div className="space-y-10 pt-8">
-              <div className="space-y-4">
-                <span className="tricho-caps text-black/40 flex items-center gap-2">
-                  <Sparkles className="h-3 w-3" /> Clinical Intelligence
-                </span>
-                <h1 className="text-5xl md:text-6xl tricho-title uppercase tracking-tighter">
-                  Tricho-AI
+            <div className="space-y-8 pt-4">
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-primary inline-flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" /> Tricho-AI
+                </p>
+                <h1 className="font-display text-4xl font-semibold tracking-tight">
+                  Clinical decision support
                 </h1>
-                <p className="font-sans font-medium text-black/60 max-w-xl">
-                  Your clinical decision-support assistant. Structure consults, surface
-                  red flags, and draft client summaries. Educational support — not a
-                  diagnosis.
+                <p className="text-muted-foreground max-w-xl leading-relaxed">
+                  Structure consults, surface red flags, and draft notes. Educational support —
+                  not a diagnosis.
                 </p>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
-                {SUGGESTIONS.map((s) => (
+                {suggestions.map((s) => (
                   <button
                     key={s}
                     onClick={() => submit(s)}
-                    className="text-left p-4 border border-black/10 bg-white/40 hover:bg-white/70 transition-colors text-sm font-sans font-medium text-black/70"
+                    className="text-left p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/30 transition-colors text-sm text-foreground/80"
                   >
                     {s}
                   </button>
@@ -68,14 +107,14 @@ export function AssistantChat() {
 
           {messages.map((message) => (
             <div key={message.id} className="space-y-2">
-              <span className="tricho-caps text-[10px] text-black/40">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 {message.role === "user" ? "You" : "Tricho-AI"}
               </span>
               <div
                 className={
                   message.role === "user"
-                    ? "bg-black text-[#D1D0CB] p-5 font-sans text-sm leading-relaxed whitespace-pre-wrap"
-                    : "bg-white/50 border border-black/10 p-5 font-sans text-sm leading-relaxed whitespace-pre-wrap"
+                    ? "rounded-2xl bg-primary text-primary-foreground p-4 text-sm leading-relaxed whitespace-pre-wrap"
+                    : "rounded-2xl border border-border/50 bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap shadow-sm"
                 }
               >
                 {message.parts.map((part, i) =>
@@ -86,13 +125,11 @@ export function AssistantChat() {
           ))}
 
           {status === "submitted" && (
-            <div className="tricho-caps text-[10px] text-black/40 animate-pulse">
-              Tricho-AI is thinking…
-            </div>
+            <p className="text-sm text-muted-foreground animate-pulse">Thinking…</p>
           )}
 
           {error && (
-            <div className="border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700">
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
               {error.message?.includes("not configured")
                 ? "Tricho-AI isn't connected yet. Add an AI Gateway key to enable live responses."
                 : "Something went wrong. Please try again."}
@@ -101,15 +138,14 @@ export function AssistantChat() {
         </div>
       </div>
 
-      {/* Composer */}
-      <div className="border-t border-black/10 bg-[#D1D0CB]">
-        <div className="container mx-auto px-4 max-w-3xl py-6">
+      <div className="border-t border-border/50 bg-background">
+        <div className="container mx-auto px-4 max-w-3xl py-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               submit(input);
             }}
-            className="flex items-end gap-3 bg-white/60 border border-black/15 p-3"
+            className="flex items-end gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm"
           >
             <textarea
               value={input}
@@ -122,13 +158,13 @@ export function AssistantChat() {
               }}
               rows={1}
               placeholder="Describe the case or ask a clinical question…"
-              className="flex-1 resize-none bg-transparent outline-none text-sm font-sans py-2 px-1 max-h-40"
+              className="flex-1 resize-none bg-transparent outline-none text-sm py-2 px-1 max-h-40"
             />
             {busy ? (
               <Button
                 type="button"
                 onClick={() => stop()}
-                className="rounded-none bg-black text-[#D1D0CB] h-10 w-10 p-0 shrink-0"
+                className="rounded-full h-10 w-10 p-0 shrink-0"
               >
                 <Square className="h-4 w-4" />
               </Button>
@@ -136,15 +172,15 @@ export function AssistantChat() {
               <Button
                 type="submit"
                 disabled={!input.trim()}
-                className="rounded-none bg-black text-[#D1D0CB] h-10 w-10 p-0 shrink-0 disabled:opacity-30"
+                className="rounded-full h-10 w-10 p-0 shrink-0 disabled:opacity-30"
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
             )}
           </form>
-          <p className="tricho-caps text-[9px] text-black/30 mt-3 text-center">
-            Tricho-AI provides educational decision support only — not a diagnosis or a
-            substitute for clinical judgement.
+          <p className="text-[11px] text-muted-foreground mt-3 text-center">
+            Educational decision support only — not a diagnosis or a substitute for clinical
+            judgement.
           </p>
         </div>
       </div>

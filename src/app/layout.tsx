@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { DM_Sans, Fraunces, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
 });
 
@@ -13,14 +18,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Trichollective | Trichology & Hair Professional Collective",
-  description: "A membership-based events, media, and education platform connecting consumers, professionals, and brands across cosmetic, clinical, and medical hair & scalp care.",
+  title: "Trichollective | Cosmetic, clinical & medical hair professionals",
+  description:
+    "The year-round home of the Trichollective network: find a professional, join the community, and use Tricho-AI in practice.",
 };
 
 export default function RootLayout({
@@ -31,10 +32,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased font-sans bg-white text-black overflow-x-hidden`}
+        className={`${dmSans.variable} ${fraunces.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <Navbar />
-        <main>{children}</main>
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

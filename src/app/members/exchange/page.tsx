@@ -18,7 +18,7 @@ export default async function ExchangePage() {
     return (
       <Paywall
         title="The Exchange"
-        body="Member resources, services, and brand tools live here."
+        body="Member resources and brand tools live here."
       />
     );
   }
@@ -29,85 +29,82 @@ export default async function ExchangePage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#D1D0CB] pt-16 pb-24">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <header className="mb-14 space-y-4 max-w-2xl">
-          <span className="tricho-caps text-black/40">Curated discovery</span>
-          <h1 className="text-6xl md:text-8xl tricho-title uppercase tracking-tighter">
-            The Exchange
-          </h1>
-          <p className="font-sans font-medium text-black/60">
-            Tools, referral services, and exhibitor resources shared inside the membership.
-          </p>
-        </header>
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <header className="mb-10 space-y-2 max-w-2xl">
+        <p className="text-sm font-medium text-primary uppercase tracking-wide">Exchange</p>
+        <h1 className="font-display text-4xl font-semibold tracking-tight">Shared tools</h1>
+        <p className="text-muted-foreground">
+          Resources, referral services, and exhibitor tools from inside the membership.
+        </p>
+      </header>
 
-        <div className="grid lg:grid-cols-[1fr_320px] gap-10">
-          <div className="grid sm:grid-cols-2 gap-4">
-            {items.length === 0 && (
-              <div className="sm:col-span-2 border border-black/10 bg-white/40 p-10">
-                <p className="font-sans text-black/70">
-                  No resources listed yet. Propose the first one.
-                </p>
+      <div className="grid lg:grid-cols-[1fr_320px] gap-8">
+        <div className="grid sm:grid-cols-2 gap-4">
+          {items.length === 0 && (
+            <div className="sm:col-span-2 rounded-2xl border border-border/50 bg-card p-8 text-sm text-muted-foreground">
+              No resources listed yet.
+            </div>
+          )}
+          {items.map((item) => (
+            <article
+              key={item.id}
+              className="rounded-2xl border border-border/50 bg-card p-6 space-y-3 shadow-sm"
+            >
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {TYPE_LABEL[item.type] || item.type}
+                </span>
+                {item.link && (
+                  <a href={item.link} target="_blank" rel="noreferrer" aria-label="Open link">
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                  </a>
+                )}
               </div>
-            )}
-            {items.map((item) => (
-              <article key={item.id} className="border border-black/10 bg-white/40 p-8 space-y-4">
-                <div className="flex justify-between items-start">
-                  <span className="tricho-caps text-[10px] text-black/40">
-                    {TYPE_LABEL[item.type] || item.type}
-                  </span>
-                  {item.link && (
-                    <a href={item.link} target="_blank" rel="noreferrer" aria-label="Open link">
-                      <ArrowUpRight className="h-4 w-4" />
-                    </a>
-                  )}
-                </div>
-                <h2 className="text-2xl tricho-title uppercase leading-tight">{item.title}</h2>
-                <p className="font-sans text-sm text-black/70 leading-relaxed">{item.description}</p>
-              </article>
-            ))}
-          </div>
-
-          <form
-            action={proposeExchangeItem}
-            className="border border-black bg-black text-[#D1D0CB] p-6 space-y-4 h-fit"
-          >
-            <p className="tricho-caps text-[10px] opacity-60">Propose an entry</p>
-            <h2 className="text-3xl tricho-title uppercase">List a resource</h2>
-            <input
-              name="title"
-              required
-              placeholder="Title"
-              className="w-full h-11 px-3 bg-transparent border border-white/20 text-sm outline-none"
-            />
-            <select
-              name="type"
-              className="w-full h-11 px-3 bg-black border border-white/20 text-sm outline-none"
-              defaultValue="professional_service"
-            >
-              <option value="professional_service">Professional service</option>
-              <option value="brand_tool">Brand resource</option>
-            </select>
-            <textarea
-              name="description"
-              required
-              rows={4}
-              placeholder="What it is, and who it is for."
-              className="w-full p-3 bg-transparent border border-white/20 text-sm outline-none resize-y"
-            />
-            <input
-              name="link"
-              placeholder="Link (optional)"
-              className="w-full h-11 px-3 bg-transparent border border-white/20 text-sm outline-none"
-            />
-            <Button
-              type="submit"
-              className="tricho-caps w-full rounded-none bg-[#D1D0CB] text-black h-12"
-            >
-              Publish
-            </Button>
-          </form>
+              <h2 className="text-xl font-semibold tracking-tight">{item.title}</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+            </article>
+          ))}
         </div>
+
+        <form
+          action={proposeExchangeItem}
+          className="rounded-2xl bg-primary text-primary-foreground p-6 space-y-4 h-fit"
+        >
+          <p className="text-xs uppercase tracking-wide opacity-70">Propose an entry</p>
+          <h2 className="font-display text-2xl font-semibold">List a resource</h2>
+          <input
+            name="title"
+            required
+            placeholder="Title"
+            className="w-full h-11 px-3 rounded-xl bg-primary-foreground/10 border border-primary-foreground/20 text-sm outline-none placeholder:text-primary-foreground/50"
+          />
+          <select
+            name="type"
+            defaultValue="professional_service"
+            className="w-full h-11 px-3 rounded-xl bg-primary border border-primary-foreground/20 text-sm"
+          >
+            <option value="professional_service">Professional service</option>
+            <option value="brand_tool">Brand resource</option>
+          </select>
+          <textarea
+            name="description"
+            required
+            rows={4}
+            placeholder="What it is, and who it is for."
+            className="w-full p-3 rounded-xl bg-primary-foreground/10 border border-primary-foreground/20 text-sm outline-none resize-y placeholder:text-primary-foreground/50"
+          />
+          <input
+            name="link"
+            placeholder="Link (optional)"
+            className="w-full h-11 px-3 rounded-xl bg-primary-foreground/10 border border-primary-foreground/20 text-sm outline-none placeholder:text-primary-foreground/50"
+          />
+          <Button
+            type="submit"
+            className="w-full rounded-full h-11 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+          >
+            Publish
+          </Button>
+        </form>
       </div>
     </div>
   );

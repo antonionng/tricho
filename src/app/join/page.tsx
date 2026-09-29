@@ -1,19 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { subscriptionTiers } from "@/config/subscriptions";
 import { Check } from "lucide-react";
+import { subscriptionTiers } from "@/config/subscriptions";
+import { PROFESSIONS } from "@/config/rooms";
 
 export default function JoinPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [profession, setProfession] = useState("clinical");
 
   const onSubscribe = async (tierId: string, priceId: string | undefined) => {
     setError(null);
     if (!priceId) {
       setError(
-        "This plan isn't connected to Stripe yet. Add the price ID to your environment to enable checkout."
+        "This plan is not connected to Stripe yet. Add price IDs in your environment, or use Dev Login locally to explore the portal."
       );
       return;
     }
@@ -21,20 +24,16 @@ export default function JoinPage() {
       setLoading(tierId);
       const response = await fetch("/api/checkout", {
         method: "POST",
-        body: JSON.stringify({ priceId }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId, profession }),
       });
-
       if (response.status === 401) {
-        window.location.href = "/login";
+        window.location.href = `/login?next=${encodeURIComponent(`/join?tier=${tierId}`)}`;
         return;
       }
-
       const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setError("Could not start checkout. Please try again.");
-      }
+      if (data.url) window.location.href = data.url;
+      else setError("Could not start checkout. Please try again.");
     } catch {
       setError("Could not start checkout. Please try again.");
     } finally {
@@ -43,86 +42,95 @@ export default function JoinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#D1D0CB] py-24 px-4">
-      <div className="container mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
-          <span className="tricho-caps text-black/40">Membership</span>
-          <h1 className="text-5xl md:text-7xl tricho-title uppercase tracking-tighter">
-            Join the Collective
+    <div className="min-h-screen bg-background py-16 px-4">
+      <div className="container mx-auto max-w-5xl">
+        <div className="text-center max-w-2xl mx-auto mb-14 space-y-4">
+          <p className="text-sm font-medium text-primary uppercase tracking-wide">Membership</p>
+          <h1 className="font-display text-4xl md:text-6xl font-semibold tracking-tight">
+            Join the collective
           </h1>
-          <p className="font-sans font-medium text-black/60">
-            One membership for every hair & scalp professional. Plus partnership tiers
-            for brands and exhibitors.
+          <p className="text-muted-foreground leading-relaxed">
+            One membership for cosmetic, clinical, and medical professionals. Private rooms,
+            Learn, a directory listing, and Tricho-AI. Brands use the Business plans below.
+          </p>
+        </div>
+
+        <div className="max-w-md mx-auto mb-10 rounded-2xl border border-border/50 bg-card p-5 space-y-3">
+          <label className="text-sm font-medium">I am joining as</label>
+          <select
+            value={profession}
+            onChange={(e) => setProfession(e.target.value)}
+            className="w-full h-11 rounded-xl border border-border/60 bg-background px-3 text-sm"
+          >
+            {PROFESSIONS.filter((p) => p.id !== "brand").map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label} — {p.blurb}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            This chooses your home room and Tricho-AI prompts. It does not change the £12 price.{" "}
+            Only want to be found?{" "}
+            <Link href="/directory/list" className="text-primary hover:underline">
+              List for free
+            </Link>
           </p>
         </div>
 
         {error && (
-          <div className="max-w-2xl mx-auto mb-12 border border-black/20 bg-white/50 p-4 text-sm text-center font-sans">
+          <p className="max-w-2xl mx-auto mb-8 rounded-xl border border-border bg-card px-4 py-3 text-sm text-center">
             {error}
-          </div>
+          </p>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
-          {subscriptionTiers.map((tier) => {
-            const featured = tier.featured;
-            return (
-              <div
-                key={tier.id}
+        <div id="business" className="grid md:grid-cols-3 gap-5 items-start">
+          {subscriptionTiers.map((tier) => (
+            <div
+              key={tier.id}
+              className={
+                tier.featured
+                  ? "rounded-2xl bg-primary text-primary-foreground p-8 flex flex-col shadow-lg md:scale-[1.02]"
+                  : "rounded-2xl border border-border/50 bg-card p-8 flex flex-col shadow-sm"
+              }
+            >
+              {tier.featured && (
+                <span className="text-xs font-medium bg-primary-foreground/15 rounded-full px-3 py-1 w-fit mb-3">
+                  Most popular
+                </span>
+              )}
+              <h3 className="text-lg font-semibold">{tier.name}</h3>
+              <p className="mt-2 text-3xl font-semibold">
+                £{tier.price}
+                <span className="text-sm font-normal opacity-70">/{tier.interval}</span>
+              </p>
+              {tier.tagline && (
+                <p className={`text-sm mt-2 ${tier.featured ? "opacity-80" : "text-muted-foreground"}`}>
+                  {tier.tagline}
+                </p>
+              )}
+              <ul className="mt-6 space-y-3 flex-grow">
+                {tier.features.map((feature) => (
+                  <li key={feature} className="flex gap-2 text-sm">
+                    <Check className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span className={tier.featured ? "opacity-95" : "text-foreground/80"}>
+                      {feature}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                onClick={() => onSubscribe(tier.id, tier.stripePriceId)}
+                disabled={loading !== null}
                 className={
-                  featured
-                    ? "p-10 bg-black text-[#D1D0CB] lg:scale-105 shadow-2xl flex flex-col"
-                    : "p-10 border border-black/10 bg-white/30 flex flex-col"
+                  tier.featured
+                    ? "mt-8 rounded-full h-12 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                    : "mt-8 rounded-full h-12"
                 }
               >
-                <div className="space-y-2 mb-8">
-                  {featured && (
-                    <span className="tricho-caps text-[10px] bg-[#D1D0CB] text-black px-2 py-1 w-fit inline-block">
-                      Most Popular
-                    </span>
-                  )}
-                  <h3 className="tricho-caps text-lg">{tier.name}</h3>
-                  <p className="text-4xl font-sans font-black">
-                    £{tier.price}
-                    <span className="text-base font-medium opacity-60">
-                      /{tier.interval}
-                    </span>
-                  </p>
-                  {tier.tagline && (
-                    <p
-                      className={`font-sans text-xs ${featured ? "opacity-60" : "text-black/50"}`}
-                    >
-                      {tier.tagline}
-                    </p>
-                  )}
-                </div>
-
-                <ul className="space-y-3 flex-grow mb-10">
-                  {tier.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm font-sans">
-                      <Check
-                        className={`h-4 w-4 mt-0.5 shrink-0 ${featured ? "text-[#D1D0CB]" : "text-black"}`}
-                      />
-                      <span className={featured ? "opacity-90" : "text-black/70"}>
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  onClick={() => onSubscribe(tier.id, tier.stripePriceId)}
-                  disabled={loading !== null}
-                  className={
-                    featured
-                      ? "tricho-caps w-full rounded-none bg-[#D1D0CB] text-black hover:bg-white h-14"
-                      : "tricho-caps w-full rounded-none bg-black text-[#D1D0CB] hover:bg-black/80 h-14"
-                  }
-                >
-                  {loading === tier.id ? "Loading…" : `Choose ${tier.name}`}
-                </Button>
-              </div>
-            );
-          })}
+                {loading === tier.id ? "Loading…" : `Choose ${tier.name}`}
+              </Button>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,6 +11,26 @@ enum UserRole {
   trichologist
   business
   admin
+}
+
+enum Profession {
+  cosmetic
+  clinical
+  medical
+  brand
+}
+
+enum ListingStatus {
+  pending
+  listed
+  rejected
+  draft
+  invited
+}
+
+enum ListingKind {
+  listed
+  member
 }
 
 model User {
@@ -34,38 +48,68 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
-  profile  TrichologistProfile?
-  posts    CommunityPost[]
-  comments Comment[]
+  profile   TrichologistProfile?
+  posts     CommunityPost[]
+  comments  Comment[]
+  reactions Reaction[]
+  listings  DirectoryListing[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TrichologistProfile {
-  id             String @id @default(cuid())
-  userId         String @unique
-  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String      @id @default(cuid())
+  userId         String      @unique
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio            String?
   specialization String?
   location       String?
   website        String?
   phone          String?
-  isVerified     Boolean @default(false)
+  profession     Profession?
+  listingStatus  ListingStatus @default(draft)
+  isVerified     Boolean     @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model DirectoryListing {
+  id             String        @id @default(cuid())
+  name           String
+  email          String
+  profession     Profession
+  city           String
+  specialization String?
+  bio            String?       @db.Text
+  website        String?
+  phone          String?
+  status         ListingStatus @default(pending)
+  kind           ListingKind   @default(listed)
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
+  reviewNote     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+}
+
 model CommunityPost {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   title     String?
-  content   String    @db.Text
+  content   String     @db.Text
   category  String
-  space     String    @default("lounge")
+  space     String     @default("everyone")
+  pinned    Boolean    @default(false)
   authorId  String
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  Comment[]
+  reactions Reaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -87,14 +131,44 @@ model Comment {
   @@index([postId])
 }
 
+model Reaction {
+  id     String        @id @default(cuid())
+  type   String        @default("useful")
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model EducationPiece {
+  id        String   @id @default(cuid())
+  title     String
+  summary   String
+  body      String   @db.Text
+  audience  String
+  kind      String
+  published Boolean  @default(true)
+  sortOrder Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([audience, sortOrder])
+}
+
 model ExchangeItem {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
-  description String   @db.Text
+  description String  @db.Text
   link        String?
-  type        String   // "brand_tool", "professional_service"
-  businessId  String?  // Optional relation to a business user in the future
-  
+  type        String
+  businessId  String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -111,12 +185,12 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
- 
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   @@id([provider, providerAccountId])
 }
 
@@ -125,7 +199,7 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -134,6 +208,6 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
- 
+
   @@id([identifier, token])
 }
