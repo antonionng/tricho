@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/seo";
 import { guides } from "@/content/guides";
-import { editions } from "@/content/gazette";
+import { allEditions } from "@/content/gazette";
 import { glossary } from "@/content/glossary";
 import { courses } from "@/content/courses";
 import { CHAPTERS } from "@/content/chapters";
@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticPaths.map((p) => ({ url: absoluteUrl(p), lastModified: now, changeFrequency: "weekly" as const, priority: p === "/" ? 1 : 0.7 })),
     ...guides.map((g) => ({ url: absoluteUrl(`/guides/${g.slug}`), lastModified: new Date(g.updated ?? g.published), priority: 0.8 })),
-    ...editions.map((e) => ({ url: absoluteUrl(`/trichozette/${e.slug}`), lastModified: new Date(e.published), priority: 0.7 })),
+    ...allEditions.map((e) => ({ url: absoluteUrl(`/trichozette/${e.slug}`), lastModified: new Date(e.published), priority: 0.7 })),
     ...glossary.map((t) => ({ url: absoluteUrl(`/glossary/${t.slug}`), priority: 0.5 })),
     ...courses.map((c) => ({ url: absoluteUrl(`/courses/${c.slug}`), priority: 0.7 })),
     ...CHAPTERS.map((c) => ({ url: absoluteUrl(`/chapters/${c.slug}`), priority: 0.6 })),

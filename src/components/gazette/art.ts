@@ -27,6 +27,7 @@ const COVERS: Record<string, string> = {
 
 /** The cover portrait for an edition. */
 export function coverImage(e: Edition): BrandImage {
+  if (e.coverImageKey && /^ed\d+$/.test(e.coverImageKey)) return images[e.coverImageKey];
   const picked = COVERS[e.slug] as ImageKey | undefined;
   if (picked && picked in images) return images[picked];
   return images[POOL[hash(e.slug) % POOL.length]];

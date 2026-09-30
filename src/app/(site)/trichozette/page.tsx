@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { NewsletterForm } from "@/components/site/NewsletterForm";
 import { Cover } from "@/components/gazette/Cover";
 import { TiltCover } from "@/components/gazette/TiltCover";
-import { editionLabel, editions, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { archive, editionLabel, editions, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
 import { getMemberContext } from "@/lib/member";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -19,8 +20,8 @@ export const metadata = pageMetadata({
     og: { title: "Trichozette", sub: "Interactive editions for hair professionals.", eyebrow: "The Trichollective magazine", img: images.hairDetail.src, variant: "cover" },
 });
 
-export default async function GazettePage({ searchParams }: { searchParams: Promise<{ theme?: string }> }) {
-  const { theme } = await searchParams;
+export default async function GazettePage({ searchParams }: { searchParams: Promise<{ theme?: string; field?: string }> }) {
+  const { theme, field } = await searchParams;
   const ctx = await getMemberContext();
   const [latest, ...rest] = editions;
   const themes = [...new Set(editions.map((e) => e.theme))];
@@ -121,6 +122,8 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
           </ul>
         </Container>
       </Section>
+
+      <ArchiveShelf archive={archive} field={field} member={ctx.allowed} />
 
       {!ctx.allowed && (
         <section className="bg-ink text-paper">

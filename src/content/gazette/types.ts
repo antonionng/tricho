@@ -52,6 +52,14 @@ export type Edition = {
   published: string;
   /** Pages after the automatic cover and contents pages. */
   pages: Page[];
+  /** "current" editions are the monthly magazine; "archive" editions look back at a past year. */
+  series?: "current" | "archive";
+  /** For archive editions: the year covered, e.g. "2023". */
+  period?: string;
+  /** For archive editions: which field it covers, or "review" for the year overall. */
+  focus?: "review" | "cosmetic" | "clinical" | "medical";
+  /** Sources behind every factual claim. Shown at the end of the edition. */
+  sources?: { label: string; url: string }[];
 };
 
 /** Pages the public may read before the membership gate (after cover + contents). */

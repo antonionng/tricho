@@ -305,7 +305,10 @@ export function ScrollEdition({
   }, []);
 
   const cover = coverImage(edition);
-  const published = new Date(edition.published).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const published =
+    edition.series === "archive"
+      ? `Looking back at ${edition.period}`
+      : new Date(edition.published).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   let articles = 0;
 
   return (
@@ -405,6 +408,26 @@ export function ScrollEdition({
         const n = page.kind === "article" ? articles++ : articles;
         return <Section key={i} edition={edition} page={page} index={i} articleCount={n} />;
       })}
+
+      {/* Sources */}
+      {edition.sources && edition.sources.length > 0 && (
+        <section className="border-t border-black bg-[#fbfaf7] px-5 py-16 sm:px-10">
+          <div className="mx-auto max-w-4xl">
+            <p className="mag-caps text-[10px] text-black/60">Sources</p>
+            <p className="mag-didone mt-3 text-[28px] italic">Every fact in this edition, and where it came from.</p>
+            <ol className="mt-8 columns-1 gap-10 md:columns-2">
+              {edition.sources.map((src, i) => (
+                <li key={src.url + i} className="mb-3 break-inside-avoid mag-serif text-[14px] leading-snug">
+                  <span className="mag-didone mr-2 italic text-black/50">{i + 1}.</span>
+                  <a href={src.url} target="_blank" rel="noopener nofollow" className="underline decoration-black/25 underline-offset-4 hover:decoration-black">
+                    {src.label}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      )}
 
       {/* Members gate */}
       {lockedTitles.length > 0 && (

@@ -6,6 +6,8 @@ import {
   editionBySlug,
   editionLabel,
   editions,
+  archive,
+  allEditions,
   pageKicker,
   pageTitle,
   PUBLIC_PREVIEW_PAGES,
@@ -15,7 +17,7 @@ import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
 export function generateStaticParams() {
-  return editions.map((e) => ({ slug: e.slug }));
+  return allEditions.map((e) => ({ slug: e.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -47,7 +49,10 @@ export default async function EditionPage({ params }: { params: Promise<{ slug: 
   return (
     <>
       <EditionView
-        nextEdition={editions[(editions.indexOf(edition) + 1) % editions.length]}
+        nextEdition={(() => {
+          const list = edition.series === "archive" ? archive : editions;
+          return list[(list.findIndex((e) => e.slug === edition.slug) + 1) % list.length];
+        })()}
         edition={{ ...edition, pages: visiblePages }}
         lockedTitles={lockedTitles}
         signedIn={!!ctx.session}

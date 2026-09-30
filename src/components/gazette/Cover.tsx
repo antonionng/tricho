@@ -33,7 +33,10 @@ export function Cover({
 }) {
   const image = coverImage(edition);
   const coverLines = lines ?? coverLinesFor(edition);
-  const published = new Date(edition.published).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const published =
+    edition.series === "archive"
+      ? `Looking back at ${edition.period}`
+      : new Date(edition.published).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
   return (
     <div

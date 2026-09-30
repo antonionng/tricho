@@ -6,7 +6,8 @@ import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberP
 import { longDate, monthYear } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
-import { editions as library } from "@/content/gazette";
+import { editions as library, archive } from "@/content/gazette";
+import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
 import { Cover } from "@/components/gazette/Cover";
 
 export const metadata = { title: "Trichozette" };
@@ -58,6 +59,10 @@ export default async function GazettePage() {
           ))}
         </ul>
       </section>
+
+      <div className="-mx-4 mb-14 sm:-mx-6 lg:-mx-10">
+        <ArchiveShelf archive={archive} member />
+      </div>
 
       {editions.length === 0 ? (
         <EmptyState title="This month's pieces are being prepared." body="New articles, including Karley's column, appear here as soon as they're published." />

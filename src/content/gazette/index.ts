@@ -1,5 +1,9 @@
 import { editionsA } from "./editions-a";
 import { editionsB } from "./editions-b";
+import { archive2023 } from "./archive-2023";
+import { archive2024 } from "./archive-2024";
+import { archive2025 } from "./archive-2025";
+import { archive2026 } from "./archive-2026";
 import { news, type NewsItem } from "@/content/news";
 import type { Edition, Page } from "./types";
 
@@ -54,13 +58,21 @@ function withNews(e: Edition): Edition {
   return { ...e, pages };
 }
 
-/** All editions, newest first. */
+/** The monthly magazine, newest first. */
 export const editions: Edition[] = [...editionsA, ...editionsB]
   .map(withNews)
   .sort((a, b) => b.number - a.number);
 
+/** "Four years in review": look-back editions for 2023–2026, newest year first. */
+export const archive: Edition[] = [...archive2026, ...archive2025, ...archive2024, ...archive2023]
+  .map((e) => ({ ...e, series: "archive" as const }))
+  .sort((a, b) => (b.period ?? "").localeCompare(a.period ?? "") || a.number - b.number);
+
+/** Everything readable, for lookups, the sitemap and static params. */
+export const allEditions: Edition[] = [...editions, ...archive];
+
 export function editionBySlug(slug: string) {
-  return editions.find((e) => e.slug === slug);
+  return allEditions.find((e) => e.slug === slug);
 }
 
 export function pageTitle(p: Page): string {
@@ -92,4 +104,14 @@ export function pageKicker(p: Page): string {
   }
 }
 
-export const editionLabel = (e: Pick<Edition, "number">) => `Edition ${String(e.number).padStart(2, "0")}`;
+export const editionLabel = (e: Pick<Edition, "number" | "series" | "period" | "focus">) =>
+  e.series === "archive"
+    ? `${e.period} · ${FOCUS_LABEL[e.focus ?? "review"]}`
+    : `Edition ${String(e.number).padStart(2, "0")}`;
+
+export const FOCUS_LABEL = {
+  review: "Year in review",
+  cosmetic: "Cosmetic",
+  clinical: "Clinical",
+  medical: "Medical",
+} as const;

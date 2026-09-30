@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { editions, pageTitle, PUBLIC_PREVIEW_PAGES, type Block, type Page } from "./gazette";
+import { allEditions, archive, editions, pageTitle, PUBLIC_PREVIEW_PAGES, type Block, type Page } from "./gazette";
 import { guides } from "./guides";
 import { glossary } from "./glossary";
 import { news } from "./news";
@@ -13,8 +13,8 @@ function blocksOf(p: Page): Block[] {
 
 describe("Trichozette editions", () => {
   it("have unique slugs and numbers", () => {
-    expect(new Set(editions.map((e) => e.slug)).size).toBe(editions.length);
-    expect(new Set(editions.map((e) => e.number)).size).toBe(editions.length);
+    expect(new Set(allEditions.map((e) => e.slug)).size).toBe(allEditions.length);
+    expect(new Set(allEditions.map((e) => e.number)).size).toBe(allEditions.length);
   });
 
   it("each have a public preview followed by the three perspectives", () => {
@@ -27,7 +27,7 @@ describe("Trichozette editions", () => {
   });
 
   it("have answerable quizzes", () => {
-    for (const e of editions)
+    for (const e of allEditions)
       for (const p of e.pages)
         for (const b of blocksOf(p))
           if (b.type === "quiz") {
@@ -37,13 +37,37 @@ describe("Trichozette editions", () => {
   });
 
   it("every page has a title", () => {
-    for (const e of editions) for (const p of e.pages) expect(pageTitle(p).length).toBeGreaterThan(2);
+    for (const e of allEditions) for (const p of e.pages) expect(pageTitle(p).length).toBeGreaterThan(2);
+  });
+});
+
+describe("the four-year archive", () => {
+  it("covers 2023 to 2026, four editions a year, one per field", () => {
+    for (const year of ["2023", "2024", "2025", "2026"]) {
+      const focus = archive.filter((e) => e.period === year).map((e) => e.focus).sort();
+      expect(focus, year).toEqual(["clinical", "cosmetic", "medical", "review"]);
+    }
+  });
+
+  it("sources every edition with real links", () => {
+    for (const e of archive) {
+      expect(e.sources?.length ?? 0, e.slug).toBeGreaterThanOrEqual(4);
+      for (const s of e.sources ?? []) expect(s.url, e.slug).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("is published now, not backdated", () => {
+    for (const e of archive) expect(e.published, e.slug).toBe("2026-09-30");
+  });
+
+  it("gives every edition enough to read behind the gate", () => {
+    for (const e of archive) expect(e.pages.length, e.slug).toBeGreaterThan(PUBLIC_PREVIEW_PAGES + 2);
   });
 });
 
 describe("copy quality", () => {
   const texts: [string, string][] = [
-    ...editions.flatMap((e) => e.pages.flatMap((p) => blocksOf(p).map((b) => [e.slug, JSON.stringify(b)] as [string, string]))),
+    ...allEditions.flatMap((e) => e.pages.flatMap((p) => blocksOf(p).map((b) => [e.slug, JSON.stringify(b)] as [string, string]))),
     ...guides.map((g) => [g.slug, JSON.stringify(g)] as [string, string]),
     ...glossary.map((t) => [t.slug, JSON.stringify(t)] as [string, string]),
   ];
