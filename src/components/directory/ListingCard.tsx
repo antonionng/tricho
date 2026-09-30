@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, MapPin } from "lucide-react";
 import type { PublicListing } from "@/lib/directory";
-import { isClaimed } from "@/lib/directory";
+import { hasFullProfile } from "@/lib/directory";
 import { DISCIPLINES } from "@/content/disciplines";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +30,7 @@ export function Monogram({ name, className }: { name: string; className?: string
 }
 
 export function ListingCard({ listing }: { listing: PublicListing }) {
-  const claimed = isClaimed(listing);
+  const claimed = hasFullProfile(listing);
   const discipline = DISCIPLINES.find((d) => d.id === listing.profession);
   const href = listing.slug ? `/directory/p/${listing.slug}` : undefined;
 

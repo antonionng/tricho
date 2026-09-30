@@ -12,6 +12,8 @@ import {
   Mail,
   MessagesSquare,
   Users,
+  UserPlus,
+  Handshake,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,8 @@ const items = [
   { href: "/studio/month", label: "This month", icon: CalendarRange },
   { href: "/studio/members", label: "Members", icon: Users },
   { href: "/studio/listings", label: "Listings", icon: ListChecks },
+  { href: "/studio/invite", label: "Invite", icon: UserPlus },
+  { href: "/studio/partners", label: "Partners", icon: Handshake },
   { href: "/studio/community", label: "Community", icon: MessagesSquare },
   { href: "/studio/events", label: "Events", icon: CalendarDays },
   { href: "/studio/subscribers", label: "Subscribers", icon: Mail },

@@ -8,13 +8,14 @@ import { images } from "@/content/images";
 
 export const metadata = pageMetadata({
   title: "Create a free account",
-  description: `Create a free Trichollective account to add your founding directory listing for ${FREE_LISTING_DAYS} days, read Trichozette and follow the news for hair and scalp professionals.`,
+  description: `Create a free Trichollective account: a directory listing that stays free, your full profile and enquiries free for ${FREE_LISTING_DAYS} days, and Trichozette for hair and scalp professionals.`,
   path: "/signup",
   og: { title: "Create a free account", sub: "and join the founding directory.", eyebrow: "Trichollective Online", img: images.ed12.src, variant: "photo" },
 });
 
 const FREE = [
-  `A founding listing in the public directory, free for ${FREE_LISTING_DAYS} days`,
+  "A listing in the public directory that stays free for as long as you like",
+  `Your full profile, with photo, services and website, and enquiries sent straight to you, free for your first ${FREE_LISTING_DAYS} days`,
   "The opening features of every Trichozette edition, including four years in review",
   "News for practitioners, with a source for every story",
   "First notice of conferences, masterclasses and case rounds",

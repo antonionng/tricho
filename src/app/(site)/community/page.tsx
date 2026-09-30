@@ -38,7 +38,7 @@ export const metadata = pageMetadata({
   description:
     "See how Trichollective members get a second opinion in the private Case Room, refer clients across cosmetic, clinical and medical practice, and learn in monthly masterclasses and case rounds.",
   path: "/community",
-    og: { title: "Bring your hardest cases to colleagues", sub: "who have seen them before.", eyebrow: "The community", img: images.community.src, variant: "photo" },
+    og: { title: "Bring your hardest cases to colleagues", sub: "who have seen them before.", eyebrow: "The community", img: images.ed14.src, variant: "photo" },
 });
 
 const spaces = [
@@ -216,11 +216,11 @@ export default function CommunityPage() {
       <section id="referrals" className="relative scroll-mt-20 overflow-hidden bg-ink text-paper">
         <div className="absolute inset-y-0 right-0 hidden w-[45%] opacity-60 lg:block">
           <Image
-            src={img(images.clinic, 1400)}
+            src={img(images.ed14, 1400)}
             alt=""
             fill
             sizes="45vw"
-            className="object-cover"
+            className="mag-bw object-cover object-top"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/60 to-transparent" />
         </div>

@@ -6,7 +6,7 @@ import { Profession, ListingKind, ListingStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
-import { uniqueListingSlug } from "@/lib/directory";
+import { hasFullProfile, uniqueListingSlug } from "@/lib/directory";
 import { LISTING_COUNTRIES } from "@/content/chapters";
 import { getMemberContext } from "@/lib/member";
 
@@ -55,11 +55,44 @@ export async function submitFreeListing(formData: FormData) {
   const country = (LISTING_COUNTRIES as readonly string[]).includes(countryRaw) ? countryRaw : "Ireland";
   const source = clean(formData.get("source"), 40).toLowerCase().replace(/[^a-z0-9_-]/g, "") || null;
 
+  // An invitation link carries a private token. When it matches a held
+  // invitation, that row becomes the listing instead of a new one being made.
+  const inviteToken = clean(formData.get("invite"), 64);
+  const invited = inviteToken
+    ? await prisma.directoryListing.findFirst({
+        where: { inviteToken, status: ListingStatus.invited },
+        select: { id: true, slug: true },
+      })
+    : null;
+  const fail = (code: string) =>
+    redirect(`/directory/list?error=${code}${invited ? `&invite=${encodeURIComponent(inviteToken)}` : ""}`);
+
   if (name.length < 2 || !email.includes("@") || city.length < 2) {
-    redirect("/directory/list?error=missing");
+    fail("missing");
   }
   if (!PROFESSIONS.has(profession)) {
-    redirect("/directory/list?error=profession");
+    fail("profession");
+  }
+
+  if (invited) {
+    await prisma.directoryListing.update({
+      where: { id: invited.id },
+      data: {
+        ...(invited.slug ? {} : { slug: await uniqueListingSlug(name, city) }),
+        name,
+        email,
+        profession: profession as Profession,
+        city,
+        specialization,
+        bio,
+        website,
+        phone,
+        country,
+        status: ListingStatus.pending,
+        inviteToken: null,
+      },
+    });
+    redirect("/directory/list?submitted=1");
   }
 
   const existing = await prisma.directoryListing.findFirst({
@@ -139,11 +172,20 @@ export async function publishMemberListing(formData: FormData) {
     redirect("/members/profile?error=city");
   }
 
-  // Full-profile fields are a Professional feature. They are only touched when
-  // the form sends them, so older forms keep their existing behaviour.
+  // Paid members own a full profile. Free accounts get it during their 90-day trial and can
+  // then edit only the basic fields; their listing is never marked as claimed.
   const ctx = await getMemberContext();
-  const fullProfile = ctx.professional
+  const paid = ctx.professional;
+  const existing = await prisma.directoryListing.findFirst({
+    where: { email: session.user.email.toLowerCase() },
+    orderBy: { createdAt: "desc" },
+  });
+  const inTrial = !!existing && existing.status === ListingStatus.listed && hasFullProfile(existing);
+  const canEditFull = paid || inTrial;
+  const fullProfile = canEditFull
     ? {
+        bio,
+        website,
         ...(formData.has("headline") ? { headline: clean(formData.get("headline"), 140) || null } : {}),
         ...(formData.has("services") ? { services: parseServices(formData.get("services")) } : {}),
         ...(formData.has("photoUrl") ? { photoUrl: parsePhotoUrl(formData.get("photoUrl")) } : {}),
@@ -166,7 +208,7 @@ export async function publishMemberListing(formData: FormData) {
       website,
       phone,
       profession: profession as Profession,
-      listingStatus: ListingStatus.listed,
+      listingStatus: paid ? ListingStatus.listed : ListingStatus.pending,
     },
     update: {
       bio,
@@ -175,51 +217,36 @@ export async function publishMemberListing(formData: FormData) {
       website,
       phone,
       profession: profession as Profession,
-      listingStatus: ListingStatus.listed,
     },
   });
 
-  const existing = await prisma.directoryListing.findFirst({
-    where: { email: session.user.email.toLowerCase() },
-    orderBy: { createdAt: "desc" },
-  });
+  const basic = { name, profession: profession as Profession, city, specialization, phone, userId: session.user.id };
 
   if (existing) {
     await prisma.directoryListing.update({
       where: { id: existing.id },
       data: {
         ...(existing.slug ? {} : { slug: await uniqueListingSlug(name, city) }),
-        name,
-        profession: profession as Profession,
-        city,
-        specialization,
-        bio,
-        website,
-        phone,
-        status: ListingStatus.listed,
-        kind: ListingKind.member,
-        userId: session.user.id,
-        reviewedAt: new Date(),
+        ...basic,
         ...fullProfile,
+        ...(paid
+          ? { status: ListingStatus.listed, kind: ListingKind.member, reviewedAt: new Date(), inviteToken: null }
+          : existing.status === ListingStatus.invited
+            ? { status: ListingStatus.pending, inviteToken: null }
+            : {}),
       },
     });
   } else {
     await prisma.directoryListing.create({
       data: {
         slug: await uniqueListingSlug(name, city),
-        name,
         email: session.user.email.toLowerCase(),
-        profession: profession as Profession,
-        city,
-        specialization,
-        bio,
-        website,
-        phone,
-        status: ListingStatus.listed,
-        kind: ListingKind.member,
-        userId: session.user.id,
-        reviewedAt: new Date(),
+        ...basic,
         ...fullProfile,
+        // Free listings are checked by a person first; approval starts the 90-day trial.
+        status: paid ? ListingStatus.listed : ListingStatus.pending,
+        kind: paid ? ListingKind.member : ListingKind.listed,
+        ...(paid ? { reviewedAt: new Date() } : {}),
       },
     });
   }

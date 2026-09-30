@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     title: `${chapter.city} chapter: hair and scalp professionals in ${chapter.city}`,
     description: `${chapter.blurb} Find ${site.name} members to refer to in the ${chapter.city} chapter, and hear about local meetups first.`,
     path: `/chapters/${chapter.slug}`,
-    og: { title: chapter.city, sub: "Meet the colleagues you will refer to.", eyebrow: chapter.country, img: chapter.imageKey ? images[chapter.imageKey].src : images.community.src, variant: "photo" },
+    og: { title: chapter.city, sub: "Meet the colleagues you will refer to.", eyebrow: chapter.country, img: chapter.imageKey ? images[chapter.imageKey].src : images.ed25.src, variant: "photo" },
   });
 }
 

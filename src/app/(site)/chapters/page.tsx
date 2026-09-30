@@ -14,7 +14,7 @@ export const metadata = pageMetadata({
   title: "Chapters in Ireland, the UK, Europe and the United States",
   description: `Every ${site.name} member belongs to a country chapter: Ireland, England, Scotland, Wales, Europe or the United States. Find hair and scalp professionals near you to refer to and learn from.`,
   path: "/chapters",
-    og: { title: "Find colleagues to refer to in your own country,", sub: "online and at local meetups.", eyebrow: "Community", img: images.dublin.src, variant: "photo" },
+    og: { title: "Find colleagues to refer to in your own country,", sub: "online and at local meetups.", eyebrow: "Community", img: images.ed25.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -38,7 +38,8 @@ export default function ChaptersPage() {
             the colleagues you&apos;ll refer clients to.
           </p>
         }
-        image={images.community}
+        image={images.ed25}
+        imageClassName="mag-bw object-top"
         crumbs={crumbs}
       />
 

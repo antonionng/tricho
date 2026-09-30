@@ -80,6 +80,7 @@ export async function publishDraft(id: string): Promise<PublishResult> {
           content: draft.body,
           category: "discussion",
           space: normalizeSpace(str(payload.space) || "lounge"),
+          ...(payload.pin === true ? { pinned: true } : {}),
           // Agent posts go out as the team account so they read as the collective, not as one person.
           authorId: system.id,
         },

@@ -61,12 +61,12 @@ export default function JournalPage() {
             >
               <div className="relative aspect-[4/3] overflow-hidden lg:col-span-7 lg:aspect-auto lg:min-h-[460px]">
                 <Image
-                  src={img(images.hairDetail, 1400)}
-                  alt={images.hairDetail.alt}
+                  src={img(images.ed18, 1400)}
+                  alt={images.ed18.alt}
                   fill
                   priority
                   sizes="(min-width: 1024px) 58vw, 100vw"
-                  className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                  className="mag-bw object-cover object-top transition-transform duration-700 group-hover:scale-[1.02]"
                 />
               </div>
               <div className="flex flex-col gap-5 p-7 sm:p-10 lg:col-span-5 lg:justify-center">

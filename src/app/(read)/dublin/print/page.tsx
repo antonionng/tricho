@@ -38,7 +38,7 @@ export default function DublinPrint() {
             <div className="flex flex-col gap-[3mm]">
               <p className="label text-[3.4mm] text-ink">Scan to join today</p>
               <p className="max-w-[95mm] text-[4.2mm] leading-snug text-ink-2">
-                Add your free founding listing for {FREE_LISTING_DAYS} days, become a founding member, and read Trichozette.
+                Add your free listing, with your full profile and enquiries free for {FREE_LISTING_DAYS} days, become a founding member, and read Trichozette.
               </p>
               <p className="label mt-[2mm] text-[3mm] text-muted-foreground">{shortUrl}</p>
             </div>
@@ -58,7 +58,7 @@ export default function DublinPrint() {
                 Put your practice in the founding directory today.
               </p>
               <p className="text-[4mm] leading-snug text-ink-2">
-                It&apos;s free for {FREE_LISTING_DAYS} days and takes two minutes. Founding members also keep their founding price for as long as they stay.
+                It&apos;s free and takes two minutes, and your full profile with enquiries is free for {FREE_LISTING_DAYS} days. Founding members keep their founding price for as long as they stay.
               </p>
               <p className="label text-[3mm] text-muted-foreground">
                 {site.launch.title} · {shortUrl}

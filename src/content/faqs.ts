@@ -26,15 +26,15 @@ export const homeFaqs: Faq[] = [
 export const pricingFaqs: Faq[] = [
   {
     q: "Is the directory listing really free?",
-    a: "Yes, for your first 90 days. Any cosmetic, clinical or medical professional who signs up early gets a basic founding listing: your name, discipline, city and specialism. To stay listed after 90 days, or to claim it now and turn it into a full profile with a photo, services, your website and enquiries sent to you, choose the Professional plan.",
+    a: "Yes. A basic listing with your name, discipline, town and specialism stays free for as long as you like. For your first 90 days you also get the full profile, with your photo, services and website, and enquiries from the public are sent straight to you. To keep the full profile and your enquiries after that, choose the Professional plan.",
   },
   {
     q: "What happens after 90 days?",
-    a: "We email you well before the end, at 60 and 80 days, so nothing comes as a surprise. If you choose a plan, your listing carries on with its founding badge. If you don't, it is hidden from the directory. Nothing is deleted, and you can bring it back at any time by joining.",
+    a: "We email you 30 days and 10 days before your full-profile trial ends, so nothing comes as a surprise. If you join as a Professional member, your full profile and enquiries carry on with your founding badge. If you don't, your listing stays in the directory as a basic listing, and any new enquiries wait safely for you until you join.",
   },
   {
     q: "What happens when someone contacts me through a free listing?",
-    a: "We keep their message safe and email you to say it is waiting. Claim your listing with the Professional plan and every waiting enquiry is delivered to you straight away.",
+    a: "During your first 90 days, their message comes straight to your inbox. After that, we keep new messages safe and email you to say they are waiting, and joining the Professional plan delivers every waiting enquiry to you straight away.",
   },
   {
     q: "Which plan should I choose?",

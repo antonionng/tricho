@@ -18,7 +18,7 @@ Open `https://<domain>/dublin/print` and print at 100% on A4. Page one is the po
 
 > This year, many of you have joined us at our conferences at Whittlebury, and on Monday we take that conversation online. Trichollective is a private home for everyone who cares for hair and scalp, whether you work in the treatment room, the trichology clinic or the consulting room.
 >
-> If you practise, you can add yourself to the founding directory today, and it's free for your first 90 days. If you'd like to join the community itself, founding members keep their founding price for as long as they stay.
+> If you practise, you can add yourself to the founding directory today. A basic listing is free for good, and your full profile, with enquiries sent straight to you, is free for your first 90 days. If you'd like to join the community itself, founding members keep their founding price for as long as they stay.
 >
 > This group isn't going anywhere, and I'll keep sharing here. The new space is where the deeper conversations, the case discussions and Trichozette, our magazine, will live.
 >
@@ -30,7 +30,7 @@ Open `https://<domain>/dublin/print` and print at 100% on A4. Page one is the po
 
 ## Stage screen (between talks)
 
-> Scan the code to add your practice to the founding directory, free for 90 days, or to join as a founding member today.
+> Scan the code to add your practice to the founding directory for free, with your full profile free for 90 days, or to join as a founding member today.
 
 ## Welcome email for everyone who signs up on the day
 
@@ -52,7 +52,7 @@ Open `https://<domain>/dublin/print` and print at 100% on A4. Page one is the po
 
 > Thank you for leaving your email with us in Dublin. We promised to send you everything you need to catch up, so here it is.
 >
-> The founding directory is open, and you can add your practice free for your first 90 days at https://<domain>/directory/list?utm_source=email. Founding membership is still open too, and founding members keep their founding price for as long as they stay: https://<domain>/founding?utm_source=email.
+> The founding directory is open. A basic listing is free for good, and your full profile with enquiries is free for your first 90 days, at https://<domain>/directory/list?utm_source=email. Founding membership is still open too, and founding members keep their founding price for as long as they stay: https://<domain>/founding?utm_source=email.
 >
 > If you'd rather take your time, the opening pages of every Trichozette edition are free to read at https://<domain>/trichozette.
 >

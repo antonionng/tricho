@@ -1,93 +1,156 @@
 import Image from "next/image";
-import {
-  BarChart3,
-  Briefcase,
-  Building2,
-  Gift,
-  ShieldCheck,
-  Tag,
-  Users,
-} from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Check, Mic, Package, ShieldCheck, Tag, Users } from "lucide-react";
 import { ArrowLink, Container, Eyebrow, Section, SectionHeader } from "@/components/site/primitives";
-import { CheckoutButton } from "@/components/site/CheckoutButton";
+import { Button } from "@/components/ui/button";
+import { PartnerApplicationForm } from "@/components/site/PartnerApplicationForm";
 import { images, img } from "@/content/images";
-import { tierById } from "@/config/subscriptions";
+import { premiumBusiness, tierById } from "@/config/subscriptions";
+import { foundingPartnerPlacesLeft } from "@/lib/founding";
+import { PARTNER_CATEGORIES } from "@/lib/partners";
 import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
+import { BusinessCheckout, BusinessPrice } from "./BusinessCheckout";
+
+export const dynamic = "force-dynamic";
 
 const business = tierById("business")!;
+const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 
 export const metadata = pageMetadata({
-  title: `Business membership for clinics, salons and brands`,
-  description: `Business membership puts your clinic, salon, brand or device company in front of hair and scalp professionals across Ireland and the UK. A business page, five seats, job posts and a perks listing for £${business.price} a month.`,
+  title: `Business and Premium Business for clinics, salons and brands`,
+  description: `Two ways to reach hair and scalp professionals across Ireland and the UK. Business gives you a directory page, five seats, job posts and a member perk for £${business.price} a month. Premium Business adds a masterclass, Trichozette features and conference presence, by application, with at most two partners in each category.`,
   path: "/for-business",
-    og: { title: "Put your clinic or brand in front of hair and scalp professionals.", eyebrow: "For business", img: images.products.src, variant: "photo" },
+  og: { title: "Reach the practitioners who recommend products to their clients.", eyebrow: "For business", img: images.ed16.src, variant: "photo" },
 });
 
 const who = [
   { t: "Clinics", d: "Hair loss, trichology and dermatology clinics that want to be known to the practitioners who refer, and to hire trained staff." },
   { t: "Salons and head spas", d: "Teams who want shared CPD, peer support and a directory page where clients looking for scalp care can find them." },
   { t: "Brands", d: "Haircare and scalp care brands that want their products known to the professionals who recommend them." },
-  { t: "Device makers", d: "Makers of scalp cameras, LED and UV devices who want to reach the salons and clinics deciding what to buy." },
+  { t: "Device makers and educators", d: "Makers of scalp cameras, LED and UV devices, and training providers, who want to reach the salons and clinics deciding what to buy and learn." },
 ];
 
-const includes = [
-  { icon: Building2, t: "A business page", d: "Be found by the public with a directory page for your clinic, salon or company, showing your services, locations and team." },
-  { icon: Users, t: "Five Professional seats", d: "Five members of your team get full Professional membership, including the Case Room and the referral network." },
-  { icon: Briefcase, t: "Job posts", d: "Advertise roles on the jobs board, where they are seen by practitioners already trained in hair and scalp care." },
-  { icon: Gift, t: "A listing in member perks", d: "Offer members a discount or trial, and appear in the perks directory every member can browse." },
-  { icon: BarChart3, t: "A quarterly engagement summary", d: "See each quarter how members viewed and responded to your page, perks and posts, in a plain report." },
+type Cell = boolean | string;
+
+/** Every Business and Premium Business benefit, side by side. */
+const comparison: { group: string; rows: { label: string; business: Cell; premium: Cell }[] }[] = [
+  {
+    group: "Your presence",
+    rows: [
+      { label: "A business page in the public directory", business: true, premium: true },
+      { label: "A partner page on Trichollective and the Premium partner badge", business: false, premium: true },
+    ],
+  },
+  {
+    group: "Your team",
+    rows: [
+      { label: "Professional membership for five of your team, including the Case Room and CPD", business: true, premium: true },
+      { label: "Job posts on the jobs board, seen by trained hair and scalp professionals", business: true, premium: true },
+    ],
+  },
+  {
+    group: "Education and editorial",
+    rows: [
+      { label: "One sponsored masterclass a year, reviewed so that it teaches rather than sells, kept in the member library", business: false, premium: true },
+      { label: "The option to co-develop a course with a certificate, subject to clinical review", business: false, premium: true },
+      { label: "One labelled partner feature in Trichozette a year", business: false, premium: true },
+      { label: "“Supported by” on one Trichozette edition each quarter", business: false, premium: true },
+      { label: "Two newsletter spotlights a year", business: false, premium: true },
+    ],
+  },
+  {
+    group: "Conferences",
+    rows: [
+      { label: "A talk or demo slot at one conference a year", business: false, premium: true },
+      { label: "Sampling or a delegate-bag insert at the other conferences", business: false, premium: true },
+    ],
+  },
+  {
+    group: "Perks, trials and reporting",
+    rows: [
+      { label: "A member perk offered to every member", business: true, premium: "With tracked redemptions" },
+      { label: "An opt-in product trial panel with structured feedback", business: false, premium: true },
+      { label: "A report on how members engaged with you", business: "Quarterly summary", premium: "Quarterly, covering content and perks" },
+    ],
+  },
 ];
 
-export default function ForBusinessPage() {
+function CellValue({ value }: { value: Cell }) {
+  if (value === true)
+    return (
+      <>
+        <Check className="mx-auto h-4 w-4" aria-hidden />
+        <span className="sr-only">Included</span>
+      </>
+    );
+  if (value === false)
+    return (
+      <>
+        <span aria-hidden className="text-mute">
+          –
+        </span>
+        <span className="sr-only">Not included</span>
+      </>
+    );
+  return <span className="text-sm text-ink-2">{value}</span>;
+}
+
+export default async function ForBusinessPage() {
+  const partnerLeft = await foundingPartnerPlacesLeft();
+  const foundingOpen = partnerLeft > 0;
+  const premiumPrice = foundingOpen ? premiumBusiness.foundingAnnualPrice : premiumBusiness.annualPrice;
+
   return (
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-paper">
-        <div className="absolute inset-y-0 right-0 hidden w-[50%] lg:block">
+        <div className="absolute inset-y-0 right-0 hidden w-[46%] lg:block">
           <Image
-            src={img(images.products, 1600)}
-            alt={images.products.alt}
+            src={img(images.ed16, 1600)}
+            alt={images.ed16.alt}
             fill
             priority
-            sizes="50vw"
-            className="object-cover"
+            sizes="46vw"
+            className="mag-bw object-cover"
           />
           <div className="absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-paper to-transparent" />
         </div>
         <Container className="relative">
           <div className="grid min-h-[75svh] items-center py-16 lg:grid-cols-12 lg:py-24">
-            <div className="flex flex-col gap-8 animate-rise lg:col-span-6">
-              <Eyebrow rule>Business membership</Eyebrow>
+            <div className="flex flex-col gap-8 animate-rise lg:col-span-7">
+              <Eyebrow rule>For business</Eyebrow>
               <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
-                Put your clinic, salon or brand in front
+                Reach the practitioners
                 <br />
-                <span className="text-fade">of the professionals who refer and recommend.</span>
+                <span className="text-fade">who recommend products to their clients.</span>
               </h1>
               <p className="lede max-w-xl">
-                Business membership gives you a directory page, five Professional seats for your team, job
-                posts and a place in member perks, among cosmetic, clinical and medical hair and scalp
-                professionals across Ireland and the UK.
+                Choose Business to give your clinic, salon or brand a directory page, five Professional seats, job
+                posts and a member perk. Choose Premium Business to teach, write and exhibit alongside the
+                profession as one of a small number of partners.
               </p>
-              <div className="flex flex-col gap-3">
-                <CheckoutButton plan="business" size="xl" wrapperClassName="items-start">
-                  Join for £{business.price} a month
-                </CheckoutButton>
-                <p className="text-sm text-muted-foreground">
-                  Or £{business.annualPrice} a year, two months free. Cancel anytime.
-                </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="xl">
+                  <Link href="#compare">
+                    Compare the two tiers <ArrowRight />
+                  </Link>
+                </Button>
+                <Button asChild size="xl" variant="outline">
+                  <Link href="#apply">Apply to become a partner</Link>
+                </Button>
               </div>
             </div>
           </div>
         </Container>
         <div className="relative aspect-[4/3] w-full lg:hidden">
           <Image
-            src={img(images.products, 1000)}
-            alt={images.products.alt}
+            src={img(images.ed16, 1000)}
+            alt={images.ed16.alt}
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            className="mag-bw object-cover"
           />
         </div>
       </section>
@@ -111,43 +174,222 @@ export default function ForBusinessPage() {
         </Container>
       </Section>
 
-      {/* What's included */}
-      <Section>
+      {/* The two tiers */}
+      <Section id="compare">
         <Container>
-          <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
-            <div className="flex flex-col gap-8 lg:col-span-5">
-              <SectionHeader
-                eyebrow="What's included"
-                title="Your whole team gets peer review, CPD and referrals,"
-                fade="and your business gets a page of its own."
-                body={`Business membership is £${business.price} a month, or £${business.annualPrice} a year. There is no contract and no setup fee.`}
-              />
-              <div className="relative hidden aspect-[4/5] overflow-hidden rounded-3xl lg:block">
-                <Image
-                  src={img(images.clinic, 900)}
-                  alt={images.clinic.alt}
-                  fill
-                  sizes="40vw"
-                  className="object-cover"
-                />
+          <SectionHeader
+            eyebrow="Two tiers"
+            title="Join Business today,"
+            fade="or apply to become a Premium partner."
+            body="Business is open to any clinic, salon or brand, and you can join straight away. Premium Business is by application, because we only take two partners in each product category."
+          />
+
+          <div className="mt-14 grid gap-5 lg:grid-cols-2">
+            <article className="flex min-w-0 flex-col gap-6 rounded-3xl border border-rule bg-card p-7 md:p-9">
+              <header className="flex flex-col gap-3">
+                <p className="label text-muted-foreground">{business.name}</p>
+                <BusinessPrice />
+              </header>
+              <p className="text-[15px] leading-relaxed text-ink-2">{business.summary}</p>
+              <ul className="flex flex-col gap-3 text-[15px]">
+                {business.features.map((f) => (
+                  <li key={f} className="flex gap-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[15px] text-ink-2">
+                Need more than five seats?{" "}
+                <a href={`mailto:${site.contactEmail}?subject=Business%20seats`} className="text-ink underline underline-offset-4">
+                  Talk to us
+                </a>{" "}
+                and we will set up the right number for your team.
+              </p>
+              <div className="mt-auto pt-2">
+                <BusinessCheckout showNote={false} />
               </div>
-            </div>
-            <ul className="flex flex-col divide-y divide-rule border-y border-rule lg:col-span-7">
-              {includes.map(({ icon: Icon, t, d }) => (
-                <li key={t} className="flex gap-5 py-6">
-                  <Icon className="mt-0.5 h-6 w-6 shrink-0 stroke-[1.25]" aria-hidden />
-                  <div>
-                    <p className="text-lg font-medium text-ink">{t}</p>
-                    <p className="mt-1 text-[15px] leading-relaxed text-ink-2">{d}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            </article>
+
+            <article className="flex min-w-0 flex-col gap-6 rounded-3xl border border-ink bg-ink p-7 text-paper md:p-9">
+              <header className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="label text-paper/70">{premiumBusiness.name}</p>
+                  <span className="rounded-full bg-paper px-2.5 py-1 text-[11px] font-medium leading-none text-ink">
+                    By application
+                  </span>
+                </div>
+                <p className="display text-5xl">
+                  {gbp(premiumPrice)}
+                  <span className="text-base font-normal opacity-60">/yr</span>
+                </p>
+                <p className="text-sm text-paper/70">
+                  {foundingOpen ? (
+                    <>
+                      Founding partner price for the first {premiumBusiness.foundingPlaces} partners, kept while you
+                      stay.{" "}
+                      <s aria-label={`Standard price ${gbp(premiumBusiness.annualPrice)} a year`}>
+                        {gbp(premiumBusiness.annualPrice)}
+                      </s>{" "}
+                      a year after that. Invoiced yearly.
+                    </>
+                  ) : (
+                    "Invoiced yearly once your application is approved."
+                  )}
+                </p>
+                {foundingOpen && (
+                  <p className="label text-paper">
+                    {partnerLeft} of {premiumBusiness.foundingPlaces} founding partner places remaining
+                  </p>
+                )}
+              </header>
+              <p className="text-[15px] leading-relaxed text-paper/80">{premiumBusiness.summary}</p>
+              <ul className="flex flex-col gap-3 text-[15px]">
+                {premiumBusiness.features.map((f) => (
+                  <li key={f} className="flex gap-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-auto pt-2">
+                <Button asChild size="lg" variant="paper">
+                  <Link href="#apply">
+                    Apply to become a partner <ArrowRight />
+                  </Link>
+                </Button>
+              </div>
+            </article>
           </div>
         </Container>
       </Section>
 
-      {/* Member protection */}
+      {/* Benefits side by side */}
+      <Section tone="paper-2" id="benefits">
+        <Container>
+          <SectionHeader
+            eyebrow="Benefits compared"
+            title="See what each tier gives you,"
+            fade="line by line."
+            body="Premium Business includes everything in Business, then adds education, editorial and conference placements."
+          />
+          <div className="mt-12 overflow-hidden rounded-3xl border border-rule bg-paper">
+            <table className="w-full border-collapse text-left text-[15px]">
+              <caption className="sr-only">Business compared with Premium Business</caption>
+              <thead>
+                <tr className="border-b border-ink">
+                  <th scope="col" className="py-4 pr-3 pl-4 font-normal sm:pl-5">
+                    <span className="sr-only">Benefit</span>
+                  </th>
+                  <th scope="col" className="label w-[4.75rem] px-2 py-4 text-center font-medium text-muted-foreground sm:w-40">
+                    Business
+                  </th>
+                  <th scope="col" className="label w-[4.75rem] bg-card px-2 py-4 text-center font-medium text-ink sm:w-48">
+                    Premium
+                  </th>
+                </tr>
+              </thead>
+              {comparison.map((g) => (
+                <tbody key={g.group}>
+                  <tr>
+                    <th scope="colgroup" colSpan={3} className="px-5 pt-8 pb-3 text-left font-semibold text-ink">
+                      {g.group}
+                    </th>
+                  </tr>
+                  {g.rows.map((r) => (
+                    <tr key={r.label} className="border-t border-rule">
+                      <th scope="row" className="py-4 pr-3 pl-4 font-normal text-ink-2 sm:pl-5">
+                        {r.label}
+                      </th>
+                      <td className="px-2 py-4 text-center">
+                        <CellValue value={r.business} />
+                      </td>
+                      <td className="bg-card px-2 py-4 text-center">
+                        <CellValue value={r.premium} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+              <tbody>
+                <tr className="border-t border-ink">
+                  <th scope="row" className="py-4 pr-3 pl-5 font-medium text-ink">
+                    Price
+                  </th>
+                  <td className="px-2 py-4 text-center text-sm text-ink-2">
+                    {gbp(business.price)} a month or {gbp(business.annualPrice)} a year
+                  </td>
+                  <td className="bg-card px-2 py-4 text-center text-sm text-ink-2">
+                    {foundingOpen
+                      ? `${gbp(premiumBusiness.foundingAnnualPrice)} a year for founding partners, then ${gbp(premiumBusiness.annualPrice)}`
+                      : `${gbp(premiumBusiness.annualPrice)} a year`}
+                  </td>
+                </tr>
+                <tr className="border-t border-rule">
+                  <th scope="row" className="py-4 pr-3 pl-5 font-medium text-ink">
+                    How you join
+                  </th>
+                  <td className="px-2 py-4 text-center text-sm text-ink-2">Online, straight away</td>
+                  <td className="bg-card px-2 py-4 text-center text-sm text-ink-2">By application, approved by hand</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">Prices include VAT where applicable.</p>
+        </Container>
+      </Section>
+
+      {/* Conference presence, framed honestly */}
+      <Section>
+        <Container>
+          <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
+            <div className="relative hidden aspect-[4/5] overflow-hidden rounded-3xl lg:col-span-5 lg:block">
+              <Image
+                src={img(images.ed15, 900)}
+                alt={images.ed15.alt}
+                fill
+                sizes="(min-width: 1024px) 40vw, 100vw"
+                className="mag-bw object-cover"
+              />
+            </div>
+            <div className="flex flex-col gap-8 lg:col-span-7">
+              <SectionHeader
+                eyebrow="Conference presence"
+                title="Our conferences are small on purpose,"
+                fade="so every conversation counts."
+              />
+              <div className="prose-tricho">
+                <p>
+                  Each Trichollective conference averages about 50 practitioners, and every one of them works with
+                  hair and scalp clients. You will not meet thousands of people. You will meet the trichologists,
+                  clinicians and salon owners who decide what to use and what to recommend.
+                </p>
+                <p>
+                  That is why Premium Business includes one talk or demo slot a year rather than a stand at every
+                  event. One well-prepared session in front of the right room does more than repeating the same
+                  pitch, and sampling or a delegate-bag insert at the other conferences keeps your products in
+                  practitioners&apos; hands all year.
+                </p>
+              </div>
+              <ul className="grid gap-5 sm:grid-cols-3">
+                {[
+                  { icon: Users, t: "About 50 per event", d: "Highly targeted practitioners, not general visitors." },
+                  { icon: Mic, t: "One talk or demo a year", d: "Time to teach properly, with questions from the room." },
+                  { icon: Package, t: "Sampling at the others", d: "Or a delegate-bag insert, so you stay present." },
+                ].map(({ icon: Icon, t, d }) => (
+                  <li key={t} className="flex flex-col gap-2 border-t border-rule pt-4">
+                    <Icon className="h-5 w-5 stroke-[1.5]" aria-hidden />
+                    <p className="font-medium text-ink">{t}</p>
+                    <p className="text-[15px] leading-relaxed text-ink-2">{d}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Container>
+      </Section>
+
+      {/* Guardrails */}
       <Section tone="ink">
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
@@ -163,65 +405,72 @@ export default function ForBusinessPage() {
             </div>
             <div className="flex flex-col gap-8 lg:col-span-7">
               <p className="text-lg leading-relaxed text-paper/80">
-                Members come to Trichollective for honest conversation with their peers. That is also what
-                makes them worth reaching, so we keep a clear line between the two.
+                Members come to Trichollective for honest conversation with their peers. That is also what makes
+                them worth reaching, so every partnership follows the same rules.
               </p>
               <ul className="flex flex-col divide-y divide-paper/15 border-y border-paper/15">
-                {[
-                  {
-                    icon: ShieldCheck,
-                    t: "Brands don't post in clinical spaces",
-                    d: "The Case Room and the hair loss spaces are for practitioners only. Brand accounts cannot post there.",
-                  },
-                  {
-                    icon: Tag,
-                    t: "Sponsored content is always labelled",
-                    d: "Anything paid for, from a Trichozette feature to a podcast episode, says so plainly.",
-                  },
-                ].map(({ icon: Icon, t, d }) => (
-                  <li key={t} className="flex gap-4 py-5">
-                    <Icon className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
-                    <div>
-                      <p className="font-medium">{t}</p>
-                      <p className="mt-1 text-[15px] text-paper/70">{d}</p>
-                    </div>
-                  </li>
-                ))}
+                {premiumBusiness.guardrails.map((g, i) => {
+                  const Icon = [Users, Tag, ShieldCheck][i] ?? ShieldCheck;
+                  return (
+                    <li key={g} className="flex gap-4 py-5">
+                      <Icon className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
+                      <p className="font-medium">{g}.</p>
+                    </li>
+                  );
+                })}
+                <li className="flex gap-4 py-5">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
+                  <p className="font-medium">Sponsored masterclasses and courses are reviewed so that they teach rather than sell.</p>
+                </li>
               </ul>
             </div>
           </div>
         </Container>
       </Section>
 
-      {/* CTA */}
-      <section className="bg-paper">
-        <Container className="py-24 md:py-32">
-          <div className="flex flex-col items-center gap-8 text-center">
-            <h2 className="display max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
-              Set up your business page
-              <br />
-              <span className="text-fade">and invite your team this week.</span>
-            </h2>
-            <p className="lede max-w-xl">
-              Pay by card through Stripe and we&apos;ll help you set up your business page and invite your
-              team. If it isn&apos;t right for you, we refund your first payment within 14 days.
-            </p>
-            <CheckoutButton plan="business" size="xl" wrapperClassName="items-center">
-              Join for £{business.price} a month
-            </CheckoutButton>
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-8">
-              <ArrowLink href="/partners">Looking to sponsor or partner instead?</ArrowLink>
-              <ArrowLink href="/pricing#business">Compare all plans</ArrowLink>
+      {/* Application */}
+      <Section tone="paper-2" id="apply">
+        <Container>
+          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-6 lg:col-span-4">
+              <SectionHeader
+                eyebrow="Apply"
+                title="Apply to become a partner"
+                fade="and we will reply personally."
+              />
+              <div className="flex flex-col gap-4 text-[15px] leading-relaxed text-ink-2">
+                <p>
+                  We approve every partner by hand. We look at what you sell, who it is for and whether it fits the
+                  people we serve, and we accept at most {premiumBusiness.perCategoryLimit} Premium partners in each
+                  product category.
+                </p>
+                <p>
+                  {foundingOpen
+                    ? `${partnerLeft} of ${premiumBusiness.foundingPlaces} founding partner places remain at ${gbp(premiumBusiness.foundingAnnualPrice)} a year, kept for as long as you stay.`
+                    : `Founding partner places have all been taken. Premium Business is ${gbp(premiumBusiness.annualPrice)} a year.`}
+                </p>
+                <p>
+                  If you would rather start with Business, you can{" "}
+                  <Link href="#compare" className="text-ink underline underline-offset-4">
+                    join online today
+                  </Link>{" "}
+                  and apply for Premium later.
+                </p>
+              </div>
+              <p className="text-[15px] text-ink-2">
+                Prefer email?{" "}
+                <a href={`mailto:${site.contactEmail}`} className="text-ink underline underline-offset-4">
+                  {site.contactEmail}
+                </a>
+              </p>
+              <ArrowLink href="/partners">See our partners</ArrowLink>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Questions first?{" "}
-              <a href={`mailto:${site.contactEmail}`} className="text-ink underline underline-offset-4">
-                {site.contactEmail}
-              </a>
-            </p>
+            <div className="relative lg:col-span-8">
+              <PartnerApplicationForm categories={PARTNER_CATEGORIES} />
+            </div>
           </div>
         </Container>
-      </section>
+      </Section>
 
       <JsonLd
         data={[
@@ -232,12 +481,22 @@ export default function ForBusinessPage() {
             description: business.summary,
             provider: { "@type": "Organization", name: site.name, url: site.url },
             areaServed: ["Ireland", "United Kingdom"],
-            offers: {
-              "@type": "Offer",
-              price: business.price,
-              priceCurrency: "GBP",
-              url: absoluteUrl("/for-business"),
-            },
+            offers: [
+              {
+                "@type": "Offer",
+                name: business.name,
+                price: business.price,
+                priceCurrency: "GBP",
+                url: absoluteUrl("/for-business#compare"),
+              },
+              {
+                "@type": "Offer",
+                name: premiumBusiness.name,
+                price: premiumPrice,
+                priceCurrency: "GBP",
+                url: absoluteUrl("/for-business#apply"),
+              },
+            ],
           },
           breadcrumbLd([
             { name: "Home", path: "/" },

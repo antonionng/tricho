@@ -199,8 +199,104 @@ export const images = {
     credit: "Hadis Safari",
     page: "https://unsplash.com/photos/woman-wearing-black-top-zawAr1FKOMw",
   },
+  ed19: {
+    src: "https://images.unsplash.com/photo-1546801277-c6d8d20ac985",
+    alt: "A woman with long, pale locs wound around her head and across one side of her face, against a black background",
+    credit: "Alyona Grishina",
+    page: "https://unsplash.com/photos/woman-covering-face-with-hair-COYUvcOW1cQ",
+  },
+  ed20: {
+    src: "https://images.unsplash.com/photo-1553094540-086097db42c5",
+    alt: "A young woman with a glossy, blunt bowl cut falling over her eyes, in a white collared shirt",
+    credit: "shayan ramesht",
+    page: "https://unsplash.com/photos/woman-with-cropped-hair-covering-her-face-nQbmW9ij7ds",
+  },
+  ed21: {
+    src: "https://images.unsplash.com/photo-1622529949038-933fd1b4ca3c",
+    alt: "A young woman looking down, her long dark hair falling from a clean centre parting",
+    credit: "Farhang Kokabian",
+    page: "https://unsplash.com/photos/grayscale-photo-of-woman-in-crew-neck-shirt-TV34_5FenYg",
+  },
+  ed22: {
+    src: "https://images.unsplash.com/photo-1625474407789-26b77caff604",
+    alt: "A woman with her eyes closed and her hand at her neck as her shoulder-length hair swings out to one side",
+    credit: "Mahsa Senfi",
+    page: "https://unsplash.com/photos/grayscale-photo-of-woman-in-long-sleeve-shirt-7Wu269qYp3g",
+  },
+  ed23: {
+    src: "https://images.unsplash.com/photo-1672911734337-99b67318a340",
+    alt: "A young Black woman with her braids gathered into a high, sculpted bun, lit from one side",
+    credit: "David Eluwole",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-a-woman-with-a-bun-in-her-hair-fvyhNo_aEwQ",
+  },
+  ed24: {
+    src: "https://images.unsplash.com/photo-1678199606482-71225f650ef9",
+    alt: "A woman with a sharp, platinum blunt bob looking away from the camera",
+    credit: "David Banjo",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-a-woman-with-blonde-hair-8eUWPeZm7eo",
+  },
+  ed25: {
+    src: "https://images.unsplash.com/photo-1700057863843-ee036ae71974",
+    alt: "A smiling woman with short, springy curls and geometric earrings, her hand at her hair",
+    credit: "Alex Sheldon",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-a-woman-with-curly-hair-ft7CC9alJ3E",
+  },
+  ed26: {
+    src: "https://images.unsplash.com/photo-1723246602395-1f395321cab6",
+    alt: "Close portrait of a young Black woman with long locs falling around her face",
+    credit: "VERNY JOY",
+    page: "https://unsplash.com/photos/a-close-up-of-a-person-with-dreadlocks-l-67fvdE8t8",
+  },
+  ed27: {
+    src: "https://images.unsplash.com/photo-1750731909204-b7c409a7e457",
+    alt: "A young Black man with long locs resting his chin on his hands",
+    credit: "Gabriel Ogulu",
+    page: "https://unsplash.com/photos/a-man-with-dreadlocks-poses-for-the-camera-7P-tkw1-VOw",
+  },
+  ed28: {
+    src: "https://images.unsplash.com/photo-1771489465791-00ee339a9c92",
+    alt: "Barbers at work in a busy barbershop, one trimming a seated client's short hair",
+    credit: "Georgi Kalaydzhiev",
+    page: "https://unsplash.com/photos/barber-cutting-hair-of-a-customer-in-a-busy-barbershop-QDV80LO1VUQ",
+  },
+  ed29: {
+    src: "https://images.unsplash.com/photo-1784051766850-4d86c7896ecd",
+    alt: "Profile of a woman with a light, feathered shag haircut and a fringe",
+    credit: "Vitaliy Shevchenko",
+    page: "https://unsplash.com/photos/a-woman-with-short-light-hair-in-profile-NLiFI4dbsz8",
+  },
+  ed30: {
+    src: "https://images.unsplash.com/photo-1785267664892-dbde63103f57",
+    alt: "An older man with tousled grey hair and a white beard looking straight at the camera",
+    credit: "Leroy Skalstad",
+    page: "https://unsplash.com/photos/older-man-with-a-beard-in-black-and-white-9Dfh8yYsZ50",
+  },
+  ed31: {
+    src: "https://images.unsplash.com/photo-1573110137944-d41e470a570a",
+    alt: "A hairdresser's hands holding a section of a man's greying hair between two fingers, scissors ready",
+    credit: "Ksenia Gord",
+    page: "https://unsplash.com/photos/grayscale-photography-of-person-cutting-hair-8n52mCQBvB8",
+  },
+  ed32: {
+    src: "https://images.unsplash.com/photo-1493775379751-a6c3940f3cbc",
+    alt: "A stylist working through a client's long dark hair in a bright salon",
+    credit: "Brendan Church",
+    page: "https://unsplash.com/photos/grayscale-photography-of-woman-getting-her-hair-done-inside-salon-tX_WLctdhvw",
+  },
+  ed33: {
+    src: "https://images.unsplash.com/photo-1757866332292-cd480e0073e3",
+    alt: "Close-up of hands with gold rings braiding long, dark hair",
+    credit: "Mohamed B.",
+    page: "https://unsplash.com/photos/hands-braiding-dark-hair-with-gold-rings-ncESsakUKIw",
+  },
+  ed34: {
+    src: "https://images.unsplash.com/photo-1659355751333-cf3aa64ec7cb",
+    alt: "A barber in an apron steadying a seated man's head as she trims his beard",
+    credit: "Fotos",
+    page: "https://unsplash.com/photos/a-woman-holding-a-mans-head-tKq0aDTD-y8",
+  },
 } satisfies Record<string, BrandImage>;
-export const editorialKeys = ["ed01", "ed02", "ed03", "ed04", "ed05", "ed06", "ed07", "ed08", "ed09", "ed10", "ed11", "ed12", "ed13", "ed14", "ed15", "ed16", "ed17", "ed18"] as const;
+export const editorialKeys = ["ed01", "ed02", "ed03", "ed04", "ed05", "ed06", "ed07", "ed08", "ed09", "ed10", "ed11", "ed12", "ed13", "ed14", "ed15", "ed16", "ed17", "ed18", "ed19", "ed20", "ed21", "ed22", "ed23", "ed24", "ed25", "ed26", "ed27", "ed28", "ed29", "ed30", "ed31", "ed32", "ed33", "ed34"] as const;
 export function img(image: BrandImage, width = 1200) {
   return `${image.src}?w=${width}&q=75&auto=format&fit=crop`;
 }

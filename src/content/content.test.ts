@@ -3,6 +3,8 @@ import { allEditions, archive, editions, pageTitle, PUBLIC_PREVIEW_PAGES, type B
 import { guides } from "./guides";
 import { glossary } from "./glossary";
 import { news } from "./news";
+import { courses } from "./courses";
+import { images } from "./images";
 
 const BANNED = /\b(unlock|elevate|seamless|empower(ing)?|game-?changer|revolutioni[sz]e|delve|cutting-edge|world-class)\b/i;
 
@@ -101,5 +103,16 @@ describe("glossary", () => {
     const slugs = new Set(glossary.map((t) => t.slug));
     for (const t of glossary) for (const s of t.see) expect(slugs.has(s), `${t.slug} → ${s}`).toBe(true);
     for (const g of guides) for (const s of g.related.glossary) expect(slugs.has(s), `${g.slug} → ${s}`).toBe(true);
+  });
+});
+
+describe("Course images", () => {
+  it("are unique across the catalogue", () => {
+    const keys = courses.map((c) => c.imageKey);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("all exist in the image registry", () => {
+    for (const c of courses) expect(images, c.slug).toHaveProperty(c.imageKey);
   });
 });

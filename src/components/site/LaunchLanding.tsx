@@ -59,11 +59,11 @@ export function LaunchLanding({
             <li className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-7">
               <ListChecks className="h-6 w-6 stroke-[1.5]" />
               <p className="display text-2xl leading-tight">
-                Add your practice to the founding directory, free for {FREE_LISTING_DAYS} days.
+                Add your practice to the founding directory for free, with your full profile included for {FREE_LISTING_DAYS} days.
               </p>
               <p className="text-[15px] leading-relaxed text-ink-2">
-                People looking for a head spa therapist, stylist, trichologist or doctor will be able to find you,
-                and you keep the founding badge if you stay.
+                People looking for a head spa therapist, stylist, trichologist or doctor will be able to find you, and
+                for your first {FREE_LISTING_DAYS} days their enquiries come straight to your inbox.
               </p>
               <Button asChild className="mt-auto self-start">
                 <Link href="/directory/list">

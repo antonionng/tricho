@@ -11,7 +11,7 @@ export const metadata = pageMetadata({
   description:
     "Answer three quick questions and we'll suggest whether a head spa therapist, trichologist or doctor is the right place to start. Signposting, not diagnosis.",
   path: "/find",
-    og: { title: "Find out who to see about your hair or scalp", sub: "by answering three short questions.", eyebrow: "Find the right professional", img: images.hairDetail.src, variant: "photo" },
+    og: { title: "Find out who to see about your hair or scalp", sub: "by answering three short questions.", eyebrow: "Find the right professional", img: images.ed05.src, variant: "photo" },
 });
 
 export default function FindPage() {

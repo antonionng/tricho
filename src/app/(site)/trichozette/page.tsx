@@ -8,6 +8,7 @@ import { Cover } from "@/components/gazette/Cover";
 import { TiltCover } from "@/components/gazette/TiltCover";
 import { archive, editionLabel, editions, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
 import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
+import { PartnerStrip } from "@/components/site/PartnerStrip";
 import { getMemberContext } from "@/lib/member";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ export const metadata = pageMetadata({
   description:
     "Trichozette, the Trichollective magazine: sourced news, the cosmetic, clinical and medical view of each topic, Karley's column and a four-year archive from 2023 to 2026. Preview any edition free.",
   path: "/trichozette",
-    og: { title: "Trichozette", sub: "Three professional perspectives on every topic.", eyebrow: "The Trichollective magazine", img: images.hairDetail.src, variant: "cover" },
+    og: { title: "Trichozette", sub: "Three professional perspectives on every topic.", eyebrow: "The Trichollective magazine", img: images.ed02.src, variant: "cover" },
 });
 
 export default async function GazettePage({ searchParams }: { searchParams: Promise<{ theme?: string; field?: string }> }) {
@@ -124,6 +125,8 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
       </Section>
 
       <ArchiveShelf archive={archive} field={field} member={ctx.allowed} />
+
+      <PartnerStrip />
 
       {!ctx.allowed && (
         <section className="bg-ink text-paper">

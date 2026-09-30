@@ -115,7 +115,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
                   fill
                   priority
                   sizes="(min-width: 1024px) 40vw, 100vw"
-                  className="object-cover"
+                  className="mag-bw object-cover object-top"
                 />
               </div>
             </div>

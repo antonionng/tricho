@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { hasFullProfile } from "@/lib/directory";
+import { sendEmail } from "@/lib/email";
 
 export type EnquiryState = { ok: boolean; message: string } | null;
 
@@ -23,16 +25,31 @@ export async function sendEnquiry(_prev: EnquiryState, formData: FormData): Prom
 
   const listing = await prisma.directoryListing.findUnique({
     where: { id: listingId },
-    select: { id: true, kind: true, userId: true, name: true },
+    select: { id: true, kind: true, userId: true, name: true, email: true, freeUntil: true },
   });
   if (!listing) return { ok: false, message: "This listing is no longer available." };
 
-  const claimed = listing.kind === "member" && !!listing.userId;
+  // Delivered for paid listings and free listings in their 90-day trial; otherwise held until they join.
+  const claimed = hasFullProfile(listing);
   await prisma.enquiry.create({
     data: { listingId: listing.id, name, email, message, status: claimed ? "forwarded" : "new" },
   });
 
-  if (claimed && listing.userId) {
+  if (claimed) {
+    await sendEmail({
+      to: listing.email,
+      subject: `New enquiry from ${name} via Trichollective`,
+      text: [
+        `Hello ${listing.name.split(" ")[0]},`,
+        `${name} contacted you through your Trichollective directory listing:`,
+        message,
+        `You can reply to them directly at ${email}.`,
+        `The Trichollective team`,
+      ].join("\n\n"),
+    }).catch((e) => console.error("[enquiry] email failed", e));
+  }
+
+  if (listing.kind === "member" && listing.userId) {
     await prisma.notification.create({
       data: {
         userId: listing.userId,

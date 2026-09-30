@@ -8,6 +8,7 @@ import {
   type BillingInterval,
 } from "@/config/subscriptions";
 import { site } from "@/config/site";
+import { foundingMemberPlacesLeft } from "@/lib/founding";
 
 /**
  * Start a subscription checkout. Signing in first is optional: people can pay
@@ -20,13 +21,15 @@ export async function POST(req: Request) {
       interval?: BillingInterval;
       founding?: boolean;
       source?: string | null;
+      currency?: "gbp" | "eur";
     };
     const tier = tierById(body.plan);
     if (!tier) {
       return NextResponse.json({ error: "Unknown plan" }, { status: 400 });
     }
     const interval: BillingInterval = body.interval === "year" ? "year" : "month";
-    const founding = !!body.founding && !!tier.foundingPrice;
+    // The founding price is only offered while founding places genuinely remain.
+    const founding = !!body.founding && !!tier.foundingPrice && (await foundingMemberPlacesLeft()) > 0;
     const priceId = priceIdFor(tier, interval, founding);
 
     if (!process.env.STRIPE_SECRET_KEY || !priceId) {
@@ -66,6 +69,8 @@ export async function POST(req: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       ...(customer ? { customer } : {}),
       allow_promotion_codes: true,
+      // Prices carry EUR currency options; charge in the currency the visitor chose on /pricing.
+      ...(body.currency === "eur" ? { currency: "eur" } : {}),
       billing_address_collection: "auto",
       success_url: `${site.url}/welcome?plan=${tier.id}`,
       cancel_url: `${site.url}/pricing?cancelled=1`,

@@ -6,8 +6,12 @@ export interface SubscriptionTier {
   name: string;
   /** Monthly price in GBP. */
   price: number;
-  /** Founding price in GBP per month, kept for life by founding members. */
+  /** Founding price in GBP per month, kept while a founding member stays. */
   foundingPrice?: number;
+  /** Founding annual price in GBP (ten times the founding monthly price). */
+  foundingAnnualPrice?: number;
+  /** Euro prices for Ireland and Europe (same Stripe prices, EUR currency option). */
+  eur?: { price: number; foundingPrice?: number; annualPrice: number; foundingAnnualPrice?: number };
   /** Annual price in GBP (two months free). */
   annualPrice: number;
   featured?: boolean;
@@ -18,6 +22,7 @@ export interface SubscriptionTier {
   stripePriceId?: string;
   stripeAnnualPriceId?: string;
   stripeFoundingPriceId?: string;
+  stripeFoundingAnnualPriceId?: string;
   /** Older price ids that should still resolve to this plan (existing subscribers). */
   legacyPriceIds?: (string | undefined)[];
   features: string[];
@@ -30,6 +35,8 @@ export const subscriptionTiers: SubscriptionTier[] = [
     price: 9,
     foundingPrice: 6,
     annualPrice: 90,
+    foundingAnnualPrice: 60,
+    eur: { price: 10, foundingPrice: 7, annualPrice: 100, foundingAnnualPrice: 70 },
     audience: "For head spa therapists, stylists, scalp care specialists and students building their scope of practice",
     summary:
       "Ask colleagues across every discipline, learn from monthly masterclasses and pay less for courses and conferences.",
@@ -37,6 +44,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     stripePriceId: process.env.STRIPE_PRICE_ID_COMMUNITY,
     stripeAnnualPriceId: process.env.STRIPE_PRICE_ID_COMMUNITY_ANNUAL,
     stripeFoundingPriceId: process.env.STRIPE_PRICE_ID_COMMUNITY_FOUNDING,
+    stripeFoundingAnnualPriceId: process.env.STRIPE_PRICE_ID_COMMUNITY_FOUNDING_ANNUAL,
     features: [
       "Ask questions in every open space, meet your country chapter and message any member directly",
       "Read every Trichozette edition in full, including the archive from 2023 to 2026, plus the podcast and newsletter",
@@ -51,6 +59,8 @@ export const subscriptionTiers: SubscriptionTier[] = [
     price: 19,
     foundingPrice: 14,
     annualPrice: 190,
+    foundingAnnualPrice: 140,
+    eur: { price: 22, foundingPrice: 16, annualPrice: 220, foundingAnnualPrice: 160 },
     featured: true,
     audience: "For qualified practitioners: trichologists, doctors, nurses and established head spa and salon owners",
     summary:
@@ -59,6 +69,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     stripePriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL,
     stripeAnnualPriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL_ANNUAL,
     stripeFoundingPriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL_FOUNDING,
+    stripeFoundingAnnualPriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL_FOUNDING_ANNUAL,
     legacyPriceIds: [process.env.STRIPE_PRICE_ID_MEMBER],
     features: [
       "Everything in Community",
@@ -75,6 +86,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     name: "Business",
     price: 99,
     annualPrice: 990,
+    eur: { price: 115, annualPrice: 1150 },
     audience: "For clinics, salons, brands and device makers",
     summary:
       "Put your clinic, salon or brand in front of hair and scalp professionals, and hire people already trained in the field.",
@@ -99,21 +111,56 @@ export const subscriptionTiers: SubscriptionTier[] = [
 export const FREE_LISTING_DAYS = 90;
 
 export const freeListing = {
-  name: "Founding listing",
+  name: "Free account",
   price: 0,
-  audience: "For every cosmetic, clinical and medical professional who signs up early",
-  summary: `Be found in the founding directory free for ${FREE_LISTING_DAYS} days. Choose a plan to stay listed after that.`,
+  audience: "For every cosmetic, clinical and medical professional",
+  summary: `Be found in the directory for free, with your full profile and enquiries included for your first ${FREE_LISTING_DAYS} days.`,
   features: [
-    `A basic listing for ${FREE_LISTING_DAYS} days: name, discipline, city and specialism`,
-    "The founding badge, which you keep if you stay on",
-    "The monthly newsletter",
+    "A basic directory listing that stays free for as long as you like: name, discipline, town and specialism",
+    `Your full profile free for ${FREE_LISTING_DAYS} days: photo, services, website and enquiries sent straight to you`,
+    "The opening features of every Trichozette edition, and the news for practitioners",
+    "The founding badge, which you keep if you become a member",
   ],
   excludes: [
-    "Photo, services, website and full profile",
-    "Enquiries from the public (held until you claim)",
-    "The community, courses and events",
+    `Your full profile and enquiries after the first ${FREE_LISTING_DAYS} days (enquiries wait for you until you join)`,
+    "The community, the Case Room, CPD and the referral network",
   ],
 };
+
+/**
+ * Premium Business: sold by application, never through checkout. Karley approves and invoices.
+ * Founding partners (the first six) keep the founding rate while they stay.
+ */
+export const premiumBusiness = {
+  id: "premium" as const,
+  name: "Premium Business",
+  annualPrice: 3500,
+  foundingAnnualPrice: 1950,
+  foundingPlaces: 6,
+  perCategoryLimit: 2,
+  audience: "For brands, device makers and education providers who want to support the profession and reach it properly",
+  summary:
+    "Everything in Business, plus education, editorial and conference placements with the practitioners who recommend products to their clients.",
+  features: [
+    "Everything in Business, including a business page, five Professional seats and job posts",
+    "One sponsored masterclass a year, reviewed so that it teaches rather than sells, kept in the member library",
+    "The option to co-develop a course with a certificate, subject to clinical review",
+    "One labelled partner feature in Trichozette a year, and \u201cSupported by\u201d on one edition each quarter",
+    "Two newsletter spotlights a year",
+    "A talk or demo slot at one conference a year, with sampling or a delegate-bag insert at the others",
+    "A member perk with tracked redemptions, and an opt-in product trial panel with structured feedback",
+    "A quarterly report on how members engaged with your content and perks",
+    "A partner page and the Premium partner badge",
+  ],
+  guardrails: [
+    "At most two partners in each product category",
+    "Every sponsored piece is clearly labelled",
+    "No clinical claims, and brands never post in the clinical spaces",
+  ],
+};
+
+/** Individual founding offer: the first members to join keep the founding price while they stay. */
+export const FOUNDING_MEMBER_PLACES = 200;
 
 export const flagshipTier = subscriptionTiers.find((t) => t.featured)!;
 
@@ -129,6 +176,7 @@ export function tierByPriceId(priceId: string | null | undefined) {
       t.stripePriceId === priceId ||
       t.stripeAnnualPriceId === priceId ||
       t.stripeFoundingPriceId === priceId ||
+      t.stripeFoundingAnnualPriceId === priceId ||
       t.legacyPriceIds?.includes(priceId)
   );
 }
@@ -139,7 +187,8 @@ export function priceIdFor(
   interval: BillingInterval,
   founding: boolean
 ) {
-  if (founding && tier.stripeFoundingPriceId) return tier.stripeFoundingPriceId;
+  if (founding && interval === "year" && tier.stripeFoundingAnnualPriceId) return tier.stripeFoundingAnnualPriceId;
+  if (founding && interval === "month" && tier.stripeFoundingPriceId) return tier.stripeFoundingPriceId;
   if (interval === "year" && tier.stripeAnnualPriceId) return tier.stripeAnnualPriceId;
   return tier.stripePriceId;
 }

@@ -23,7 +23,7 @@ export const metadata = pageMetadata({
   title: "Events: gatherings, masterclasses and case rounds",
   description: `Meet the colleagues you refer to at conferences in England, Dublin and Los Angeles, and learn at monthly live masterclasses and case rounds, recorded for members.`,
   path: "/events",
-    og: { title: "Meet the colleagues you refer to,", sub: "and learn from a specialist every month.", eyebrow: "Events", img: images.gathering.src, variant: "photo" },
+    og: { title: "Meet the colleagues you refer to,", sub: "and learn from a specialist every month.", eyebrow: "Events", img: images.ed27.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -74,7 +74,8 @@ export default async function EventsPage() {
             each chapter. Members hear about every event first and pay less for tickets.
           </p>
         }
-        image={images.gathering}
+        image={images.ed27}
+        imageClassName="mag-bw object-top"
         crumbs={crumbs}
       />
 
@@ -170,7 +171,7 @@ export default async function EventsPage() {
       {/* Closing image band */}
       <section className="relative overflow-hidden bg-ink text-paper">
         <div className="absolute inset-0 opacity-40">
-          <Image src={img(images.community, 1800)} alt="" fill sizes="100vw" className="object-cover" />
+          <Image src={img(images.ed30, 1800)} alt="" fill sizes="100vw" className="mag-bw object-cover object-top" />
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/30" />
         <Container className="relative py-20 md:py-28">

@@ -7,7 +7,7 @@ import { Monogram } from "@/components/directory/ListingCard";
 import { EnquiryForm } from "@/components/directory/EnquiryForm";
 import { Button } from "@/components/ui/button";
 import { DISCIPLINES } from "@/content/disciplines";
-import { isClaimed, listingBySlug, cityKey } from "@/lib/directory";
+import { hasFullProfile, listingBySlug, cityKey } from "@/lib/directory";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -19,14 +19,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return pageMetadata({
     title: `${l.name}, ${d?.name ?? "hair and scalp"} professional in ${l.city}`,
     description:
-      (isClaimed(l) && (l.headline || l.bio)?.slice(0, 150)) ||
+      (hasFullProfile(l) && (l.headline || l.bio)?.slice(0, 150)) ||
       `${l.name} is listed in the Trichollective directory as a ${d?.name.toLowerCase() ?? ""} professional in ${l.city}${l.specialization ? `, specialising in ${l.specialization.toLowerCase()}` : ""}.`,
     path: `/directory/p/${l.slug}`,
     og: {
       title: l.name,
       eyebrow: `${d?.name ?? "Professional"} · ${l.city}`,
-      sub: (isClaimed(l) ? l.headline || l.specialization : l.specialization) ?? undefined,
-      ...(isClaimed(l) && l.photoUrl?.startsWith("https://images.unsplash.com/") ? { img: l.photoUrl, variant: "profile" as const } : {}),
+      sub: (hasFullProfile(l) ? l.headline || l.specialization : l.specialization) ?? undefined,
+      ...(hasFullProfile(l) && l.photoUrl?.startsWith("https://images.unsplash.com/") ? { img: l.photoUrl, variant: "profile" as const } : {}),
     },
   });
 }
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const listing = await listingBySlug((await params).slug);
   if (!listing) notFound();
-  const claimed = isClaimed(listing);
+  const claimed = hasFullProfile(listing);
   const d = DISCIPLINES.find((x) => x.id === listing.profession);
 
   return (

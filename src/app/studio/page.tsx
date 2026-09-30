@@ -233,7 +233,7 @@ async function DraftDetail({
       </Link>,
     ]);
   if (draft.kind === "partner_enquiry") {
-    for (const key of ["company", "name", "email", "role", "interest", "budget"]) {
+    for (const key of ["company", "name", "email", "role", "interest", "tier", "category", "website", "budget"]) {
       const v = payload[key];
       if (typeof v === "string" && v) facts.push([key.charAt(0).toUpperCase() + key.slice(1), v]);
     }

@@ -57,7 +57,8 @@ export default function CertificationPage() {
             honest about what it is: not an accredited qualification.
           </p>
         }
-        image={images.portraitB}
+        image={images.ed17}
+        imageClassName="mag-bw object-top"
         crumbs={crumbs}
       />
 

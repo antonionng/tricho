@@ -129,6 +129,11 @@ export function SiteHeader() {
           >
             {signedIn ? "Your community" : "Sign in"}
           </Link>
+          {!signedIn && (
+            <Link href="/signup" className="rounded-full px-3 py-2 text-[14px] text-ink-2 hover:text-ink">
+              Sign up free
+            </Link>
+          )}
           <Button asChild>
             <Link href="/pricing">
               Join the collective <ArrowRight />
@@ -229,6 +234,11 @@ export function SiteHeader() {
                 Join the collective <ArrowRight />
               </Link>
             </Button>
+            {!signedIn && (
+              <Button asChild size="lg" variant="outline" className="w-full">
+                <Link href="/signup">Create a free account</Link>
+              </Button>
+            )}
             <Link href={signedIn ? "/members" : "/login"} className="py-2 text-center text-[15px] text-ink-2">
               {signedIn ? "Go to your community" : "Sign in"}
             </Link>

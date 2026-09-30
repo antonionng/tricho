@@ -1,7 +1,7 @@
 import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
 import { getMemberContext } from "@/lib/member";
-import { searchListings, isClaimed } from "@/lib/directory";
+import { searchListings, hasFullProfile } from "@/lib/directory";
 import { assistantSystemPrompt, TRICHO_AI_MODEL, type AssistantMode } from "@/lib/ai/prompt";
 
 export const maxDuration = 60;
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
             specialism: l.headline || l.specialization,
             verified: l.isVerified,
             acceptsReferrals: l.acceptsReferrals,
-            fullProfile: isClaimed(l),
+            fullProfile: hasFullProfile(l),
             profileUrl: l.slug ? `/directory/p/${l.slug}` : null,
           }));
         },

@@ -8,8 +8,6 @@ export function publicListingWhere() {
   return {
     status: "listed" as const,
     ...(showSamples ? {} : { isSample: false }),
-    // Claimed (paid) listings always show; free ones only during their 90 days.
-    OR: [{ kind: "member" as const }, { freeUntil: null }, { freeUntil: { gt: new Date() } }],
   };
 }
 

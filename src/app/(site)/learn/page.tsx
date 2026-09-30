@@ -80,7 +80,7 @@ export default function LearnPage() {
                       alt={images[c.imageKey].alt}
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                      className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                      className="mag-bw object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]"
                     />
                   </div>
                   <div className="flex flex-1 flex-col gap-4 p-6 sm:p-7">

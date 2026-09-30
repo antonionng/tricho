@@ -12,7 +12,7 @@ export const metadata = pageMetadata({
   title: `About us`,
   description: `Trichollective was founded by trichologist ${site.founderFull} so cosmetic, clinical and medical professionals can learn from and refer to one another. How it began at ${site.originPlace}, and what we will and won't do.`,
   path: "/about",
-    og: { title: "Founded so no practitioner works", sub: "through a difficult case alone.", eyebrow: "About Trichollective", img: images.gathering.src, variant: "photo" },
+    og: { title: "Founded so no practitioner works", sub: "through a difficult case alone.", eyebrow: "About Trichollective", img: images.ed19.src, variant: "photo" },
 });
 
 const values = [
@@ -56,12 +56,12 @@ export default function AboutPage() {
       <section className="relative overflow-hidden bg-paper">
         <div className="absolute inset-y-0 right-0 hidden w-[48%] lg:block">
           <Image
-            src={img(images.gathering, 1600)}
-            alt={images.gathering.alt}
+            src={img(images.ed19, 1600)}
+            alt={images.ed19.alt}
             fill
             priority
             sizes="48vw"
-            className="object-cover"
+            className="mag-bw object-cover object-top"
           />
           <div className="absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-paper to-transparent" />
         </div>
@@ -83,12 +83,12 @@ export default function AboutPage() {
         </Container>
         <div className="relative aspect-[4/3] w-full lg:hidden">
           <Image
-            src={img(images.gathering, 1000)}
-            alt={images.gathering.alt}
+            src={img(images.ed19, 1000)}
+            alt={images.ed19.alt}
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            className="mag-bw object-cover object-top"
           />
         </div>
       </section>

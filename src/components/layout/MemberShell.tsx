@@ -14,6 +14,7 @@ import {
   Search,
   Sparkles,
   UserRound,
+  Gift,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const primary = [
   { href: "/members/messages", label: "Messages", icon: MessageCircle },
   { href: "/members/people", label: "People", icon: Search },
   { href: "/members/assistant", label: "Assistant", icon: Sparkles },
+  { href: "/members/perks", label: "Member perks", icon: Gift },
 ];
 
 const mobileTabs = [

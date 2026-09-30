@@ -1,3 +1,5 @@
+import type { ImageKey } from "@/content/gazette/types";
+
 export type DisciplineId = "cosmetic" | "clinical" | "medical";
 
 export type Discipline = {
@@ -9,7 +11,7 @@ export type Discipline = {
   who: string;
   role: string;
   helpsWith: string[];
-  imageKey: "headSpa" | "clinic" | "salon";
+  imageKey: ImageKey;
 };
 
 export const DISCIPLINES: Discipline[] = [
@@ -22,7 +24,7 @@ export const DISCIPLINES: Discipline[] = [
     role:
       "Often the first to notice a change in a client's hair or scalp. Trichollective helps cosmetic practitioners spot red flags early and refer on to the right clinician.",
     helpsWith: ["Head spa and scalp treatments", "Dry, oily or flaky scalp care", "Styling that works with thinning hair", "Referring on when something needs a closer look"],
-    imageKey: "headSpa",
+    imageKey: "ed16",
   },
   {
     id: "clinical",
@@ -33,7 +35,7 @@ export const DISCIPLINES: Discipline[] = [
     role:
       "Take a full case history, examine the hair and scalp with trichoscopy and build a care plan. They refer to GPs and dermatologists when a medical opinion is needed.",
     helpsWith: ["Hair shedding and thinning", "Scalp conditions", "Trichoscopy, consultations and care plans", "Working alongside your GP"],
-    imageKey: "clinic",
+    imageKey: "ed31",
   },
   {
     id: "medical",
@@ -44,7 +46,7 @@ export const DISCIPLINES: Discipline[] = [
     role:
       "Diagnose and treat medical causes of hair loss and scalp disease, order blood tests and prescribe. They are the right first stop when there are red flags.",
     helpsWith: ["Diagnosis", "Blood tests and prescriptions", "Scarring and sudden hair loss", "Scalp disease"],
-    imageKey: "salon",
+    imageKey: "ed14",
   },
 ];
 

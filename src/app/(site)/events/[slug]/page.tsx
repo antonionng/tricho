@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     title: `${event.title}, ${formatEventDate(event.startsAt)}`,
     description: event.summary,
     path: `/events/${event.slug}`,
-    og: { title: event.title, sub: event.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Dublin" }), eyebrow: event.online ? "Online" : event.city ?? "Event", img: images.gathering.src, variant: "photo" },
+    og: { title: event.title, sub: event.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Dublin" }), eyebrow: event.online ? "Online" : event.city ?? "Event", img: (event.online ? images.ed15 : images.ed28).src, variant: "photo" },
   });
 }
 
@@ -75,7 +75,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
     { name: "Events", path: "/events" },
     { name: event.title, path: `/events/${event.slug}` },
   ];
-  const image = event.online ? images.ed15 : images.gathering;
+  const image = event.online ? images.ed15 : images.ed28;
   const paragraphs = (event.body ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())

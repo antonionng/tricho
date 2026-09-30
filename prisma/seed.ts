@@ -118,6 +118,52 @@ async function main() {
     create: { slug: "pending-sample-limerick", name: "Pending Sample", email: "pending@example.test", profession: "cosmetic", city: "Limerick", specialization: "Head spa", status: "pending", isSample: true },
   });
 
+  // One test account per user type (sign in with the dev or preview login).
+  const england = await prisma.chapter.findUnique({ where: { slug: "england" } });
+  await prisma.user.upsert({
+    where: { email: "business.sample@example.test" },
+    update: { plan: "business", role: "business", stripeCurrentPeriodEnd: periodEnd },
+    create: {
+      email: "business.sample@example.test", name: "Business Sample (clinic)", role: "business", plan: "business",
+      stripeCurrentPeriodEnd: periodEnd, onboardedAt: new Date(), chapterId: england?.id,
+      profile: { create: { profession: "brand", location: "London" } },
+    },
+  });
+  // Free account, listing inside its 90-day full-profile trial
+  const freeUser = await prisma.user.upsert({
+    where: { email: "free.sample@example.test" },
+    update: {},
+    create: { email: "free.sample@example.test", name: "Free Sample", onboardedAt: new Date(), chapterId: dublin.id, profile: { create: { profession: "cosmetic", location: "Dublin" } } },
+  });
+  await prisma.directoryListing.upsert({
+    where: { slug: "free-sample-dublin" },
+    update: { freeUntil: new Date(Date.now() + 60 * day), userId: freeUser.id },
+    create: {
+      slug: "free-sample-dublin", name: "Free Sample", email: "free.sample@example.test", profession: "cosmetic", city: "Dublin", country: "Ireland",
+      specialization: "Head spa and scalp care", headline: "Head spa therapist in Dublin, in the first 90 days of a full profile", services: ["Head spa", "Scalp care"],
+      status: "listed", kind: "listed", userId: freeUser.id, isSample: true, freeUntil: new Date(Date.now() + 60 * day), reviewedAt: new Date(),
+    },
+  });
+  // Free account whose trial has ended: basic listing, one enquiry waiting
+  const lapsedUser = await prisma.user.upsert({
+    where: { email: "lapsed.sample@example.test" },
+    update: {},
+    create: { email: "lapsed.sample@example.test", name: "Lapsed Sample", onboardedAt: new Date(), chapterId: dublin.id, profile: { create: { profession: "clinical", location: "Cork" } } },
+  });
+  const lapsedListing = await prisma.directoryListing.upsert({
+    where: { slug: "lapsed-sample-cork" },
+    update: { freeUntil: new Date(Date.now() - 5 * day), userId: lapsedUser.id },
+    create: {
+      slug: "lapsed-sample-cork", name: "Lapsed Sample", email: "lapsed.sample@example.test", profession: "clinical", city: "Cork", country: "Ireland",
+      specialization: "Trichology", status: "listed", kind: "listed", userId: lapsedUser.id, isSample: true, freeUntil: new Date(Date.now() - 5 * day), reviewedAt: new Date(),
+    },
+  });
+  if ((await prisma.enquiry.count({ where: { listingId: lapsedListing.id } })) === 0) {
+    await prisma.enquiry.create({
+      data: { listingId: lapsedListing.id, name: "Sample Enquirer", email: "enquirer@example.test", message: "Sample enquiry: I'd like to book a consultation about shedding.", status: "new" },
+    });
+  }
+
   // Community posts
   if ((await prisma.communityPost.count()) === 0 && users.length) {
     const posts = [

@@ -53,12 +53,12 @@ export default async function WelcomePage({
       <section className="relative overflow-hidden bg-paper">
         <div className="absolute inset-y-0 right-0 hidden w-[44%] lg:block">
           <Image
-            src={img(images.community, 1400)}
-            alt={images.community.alt}
+            src={img(images.ed23, 1400)}
+            alt={images.ed23.alt}
             fill
             priority
             sizes="44vw"
-            className="object-cover"
+            className="mag-bw object-cover object-top"
           />
           <div className="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-paper to-transparent" />
         </div>

@@ -61,7 +61,7 @@ const foundingFaqs: Faq[] = [
   },
   {
     q: "I'm not sure yet. Can I try it for free?",
-    a: `You can add a free founding listing to the directory for ${FREE_LISTING_DAYS} days, or join the newsletter below to hear how things are going. If you join and it isn't right for you, email us within 14 days of your first payment for a full refund.`,
+    a: `You can create a free account and add a free listing to the directory, with your full profile included for ${FREE_LISTING_DAYS} days, or join the newsletter below to hear how things are going. If you join and it isn't right for you, email us within 14 days of your first payment for a full refund.`,
   },
   {
     q: "Is this the same as the Facebook group?",
@@ -76,8 +76,8 @@ export default function FoundingPage() {
       <section className="relative overflow-hidden bg-paper">
         <div className="absolute inset-y-0 right-0 hidden w-[50%] lg:block">
           <Image
-            src={img(images.headSpa, 1600)}
-            alt={images.headSpa.alt}
+            src={img(images.heroPortrait, 1600)}
+            alt={images.heroPortrait.alt}
             fill
             priority
             sizes="50vw"
@@ -116,8 +116,8 @@ export default function FoundingPage() {
 
         <div className="relative aspect-[4/5] w-full lg:hidden">
           <Image
-            src={img(images.headSpa, 1000)}
-            alt={images.headSpa.alt}
+            src={img(images.heroPortrait, 1000)}
+            alt={images.heroPortrait.alt}
             fill
             priority
             sizes="100vw"
@@ -239,17 +239,17 @@ export default function FoundingPage() {
           <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="relative aspect-[4/3] overflow-hidden rounded-3xl lg:col-span-6">
               <Image
-                src={img(images.clinic, 1200)}
-                alt={images.clinic.alt}
+                src={img(images.ed33, 1200)}
+                alt={images.ed33.alt}
                 fill
                 sizes="(min-width: 1024px) 50vw, 100vw"
-                className="object-cover"
+                className="mag-bw object-cover"
               />
             </div>
             <div className="flex flex-col gap-7 lg:col-span-6">
               <SectionHeader
                 eyebrow="Not ready to join?"
-                title={`Be found by the public free for ${FREE_LISTING_DAYS} days,`}
+                title={`Be found by the public for free, with your full profile for ${FREE_LISTING_DAYS} days,`}
                 fade="and decide about membership later."
                 body={freeListing.summary}
               />

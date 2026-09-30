@@ -22,7 +22,7 @@ async function polish(purpose: string, draft: { subject: string; body: string })
   return { subject: out.subject.replace(/!/g, "."), body: out.body.replace(/!/g, ".") };
 }
 
-/** Reminder stages keyed by days left: day 60, day 80 and day 90 of the free listing. */
+/** Reminder stages keyed by days left in the 90-day full-profile trial. */
 const STAGES = [
   { stage: "30", from: 10, to: 30, label: "30 days left" },
   { stage: "10", from: 0, to: 10, label: "10 days left" },
@@ -40,13 +40,13 @@ function listingEmail(name: string, slug: string | null, daysLeft: number, freeU
   const price = `£${flagshipTier.foundingPrice ?? flagshipTier.price} a month`;
   if (daysLeft <= 0) {
     return {
-      subject: "Your free Trichollective listing ends today",
+      subject: "Your full Trichollective profile trial ends today",
       body: [
         `Hello ${first},`,
-        `Your free founding listing in the Trichollective directory reaches the end of its ${FREE_LISTING_DAYS} days today, so it will stop showing to the public.`,
-        `If you'd like to stay listed, you can claim it on the Professional plan (${price} for founding members). You'll keep your founding badge, and you can add your photo, services and website, and receive enquiries directly:`,
+        `Your ${FREE_LISTING_DAYS}-day trial of the full directory profile ends today. Your listing stays in the Trichollective directory as a basic listing, so people can still find your name, discipline and town.`,
+        `To keep your photo, services and website on show, and to keep receiving enquiries from the public straight to your inbox, you can claim your listing on the Professional plan (${price} for founding members):`,
         claim,
-        `Thank you for being one of the first in the directory. If you have any questions, just reply to this email.`,
+        `Any enquiries that arrive from now on will wait safely for you until you join. Thank you for being one of the first in the directory, and if you have any questions, just reply to this email.`,
         SIGN_OFF,
       ].join("\n\n"),
     };
@@ -54,14 +54,14 @@ function listingEmail(name: string, slug: string | null, daysLeft: number, freeU
   return {
     subject:
       daysLeft <= 10
-        ? `${daysLeft} days left on your free Trichollective listing`
-        : `Your free Trichollective listing: ${daysLeft} days to go`,
+        ? `${daysLeft} days left on your full Trichollective profile`
+        : `Your full Trichollective profile: ${daysLeft} days of your trial to go`,
     body: [
       `Hello ${first},`,
-      `A quick note to say your free founding listing in the Trichollective directory runs until ${date}, which is ${daysLeft} days from now.`,
-      `To stay listed after that, you can claim your listing on the Professional plan (${price} for founding members). Claiming means you can add a photo, services and your website, keep your founding badge, and receive enquiries from the public straight to your inbox:`,
+      `A quick note to say your free trial of the full directory profile runs until ${date}, which is ${daysLeft} days from now. During the trial, enquiries from the public come straight to your inbox.`,
+      `After ${date} your listing stays in the directory as a basic listing. To keep your full profile and your enquiries, you can claim it on the Professional plan (${price} for founding members), which also gives you the Case Room, the referral network and your CPD log:`,
       claim,
-      `If you'd rather not continue, there's nothing you need to do. Your listing will simply come down on ${date}.`,
+      `If you'd rather stay on the basic listing, there's nothing you need to do.`,
       SIGN_OFF,
     ].join("\n\n"),
   };
@@ -71,7 +71,7 @@ export const membershipAgent: AgentDefinition = {
   id: "membership",
   name: "Membership helper",
   description:
-    "Drafts the routine emails: reminders before free listings end, a heads-up when an unclaimed listing has an enquiry waiting, and a friendly nudge to anyone who hasn't finished setting up after three days. Nothing is sent until you approve it.",
+    "Drafts the routine emails: reminders before full-profile trials end, a heads-up when an unclaimed listing has an enquiry waiting, and a friendly nudge to anyone who hasn't finished setting up after three days. Nothing is sent until you approve it.",
   schedule: "Daily at 8am",
   cron: "0 8 * * *",
   risk: "high",

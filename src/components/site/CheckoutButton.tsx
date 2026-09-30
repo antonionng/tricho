@@ -21,7 +21,10 @@ export function CheckoutButton({
   className,
   wrapperClassName,
   errorTone = "paper",
+  currency,
 }: {
+  /** "eur" to charge in euros (the prices carry EUR options). Defaults to pounds. */
+  currency?: "gbp" | "eur";
   plan: PlanId;
   interval?: BillingInterval;
   founding?: boolean;
@@ -43,7 +46,7 @@ export function CheckoutButton({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, interval, founding, source: getSource() }),
+        body: JSON.stringify({ plan, interval, founding, source: getSource(), currency }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (data.url) {

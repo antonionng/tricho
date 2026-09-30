@@ -1,3 +1,5 @@
+import type { ImageKey } from "@/content/gazette/types";
+
 export type CourseStatus = "open" | "coming-soon";
 
 export type Course = {
@@ -13,7 +15,7 @@ export type Course = {
   status: CourseStatus;
   outcomes: string[];
   syllabus: { title: string; detail: string }[];
-  imageKey: "headSpa" | "clinic" | "learning" | "salon" | "hairDetail";
+  imageKey: ImageKey;
 };
 
 /**
@@ -47,7 +49,7 @@ export const courses: Course[] = [
       { title: "Referring well", detail: "Who to refer to, and how to write it down." },
       { title: "Aftercare conversations", detail: "Setting expectations and staying in touch." },
     ],
-    imageKey: "headSpa",
+    imageKey: "ed21",
   },
   {
     slug: "japanese-head-spa-foundations",
@@ -77,7 +79,7 @@ export const courses: Course[] = [
       { title: "Menu and pricing", detail: "Positioning head spa in your business." },
       { title: "Practical assessment", detail: "Checklist and reflective log." },
     ],
-    imageKey: "headSpa",
+    imageKey: "ed22",
   },
   {
     slug: "working-across-disciplines",
@@ -103,7 +105,7 @@ export const courses: Course[] = [
       { title: "Writing it down", detail: "What a good referral includes." },
       { title: "Closing the loop", detail: "Following up and sharing outcomes." },
     ],
-    imageKey: "clinic",
+    imageKey: "ed34",
   },
 ];
 

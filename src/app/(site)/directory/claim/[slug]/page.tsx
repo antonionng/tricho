@@ -41,8 +41,8 @@ export default async function ClaimPage({ params }: { params: Promise<{ slug: st
         <span className="text-fade">claim your listing and receive enquiries directly.</span>
       </h1>
       <p className="lede mt-6">
-        Claiming turns your founding listing into a full profile, keeps you in the directory beyond your
-        free 90 days, and delivers any enquiries that are already waiting for you.
+        Claiming keeps your full profile, with your photo, services and website, beyond the free 90 days, and
+        delivers every enquiry straight to you, including any that are already waiting.
       </p>
       <ul className="mt-10 flex flex-col gap-4 border-y border-rule py-8">
         {[

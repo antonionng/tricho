@@ -7,6 +7,7 @@ import { editions } from "@/content/gazette";
 import { FREE_LISTING_DAYS, tierById } from "@/config/subscriptions";
 import { Card, MemberPage, SectionLabel } from "./MemberPage";
 import { firstName } from "@/lib/community";
+import { hasFullProfile, trialDaysLeft } from "@/lib/directory";
 
 const longDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
@@ -18,13 +19,15 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
       ? prisma.directoryListing.findFirst({
           where: { email: email.toLowerCase(), status: { in: ["pending", "listed", "invited"] } },
           orderBy: { createdAt: "desc" },
-          select: { status: true, slug: true, freeUntil: true, kind: true },
+          select: { status: true, slug: true, freeUntil: true, kind: true, _count: { select: { enquiries: { where: { status: "new" } } } } },
         })
       : null,
   ]);
   const community = tierById("community")!;
   const pro = tierById("professional")!;
   const name = firstName(user?.name) || "there";
+  const inTrial = !!listing && listing.status === "listed" && hasFullProfile(listing);
+  const waiting = listing?._count.enquiries ?? 0;
 
   return (
     <MemberPage>
@@ -51,14 +54,20 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
                   ? "Your founding listing is being checked by a person."
                   : listing.kind === "member"
                     ? "Your full directory profile is live."
-                    : `Your founding listing is live${listing.freeUntil ? ` until ${longDate(listing.freeUntil)}` : ""}.`}
+                    : inTrial
+                      ? `Your full profile is live, and enquiries come straight to you until ${longDate(listing.freeUntil!)}.`
+                      : waiting > 0
+                        ? `${waiting} ${waiting === 1 ? "person has" : "people have"} contacted you through the directory, and ${waiting === 1 ? "their message is" : "their messages are"} waiting.`
+                        : "Your basic listing is live in the directory."}
             </p>
             <p className="mt-1 text-sm text-ink-2">
               {!listing || listing.status === "invited"
                 ? "People searching for a hair and scalp professional near them will be able to find you."
                 : listing.status === "pending"
                   ? "We check every listing by hand, usually within two working days, and email you when it is live."
-                  : "Upgrade to Professional to add your photo, services and website, and to receive enquiries directly."}
+                  : inTrial
+                    ? `After ${trialDaysLeft(listing)} more days your listing stays up as a basic listing. Join Professional to keep your full profile and enquiries.`
+                    : "Join Professional to show your photo, services and website again, and to read every enquiry that is waiting for you."}
             </p>
           </div>
         </div>

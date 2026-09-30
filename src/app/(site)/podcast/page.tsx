@@ -10,7 +10,7 @@ export const metadata = pageMetadata({
   title: "The podcast: conversations from the community",
   description: `A monthly podcast from ${site.name}. Unhurried conversations with head spa therapists, stylists, trichologists, nurses and doctors, each with a full transcript.`,
   path: "/podcast",
-    og: { title: "Hear how other practitioners work,", sub: "in conversations you can play between clients.", eyebrow: "Listen", img: images.community.src, variant: "photo" },
+    og: { title: "Hear how other practitioners work,", sub: "in conversations you can play between clients.", eyebrow: "Listen", img: images.ed29.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -32,7 +32,8 @@ export default function PodcastPage() {
             they pass a client to a colleague.
           </p>
         }
-        image={images.portraitA}
+        image={images.ed29}
+        imageClassName="mag-bw object-top"
         crumbs={crumbs}
       />
 

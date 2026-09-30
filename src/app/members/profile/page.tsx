@@ -21,6 +21,7 @@ import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { publishMemberListing } from "@/lib/actions/directory";
 import { PROFESSIONS, professionById } from "@/config/rooms";
+import { hasFullProfile } from "@/lib/directory";
 import { tierById } from "@/config/subscriptions";
 import { cn } from "@/lib/utils";
 import { saveMemberDetails, signOutAction } from "./actions";
@@ -92,6 +93,8 @@ export default async function ProfilePage({
             phone: true,
             services: true,
             photoUrl: true,
+            kind: true,
+            freeUntil: true,
             enquiries: {
               orderBy: { createdAt: "desc" },
               take: 50,
@@ -124,6 +127,8 @@ export default async function ProfilePage({
             phone: true,
             services: true,
             photoUrl: true,
+            kind: true,
+            freeUntil: true,
             enquiries: { select: { id: true, name: true, email: true, message: true, createdAt: true, status: true } },
           },
         })
@@ -133,6 +138,8 @@ export default async function ProfilePage({
     : (listing?.enquiries ?? []);
   const profession = user.profile?.profession ?? null;
   const plan = tierById(ctx.plan)?.name;
+  // Paid members always have the full profile; free accounts during their 90-day trial.
+  const fullProfile = ctx.professional || (!!listing && listing.status === "listed" && hasFullProfile(listing));
   const publicHref = listing?.slug && listing.status === "listed" ? `/directory/p/${listing.slug}` : null;
 
   const links = [
@@ -224,7 +231,7 @@ export default async function ProfilePage({
         </Card>
       </section>
 
-      {ctx.professional ? (
+      {fullProfile ? (
         <section id="listing" className="mt-10 scroll-mt-20">
           <SectionLabel
             action={
@@ -346,10 +353,10 @@ export default async function ProfilePage({
 
       <section id="enquiries" className="mt-10 scroll-mt-20">
         <SectionLabel>Enquiries</SectionLabel>
-        {!ctx.professional ? (
+        {!fullProfile ? (
           <Card className="p-5 text-sm leading-relaxed text-ink-2">
             {enquiries.length > 0
-              ? `${enquiries.length} ${enquiries.length === 1 ? "enquiry is" : "enquiries are"} waiting for your listing. They are held until you move to Professional.`
+              ? `${enquiries.length} ${enquiries.length === 1 ? "enquiry is" : "enquiries are"} waiting for your listing. They are held until you join the Professional plan.`
               : "When a member of the public contacts you through the directory, it will appear here once you're on Professional."}
           </Card>
         ) : enquiries.length === 0 ? (

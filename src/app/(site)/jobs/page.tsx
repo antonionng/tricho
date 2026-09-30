@@ -15,7 +15,7 @@ export const metadata = pageMetadata({
   description:
     "Find roles at clinics, salons, head spas and brands across Ireland and the UK, posted by Trichollective Business members. Employers reach practitioners already trained in hair and scalp care.",
   path: "/jobs",
-    og: { title: "Find your next role in hair and scalp care.", eyebrow: "Careers", img: images.salon.src, variant: "photo" },
+    og: { title: "Find your next role in hair and scalp care.", eyebrow: "Careers", img: images.ed32.src, variant: "photo" },
 });
 
 export default function JobsPage() {
@@ -60,11 +60,11 @@ export default function JobsPage() {
             <div className="flex flex-col gap-6 overflow-hidden rounded-3xl border border-ink bg-ink text-paper">
               <div className="relative aspect-[16/9]">
                 <Image
-                  src={img(images.salon, 1000)}
-                  alt={images.salon.alt}
+                  src={img(images.ed32, 1000)}
+                  alt={images.ed32.alt}
                   fill
                   sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover opacity-90"
+                  className="mag-bw object-cover object-top opacity-90"
                 />
               </div>
               <div className="flex flex-1 flex-col gap-5 p-7 pt-0 md:p-10 md:pt-2">
@@ -92,11 +92,11 @@ export default function JobsPage() {
             <div className="flex flex-col gap-6 overflow-hidden rounded-3xl border border-rule bg-card">
               <div className="relative aspect-[16/9]">
                 <Image
-                  src={img(images.headSpa, 1000)}
-                  alt={images.headSpa.alt}
+                  src={img(images.ed26, 1000)}
+                  alt={images.ed26.alt}
                   fill
                   sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover"
+                  className="mag-bw object-cover object-top"
                 />
               </div>
               <div className="flex flex-1 flex-col gap-5 p-7 pt-0 md:p-10 md:pt-2">

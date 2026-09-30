@@ -28,6 +28,7 @@ import { DirectorySearch } from "@/components/site/DirectorySearch";
 import { images, img } from "@/content/images";
 import { editions } from "@/content/gazette";
 import { Cover } from "@/components/gazette/Cover";
+import { PartnerStrip } from "@/components/site/PartnerStrip";
 import { ParallaxImage } from "@/components/gazette/Parallax";
 import { coverImage } from "@/components/gazette/art";
 import { gazetteFonts } from "@/components/gazette/fonts";
@@ -100,7 +101,7 @@ export default async function HomePage() {
                   </Link>
                 </Button>
                 <Button asChild size="xl" variant="outline">
-                  <Link href="/directory/list">List free for {FREE_LISTING_DAYS} days</Link>
+                  <Link href="/signup">Create a free account</Link>
                 </Button>
               </div>
               <div className="flex flex-col gap-1">
@@ -190,7 +191,7 @@ export default async function HomePage() {
                 body: "Put your clinic, salon or products in front of hair and scalp professionals, and advertise roles to people already trained in the field.",
                 href: "/for-business",
                 cta: "See business membership",
-                image: images.ed12,
+                image: images.ed24,
               },
               {
                 title: "I'm looking for help",
@@ -348,6 +349,8 @@ export default async function HomePage() {
         </Container>
       </section>
 
+      <PartnerStrip />
+
       {/* 6. Courses */}
       <Section tone="paper-2">
         <Container>
@@ -373,7 +376,7 @@ export default async function HomePage() {
                       alt={images[c.imageKey].alt}
                       fill
                       sizes="(min-width: 768px) 33vw, 100vw"
-                      className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                      className="mag-bw object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]"
                     />
                   </div>
                   <div className="flex flex-1 flex-col gap-3 p-6">
@@ -410,7 +413,7 @@ export default async function HomePage() {
             <p className="text-sm text-muted-foreground">
               Are you a professional?{" "}
               <Link href="/directory/list" className="underline underline-offset-4 text-ink">
-                Be found here with a free founding listing for {FREE_LISTING_DAYS} days
+                Be found here for free, with your full profile and enquiries included for {FREE_LISTING_DAYS} days
               </Link>
             </p>
           </div>
@@ -420,7 +423,7 @@ export default async function HomePage() {
       {/* 8. Gatherings */}
       <section className="relative overflow-hidden bg-ink text-paper">
         <div className="absolute inset-0 opacity-40">
-          <Image src={img(images.gathering, 1800)} alt="" fill sizes="100vw" className="object-cover" />
+          <Image src={img(images.ed28, 1800)} alt="" fill sizes="100vw" className="mag-bw object-cover" />
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/30" />
         <Container className="relative py-24 md:py-32">
@@ -476,7 +479,7 @@ export default async function HomePage() {
                 eyebrow="Membership"
                 title={`Join from £${subscriptionTiers[0].foundingPrice} a month at the founding price,`}
                 fade="and keep that price for as long as you stay."
-                body={`Start with a free founding listing for ${FREE_LISTING_DAYS} days, or choose the plan that matches your practice. There is no contract, and you can cancel from your account at any time.`}
+                body={`Start with a free account and listing, with your full profile free for ${FREE_LISTING_DAYS} days, or choose the plan that matches your practice. There is no contract, and you can cancel from your account at any time.`}
               />
             </div>
             <div className="lg:col-span-7 grid gap-4 sm:grid-cols-3">

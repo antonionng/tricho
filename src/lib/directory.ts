@@ -78,7 +78,8 @@ export async function searchListings({
           : {},
       ],
     },
-    orderBy: [{ kind: "desc" }, { isVerified: "desc" }, { createdAt: "desc" }],
+    // Paid first, then free trials (latest ending first), then basic listings.
+    orderBy: [{ kind: "desc" }, { freeUntil: { sort: "desc", nulls: "last" } }, { isVerified: "desc" }, { createdAt: "desc" }],
     take,
     select: listingSelect,
   });
@@ -103,4 +104,18 @@ export async function listingCityPairs(minimum = 1) {
     .map((r) => ({ discipline: r.profession as DisciplineId, city: r.city, count: r._count._all }));
 }
 
+/** Paid (claimed) listings. */
 export const isClaimed = (l: { kind: string }) => l.kind === "member";
+
+/**
+ * Full profile: paid listings always, free listings during their 90-day trial
+ * (`freeUntil` is when the trial ends). After that a listing stays public as a basic listing.
+ */
+export function hasFullProfile(l: { kind: string; freeUntil?: Date | null }, now = new Date()) {
+  return l.kind === "member" || (!!l.freeUntil && l.freeUntil > now);
+}
+
+export function trialDaysLeft(l: { freeUntil?: Date | null }, now = new Date()) {
+  if (!l.freeUntil) return 0;
+  return Math.max(0, Math.ceil((l.freeUntil.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+}

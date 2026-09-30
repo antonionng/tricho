@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/studio/SubmitButton";
 import { Card, Empty, Notice, PageHeader, Section, Tag, dateTime } from "@/components/studio/ui";
 import { studioPage } from "../_lib/guard";
 import { deletePostAction, resolveReportAction, togglePinAction } from "../actions";
+import { draftLaunchPostsAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,13 @@ export default async function CommunityPage({
       <PageHeader
         title="Community"
         intro="Posts that members, or the Community host, have flagged for you to look at. You can also pin posts to the top of their space."
+        actions={
+          <form action={draftLaunchPostsAction}>
+            <SubmitButton variant="outline" pendingLabel="Drafting…">
+              Draft launch-week posts
+            </SubmitButton>
+          </form>
+        }
       />
 
       {notice && <Notice>{notice}</Notice>}

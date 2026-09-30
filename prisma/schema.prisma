@@ -159,6 +159,8 @@ model DirectoryListing {
   isSample         Boolean   @default(false)
   /// Where the listing came from, e.g. "dublin", "instagram".
   source           String?
+  /// Private token in an invitation link; cleared once the person submits their listing.
+  inviteToken      String?   @unique
   enquiries        Enquiry[]
 
   createdAt DateTime @default(now())
@@ -490,4 +492,28 @@ model AgentSetting {
   /// "ask" = every output needs approval, "auto" = low-risk output publishes itself.
   autonomy  String   @default("ask")
   updatedAt DateTime @updatedAt
+}
+
+/// Business and Premium Business partners shown on /partners. Only real, published partners appear.
+model Partner {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  /// "premium" or "business"
+  tier          String    @default("premium")
+  /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
+  category      String
+  logoUrl       String?
+  blurb         String    @db.Text
+  website       String?
+  /// The member perk, shown in the member area.
+  perk          String?   @db.Text
+  contactEmail  String?
+  isFounding    Boolean   @default(false)
+  published     Boolean   @default(false)
+  featuredUntil DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([published, tier])
 }

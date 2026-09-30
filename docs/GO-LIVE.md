@@ -6,7 +6,7 @@ Target: live and tested by **Saturday 3 October**, ready for Trichollective Dubl
 
 | # | Item | Where it goes | Why |
 |---|---|---|---|
-| 1 | **Stripe prices**: Community (£9, founding £6, annual £90), Professional (£19, founding £14, annual £190), Business (£99, annual £990) | Vercel env: `STRIPE_PRICE_ID_COMMUNITY`, `_COMMUNITY_FOUNDING`, `_COMMUNITY_ANNUAL`, `_PROFESSIONAL`, `_PROFESSIONAL_FOUNDING`, `_PROFESSIONAL_ANNUAL`, `_BUSINESS`, `_BUSINESS_ANNUAL` | Without them the join buttons explain that payments aren't switched on yet. |
+| 1 | **Stripe (test mode done)**: products and ten prices exist in the connected Trichollective test account, each with EUR options (Community £9/€10, founding £6/€7, annual £90/€100, founding annual £60/€70; Professional £19/€22, founding £14/€16, annual £190/€220, founding annual £140/€160; Business £99/€115, annual £990/€1,150). Price IDs are in Vercel. **Still needed:** the test `STRIPE_SECRET_KEY` and the webhook secret in Vercel; for live, repeat in live mode or run `scripts/stripe-setup.ts` | Vercel env | Without the secret key the join buttons explain that payments aren't switched on yet. |
 | 2 | **Stripe webhook** pointing at `https://<domain>/api/webhooks/stripe` with events `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted` | `STRIPE_WEBHOOK_SECRET` | This is what turns a payment into a membership and claims a free listing. |
 | 3 | **Resend** API key and a verified sending address (e.g. `hello@` your domain) | `AUTH_RESEND_KEY`, `AUTH_EMAIL_FROM` | Magic-link sign-in, the newsletter and reminder emails. |
 | 4 | **Vercel AI Gateway** key | `AI_GATEWAY_API_KEY` | The Assistant and the agents. Without it, agents still draft from templates. |
@@ -31,7 +31,7 @@ The change is **additive only**: new tables, new columns and new indexes. A read
 5. Tidy the existing data (dry run first, then apply):
    `ENV_FILE=.env npx tsx scripts/go-live-backfill.ts --live`
    `ENV_FILE=.env npx tsx scripts/go-live-backfill.ts --live --apply`
-   This gives existing listings a profile address, starts their 90 free days from launch day, and sets the plan for existing subscribers.
+   This gives existing listings a profile address, starts their 90-day full-profile trial from launch day (their basic listing stays free for good), and sets the plan for existing subscribers.
 
 **Never** run `prisma migrate dev` or `prisma db push --force-reset` against the live database. The sample seed refuses to run anywhere but a local database.
 
@@ -45,6 +45,10 @@ The change is **additive only**: new tables, new columns and new indexes. A read
 - [ ] Run each agent once from Studio → Agents and check the drafts in the inbox.
 - [ ] Share a Trichozette link in WhatsApp or Slack and check the preview image.
 - [ ] Submit `https://<domain>/sitemap.xml` in Google Search Console.
+
+## VAT
+
+The site says "Prices include VAT where applicable". Stripe Tax is off. Karley's accountant should confirm VAT registration and whether to switch on Stripe Tax before taking live payments.
 
 ## 4. Content sign-off before launch
 

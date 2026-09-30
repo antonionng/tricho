@@ -3,29 +3,31 @@ import { Check, CreditCard, RotateCcw, ShieldCheck } from "lucide-react";
 import { Container, Section, SectionHeader } from "@/components/site/primitives";
 import { FaqList } from "@/components/site/FaqList";
 import { pricingFaqs } from "@/content/faqs";
-import { FREE_LISTING_DAYS, subscriptionTiers } from "@/config/subscriptions";
+import type { Faq } from "@/content/faqs";
+import { FOUNDING_MEMBER_PLACES, FREE_LISTING_DAYS, premiumBusiness, subscriptionTiers } from "@/config/subscriptions";
+import { foundingMemberPlacesLeft, foundingPartnerPlacesLeft } from "@/lib/founding";
 import { breadcrumbLd, faqLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
 import { PricingTable } from "./PricingTable";
 
 export const metadata = pageMetadata({
   title: `Membership and pricing`,
-  description: `Compare Trichollective plans. Be listed free for ${FREE_LISTING_DAYS} days, join the community from £6 a month at the founding price, or choose Professional for a full profile, the Case Room, referrals and a CPD log. Cancel anytime.`,
+  description: `Compare Trichollective plans in pounds or euros. Create a free account with a basic directory listing and your full profile free for ${FREE_LISTING_DAYS} days, join the community, or choose Professional for the Case Room, referrals and a CPD log. Business and Premium Business plans for clinics, salons and brands.`,
   path: "/pricing",
-    og: { title: "Start with a free listing,", sub: "and add peer review, CPD and referrals when you are ready.", eyebrow: "Membership", img: images.salon.src, variant: "photo" },
+  og: { title: "Start with a free account,", sub: "and add peer review, CPD and referrals when you are ready.", eyebrow: "Membership", img: images.ed05.src, variant: "photo" },
 });
 
 type Cell = boolean | string;
-const columns = ["Founding listing", "Community", "Professional", "Business"] as const;
-const shortColumns = ["Free listing", "Community", "Professional", "Business"] as const;
+const columns = ["Free account", "Community", "Professional", "Business"] as const;
+const shortColumns = ["Free", "Community", "Professional", "Business"] as const;
 
 const comparison: { group: string; rows: { label: string; values: [Cell, Cell, Cell, Cell] }[] }[] = [
   {
     group: "The directory",
     rows: [
-      { label: "Basic listing: name, discipline, city and specialism", values: [`${FREE_LISTING_DAYS} days`, false, true, true] },
-      { label: "Full profile with photo, services and website", values: [false, false, true, true] },
-      { label: "Enquiries from the public sent straight to you", values: ["Held until you claim", false, true, true] },
+      { label: "Basic listing: name, discipline, town and specialism", values: ["Free for good", true, true, true] },
+      { label: "Full profile with photo, services and website", values: [`First ${FREE_LISTING_DAYS} days`, false, true, true] },
+      { label: "Enquiries from the public sent straight to you", values: [`First ${FREE_LISTING_DAYS} days, then held until you join`, false, true, true] },
       { label: "Verified badge after a manual check of training and registration", values: [false, false, true, true] },
       { label: "Business page", values: [false, false, false, true] },
     ],
@@ -42,7 +44,7 @@ const comparison: { group: string; rows: { label: string; values: [Cell, Cell, C
   {
     group: "Learning",
     rows: [
-      { label: "Trichozette and the podcast", values: [false, true, true, true] },
+      { label: "Trichozette in full, with the archive, and the podcast", values: ["Opening features", true, true, true] },
       { label: "The monthly newsletter", values: [true, true, true, true] },
       { label: "Member prices on courses and conferences", values: [false, true, true, true] },
       { label: "CPD log that records your learning automatically", values: [false, false, true, true] },
@@ -53,13 +55,45 @@ const comparison: { group: string; rows: { label: string; values: [Cell, Cell, C
     group: "For your business",
     rows: [
       { label: "Member perks from partner brands", values: [false, true, true, true] },
-      { label: "Professional seats for your team", values: [false, false, "1", "5"] },
+      { label: "Professional membership for your team", values: [false, false, "You", "5 seats"] },
       { label: "Job posts on the jobs board", values: [false, false, false, true] },
-      { label: "A listing in member perks", values: [false, false, false, true] },
+      { label: "Offer members a perk from your business", values: [false, false, false, true] },
       { label: "Quarterly engagement summary", values: [false, false, false, true] },
     ],
   },
 ];
+
+/** Questions about currency, VAT, founding places and the business plans. Kept here so pricingFaqs stays untouched. */
+function extraFaqs(foundingLeft: number, partnerLeft: number): Faq[] {
+  return [
+    {
+      q: "Can I pay in euros?",
+      a: "Yes. Choose € above the plans and checkout charges you in euros. Visitors from Ireland and the rest of Europe see euros first, and you can switch between pounds and euros whenever you like.",
+    },
+    {
+      q: "Do prices include VAT?",
+      a: "Yes. Prices include VAT where applicable.",
+    },
+    {
+      q: "How many founding places are left?",
+      a:
+        foundingLeft > 0
+          ? `${foundingLeft} of ${FOUNDING_MEMBER_PLACES} founding places remain for individual members. The number on this page is counted from real memberships, and when it reaches zero the founding price closes to new members.`
+          : `All ${FOUNDING_MEMBER_PLACES} founding places have been taken, so new members join at the standard price. Founding members keep their price for as long as they stay.`,
+    },
+    {
+      q: "What is the difference between Business and Premium Business?",
+      a: "Business gives your clinic, salon or brand a directory page, five Professional seats, job posts and a member perk, and you can join straight away. Premium Business adds a sponsored masterclass, a labelled Trichozette feature, newsletter spotlights, conference presence, a product trial panel and a partner page. It is by application only, with at most two partners in each product category.",
+    },
+    {
+      q: "How do I become a Premium partner?",
+      a:
+        partnerLeft > 0
+          ? `Apply on the For business page. We read every application ourselves, and if it is a good fit we invoice you yearly. The first ${premiumBusiness.foundingPlaces} partners pay the founding rate of £${premiumBusiness.foundingAnnualPrice.toLocaleString("en-GB")} a year instead of £${premiumBusiness.annualPrice.toLocaleString("en-GB")}, and ${partnerLeft} of those places remain.`
+          : `Apply on the For business page. We read every application ourselves, and if it is a good fit we invoice you £${premiumBusiness.annualPrice.toLocaleString("en-GB")} a year.`,
+    },
+  ];
+}
 
 function CellValue({ value }: { value: Cell }) {
   if (value === true)
@@ -87,6 +121,12 @@ export default async function PricingPage({
   searchParams: Promise<{ cancelled?: string }>;
 }) {
   const { cancelled } = await searchParams;
+  const [foundingLeft, partnerLeft] = await Promise.all([
+    foundingMemberPlacesLeft().catch(() => 0),
+    foundingPartnerPlacesLeft(),
+  ]);
+  const foundingOpen = foundingLeft > 0;
+  const faqs = [...pricingFaqs, ...extraFaqs(foundingLeft, partnerLeft)];
 
   const offersLd = {
     "@context": "https://schema.org",
@@ -97,7 +137,7 @@ export default async function PricingPage({
     offers: subscriptionTiers.map((t) => ({
       "@type": "Offer",
       name: t.name,
-      price: t.foundingPrice ?? t.price,
+      price: foundingOpen ? (t.foundingPrice ?? t.price) : t.price,
       priceCurrency: "GBP",
       url: absoluteUrl(`/pricing#${t.id}`),
       availability: "https://schema.org/InStock",
@@ -125,16 +165,20 @@ export default async function PricingPage({
             as="h1"
             align="center"
             eyebrow="Membership"
-            title="Start with a free listing, and add peer review,"
+            title="Start with a free account, and add peer review,"
             fade="CPD and referrals when you are ready."
-            body={`Be listed free for ${FREE_LISTING_DAYS} days, or join today at the founding price. Founding members keep that price for as long as they stay, and founding places are limited.`}
+            body={
+              foundingOpen
+                ? `Your basic directory listing is free for good, with your full profile free for the first ${FREE_LISTING_DAYS} days. Join today at the founding price and keep it for as long as you stay a member, while founding places last.`
+                : `Your basic directory listing is free for good, with your full profile free for the first ${FREE_LISTING_DAYS} days. Join when you want peer review, CPD and referrals.`
+            }
           />
         </Container>
       </Section>
 
       <section className="pb-20 md:pb-28">
         <Container>
-          <PricingTable />
+          <PricingTable foundingPlacesLeft={foundingLeft} partnerPlacesLeft={partnerLeft} />
 
           <ul className="mt-12 grid gap-6 border-t border-rule pt-10 sm:grid-cols-3">
             {[
@@ -173,7 +217,7 @@ export default async function PricingPage({
             eyebrow="Compare plans"
             title="See exactly which plan gives you enquiries,"
             fade="the Case Room and a CPD log."
-            body="Every plan includes the monthly newsletter. The table shows what each one adds."
+            body="Every account, including the free one, gets the monthly newsletter. The table shows what each plan adds. Premium Business includes everything in Business."
           />
           {/* Phones: one block per feature, no sideways scrolling */}
           <div className="mt-12 md:hidden">
@@ -272,7 +316,7 @@ export default async function PricingPage({
               </p>
             </div>
             <div className="lg:col-span-8">
-              <FaqList faqs={pricingFaqs} />
+              <FaqList faqs={faqs} />
             </div>
           </div>
         </Container>
@@ -280,7 +324,7 @@ export default async function PricingPage({
 
       <JsonLd
         data={[
-          faqLd(pricingFaqs),
+          faqLd(faqs),
           offersLd,
           breadcrumbLd([
             { name: "Home", path: "/" },
