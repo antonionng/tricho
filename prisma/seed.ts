@@ -12,12 +12,18 @@ import { CHAPTERS } from "../src/content/chapters";
 import { images, img } from "../src/content/images";
 
 const url = process.env.DATABASE_URL ?? "";
-if (process.env.NODE_ENV === "production" || !/@(localhost|127\.0\.0\.1)[:/]/.test(url)) {
-  console.error("Refusing to seed: this seed only runs against a local database.");
+const LIVE_REF = "fbemqtjxislieevgtrkm";
+const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
+const previewRef = process.env.SEED_PREVIEW_REF;
+const isNamedPreview = !!previewRef && previewRef !== LIVE_REF && url.includes(previewRef);
+if (url.includes(LIVE_REF) || (!isLocal && !isNamedPreview)) {
+  console.error("Refusing to seed: only a local database or a named preview branch (SEED_PREVIEW_REF) may be seeded, never the live database.");
   process.exit(1);
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url, ssl: false }) });
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: url.replace(/([?&])sslmode=[^&]*/g, "$1").replace(/[?&]$/, ""), ssl: isLocal ? false : { rejectUnauthorized: false } }),
+});
 const day = 24 * 60 * 60 * 1000;
 
 const SAMPLE_LISTINGS: {

@@ -3,6 +3,7 @@ import { Geist_Mono, Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { site } from "@/config/site";
 import { JsonLd, organizationLd, websiteLd } from "@/lib/seo";
+import { isPreviewDemo } from "@/lib/env";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -56,6 +57,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${interTight.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground overflow-x-hidden`}
       >
+        {isPreviewDemo() && (
+          <div className="relative z-[100] bg-ink px-4 py-1.5 text-center text-[12px] text-paper">
+            You&apos;re viewing a preview of Trichollective Online. People and listings shown here are sample content, not real members.
+          </div>
+        )}
         {children}
         <JsonLd data={[organizationLd(), websiteLd()]} />
       </body>

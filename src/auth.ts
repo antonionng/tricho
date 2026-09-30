@@ -5,6 +5,7 @@ import Resend from "next-auth/providers/resend";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
+import { isDevOrDemo } from "@/lib/env";
 
 const providers: NextAuthConfig["providers"] = [];
 
@@ -31,7 +32,7 @@ if (process.env.AUTH_RESEND_KEY) {
  * platform is fully usable before OAuth/email credentials are configured.
  * Never enabled in production.
  */
-if (process.env.NODE_ENV !== "production") {
+if (isDevOrDemo()) {
   providers.push(
     Credentials({
       id: "dev",

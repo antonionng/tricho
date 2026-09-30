@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { BrandMark } from "@/components/brand/BrandMark";
 import Link from "next/link";
 import { pageMetadata } from "@/lib/seo";
+import { isDevOrDemo, isPreviewDemo } from "@/lib/env";
 
 export const metadata = pageMetadata({
   title: "Sign in",
@@ -15,7 +16,8 @@ export const metadata = pageMetadata({
 
 const googleEnabled = !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 const resendEnabled = !!process.env.AUTH_RESEND_KEY;
-const devEnabled = process.env.NODE_ENV !== "production";
+const devEnabled = isDevOrDemo();
+const demo = isPreviewDemo();
 
 export default async function LoginPage({
   searchParams,
@@ -89,7 +91,7 @@ export default async function LoginPage({
               }}
               className="space-y-3 border-t border-rule pt-5"
             >
-              <p className="text-xs text-muted-foreground">Dev login (local only)</p>
+              <p className="text-xs text-muted-foreground">{demo ? "Preview access: enter your email to explore everything, including the Studio." : "Dev login (local only)"}</p>
               <div className="space-y-2">
                 <Label htmlFor="dev-email">Email</Label>
                 <Input

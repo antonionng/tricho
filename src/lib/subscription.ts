@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isDevOrDemo } from "@/lib/env";
 import { tierByPriceId, type PlanId } from "@/config/subscriptions";
 
 /** Small grace window so a member isn't locked out the instant a renewal is processing. */
@@ -36,10 +37,7 @@ export function resolveMembership(user: {
  * is usable before Stripe price IDs are connected. Never active in production.
  */
 export function devMembershipUnlock() {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.DEV_MEMBERSHIP_UNLOCK === "true"
-  );
+  return isDevOrDemo() && process.env.DEV_MEMBERSHIP_UNLOCK === "true";
 }
 
 export function canEnterConsultation(role?: string | null) {
