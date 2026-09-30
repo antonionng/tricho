@@ -20,7 +20,7 @@ export const DISCIPLINES: Discipline[] = [
     slug: "cosmetic",
     name: "Cosmetic",
     plural: "Head spa and cosmetic hair specialists",
-    who: "Head spa therapists, stylists and scalp care specialists.",
+    who: "Head spa therapists, stylists, barbers, aestheticians, and beauty and nail therapists.",
     role:
       "Often the first to notice a change in a client's hair or scalp. Trichollective helps cosmetic practitioners spot red flags early and refer on to the right clinician.",
     helpsWith: ["Head spa and scalp treatments", "Dry, oily or flaky scalp care", "Styling that works with thinning hair", "Referring on when something needs a closer look"],

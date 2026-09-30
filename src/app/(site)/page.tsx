@@ -181,7 +181,7 @@ export default async function HomePage() {
             {[
               {
                 title: "I see clients",
-                body: "Trichologist, doctor, nurse, head spa therapist or stylist. Discuss cases with verified colleagues, refer across disciplines, log CPD as you learn and be found by the public.",
+                body: "Trichologist, doctor, nurse, head spa therapist, stylist, barber or aesthetician. Discuss cases with verified colleagues, refer across disciplines, log CPD as you learn and be found by the public.",
                 href: "/pricing",
                 cta: "See membership",
                 image: images.ed16,

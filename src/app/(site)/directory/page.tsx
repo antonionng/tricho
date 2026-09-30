@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 export const metadata = pageMetadata({
   title: "Find a hair and scalp professional near you",
   description:
-    "Search head spa therapists, stylists, trichologists, nurses and doctors across Ireland and the UK. Every listing in the Trichollective directory is checked by a person.",
+    "Search head spa therapists, stylists, barbers, aestheticians, trichologists, nurses and doctors across Ireland, the UK and beyond. Every listing in the Trichollective directory is checked by a person.",
   path: "/directory",
     og: { title: "Find the right hair and scalp professional", sub: "close to where you live.", eyebrow: "The founding directory", img: images.ed20.src, variant: "photo" },
 });

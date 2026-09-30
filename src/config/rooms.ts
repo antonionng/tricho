@@ -5,7 +5,7 @@ export const PROFESSIONS: {
   label: string;
   blurb: string;
 }[] = [
-  { id: "cosmetic", label: "Cosmetic", blurb: "Head spa therapists, stylists and scalp care specialists" },
+  { id: "cosmetic", label: "Cosmetic", blurb: "Head spa therapists, stylists, barbers, aestheticians, and beauty and nail therapists" },
   { id: "clinical", label: "Clinical", blurb: "Trichologists and clinical hair specialists" },
   { id: "medical", label: "Medical", blurb: "GPs, dermatologists, nurses and aesthetic doctors" },
   { id: "brand", label: "Business", blurb: "Clinics, salons, brands and device makers" },

@@ -3,7 +3,7 @@ export type Faq = { q: string; a: string };
 export const homeFaqs: Faq[] = [
   {
     q: "Who is Trichollective for?",
-    a: "Trichologists first, and every professional whose work touches the hair and scalp: clinical hair specialists, GPs, dermatologists, aesthetic doctors and nurses, head spa therapists, stylists and scalp care specialists, in Ireland, the UK, Europe and the US. Because members come from cosmetic, clinical and medical practice, you can always find someone who sees the part of a case you don't.",
+    a: "Trichologists first, and every professional whose work touches the hair and scalp: clinical hair specialists, GPs, dermatologists, aesthetic doctors and nurses, head spa therapists, stylists, barbers, aestheticians, and beauty and nail therapists, in Ireland, the UK, Europe and the US. Because members come from cosmetic, clinical and medical practice, you can always find someone who sees the part of a case you don't.",
   },
   {
     q: "What do I get when I join?",

@@ -37,7 +37,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     annualPrice: 90,
     foundingAnnualPrice: 60,
     eur: { price: 10, foundingPrice: 7, annualPrice: 100, foundingAnnualPrice: 70 },
-    audience: "For head spa therapists, stylists, scalp care specialists and students building their scope of practice",
+    audience: "For head spa therapists, stylists, barbers, aestheticians, beauty and nail therapists, and students building their scope of practice",
     summary:
       "Ask colleagues across every discipline, learn from monthly masterclasses and pay less for courses and conferences.",
     grantsRole: "individual",
