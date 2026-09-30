@@ -3,7 +3,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { site } from "@/config/site";
 import { JsonLd, organizationLd, websiteLd } from "@/lib/seo";
-import { isPreviewDemo } from "@/lib/env";
 
 // Fonts are bundled from npm (@fontsource-variable) so builds never depend on fetching Google Fonts.
 const inter = localFont({
@@ -55,11 +54,6 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${interTight.variable} font-sans antialiased bg-background text-foreground overflow-x-hidden`}
       >
-        {isPreviewDemo() && (
-          <div className="relative z-[100] bg-ink px-4 py-1.5 text-center text-[12px] text-paper">
-            You&apos;re viewing a preview of Trichollective Online. People and listings shown here are sample content, not real members.
-          </div>
-        )}
         {children}
         <JsonLd data={[organizationLd(), websiteLd()]} />
       </body>
