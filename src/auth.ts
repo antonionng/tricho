@@ -5,7 +5,7 @@ import Resend from "next-auth/providers/resend";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
-import { isDevOrDemo } from "@/lib/env";
+import { isDevOrDemo, isPreviewDemo } from "@/lib/env";
 
 const providers: NextAuthConfig["providers"] = [];
 
@@ -40,10 +40,16 @@ if (isDevOrDemo()) {
       credentials: {
         email: { label: "Email", type: "email" },
         name: { label: "Name", type: "text" },
+        passcode: { label: "Passcode", type: "password" },
       },
       async authorize(credentials) {
         const email = (credentials?.email as string)?.toLowerCase().trim();
         if (!email) return null;
+        // Public previews need the passcode, so strangers can't sign in as the sample admin.
+        if (isPreviewDemo()) {
+          const expected = process.env.PREVIEW_PASSCODE;
+          if (!expected || credentials?.passcode !== expected) return null;
+        }
 
         const user = await prisma.user.upsert({
           where: { email },

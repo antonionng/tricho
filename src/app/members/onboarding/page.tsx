@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Paywall } from "@/components/members/Paywall";
 import { MemberPage, fieldClass } from "@/components/members/MemberPage";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { getMemberContext } from "@/lib/member";
@@ -23,7 +22,6 @@ export default async function OnboardingPage({
 }) {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/onboarding");
-  if (!ctx.allowed) return <Paywall title="Welcome" body="Once your membership is active, we'll help you settle in." />;
 
   const { step: rawStep, error } = await searchParams;
   const step = Math.min(3, Math.max(1, Number(rawStep) || 1));
@@ -130,7 +128,23 @@ export default async function OnboardingPage({
         </form>
       )}
 
-      {step === 3 && (
+      {step === 3 && !ctx.allowed && (
+        <form action={finishOnboarding} className="flex flex-col gap-6">
+          <header>
+            <p className="label text-muted-foreground">Last step</p>
+            <h1 className="display mt-3 text-4xl sm:text-5xl">Your free account is ready to use.</h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
+              You can add your free founding listing, read the opening pages of every Trichozette edition and follow the
+              news. When you want peer review, CPD and referrals, you can become a member from your home page.
+            </p>
+          </header>
+          <div>
+            <SubmitButton pending="Finishing…">Go to my free account</SubmitButton>
+          </div>
+        </form>
+      )}
+
+      {step === 3 && ctx.allowed && (
         <form action={finishOnboarding} className="flex flex-col gap-6">
           <header>
             <p className="label text-muted-foreground">Last step</p>

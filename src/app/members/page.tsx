@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Check, MapPin } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
-import { Paywall } from "@/components/members/Paywall";
+import { FreeHome } from "@/components/members/FreeHome";
 import { Avatar } from "@/components/members/Avatar";
 import { Card, EmptyState, MemberPage, SectionLabel } from "@/components/members/MemberPage";
 import { EventMini } from "@/components/members/EventMini";
@@ -21,8 +21,8 @@ export const metadata = { title: "Today" };
 export default async function TodayPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members");
-  if (!ctx.allowed) return <Paywall title="Welcome in" body="Your member home opens as soon as your membership is active." />;
   if (!ctx.onboarded) redirect("/members/onboarding");
+  if (!ctx.allowed) return <FreeHome userId={ctx.session.user.id} email={ctx.session.user.email ?? ""} />;
 
   const userId = ctx.session.user.id;
   const { welcome } = await searchParams;

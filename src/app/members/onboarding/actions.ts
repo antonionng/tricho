@@ -11,7 +11,6 @@ async function requireUser() {
   const ctx = await getMemberContext();
   const userId = ctx.session?.user?.id;
   if (!userId) redirect("/login?next=/members/onboarding");
-  if (!ctx.allowed) redirect("/pricing");
   return { ctx, userId };
 }
 
@@ -50,7 +49,8 @@ export async function finishOnboarding(formData: FormData) {
     select: { name: true, chapterId: true },
   });
 
-  if (intro.length >= 2) {
+  // Only members can post; free accounts skip the introduction.
+  if (ctx.allowed && intro.length >= 2) {
     await prisma.communityPost.create({
       data: {
         title: `Hello from ${(user.name || "a new member").split(" ")[0]}`,
