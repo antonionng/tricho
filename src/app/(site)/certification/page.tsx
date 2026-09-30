@@ -68,8 +68,8 @@ export default function CertificationPage() {
             <div className="lg:col-span-5 flex flex-col gap-8">
               <SectionHeader
                 eyebrow="How it works"
-                title="What your certificate"
-                fade="tells people."
+                title="Here is what your certificate"
+                fade="tells other people."
               />
               <div className="prose-tricho">
                 <p>
@@ -146,7 +146,7 @@ export default function CertificationPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Why a reviewer signs off"
-                title="A named person"
+                title="A named person stands"
                 fade="behind every course."
               />
             </div>
@@ -178,7 +178,7 @@ export default function CertificationPage() {
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Good to know" />
+              <SectionHeader eyebrow="Questions" title="Answers to the questions people ask us most." />
             </div>
             <div className="lg:col-span-8">
               <FaqList faqs={faqs} />

@@ -92,7 +92,7 @@ export default async function WelcomePage({
 
       <Section tone="paper-2">
         <Container>
-          <SectionHeader eyebrow="What happens next" title="Four short steps" fade="to settle in." />
+          <SectionHeader eyebrow="What happens next" title="Four short steps" fade="will get you settled in." />
           <ol className="mt-12 grid gap-5 md:grid-cols-2">
             {steps.map((s, i) => (
               <li key={s.t} className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-7 md:p-8">

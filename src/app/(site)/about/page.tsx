@@ -75,7 +75,7 @@ export default function AboutPage() {
                 <span className="text-fade">at {site.origin}.</span>
               </h1>
               <p className="lede max-w-xl">
-                Trichollective brings together everyone who cares for hair and scalps, from the treatment
+                Trichollective brings together everyone who cares for hair and the scalp beneath it, from the treatment
                 chair to the consulting room.
               </p>
             </div>
@@ -100,7 +100,7 @@ export default function AboutPage() {
             <div className="lg:col-span-5 flex flex-col gap-6">
               <p className="label opacity-70">Founded by {site.founderFull}</p>
               <p className="display text-4xl md:text-5xl leading-[1.02]">
-                The people who care for hair should be talking to each other.
+                The people who care for hair and scalp should be talking to each other.
               </p>
               <p className="text-[15px] leading-relaxed text-ink-2">{site.founderBio}</p>
               <figure className="border-l-2 border-ink pl-5">
@@ -150,7 +150,7 @@ export default function AboutPage() {
       {/* Timeline */}
       <Section>
         <Container>
-          <SectionHeader eyebrow="So far" title="From Whittlebury" fade="to Dublin, and beyond." />
+          <SectionHeader eyebrow="So far" title="Trichollective began at Whittlebury Hall" fade="and launches online in Dublin." />
           <div className="mt-14">
             <Timeline />
           </div>
@@ -162,8 +162,8 @@ export default function AboutPage() {
         <Container>
           <SectionHeader
             eyebrow="What we believe"
-            title="Four things"
-            fade="we hold to."
+            title="These are the four things"
+            fade="we hold ourselves to."
           />
           <ol className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-2">
             {values.map((v, i) => (
@@ -182,8 +182,8 @@ export default function AboutPage() {
         <Container>
           <SectionHeader
             eyebrow="Our commitments"
-            title="What we will do,"
-            fade="and what we won't."
+            title="Here is what we will always do,"
+            fade="and what we never will."
             body="Trust is the whole point of a professional community. These are promises, not aspirations."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2">
@@ -220,8 +220,8 @@ export default function AboutPage() {
             <div className="lg:col-span-6">
               <SectionHeader
                 eyebrow="Contact"
-                title="Talk to a person."
-                fade="We read everything."
+                title="You will always reach a real person,"
+                fade="and we read every message."
                 body={
                   <>
                     For questions about membership, the directory or anything else, email{" "}

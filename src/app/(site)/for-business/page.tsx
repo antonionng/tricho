@@ -21,7 +21,7 @@ export const metadata = pageMetadata({
   title: `Business membership for clinics, salons and brands`,
   description: `Business membership puts your clinic, salon, brand or device company in front of hair and scalp professionals across Ireland and the UK. A business page, five seats, job posts and a perks listing for £${business.price} a month.`,
   path: "/for-business",
-    og: { title: "Reach the people who care for hair.", eyebrow: "For business", img: images.products.src, variant: "photo" },
+    og: { title: "Reach the people who understand the scalp.", eyebrow: "For business", img: images.products.src, variant: "photo" },
 });
 
 const who = [
@@ -97,8 +97,8 @@ export default function ForBusinessPage() {
         <Container>
           <SectionHeader
             eyebrow="Who it's for"
-            title="For the businesses"
-            fade="behind the work."
+            title="Business membership is for the clinics, salons and brands"
+            fade="that make this work possible."
           />
           <ul className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-4">
             {who.map((w) => (
@@ -118,8 +118,8 @@ export default function ForBusinessPage() {
             <div className="flex flex-col gap-8 lg:col-span-5">
               <SectionHeader
                 eyebrow="What's included"
-                title="Everything your team"
-                fade="needs to take part."
+                title="Your team gets everything it needs"
+                fade="to take part fully."
                 body={`Business membership is £${business.price} a month, or £${business.annualPrice} a year. There is no contract and no setup fee.`}
               />
               <div className="relative hidden aspect-[4/5] overflow-hidden rounded-3xl lg:block">

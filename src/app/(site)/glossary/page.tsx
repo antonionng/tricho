@@ -8,7 +8,7 @@ export const metadata = pageMetadata({
   description:
     "Short, plain definitions of the hair and scalp terms clients and professionals use, from alopecia areata to telogen effluvium and trichoscopy.",
   path: "/glossary",
-    og: { title: "The words,", sub: "explained.", eyebrow: "Glossary" },
+    og: { title: "Every term you might hear,", sub: "explained in a sentence or two.", eyebrow: "Glossary" },
 });
 
 export default function GlossaryPage() {
@@ -16,7 +16,7 @@ export default function GlossaryPage() {
   const letters = [...new Set(sorted.map((t) => t.term[0].toUpperCase()))];
   return (
     <Container className="py-16 md:py-24">
-      <SectionHeader as="h1" eyebrow="Glossary" title="The words," fade="explained." body="Terms you'll hear from professionals and read in our guides, defined in a sentence or two." />
+      <SectionHeader as="h1" eyebrow="Glossary" title="Every term you might hear," fade="explained in a sentence or two." body="Terms you'll hear from professionals and read in our guides, defined in a sentence or two." />
       <div className="mt-14 flex flex-col gap-12">
         {letters.map((L) => (
           <section key={L} className="grid gap-6 border-t border-rule pt-8 md:grid-cols-12">

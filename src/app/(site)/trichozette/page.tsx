@@ -73,8 +73,8 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
           <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="Every edition"
-              title="The library."
-              fade="Interactive, practical, yours to keep."
+              title="Every edition stays in the library,"
+              fade="ready whenever you want to return to it."
               body="Each edition mixes long reads with quizzes, checklists and questions you can test yourself on. Open any of them to read the first pages."
             />
           </div>

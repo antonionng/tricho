@@ -16,7 +16,7 @@ export const metadata = pageMetadata({
   description:
     "Search head spa therapists, stylists, trichologists, nurses and doctors across Ireland and the UK. Every listing in the Trichollective directory is checked by a person.",
   path: "/directory",
-    og: { title: "Find the right person.", sub: "Near you.", eyebrow: "The founding directory", img: images.clinic.src, variant: "photo" },
+    og: { title: "Find the right hair and scalp professional", sub: "close to where you live.", eyebrow: "The founding directory", img: images.clinic.src, variant: "photo" },
 });
 
 export default async function DirectoryPage({
@@ -59,8 +59,8 @@ export default async function DirectoryPage({
           <SectionHeader
             as="h1"
             eyebrow="The founding directory"
-            title="Find the right person."
-            fade="Near you."
+            title="Find the right hair and scalp professional"
+            fade="close to where you live."
             body="Cosmetic, clinical and medical hair and scalp professionals across Ireland and the UK. A person checks every listing before it appears."
           />
           <div className="mt-10 max-w-3xl">

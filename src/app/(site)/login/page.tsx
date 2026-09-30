@@ -30,7 +30,7 @@ export default async function LoginPage({
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center gap-5 text-center">
           <BrandMark size="md" sub />
-          <h1 className="display text-5xl">Welcome back.</h1>
+          <h1 className="display text-5xl">Welcome back to the collective.</h1>
           <p className="text-[15px] text-ink-2">
             Sign in with the email address you joined with. If you paid before creating an account, use
             the email from your receipt.

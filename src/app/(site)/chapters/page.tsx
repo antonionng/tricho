@@ -14,7 +14,7 @@ export const metadata = pageMetadata({
   title: "Local chapters across Ireland and the UK",
   description: `Every ${site.name} member belongs to a local chapter, from Dublin and Cork to Belfast, London and Manchester. Meet the hair and scalp professionals near you.`,
   path: "/chapters",
-    og: { title: "Local chapters", sub: "Meet the members near you.", eyebrow: "Community", img: images.dublin.src, variant: "photo" },
+    og: { title: "Meet the members who practise near you,", sub: "online and in person.", eyebrow: "Community", img: images.dublin.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -29,8 +29,8 @@ export default function ChaptersPage() {
     <>
       <PageHero
         eyebrow="Local chapters"
-        title="A community online."
-        fade="Neighbours in person."
+        title="Meet the members who practise near you,"
+        fade="online and in person."
         lede={
           <p>
             When you join, you choose a local chapter. It&apos;s where you meet the practitioners who

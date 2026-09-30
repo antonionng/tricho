@@ -14,7 +14,7 @@ export const metadata = pageMetadata({
   description:
     "The latest news for cosmetic, clinical and medical hair professionals in the UK and Ireland: regulation, treatments, research and product safety, with sources.",
   path: "/news",
-    og: { title: "What's happening", sub: "in hair and scalp care.", eyebrow: "Trichozette · News" },
+    og: { title: "Here is what is changing in hair", sub: "and scalp care right now.", eyebrow: "Trichozette · News" },
 });
 
 const FILTERS = [
@@ -36,8 +36,8 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
           <SectionHeader
             as="h1"
             eyebrow="Trichozette · News"
-            title="What's happening"
-            fade="in hair and scalp care."
+            title="Here is what is changing in hair"
+            fade="and scalp care right now."
             body="Real news from regulators, professional bodies and researchers, summarised plainly with a link to every source. Members also get a note on why each story matters in practice."
           />
           <nav className="mt-10 flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Filter by discipline">

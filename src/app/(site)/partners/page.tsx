@@ -88,8 +88,8 @@ export default function PartnersPage() {
         <Container>
           <SectionHeader
             eyebrow="Ways to partner"
-            title="Six ways"
-            fade="to work with us."
+            title="There are six ways"
+            fade="to work with Trichollective."
             body="Each option can stand alone or be combined over a season. Tell us what you have in mind and we'll suggest what fits."
           />
           <ul className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
@@ -111,8 +111,8 @@ export default function PartnersPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Our terms"
-                title="Clear lines"
-                fade="keep trust intact."
+                title="Clear lines between content and sponsorship"
+                fade="keep our members' trust."
               />
             </div>
             <div className="prose-tricho lg:col-span-7">
@@ -138,8 +138,8 @@ export default function PartnersPage() {
             <div className="flex flex-col gap-6 lg:col-span-4">
               <SectionHeader
                 eyebrow="Enquire"
-                title="Tell us"
-                fade="what you have in mind."
+                title="Tell us what you have in mind"
+                fade="and we will come back to you personally."
                 body="The rate card is available on request. Send us a few details and we'll reply with it, along with ideas that suit your company."
               />
               <p className="text-[15px] text-ink-2">

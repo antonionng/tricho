@@ -12,7 +12,7 @@ export const metadata = pageMetadata({
   title: `Membership and pricing`,
   description: `Compare Trichollective plans for hair and scalp professionals. A free founding listing for ${FREE_LISTING_DAYS} days, Community from £6 a month at the founding price, Professional and Business. Cancel anytime.`,
   path: "/pricing",
-    og: { title: "Simple plans.", sub: "Cancel anytime.", eyebrow: "Membership", img: images.salon.src, variant: "photo" },
+    og: { title: "Choose the plan that fits your practice,", sub: "and cancel whenever you like.", eyebrow: "Membership", img: images.salon.src, variant: "photo" },
 });
 
 type Cell = boolean | string;
@@ -125,8 +125,8 @@ export default async function PricingPage({
             as="h1"
             align="center"
             eyebrow="Membership"
-            title="Simple plans."
-            fade="Cancel anytime."
+            title="Choose the plan that fits your practice,"
+            fade="and cancel whenever you like."
             body={`Start with a free founding listing for ${FREE_LISTING_DAYS} days, or join the community today. Founding members keep their founding price for as long as they stay, and founding places are limited.`}
           />
         </Container>
@@ -171,7 +171,7 @@ export default async function PricingPage({
         <Container>
           <SectionHeader
             eyebrow="Compare plans"
-            title="Everything,"
+            title="Compare everything each plan includes,"
             fade="side by side."
             body="Every plan includes the monthly newsletter. The table shows what each one adds."
           />
@@ -259,7 +259,7 @@ export default async function PricingPage({
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="flex flex-col gap-6 lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Before you join" />
+              <SectionHeader eyebrow="Questions" title="Here are the answers to common questions before you join." />
               <p className="flex items-start gap-3 text-[15px] leading-relaxed text-ink-2">
                 <CreditCard className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
                 <span>

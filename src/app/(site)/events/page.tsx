@@ -23,7 +23,7 @@ export const metadata = pageMetadata({
   title: "Events: gatherings, masterclasses and case rounds",
   description: `In-person gatherings in Ireland, the UK and beyond, monthly live masterclasses, case rounds and local chapter meetups for hair and scalp professionals.`,
   path: "/events",
-    og: { title: "It started in a room.", sub: "It still does.", eyebrow: "Events", img: images.gathering.src, variant: "photo" },
+    og: { title: "Trichollective began with people in one room,", sub: "and it still brings them together.", eyebrow: "Events", img: images.gathering.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -64,8 +64,8 @@ export default async function EventsPage() {
     <>
       <PageHero
         eyebrow="Events"
-        title="It started in a room."
-        fade="It still does."
+        title="Trichollective began with people in one room,"
+        fade="and it still brings them together."
         lede={
           <p>
             {site.name} began as a gathering at {site.originPlace}, and launches online at{" "}
@@ -83,7 +83,7 @@ export default async function EventsPage() {
         <Container>
           {upcoming.length > 0 ? (
             <>
-              <SectionHeader eyebrow="Coming up" title="What's on" fade="next." />
+              <SectionHeader eyebrow="Coming up" title="Here is what is coming up" fade="next." />
               <ul className="mt-10 divide-y divide-rule border-y border-rule">
                 {upcoming.map((e) => (
                   <EventRow key={e.id} event={e} />
@@ -135,8 +135,8 @@ export default async function EventsPage() {
         <Container>
           <SectionHeader
             eyebrow="Ways to meet"
-            title="Four kinds of event,"
-            fade="all year round."
+            title="We run four kinds of event"
+            fade="throughout the year."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2">
             {EVENT_KINDS_EXPLAINED.map((k, i) => {
@@ -157,7 +157,7 @@ export default async function EventsPage() {
       {past.length > 0 && (
         <Section>
           <Container>
-            <SectionHeader eyebrow="Archive" title="Past events" />
+            <SectionHeader eyebrow="Archive" title="These are the events we have held so far." />
             <ul className="mt-10 divide-y divide-rule border-y border-rule">
               {past.map((e) => (
                 <EventRow key={e.id} event={e} past />

@@ -23,8 +23,8 @@ export default function PodcastPage() {
     <>
       <PageHero
         eyebrow="The podcast"
-        title="Conversations"
-        fade="from the community."
+        title="Listen to real conversations"
+        fade="from inside the community."
         lede={
           <p>
             Once a month, we sit down with someone who works in hair and scalp care and talk about what
@@ -65,7 +65,7 @@ export default function PodcastPage() {
         <Container>
           <SectionHeader
             eyebrow="What to expect"
-            title="Unhurried, practical"
+            title="Every episode is unhurried, practical"
             fade="and easy to follow."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
@@ -105,7 +105,7 @@ export default function PodcastPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="In the meantime"
-              title="Something to read"
+              title="Here is something to read"
               fade="while you wait."
               body="Selected pieces from Trichozette, our monthly members' edition, are free to read in the Journal."
             />

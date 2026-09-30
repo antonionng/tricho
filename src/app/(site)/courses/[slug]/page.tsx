@@ -207,8 +207,8 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
             <div className="lg:col-span-4">
               <SectionHeader
                 eyebrow="Syllabus"
-                title={`${course.syllabus.length} lessons.`}
-                fade="One clear path."
+                title={`${course.syllabus.length} short lessons take you`}
+                fade="from first principles to practice."
                 body={course.format + "."}
               />
             </div>
@@ -245,8 +245,8 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
             <div className="lg:col-span-5 flex flex-col gap-8">
               <SectionHeader
                 eyebrow="Your certificate"
-                title="Proof of your learning,"
-                fade="checkable by anyone."
+                title="Your certificate is proof of your learning"
+                fade="that anyone can check."
                 body="When you finish, you receive a certificate of completion with its own public web address. Share it with clients, add it to your directory listing, or send it to an employer."
               />
               <p className="text-[15px] leading-relaxed text-ink-2">
@@ -267,7 +267,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
         <Section>
           <Container>
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <SectionHeader eyebrow="Keep learning" title="Other courses" />
+              <SectionHeader eyebrow="Keep learning" title="You might also like these courses." />
               <ArrowLink href="/learn">All courses</ArrowLink>
             </div>
             <ul className="mt-10 divide-y divide-rule border-y border-rule">

@@ -39,8 +39,8 @@ export default function JournalPage() {
     <>
       <PageHero
         eyebrow="The Journal"
-        title="Selected pieces"
-        fade="from Trichozette."
+        title="Read a selection of pieces"
+        fade="from Trichozette, free."
         lede={
           <p>
             Trichozette is our monthly members&apos; edition: practical, carefully edited writing from
@@ -90,7 +90,7 @@ export default function JournalPage() {
         <Section>
           <Container>
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <SectionHeader eyebrow="Latest" title="More to read" />
+              <SectionHeader eyebrow="Latest" title="There is plenty more to read." />
               <ArrowLink href="/guides">All guides</ArrowLink>
             </div>
             <ul className="mt-10 grid gap-x-10 border-t border-rule md:grid-cols-2">
@@ -120,8 +120,8 @@ export default function JournalPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Trichozette"
-                title="A monthly edition,"
-                fade="for members."
+                title="Members receive a new edition"
+                fade="of Trichozette every month."
               />
             </div>
             <div className="lg:col-span-7 prose-tricho">

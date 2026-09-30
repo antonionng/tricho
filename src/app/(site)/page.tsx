@@ -42,9 +42,9 @@ import { site } from "@/config/site";
 export const revalidate = 600;
 
 export const metadata = pageMetadata({
-  title: `${site.name}: the community for hair and scalp professionals`,
+  title: `${site.name}: hair, scalp and the science of both`,
   description:
-    "Join the community where cosmetic, clinical and medical hair professionals learn, refer and grow together. Courses, a public directory, gatherings and the monthly Trichozette.",
+    "The community for cosmetic, clinical and medical hair and scalp professionals. Learn the science, refer with confidence and be found, with courses, a public directory, conferences and Trichozette.",
   path: "/",
     og: { title: "Join early.", sub: "Be in the founding directory.", eyebrow: "Cosmetic · Clinical · Medical", img: images.heroPortrait.src, variant: "photo" },
 });
@@ -90,8 +90,8 @@ export default async function HomePage() {
                 <span className="text-fade">Be in the founding directory.</span>
               </h1>
               <p className="lede max-w-xl">
-                Trichollective is the community where head spa therapists, stylists, trichologists,
-                nurses and doctors learn from each other and refer to each other, all year round.
+                Hair, scalp and the science beneath them. Trichollective is where head spa therapists,
+                stylists, trichologists, nurses and doctors learn from one another, all year round.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button asChild size="xl">
@@ -172,32 +172,32 @@ export default async function HomePage() {
         <Container>
           <SectionHeader
             eyebrow="Who it's for"
-            title="One place for everyone"
-            fade="who cares for hair."
-            body="Choose the door that fits you. Each one leads somewhere useful, whether you practise, run a business or are looking for help yourself."
+            title="Everything you need to understand hair and scalp"
+            fade="is here, whoever you are."
+            body="Whether you care for scalps every day, run a clinic or brand, or simply want answers, there's a door here for you."
           />
           <div className="mt-14 grid gap-5 md:grid-cols-3">
             {[
               {
                 title: "I practise",
-                body: "Head spa, styling, trichology, nursing or medicine. Join the community, learn, and be found by the clients who need you.",
+                body: "Head spa, styling, trichology, nursing or medicine. Go deeper into the science of the scalp, learn alongside every discipline, and be found by the people who need you.",
                 href: "/pricing",
                 cta: "See membership",
-                image: images.salon,
+                image: images.ed16,
               },
               {
                 title: "I run a clinic or brand",
-                body: "Reach a specialist audience that trusts each other's recommendations, and hire from the people who care most.",
+                body: "Put your work in front of professionals who understand the scalp, and hire from the people who care most about it.",
                 href: "/for-business",
                 cta: "Business membership",
-                image: images.products,
+                image: images.ed12,
               },
               {
                 title: "I'm looking for help",
-                body: "Not sure whether you need a head spa, a trichologist or a doctor? Answer three questions and we'll point you the right way.",
+                body: "Shedding, thinning, or a scalp that itches, flakes or feels sore? Answer three questions and we'll show you who to see.",
                 href: "/find",
                 cta: "Find a professional",
-                image: images.hairDetail,
+                image: images.ed09,
               },
             ].map((door, i) => (
               <Reveal key={door.title} delay={i * 80}>
@@ -211,7 +211,7 @@ export default async function HomePage() {
                       alt={door.image.alt}
                       fill
                       sizes="(min-width: 768px) 33vw, 100vw"
-                      className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                      className="mag-bw object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]"
                     />
                   </div>
                   <div className="flex flex-1 flex-col gap-3 p-7">
@@ -235,8 +235,8 @@ export default async function HomePage() {
             <div className="lg:col-span-5 flex flex-col gap-8">
               <SectionHeader
                 eyebrow="Every month, as a member"
-                title="Something new"
-                fade="every week."
+                title="Membership gives you something new"
+                fade="to learn and use every week."
                 body="Membership isn't a login you forget about. Each month brings a new edition of Trichozette, a podcast episode, a live masterclass and a community that keeps the conversation going between gatherings."
               />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule">
@@ -272,9 +272,9 @@ export default async function HomePage() {
         <Container>
           <SectionHeader
             eyebrow="Why it works"
-            title="Three disciplines."
-            fade="One conversation."
-            body="Most platforms serve one kind of professional. Trichollective brings cosmetic, clinical and medical practice together, so a client can be passed to the right person at the right time."
+            title="Clients do best when stylists, trichologists"
+            fade="and doctors talk to each other."
+            body="The scalp is skin, the follicle is biology, and the person in the chair needs all three disciplines. Trichollective brings cosmetic, clinical and medical practice into one conversation, so every client reaches the right person at the right time."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
             {DISCIPLINES.map((d) => (
@@ -401,8 +401,8 @@ export default async function HomePage() {
             <SectionHeader
               align="center"
               eyebrow="The founding directory"
-              title="Find the right person"
-              fade="near you."
+              title="Find the right hair and scalp professional"
+              fade="close to where you live."
               body="Search cosmetic, clinical and medical professionals across Ireland and the UK. Every listing is reviewed by a person before it goes live."
             />
             <DirectorySearch />
@@ -426,9 +426,9 @@ export default async function HomePage() {
           <div className="max-w-2xl flex flex-col gap-7">
             <Eyebrow rule className="text-paper">Gatherings</Eyebrow>
             <h2 className="display text-5xl md:text-6xl">
-              It started in a room.
+              Trichollective began with people in one room,
               <br />
-              <span className="opacity-60">It still does.</span>
+              <span className="opacity-60">and it still brings them together.</span>
             </h2>
             <p className="text-lg leading-relaxed text-paper/80">
               Trichollective began with professionals meeting in person at {site.originPlace}. The gatherings
@@ -473,8 +473,8 @@ export default async function HomePage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Membership"
-                title="Simple plans."
-                fade="Cancel anytime."
+                title="Choose the plan that fits your practice,"
+                fade="and cancel whenever you like."
                 body={`Start with a free founding listing for ${FREE_LISTING_DAYS} days, or join the community from £${subscriptionTiers[0].price} a month. Founding members keep their founding price for as long as they stay.`}
               />
             </div>
@@ -508,7 +508,7 @@ export default async function HomePage() {
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Good to know" />
+              <SectionHeader eyebrow="Questions" title="Answers to the questions people ask us most." />
             </div>
             <div className="lg:col-span-8">
               <FaqList faqs={homeFaqs} />

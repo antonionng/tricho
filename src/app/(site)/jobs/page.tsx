@@ -69,7 +69,7 @@ export default function JobsPage() {
               </div>
               <div className="flex flex-1 flex-col gap-5 p-7 pt-0 md:p-10 md:pt-2">
                 <p className="label text-paper/60">For employers</p>
-                <h2 className="display text-4xl">Post a job.</h2>
+                <h2 className="display text-4xl">Post a job and reach people who already care about scalp health.</h2>
                 <p className="text-[15px] leading-relaxed text-paper/80">
                   Job posts are included with Business membership, along with a business page, five
                   Professional seats for your team and a listing in member perks. Your roles are seen by
@@ -101,7 +101,7 @@ export default function JobsPage() {
               </div>
               <div className="flex flex-1 flex-col gap-5 p-7 pt-0 md:p-10 md:pt-2">
                 <p className="label text-muted-foreground">For candidates</p>
-                <h2 className="display text-4xl">Hear about roles first.</h2>
+                <h2 className="display text-4xl">Be the first to hear when a new role is posted.</h2>
                 <p className="text-[15px] leading-relaxed text-ink-2">
                   Join the newsletter and we&apos;ll tell you when new roles are posted, along with news from
                   the community and the next gathering. You can unsubscribe at any time.
@@ -120,8 +120,8 @@ export default function JobsPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="While you wait"
-              title="Build the skills"
-              fade="employers look for."
+              title="Build the skills that employers"
+              fade="in this field look for."
               body="Short courses written by practitioners, each with a certificate anyone can check online."
             />
             <div className="flex flex-col gap-3">

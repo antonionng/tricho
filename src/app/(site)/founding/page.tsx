@@ -143,8 +143,8 @@ export default function FoundingPage() {
         <Container>
           <SectionHeader
             eyebrow="What founding members get"
-            title="A little more,"
-            fade="for being first."
+            title="Founding members get a little more"
+            fade="in return for joining first."
             body="Every member gets the community, Trichozette, live masterclasses and member prices. Founding members also get these."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2">
@@ -166,8 +166,8 @@ export default function FoundingPage() {
         <Container>
           <SectionHeader
             eyebrow="Founding plans"
-            title="Choose your plan."
-            fade="Keep the price."
+            title="Choose your plan now"
+            fade="and keep the founding price for good."
             body="Pay by card through Stripe. You don't need an account first: we create it from the email you pay with. Cancel anytime."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2">
@@ -249,8 +249,8 @@ export default function FoundingPage() {
             <div className="flex flex-col gap-7 lg:col-span-6">
               <SectionHeader
                 eyebrow="Not ready to join?"
-                title={`List free for ${FREE_LISTING_DAYS} days.`}
-                fade="Decide later."
+                title={`List your practice free for ${FREE_LISTING_DAYS} days`}
+                fade="and decide about membership later."
                 body={freeListing.summary}
               />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule text-[15px]">
@@ -277,7 +277,7 @@ export default function FoundingPage() {
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Good to know" />
+              <SectionHeader eyebrow="Questions" title="Answers to the questions people ask us most." />
             </div>
             <div className="lg:col-span-8">
               <FaqList faqs={foundingFaqs} />
@@ -293,8 +293,8 @@ export default function FoundingPage() {
             <SectionHeader
               align="center"
               eyebrow="Still deciding"
-              title="Hear how it's going"
-              fade="before you join."
+              title="You can follow our progress by email"
+              fade="before you decide to join."
               body="Leave your email and we'll send the monthly newsletter, with news from the community and the next gathering. You can unsubscribe at any time."
             />
             <NewsletterForm source="founding" className="max-w-md" />

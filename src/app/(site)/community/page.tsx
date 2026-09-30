@@ -38,7 +38,7 @@ export const metadata = pageMetadata({
   description:
     "Take the tour of the Trichollective community: spaces for every part of hair and scalp care, the private Case Room, local chapters, direct messages, live case rounds and a referral network across disciplines.",
   path: "/community",
-    og: { title: "One place for everyone", sub: "who cares for hair.", eyebrow: "The community", img: images.community.src, variant: "photo" },
+    og: { title: "Everything you need to understand hair and scalp", sub: "is here, whoever you are.", eyebrow: "The community", img: images.community.src, variant: "photo" },
 });
 
 const spaces = [
@@ -111,8 +111,8 @@ export default function CommunityPage() {
         <Container>
           <SectionHeader
             eyebrow="Spaces"
-            title="A space for every part"
-            fade="of the field."
+            title="There is a space for every part"
+            fade="of hair and scalp care."
             body="Conversations are organised by topic, so you can follow what matters to your work and ignore what doesn't. Nothing is lost in a feed, and everything useful stays searchable."
           />
           <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -282,8 +282,8 @@ export default function CommunityPage() {
             <div className="flex flex-col gap-8 lg:col-span-7 lg:justify-center">
               <SectionHeader
                 eyebrow="Live"
-                title="Learn in the room,"
-                fade="or catch up later."
+                title="Learn live in the room,"
+                fade="or catch up whenever it suits you."
               />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule">
                 {[
@@ -325,8 +325,8 @@ export default function CommunityPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Recognition"
-                title="Share what you know."
-                fade="It's noticed."
+                title="When you share what you know,"
+                fade="the community notices."
                 body="Members who answer questions, share cases and help newcomers build a contribution level over time. Higher levels come with real opportunities."
               />
             </div>
@@ -355,8 +355,8 @@ export default function CommunityPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Standards"
-                title="A careful place"
-                fade="to talk shop."
+                title="This is a careful, professional place"
+                fade="to talk about your work."
                 body="A community is only as good as the way it is looked after. These are the standards every member agrees to."
               />
             </div>
@@ -375,7 +375,7 @@ export default function CommunityPage() {
                 {
                   icon: Hand,
                   t: "Respect across disciplines",
-                  d: "Everyone here cares for hair in a different way. Disagree with the idea, never the person.",
+                  d: "Everyone here cares for hair and scalp in a different way. Disagree with the idea, never the person.",
                 },
                 {
                   icon: Mail,

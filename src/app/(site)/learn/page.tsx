@@ -55,7 +55,7 @@ export default function LearnPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="The catalogue"
-              title="Every course,"
+              title="Browse every course we offer"
               fade="in one place."
               body={
                 openCount === 0
@@ -122,8 +122,8 @@ export default function LearnPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="How it works"
-                title="Written by practitioners."
-                fade="Checked by one too."
+                title="Every course is written by a practitioner"
+                fade="and checked by another before it opens."
               />
             </div>
             <ul className="lg:col-span-7 flex flex-col divide-y divide-rule border-y border-rule">
@@ -165,8 +165,8 @@ export default function LearnPage() {
         <Container>
           <SectionHeader
             eyebrow="Free to read"
-            title="Start with the basics."
-            fade="No account needed."
+            title="You can start with the basics today,"
+            fade="without creating an account."
             body="Alongside the courses, we publish plain-English guides and a glossary for anyone who wants to understand hair and scalp care a little better."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2">

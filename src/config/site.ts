@@ -3,7 +3,7 @@ export const site = {
   wordmarkSub: "Online",
   tagline: "A stronger hair industry, together",
   description:
-    "Trichollective is the membership community for cosmetic, clinical and medical hair and scalp professionals: a year-round community, courses, a public directory and gatherings across Ireland and the UK.",
+    "Trichollective is the membership community for cosmetic, clinical and medical hair and scalp professionals: the science, the practice and the people, with courses, a public directory and conferences across Ireland and the UK.",
   url:
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||

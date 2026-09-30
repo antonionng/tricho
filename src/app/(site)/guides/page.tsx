@@ -8,7 +8,7 @@ export const metadata = pageMetadata({
   description:
     "Plain-English guides to head spa, hair shedding, scalp care and choosing the right professional, written by Trichollective for clients and patients.",
   path: "/guides",
-    og: { title: "Hair and scalp care,", sub: "explained plainly.", eyebrow: "Guides" },
+    og: { title: "Our guides explain hair and scalp care", sub: "in plain, honest English.", eyebrow: "Guides" },
 });
 
 export default function GuidesPage() {
@@ -18,8 +18,8 @@ export default function GuidesPage() {
       <SectionHeader
         as="h1"
         eyebrow="Guides"
-        title="Hair and scalp care,"
-        fade="explained plainly."
+        title="Our guides explain hair and scalp care"
+        fade="in plain, honest English."
         body="Clear guides for anyone wondering what's happening with their hair or scalp, and who can help. We explain; we never diagnose."
       />
       {categories.map((cat) => (
