@@ -1,73 +1,90 @@
 export type ProfessionId = "cosmetic" | "clinical" | "medical" | "brand";
-export type RoomId = "everyone" | "cosmetic" | "clinical" | "medical";
 
 export const PROFESSIONS: {
   id: ProfessionId;
   label: string;
   blurb: string;
-  homeRoom: RoomId;
 }[] = [
-  {
-    id: "cosmetic",
-    label: "Cosmetic",
-    blurb: "Stylists and cosmetic practitioners",
-    homeRoom: "cosmetic",
-  },
-  {
-    id: "clinical",
-    label: "Clinical",
-    blurb: "Trichologists and clinical hair specialists",
-    homeRoom: "clinical",
-  },
-  {
-    id: "medical",
-    label: "Medical",
-    blurb: "Doctors and medical referrers",
-    homeRoom: "medical",
-  },
-  {
-    id: "brand",
-    label: "Brand",
-    blurb: "Exhibitors and industry partners",
-    homeRoom: "everyone",
-  },
+  { id: "cosmetic", label: "Cosmetic", blurb: "Head spa therapists, stylists and scalp care specialists" },
+  { id: "clinical", label: "Clinical", blurb: "Trichologists and clinical hair specialists" },
+  { id: "medical", label: "Medical", blurb: "GPs, dermatologists, nurses and aesthetic doctors" },
+  { id: "brand", label: "Business", blurb: "Clinics, salons, brands and device makers" },
 ];
 
-export const ROOMS: {
+export type RoomId =
+  | "lounge"
+  | "introductions"
+  | "head-spa"
+  | "hair-loss"
+  | "case-room"
+  | "devices"
+  | "business"
+  | "wins";
+
+export type Room = {
   id: RoomId;
   label: string;
   blurb: string;
-  /** Who may post. Everyone can always read Everyone. */
-  postRoles: Array<"any" | ProfessionId>;
-  accent: string;
-}[] = [
+  /** Only Professional (or Business) members may read and post. */
+  professionalOnly?: boolean;
+  /** Business members may read but not post (keeps clinical discussion clean). */
+  noBrands?: boolean;
+  /** Suggested post prompt in the composer. */
+  prompt: string;
+};
+
+/** Community spaces. Order is the order shown in the app. */
+export const ROOMS: Room[] = [
   {
-    id: "everyone",
-    label: "Everyone",
-    blurb: "Introductions and practice life across the network.",
-    postRoles: ["any"],
-    accent: "#5F7A6A",
+    id: "lounge",
+    label: "The Lounge",
+    blurb: "Everyday conversation across the whole collective.",
+    prompt: "What's on your mind this week?",
   },
   {
-    id: "cosmetic",
-    label: "Cosmetic",
-    blurb: "Styling, salon cases, and when to refer on.",
-    postRoles: ["cosmetic", "clinical", "medical"],
-    accent: "#C4A4B8",
+    id: "introductions",
+    label: "Introductions",
+    blurb: "New here? Say hello and tell us what you do.",
+    prompt: "Tell us who you are, where you practise and what you'd love to learn.",
   },
   {
-    id: "clinical",
-    label: "Clinical",
-    blurb: "Consult structure, red flags, and clinical discussion.",
-    postRoles: ["clinical", "medical"],
-    accent: "#7BA3B5",
+    id: "head-spa",
+    label: "Head Spa & Scalp Care",
+    blurb: "Techniques, routines, products and the craft of scalp care.",
+    prompt: "Share a technique, a question or something you've noticed in the treatment room.",
   },
   {
-    id: "medical",
-    label: "Medical",
-    blurb: "Referral pathways and letters between clinicians.",
-    postRoles: ["medical", "clinical"],
-    accent: "#E09A8E",
+    id: "hair-loss",
+    label: "Hair Loss & Trichology",
+    blurb: "Shedding, thinning and scalp conditions, discussed carefully.",
+    noBrands: true,
+    prompt: "Ask a question or share what's working in your practice.",
+  },
+  {
+    id: "case-room",
+    label: "Case Room",
+    blurb: "Anonymised cases for verified professionals. Never share anything that identifies a client.",
+    professionalOnly: true,
+    noBrands: true,
+    prompt: "Describe the case without names, photos of faces or anything identifying.",
+  },
+  {
+    id: "devices",
+    label: "Devices & Technology",
+    blurb: "Scopes, LED and UV devices, and the evidence behind them.",
+    prompt: "Which device are you asking about, and what do you want to know?",
+  },
+  {
+    id: "business",
+    label: "Business & Marketing",
+    blurb: "Pricing, menus, marketing and running a practice.",
+    prompt: "What's a business question you'd like help with?",
+  },
+  {
+    id: "wins",
+    label: "Wins",
+    blurb: "Good news, big and small. Celebrate each other.",
+    prompt: "Share something that went well.",
   },
 ];
 
@@ -79,23 +96,34 @@ export function professionById(id: string) {
   return PROFESSIONS.find((p) => p.id === id);
 }
 
-export function canPostInRoom(
-  roomId: RoomId,
-  profession?: ProfessionId | null,
-  unlocked = false
-) {
-  if (unlocked) return true;
-  const room = roomById(roomId);
-  if (!room) return false;
-  if (room.postRoles.includes("any")) return true;
-  if (!profession) return false;
-  return room.postRoles.includes(profession);
+/** Map space names from earlier builds so old posts keep a home. */
+export function normalizeSpace(space: string): RoomId {
+  const legacy: Record<string, RoomId> = {
+    everyone: "lounge",
+    consultation: "case-room",
+    cosmetic: "head-spa",
+    clinical: "hair-loss",
+    medical: "case-room",
+  };
+  if (legacy[space]) return legacy[space];
+  if (ROOMS.some((r) => r.id === space)) return space as RoomId;
+  return "lounge";
 }
 
-/** Map legacy space names from the first Hub build. */
-export function normalizeSpace(space: string): RoomId {
-  if (space === "lounge") return "everyone";
-  if (space === "consultation") return "clinical";
-  if (ROOMS.some((r) => r.id === space)) return space as RoomId;
-  return "everyone";
+export function canReadRoom(roomId: RoomId, professional: boolean) {
+  const room = roomById(roomId);
+  if (!room) return false;
+  return !room.professionalOnly || professional;
+}
+
+export function canPostInRoom(
+  roomId: RoomId,
+  opts: { professional: boolean; profession?: ProfessionId | null; unlocked?: boolean }
+) {
+  if (opts.unlocked) return true;
+  const room = roomById(roomId);
+  if (!room) return false;
+  if (room.professionalOnly && !opts.professional) return false;
+  if (room.noBrands && opts.profession === "brand") return false;
+  return true;
 }

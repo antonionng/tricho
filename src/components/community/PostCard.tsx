@@ -1,91 +1,57 @@
 import Link from "next/link";
-import { MessageCircle, ThumbsUp } from "lucide-react";
-import { roomById } from "@/config/rooms";
-import { toggleUseful } from "@/app/members/community/actions";
-import type { FeedPost } from "@/app/members/community/actions";
+import { MessageCircle, Pin } from "lucide-react";
+import { professionById, roomById } from "@/config/rooms";
+import type { FeedPost } from "@/lib/community";
+import { Avatar } from "@/components/members/Avatar";
+import { timeAgo } from "@/components/members/format";
+import { UsefulButton } from "./UsefulButton";
 
-function formatWhen(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function initials(name: string | null) {
-  if (!name) return "M";
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-export function PostCard({ post }: { post: FeedPost }) {
+export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace?: boolean }) {
   const room = roomById(post.space);
+  const discipline = post.author.profession ? professionById(post.author.profession)?.label : null;
+  const href = `/members/community/${post.id}`;
+
   return (
-    <article className="rounded-2xl border border-border/50 bg-card p-5 md:p-6 space-y-3 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="h-10 w-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-semibold shrink-0">
-          {initials(post.author.name)}
-        </div>
+    <article className="relative rounded-2xl border border-rule bg-card p-4 transition-colors hover:border-ink/25 sm:p-5">
+      <header className="flex items-start gap-3">
+        <Link href={`/members/people/${post.author.id}`} className="relative z-10 shrink-0">
+          <Avatar name={post.author.name} size="md" />
+        </Link>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-semibold text-sm">{post.author.name || "Member"}</span>
-            <span className="text-xs text-muted-foreground">·</span>
-            <span className="text-xs text-muted-foreground capitalize">{post.author.role}</span>
-            {post.pinned && (
-              <span className="text-[10px] uppercase tracking-wide rounded-2xl bg-muted px-2 py-0.5 text-muted-foreground">
-                Start here
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {room?.label || post.space} · {formatWhen(post.createdAt)}
+          <p className="flex flex-wrap items-center gap-x-2 text-[15px] leading-tight">
+            <Link href={`/members/people/${post.author.id}`} className="relative z-10 font-medium hover:underline">
+              {post.author.name || "Member"}
+            </Link>
+            {post.author.isFounding && <span className="text-[11px] text-muted-foreground">Founding member</span>}
+          </p>
+          <p className="mt-1 truncate text-[13px] text-muted-foreground">
+            {[discipline, showSpace && room?.label, post.chapter?.city, timeAgo(post.createdAt)].filter(Boolean).join(" · ")}
           </p>
         </div>
-      </div>
-
-      <Link href={`/members/community/${post.id}`} className="block space-y-2 group">
-        {post.title && (
-          <h2 className="text-lg font-semibold tracking-tight group-hover:text-primary">
-            {post.title}
-          </h2>
+        {post.pinned && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-paper-2 px-2.5 py-1 text-[11px] font-medium text-ink-2">
+            <Pin className="h-3 w-3" /> Pinned
+          </span>
         )}
-        <p className="text-sm text-foreground/85 whitespace-pre-wrap leading-relaxed line-clamp-6">
+      </header>
+
+      <Link href={href} className="mt-3 block after:absolute after:inset-0 after:rounded-2xl" aria-label={post.title || "Open thread"}>
+        {post.title && <h3 className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-ink">{post.title}</h3>}
+        <p className={`${post.title ? "mt-1.5" : ""} line-clamp-4 whitespace-pre-line text-[15px] leading-relaxed text-ink-2`}>
           {post.content}
         </p>
       </Link>
 
-      <div className="flex items-center gap-4 pt-1 border-t border-border/40">
-        <form action={toggleUseful}>
-          <input type="hidden" name="postId" value={post.id} />
-          <button
-            type="submit"
-            className={`inline-flex items-center gap-1.5 text-sm py-2 ${
-              post.reacted ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <ThumbsUp className="h-4 w-4" />
-            Useful
-            {post._count.reactions > 0 && (
-              <span className="text-xs">({post._count.reactions})</span>
-            )}
-          </button>
-        </form>
+      <footer className="relative z-10 mt-4 flex items-center gap-2">
+        <UsefulButton postId={post.id} count={post.useful} reacted={post.reacted} />
         <Link
-          href={`/members/community/${post.id}`}
-          className="inline-flex items-center gap-1.5 text-sm py-2 text-muted-foreground hover:text-foreground"
+          href={`${href}#reply`}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] text-ink-2 hover:bg-paper-2"
         >
-          <MessageCircle className="h-4 w-4" />
-          Comment
-          {post._count.comments > 0 && (
-            <span className="text-xs">({post._count.comments})</span>
-          )}
+          <MessageCircle className="h-4 w-4 stroke-[1.6]" />
+          {post.comments === 0 ? "Reply" : `${post.comments} ${post.comments === 1 ? "reply" : "replies"}`}
         </Link>
-      </div>
+      </footer>
     </article>
   );
 }

@@ -17,7 +17,7 @@ export async function POST() {
     where: { email: session.user.email },
   });
   if (!user?.stripeCustomerId) {
-    return NextResponse.redirect(new URL("/join", process.env.NEXT_PUBLIC_APP_URL));
+    return NextResponse.redirect(new URL("/pricing", process.env.NEXT_PUBLIC_APP_URL));
   }
 
   const portal = await stripe.billingPortal.sessions.create({

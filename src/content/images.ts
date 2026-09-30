@@ -1,0 +1,206 @@
+export type BrandImage = { src: string; alt: string; credit: string; page: string };
+/** Brand photography, all on images.unsplash.com. Swap for commissioned photography later: one place to change. */
+export const images = {
+  heroPortrait: {
+    src: "https://images.unsplash.com/photo-1774897778836-3b13763e71b3",
+    alt: "A woman with dark wavy hair and a black roll-neck jumper, seen in profile against a plain white background",
+    credit: "Alex Larrondo",
+    page: "https://unsplash.com/photos/woman-with-dark-wavy-hair-wearing-a-black-turtleneck-Hoc8u4HJO7w",
+  },
+  hairDetail: {
+    src: "https://images.unsplash.com/photo-1635276298514-2c8f4e481428",
+    alt: "Black and white close-up of a hair parting, showing individual strands and the scalp beneath",
+    credit: "Teslariu Mihai",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-some-hair-ol8BQ2Iyo4w",
+  },
+  headSpa: {
+    src: "https://images.unsplash.com/photo-1757066033634-bbbf874ce525",
+    alt: "A woman with dark hair lying back on a cushion with her eyes closed while a therapist massages her head and neck",
+    credit: "Anna Blake",
+    page: "https://unsplash.com/photos/woman-receiving-a-head-massage-on-a-pillow-qyUR9meb4bU",
+  },
+  salon: {
+    src: "https://images.unsplash.com/photo-1560869713-7d0a29430803",
+    alt: "A stylist curling a client's long brown hair with a curling tong in a bright, white salon",
+    credit: "Baylee Gramling",
+    page: "https://unsplash.com/photos/person-holding-gray-hair-curler-MMz03PyCOZg",
+  },
+  clinic: {
+    src: "https://images.unsplash.com/photo-1785860458107-5be1a99d4188",
+    alt: "A practitioner in black gloves parting a woman's hair to give a treatment to her scalp",
+    credit: "Sum Sum",
+    page: "https://unsplash.com/photos/woman-receiving-a-scalp-treatment-with-an-injector-WIj6y1OFWd8",
+  },
+  community: {
+    src: "https://images.unsplash.com/photo-1556565681-306458ef93cd",
+    alt: "Three women working together around a wooden table with laptops and notebooks, seen from above",
+    credit: "CoWomen",
+    page: "https://unsplash.com/photos/three-women-sitting-and-facing-each-other-3ALW9V3jNkc",
+  },
+  gathering: {
+    src: "https://images.unsplash.com/photo-1603478804503-dc909c7f5ce5",
+    alt: "A room full of people seated together, listening and smiling during a talk",
+    credit: "wes lewis",
+    page: "https://unsplash.com/photos/diverse-group-at-professional-seminar-zt6OxRORM2g",
+  },
+  learning: {
+    src: "https://images.unsplash.com/photo-1610050731641-f855ccdaf3f6",
+    alt: "A person writing notes by hand at a desk beside an open book",
+    credit: "Fa Barboza",
+    page: "https://unsplash.com/photos/NWoaoMgMiVY",
+  },
+  dublin: {
+    src: "https://images.unsplash.com/photo-1705170476377-6138def155af",
+    alt: "The Ha'penny Bridge over the River Liffey in Dublin under a grey sky, reflected in still water",
+    credit: "Sophie Popplewell",
+    page: "https://unsplash.com/photos/fSMhlgsre0w",
+  },
+  london: {
+    src: "https://images.unsplash.com/photo-1671030743870-fb57f942a0b1",
+    alt: "Big Ben and the Palace of Westminster fading into fog across the Thames in London",
+    credit: "Jasper Garratt",
+    page: "https://unsplash.com/photos/a-large-clock-tower-towering-over-a-city-on-a-foggy-day-54_rf2tTpd4",
+  },
+  manchester: {
+    src: "https://images.unsplash.com/photo-1646311175206-87242c439963",
+    alt: "Black and white view of a narrowboat moored beneath the railway viaducts at Castlefield, Manchester",
+    credit: "Jason Jeandron",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-a-boat-under-a-bridge-WWJzIAneTfQ",
+  },
+  products: {
+    src: "https://images.unsplash.com/photo-1576426863848-c21f53c60b19",
+    alt: "A plain white dropper bottle standing on a marble tray against a soft, pale background",
+    credit: "Content Pixie",
+    page: "https://unsplash.com/photos/white-drop-bottle-on-white-surface-WdJ4WnLxyDs",
+  },
+  portraitA: {
+    src: "https://images.unsplash.com/photo-1748290880596-2a2c80530bc0",
+    alt: "Portrait of a Black woman with natural afro hair in a black blazer against a pale grey wall",
+    credit: "Alexia",
+    page: "https://unsplash.com/photos/woman-poses-confidently-in-a-black-blazer-ZMx43K8YS04",
+  },
+  portraitB: {
+    src: "https://images.unsplash.com/photo-1758600587391-338f5376b7ed",
+    alt: "Portrait of a smiling East Asian woman with long dark hair and a white shirt against a grey-blue background",
+    credit: "Vitaly Gariev",
+    page: "https://unsplash.com/photos/smiling-asian-woman-with-long-dark-hair-and-white-shirt-qhrhmDZ6DTY",
+  },
+  portraitC: {
+    src: "https://images.unsplash.com/photo-1758600434324-41712d1f530e",
+    alt: "Portrait of a young woman with long dark curly hair looking at the camera against a grey-blue background",
+    credit: "Vitaly Gariev",
+    page: "https://unsplash.com/photos/a-young-woman-with-curly-dark-hair-looks-forward-DaD2we5ov7E",
+  },
+  ed01: {
+    src: "https://images.unsplash.com/photo-1527203561188-dae1bc1a417f",
+    alt: "Profile of a Black woman with a long, sleek braided ponytail against a plain studio backdrop",
+    credit: "Jessica Felicio",
+    page: "https://unsplash.com/photos/woman-profile-with-braided-ponytail-QS9ZX5UnS14",
+  },
+  ed02: {
+    src: "https://images.unsplash.com/photo-1633381521050-26bb467d9d5a",
+    alt: "A young woman looking over her shoulder as her long, wavy blonde hair flies out against a black background",
+    credit: "Todd Trapani",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-a-woman-with-long-hair-7pCUY-UoIQ0",
+  },
+  ed03: {
+    src: "https://images.unsplash.com/photo-1704287060425-9051c1140b86",
+    alt: "A Black woman seen from behind in profile, her very long, poker-straight hair falling down her back under dramatic studio light",
+    credit: "Clement Hugbo",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-a-woman-with-long-hair-OB4xI4rwn7M",
+  },
+  ed04: {
+    src: "https://images.unsplash.com/photo-1632765854612-9b02b6ec2b15",
+    alt: "Studio portrait of a young Black woman with a full, rounded afro against a pale grey backdrop",
+    credit: "Good Faces",
+    page: "https://unsplash.com/photos/a-woman-with-an-afro-is-looking-at-the-camera-xmSWVeGEnJw",
+  },
+  ed05: {
+    src: "https://images.unsplash.com/photo-1495914510314-ba3164b1321f",
+    alt: "A woman with cropped platinum hair swept up and back, eyes closed, in soft side light",
+    credit: "Alex Sheldon",
+    page: "https://unsplash.com/photos/grayscale-photography-of-woman-with-eyes-closed-Zg14Kx1XVsc",
+  },
+  ed06: {
+    src: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453",
+    alt: "Profile of an East Asian woman with her long hair tied into a sculpted bubble ponytail",
+    credit: "Kimson Doan",
+    page: "https://unsplash.com/photos/HD8KlyWRYYM",
+  },
+  ed07: {
+    src: "https://images.unsplash.com/photo-1673470907547-1c0c6a996095",
+    alt: "A young Black woman in profile with neat cornrows running into long braids, wearing large hoop earrings",
+    credit: "Ben Iwara",
+    page: "https://unsplash.com/photos/w_zA_e8TRfM",
+  },
+  ed08: {
+    src: "https://images.unsplash.com/photo-1730740505665-511513481bce",
+    alt: "The back of a woman's head, her long, smooth, glossy hair falling over a white shirt against a black background",
+    credit: "Anastasiya Badun",
+    page: "https://unsplash.com/photos/the-back-of-a-womans-head-with-long-hair-u_UoMaxX7RE",
+  },
+  ed09: {
+    src: "https://images.unsplash.com/photo-1579083390476-968b47fe96f2",
+    alt: "Close crop of a hand pulling long, fair hair up from the crown, backlit so the strands glow",
+    credit: "Darya Ogurtsova",
+    page: "https://unsplash.com/photos/a-close-up-of-a-womans-head-with-her-hair-in-a-pony-tail-UHNCPInNZqc",
+  },
+  ed10: {
+    src: "https://images.unsplash.com/photo-1772310626220-058abcaddbf8",
+    alt: "A woman in a dark jacket tilting her head back, her long wet hair hanging down behind her",
+    credit: "Niko Samik",
+    page: "https://unsplash.com/photos/woman-with-wet-hair-tilts-head-back-wearing-a-jacket-LvyGl_choRw",
+  },
+  ed11: {
+    src: "https://images.unsplash.com/photo-1616834258670-da0065c598fa",
+    alt: "Close portrait of an East Asian woman with wet, tousled dark hair falling across her face",
+    credit: "Vince Mariel Conlu",
+    page: "https://unsplash.com/photos/woman-with-black-hair-and-black-hair-KV3vk3eEvEw",
+  },
+  ed12: {
+    src: "https://images.unsplash.com/photo-1614283233556-f35b0c801ef1",
+    alt: "Profile of a woman with a blonde bob and a fringe, eyes closed, in a black roll-neck against a white wall",
+    credit: "Mathilde Langevin",
+    page: "https://unsplash.com/photos/woman-in-black-turtleneck-shirt-yuahvgxIXjE",
+  },
+  ed13: {
+    src: "https://images.unsplash.com/photo-1695556746240-55d9f92faf43",
+    alt: "An older woman seen from behind, her white hair held back with a pearl hair slide",
+    credit: "Hosein Sediqi",
+    page: "https://unsplash.com/photos/a-woman-with-white-hair-and-a-bow-in-her-hair-k0ZDc4p97jQ",
+  },
+  ed14: {
+    src: "https://images.unsplash.com/photo-1596604820148-da737958af16",
+    alt: "An older Black man with curly grey hair and a grey beard looking over his shoulder against a dark background",
+    credit: "Jean Daniel Photography",
+    page: "https://unsplash.com/photos/man-in-white-crew-neck-shirt--GCQiA7oDKk",
+  },
+  ed15: {
+    src: "https://images.unsplash.com/photo-1657105052497-f996284ffff8",
+    alt: "A barber's hands lifting a man's hair with a comb and trimming it with thinning scissors",
+    credit: "Gulom Nazarov",
+    page: "https://unsplash.com/photos/barber-trimming-hair-with-thinning-shears-DrG4V5skbMY",
+  },
+  ed16: {
+    src: "https://images.unsplash.com/photo-1700760934268-8aa0ef52ce0a",
+    alt: "A stylist sectioning and cutting a client's long wet hair with scissors",
+    credit: "Farhad Ibrahimzade",
+    page: "https://unsplash.com/photos/a-woman-cutting-another-womans-hair-with-scissors-V2HDOQTJh3o",
+  },
+  ed17: {
+    src: "https://images.unsplash.com/photo-1578390432942-d323db577792",
+    alt: "Profile of a young man with a short, textured crop and a sharp line at the nape, against a white background",
+    credit: "Megan Bagshaw",
+    page: "https://unsplash.com/photos/a-black-and-white-photo-of-a-young-man-YmaaUNbHHtw",
+  },
+  ed18: {
+    src: "https://images.unsplash.com/photo-1535579710123-3c0f261c474e",
+    alt: "A young woman with long, voluminous corkscrew curls against a dark studio backdrop",
+    credit: "Hadis Safari",
+    page: "https://unsplash.com/photos/woman-wearing-black-top-zawAr1FKOMw",
+  },
+} satisfies Record<string, BrandImage>;
+export const editorialKeys = ["ed01", "ed02", "ed03", "ed04", "ed05", "ed06", "ed07", "ed08", "ed09", "ed10", "ed11", "ed12", "ed13", "ed14", "ed15", "ed16", "ed17", "ed18"] as const;
+export function img(image: BrandImage, width = 1200) {
+  return `${image.src}?w=${width}&q=75&auto=format&fit=crop`;
+}

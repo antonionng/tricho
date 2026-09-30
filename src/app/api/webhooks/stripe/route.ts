@@ -38,26 +38,56 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (!session.metadata?.userId) {
-          return new NextResponse("User id is required", { status: 400 });
-        }
+        if (session.mode !== "subscription" || !session.subscription) break;
 
         const subscription = await stripe.subscriptions.retrieve(
           session.subscription as string
         );
         const priceId = subscription.items.data[0]?.price.id;
         const tier = tierByPriceId(priceId);
+        const email = (
+          session.customer_details?.email ||
+          session.customer_email ||
+          ""
+        ).toLowerCase();
 
-        await prisma.user.update({
-          where: { id: session.metadata.userId },
-          data: {
-            stripeSubscriptionId: subscription.id,
-            stripeCustomerId: subscription.customer as string,
-            stripePriceId: priceId,
-            stripeCurrentPeriodEnd: getPeriodEnd(subscription),
-            ...(tier ? { role: tier.grantsRole } : {}),
-          },
-        });
+        const data = {
+          stripeSubscriptionId: subscription.id,
+          stripeCustomerId: subscription.customer as string,
+          stripePriceId: priceId,
+          stripeCurrentPeriodEnd: getPeriodEnd(subscription),
+          isFounding: session.metadata?.founding === "1" || undefined,
+          ...(tier ? { role: tier.grantsRole, plan: tier.id } : {}),
+        };
+
+        if (session.metadata?.userId) {
+          await prisma.user.update({ where: { id: session.metadata.userId }, data });
+        } else if (email) {
+          // Paid before creating an account: the account is created here and
+          // they sign in later with the same email.
+          await prisma.user.upsert({
+            where: { email },
+            update: data,
+            create: { email, name: session.customer_details?.name ?? null, ...data },
+          });
+        } else {
+          return new NextResponse("No user or email on session", { status: 400 });
+        }
+
+        // Paying with the email on a free listing claims it: full profile, enquiries delivered.
+        if (email && (tier?.id === "professional" || tier?.id === "business")) {
+          const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+          if (user) {
+            await prisma.directoryListing.updateMany({
+              where: { email, status: { in: ["listed", "pending"] } },
+              data: { kind: "member", userId: user.id, status: "listed" },
+            });
+            await prisma.enquiry.updateMany({
+              where: { listing: { email }, status: "new" },
+              data: { status: "forwarded" },
+            });
+          }
+        }
         break;
       }
 
@@ -87,7 +117,7 @@ export async function POST(req: Request) {
           data: {
             stripePriceId: priceId,
             stripeCurrentPeriodEnd: getPeriodEnd(subscription),
-            ...(tier ? { role: tier.grantsRole } : {}),
+            ...(tier ? { role: tier.grantsRole, plan: tier.id } : {}),
           },
         });
         break;
@@ -100,6 +130,7 @@ export async function POST(req: Request) {
           data: {
             stripeCurrentPeriodEnd: getPeriodEnd(subscription),
             role: "individual",
+            plan: null,
           },
         });
         break;

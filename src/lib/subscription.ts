@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { tierByPriceId } from "@/config/subscriptions";
+import { tierByPriceId, type PlanId } from "@/config/subscriptions";
 
 /** Small grace window so a member isn't locked out the instant a renewal is processing. */
 const GRACE_PERIOD_MS = 1000 * 60 * 60 * 24; // 24h
 
 export interface MembershipStatus {
   isActive: boolean;
-  tierId?: string;
+  tierId?: PlanId;
   tierName?: string;
   currentPeriodEnd?: Date | null;
 }
@@ -44,6 +44,11 @@ export function devMembershipUnlock() {
 
 export function canEnterConsultation(role?: string | null) {
   return role === "trichologist" || role === "business" || role === "admin";
+}
+
+/** Professional features: directory profile, Case Room, referrals, Assistant. */
+export function isProfessionalPlan(plan?: string | null, role?: string | null) {
+  return plan === "professional" || plan === "business" || role === "admin";
 }
 
 /** Server-side lookup of the current user's membership status by email. */

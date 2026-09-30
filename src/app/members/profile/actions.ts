@@ -2,46 +2,46 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { Profession } from "@prisma/client";
+import { signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getMemberContext } from "@/lib/member";
+import { PROFESSIONS } from "@/config/rooms";
 
-function clean(value: FormDataEntryValue | null, max: number) {
-  const text = String(value ?? "").trim().slice(0, max);
-  return text.length ? text : null;
-}
-
-export async function saveProfile(formData: FormData) {
+/** Name, discipline and chapter. Open to anyone signed in, member or not. */
+export async function saveMemberDetails(formData: FormData) {
   const ctx = await getMemberContext();
-  if (!ctx.session?.user?.id || !ctx.allowed) {
-    redirect("/join");
-  }
+  const userId = ctx.session?.user?.id;
+  if (!userId) redirect("/login?next=/members/profile");
 
-  const name = clean(formData.get("name"), 80);
-  const bio = clean(formData.get("bio"), 600);
-  const specialization = clean(formData.get("specialization"), 80);
-  const location = clean(formData.get("location"), 80);
-  const website = clean(formData.get("website"), 200);
-  const phone = clean(formData.get("phone"), 40);
+  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  const profession = String(formData.get("profession") ?? "");
+  const chapterSlug = String(formData.get("chapter") ?? "");
+
+  if (name.length < 2) redirect("/members/profile?error=name#about");
+  if (profession && !PROFESSIONS.some((p) => p.id === profession)) redirect("/members/profile?error=discipline#about");
+
+  const chapter =
+    chapterSlug && chapterSlug !== "none"
+      ? await prisma.chapter.findUnique({ where: { slug: chapterSlug }, select: { id: true } })
+      : null;
 
   await prisma.user.update({
-    where: { id: ctx.session.user.id },
-    data: { name },
+    where: { id: userId },
+    data: { name, chapterId: chapter?.id ?? null },
   });
+  if (profession) {
+    await prisma.trichologistProfile.upsert({
+      where: { userId },
+      create: { userId, profession: profession as Profession },
+      update: { profession: profession as Profession },
+    });
+  }
 
-  await prisma.trichologistProfile.upsert({
-    where: { userId: ctx.session.user.id },
-    create: {
-      userId: ctx.session.user.id,
-      bio,
-      specialization,
-      location,
-      website,
-      phone,
-    },
-    update: { bio, specialization, location, website, phone },
-  });
+  revalidatePath("/members", "layout");
+  redirect("/members/profile?saved=about#about");
+}
 
-  revalidatePath("/directory");
-  revalidatePath("/members/profile");
-  redirect("/directory");
+export async function signOutAction() {
+  await signOut({ redirectTo: "/" });
 }

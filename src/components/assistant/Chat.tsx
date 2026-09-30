@@ -74,29 +74,27 @@ export function AssistantChat({
   }, [initialPrompt]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] bg-background">
+    <div className="flex h-[calc(100svh-3.5rem-6rem)] flex-col bg-paper lg:h-[calc(100svh-3.5rem)]">
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 max-w-3xl py-10 space-y-6">
+        <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
           {messages.length === 0 && (
-            <div className="space-y-8 pt-4">
+            <div className="space-y-8">
               <div className="space-y-3">
-                <p className="text-sm font-medium text-primary inline-flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" /> Tricho-AI
+                <p className="label inline-flex items-center gap-2 text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5" /> Assistant
                 </p>
-                <h1 className="tricho-title text-4xl">
-                  Clinical decision support
-                </h1>
-                <p className="text-muted-foreground max-w-xl leading-relaxed">
-                  Structure consults, surface red flags, and draft notes. Educational support —
+                <h1 className="display text-[2.5rem] sm:text-5xl">How can I help with your practice today?</h1>
+                <p className="max-w-xl text-[15px] leading-relaxed text-ink-2">
+                  Structure a consultation, think through referral routes or draft a note. This is educational support,
                   not a diagnosis.
                 </p>
               </div>
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {suggestions.map((s) => (
                   <button
                     key={s}
                     onClick={() => submit(s)}
-                    className="text-left p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/30 transition-colors text-sm text-foreground/80"
+                    className="rounded-2xl border border-rule bg-card p-4 text-left text-[15px] leading-snug text-ink-2 transition-colors hover:border-ink/30 hover:text-ink"
                   >
                     {s}
                   </button>
@@ -107,14 +105,12 @@ export function AssistantChat({
 
           {messages.map((message) => (
             <div key={message.id} className="space-y-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {message.role === "user" ? "You" : "Tricho-AI"}
-              </span>
+              <span className="label text-muted-foreground">{message.role === "user" ? "You" : "Assistant"}</span>
               <div
                 className={
                   message.role === "user"
-                    ? "rounded-2xl bg-primary text-primary-foreground p-4 text-sm leading-relaxed whitespace-pre-wrap"
-                    : "rounded-2xl border border-border/50 bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap shadow-sm"
+                    ? "whitespace-pre-wrap rounded-3xl rounded-tr-lg bg-ink p-4 text-[15px] leading-relaxed text-paper"
+                    : "whitespace-pre-wrap rounded-3xl rounded-tl-lg border border-rule bg-card p-4 text-[15px] leading-relaxed text-ink"
                 }
               >
                 {message.parts.map((part, i) =>
@@ -125,29 +121,33 @@ export function AssistantChat({
           ))}
 
           {status === "submitted" && (
-            <p className="text-sm text-muted-foreground animate-pulse">Thinking…</p>
+            <p className="animate-pulse text-sm text-muted-foreground">Thinking…</p>
           )}
 
           {error && (
             <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
               {error.message?.includes("not configured")
-                ? "Tricho-AI isn't connected yet. Add an AI Gateway key to enable live responses."
+                ? "The Assistant isn't connected yet, so it can't reply. Please try again later."
                 : "Something went wrong. Please try again."}
             </div>
           )}
         </div>
       </div>
 
-      <div className="border-t border-border/50 bg-background">
-        <div className="container mx-auto px-4 max-w-3xl py-4">
+      <div className="border-t border-rule bg-paper">
+        <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-6 lg:px-10 lg:py-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               submit(input);
             }}
-            className="flex items-end gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm"
+            className="flex items-end gap-2 rounded-3xl border border-rule bg-card p-2 pl-4 focus-within:border-ink/40"
           >
+            <label htmlFor="assistant-input" className="sr-only">
+              Your question
+            </label>
             <textarea
+              id="assistant-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -157,14 +157,15 @@ export function AssistantChat({
                 }
               }}
               rows={1}
-              placeholder="Describe the case or ask a clinical question…"
-              className="flex-1 resize-none bg-transparent outline-none text-sm py-2 px-1 max-h-40"
+              placeholder="Describe the case or ask a question"
+              className="max-h-40 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-[15px] outline-none placeholder:text-muted-foreground field-sizing-content"
             />
             {busy ? (
               <Button
                 type="button"
                 onClick={() => stop()}
-                className="rounded-2xl h-10 w-10 p-0 shrink-0"
+                aria-label="Stop"
+                className="h-11 w-11 shrink-0 p-0"
               >
                 <Square className="h-4 w-4" />
               </Button>
@@ -172,15 +173,15 @@ export function AssistantChat({
               <Button
                 type="submit"
                 disabled={!input.trim()}
-                className="rounded-2xl h-10 w-10 p-0 shrink-0 disabled:opacity-30"
+                aria-label="Send"
+                className="h-11 w-11 shrink-0 p-0 disabled:opacity-30"
               >
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp className="h-5 w-5" />
               </Button>
             )}
           </form>
-          <p className="text-[11px] text-muted-foreground mt-3 text-center">
-            Educational decision support only — not a diagnosis or a substitute for clinical
-            judgement.
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            Educational support only. It is not a diagnosis and does not replace your clinical judgement.
           </p>
         </div>
       </div>

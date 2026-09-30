@@ -33,6 +33,41 @@ enum ListingKind {
   member
 }
 
+/// The membership a user pays for. Role stays for permissions (admin, business).
+enum Plan {
+  community
+  professional
+  business
+}
+
+enum DraftStatus {
+  draft
+  approved
+  rejected
+  published
+}
+
+enum EnquiryStatus {
+  new
+  forwarded
+  closed
+}
+
+enum ReferralStatus {
+  sent
+  accepted
+  declined
+  seen
+}
+
+enum EventKind {
+  gathering
+  masterclass
+  case_round
+  chapter_meetup
+  welcome
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -48,20 +83,36 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
+  plan        Plan?
+  isFounding  Boolean   @default(false)
+  onboardedAt DateTime?
+  chapterId   String?
+  chapter     Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
   profile   TrichologistProfile?
   posts     CommunityPost[]
   comments  Comment[]
   reactions Reaction[]
   listings  DirectoryListing[]
 
+  following     Follow[]             @relation("follower")
+  followers     Follow[]             @relation("followee")
+  conversations ConversationMember[]
+  messages      Message[]
+  notifications Notification[]
+  reports       Report[]
+  referralsSent Referral[]           @relation("referralFrom")
+  referralsIn   Referral[]           @relation("referralTo")
+  rsvps         EventRsvp[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TrichologistProfile {
-  id             String      @id @default(cuid())
-  userId         String      @unique
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio            String?
   specialization String?
   location       String?
@@ -69,7 +120,7 @@ model TrichologistProfile {
   phone          String?
   profession     Profession?
   listingStatus  ListingStatus @default(draft)
-  isVerified     Boolean     @default(false)
+  isVerified     Boolean       @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -92,11 +143,26 @@ model DirectoryListing {
   reviewedAt     DateTime?
   reviewNote     String?
 
+  slug             String?   @unique
+  headline         String?
+  country          String    @default("Ireland")
+  services         String[]  @default([])
+  photoUrl         String?
+  isFounding       Boolean   @default(true)
+  /// Free listings stay public until this date (90 days from approval). Claimed (paid) listings ignore it.
+  freeUntil        DateTime?
+  isVerified       Boolean   @default(false)
+  acceptsReferrals Boolean   @default(true)
+  /// Dev seed rows. Never shown in production.
+  isSample         Boolean   @default(false)
+  enquiries        Enquiry[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([email])
+  @@index([profession, city])
 }
 
 model CommunityPost {
@@ -106,15 +172,19 @@ model CommunityPost {
   category  String
   space     String     @default("everyone")
   pinned    Boolean    @default(false)
+  chapterId String?
+  chapter   Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   authorId  String
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  Comment[]
   reactions Reaction[]
+  reports   Report[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([space, createdAt])
+  @@index([chapterId, createdAt])
 }
 
 model Comment {
@@ -146,14 +216,14 @@ model Reaction {
 }
 
 model EducationPiece {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   title     String
   summary   String
-  body      String   @db.Text
+  body      String  @db.Text
   audience  String
   kind      String
-  published Boolean  @default(true)
-  sortOrder Int      @default(0)
+  published Boolean @default(true)
+  sortOrder Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -210,4 +280,210 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+}
+
+/// Local chapters: Dublin, London, Manchester and others.
+model Chapter {
+  id      String          @id @default(cuid())
+  slug    String          @unique
+  city    String
+  country String
+  blurb   String?
+  members User[]
+  posts   CommunityPost[]
+  events  Event[]
+
+  createdAt DateTime @default(now())
+}
+
+model Follow {
+  followerId String
+  follower   User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followeeId String
+  followee   User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([followerId, followeeId])
+}
+
+model Conversation {
+  id        String               @id @default(cuid())
+  members   ConversationMember[]
+  messages  Message[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+model ConversationMember {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime?
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  title     String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model Report {
+  id         String        @id @default(cuid())
+  postId     String
+  post       CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId String?
+  reporter   User?         @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  /// "member" or the agent name that flagged it.
+  source     String        @default("member")
+  reason     String
+  resolvedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@unique([postId, reporterId])
+  @@index([resolvedAt, createdAt])
+}
+
+/// A member of the public asking a listed professional for help.
+model Enquiry {
+  id        String           @id @default(cuid())
+  listingId String
+  listing   DirectoryListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  message   String           @db.Text
+  status    EnquiryStatus    @default(new)
+  createdAt DateTime         @default(now())
+
+  @@index([listingId, createdAt])
+}
+
+model Referral {
+  id        String         @id @default(cuid())
+  fromId    String
+  from      User           @relation("referralFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        User           @relation("referralTo", fields: [toId], references: [id], onDelete: Cascade)
+  summary   String         @db.Text
+  status    ReferralStatus @default(sent)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([toId, status])
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  slug           String      @unique
+  title          String
+  kind           EventKind
+  summary        String
+  body           String?     @db.Text
+  startsAt       DateTime
+  endsAt         DateTime?
+  venue          String?
+  city           String?
+  online         Boolean     @default(false)
+  priceGBP       Int         @default(0)
+  memberPriceGBP Int         @default(0)
+  capacity       Int?
+  /// External ticketing (e.g. Eventbrite) until native ticketing ships.
+  ticketUrl      String?
+  published      Boolean     @default(false)
+  chapterId      String?
+  chapter        Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  rsvps          EventRsvp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, startsAt])
+}
+
+model EventRsvp {
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([eventId, userId])
+}
+
+/// Newsletter and lead-magnet sign-ups from the marketing site.
+model Subscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  source         String
+  utmSource      String?
+  utmCampaign    String?
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+/// Everything an agent (or an outside assistant) produces waits here for Karley.
+model Draft {
+  id           String      @id @default(cuid())
+  agent        String
+  kind         String
+  title        String
+  summary      String?
+  body         String      @db.Text
+  payload      Json?
+  status       DraftStatus @default(draft)
+  reviewerNote String?
+  reviewedAt   DateTime?
+  publishedAt  DateTime?
+  runId        String?
+  run          AgentRun?   @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model AgentRun {
+  id         String    @id @default(cuid())
+  agent      String
+  trigger    String    @default("cron")
+  status     String    @default("running")
+  summary    String?
+  error      String?
+  drafts     Draft[]
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([agent, startedAt])
+}
+
+model AgentSetting {
+  agent     String   @id
+  enabled   Boolean  @default(true)
+  /// "ask" = every output needs approval, "auto" = low-risk output publishes itself.
+  autonomy  String   @default("ask")
+  updatedAt DateTime @updatedAt
 }

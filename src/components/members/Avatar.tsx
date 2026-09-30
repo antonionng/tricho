@@ -1,0 +1,39 @@
+import { cn } from "@/lib/utils";
+
+function initials(name?: string | null) {
+  const parts = (name || "Member").trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "M") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+export function Avatar({
+  name,
+  src,
+  size = "md",
+  className,
+}: {
+  name?: string | null;
+  src?: string | null;
+  size?: "sm" | "md" | "lg" | "xl";
+  className?: string;
+}) {
+  const box = {
+    sm: "h-8 w-8 text-[11px]",
+    md: "h-10 w-10 text-xs",
+    lg: "h-14 w-14 text-base",
+    xl: "h-20 w-20 text-xl",
+  }[size];
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={src} alt="" className={cn("shrink-0 rounded-full object-cover", box, className)} />
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      className={cn("grid shrink-0 place-items-center rounded-full bg-paper-3 font-semibold text-ink-2", box, className)}
+    >
+      {initials(name)}
+    </span>
+  );
+}

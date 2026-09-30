@@ -1,86 +1,145 @@
 export type BillingInterval = "month" | "year";
+export type PlanId = "community" | "professional" | "business";
 
 export interface SubscriptionTier {
-  id: string;
+  id: PlanId;
   name: string;
+  /** Monthly price in GBP. */
   price: number;
-  interval: BillingInterval;
-  /** Visually highlighted as the primary offer. */
+  /** Founding price in GBP per month, kept for life by founding members. */
+  foundingPrice?: number;
+  /** Annual price in GBP (two months free). */
+  annualPrice: number;
   featured?: boolean;
-  /** Short audience descriptor shown under the price. */
-  tagline?: string;
+  audience: string;
+  summary: string;
   /** Maps a successful checkout to a platform role. */
-  grantsRole: "trichologist" | "business";
+  grantsRole: "individual" | "trichologist" | "business";
   stripePriceId?: string;
+  stripeAnnualPriceId?: string;
+  stripeFoundingPriceId?: string;
+  /** Older price ids that should still resolve to this plan (existing subscribers). */
+  legacyPriceIds?: (string | undefined)[];
   features: string[];
 }
 
-/**
- * The Trichollective revenue model.
- *
- * The flagship offer is a single £12/month Membership aimed at every
- * professional in the field (trichologists, doctors, stylists, and wider
- * industry). The two Business tiers are the B2B / exhibitor track.
- */
-export const MEMBERSHIP_PRICE = 12;
-
 export const subscriptionTiers: SubscriptionTier[] = [
   {
-    id: "member",
-    name: "Membership",
-    price: MEMBERSHIP_PRICE,
-    interval: "month",
+    id: "community",
+    name: "Community",
+    price: 9,
+    foundingPrice: 6,
+    annualPrice: 90,
+    audience: "For head spa therapists, stylists, students and anyone building a career in scalp care",
+    summary:
+      "Join the conversation, learn from people further along, and never miss a gathering.",
+    grantsRole: "individual",
+    stripePriceId: process.env.STRIPE_PRICE_ID_COMMUNITY,
+    stripeAnnualPriceId: process.env.STRIPE_PRICE_ID_COMMUNITY_ANNUAL,
+    stripeFoundingPriceId: process.env.STRIPE_PRICE_ID_COMMUNITY_FOUNDING,
+    features: [
+      "The full community: every open space, your local chapter and direct messages",
+      "Trichozette each month, the podcast and the monthly newsletter",
+      "Monthly live masterclass, with recordings you can watch later",
+      "Member prices on courses and gatherings",
+      "Member perks from partner brands",
+    ],
+  },
+  {
+    id: "professional",
+    name: "Professional",
+    price: 19,
+    foundingPrice: 14,
+    annualPrice: 190,
     featured: true,
-    tagline: "For trichologists, doctors, stylists & industry professionals",
+    audience: "For qualified practitioners: trichologists, nurses, doctors and established head spa and salon owners",
+    summary:
+      "Everything in Community, plus the tools that bring you clients and referrals.",
     grantsRole: "trichologist",
-    stripePriceId: process.env.STRIPE_PRICE_ID_MEMBER,
+    stripePriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL,
+    stripeAnnualPriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL_ANNUAL,
+    stripeFoundingPriceId: process.env.STRIPE_PRICE_ID_PROFESSIONAL_FOUNDING,
+    legacyPriceIds: [process.env.STRIPE_PRICE_ID_MEMBER],
     features: [
-      "Rooms for Everyone, Cosmetic, Clinical, and Medical",
-      "Learn — education useful from day one",
-      "Tricho-AI for cosmetic, clinical, and medical work",
-      "Member directory listing",
-      "Exchange — tools and services from the network",
-      "Built around the conference room, year-round",
+      "Everything in Community",
+      "Claim your directory listing and make it a full profile, with enquiries sent straight to you",
+      "The verified badge once your qualifications are checked",
+      "The Case Room, for anonymised case discussion with other professionals",
+      "The referral network across cosmetic, clinical and medical practice",
+      "The Assistant, for referral routes, write-ups and questions answered from our library",
+      "A CPD log that fills itself in as you learn",
     ],
   },
   {
-    id: "business-standard",
+    id: "business",
     name: "Business",
-    price: 150,
-    interval: "month",
-    tagline: "For brands & exhibitors",
+    price: 99,
+    annualPrice: 990,
+    audience: "For clinics, salons, brands and device makers",
+    summary:
+      "Put your business in front of a trusted, specialist audience and hire from it.",
     grantsRole: "business",
-    stripePriceId: process.env.STRIPE_PRICE_ID_BUSINESS_STANDARD,
-    features: [
-      "Brand listing in the directory",
-      "Place in the Exchange",
-      "Path to the professionals in the network",
-      "Does not post inside clinical rooms",
-      "Conference exhibitor track online",
+    stripePriceId: process.env.STRIPE_PRICE_ID_BUSINESS,
+    stripeAnnualPriceId: process.env.STRIPE_PRICE_ID_BUSINESS_ANNUAL,
+    legacyPriceIds: [
+      process.env.STRIPE_PRICE_ID_BUSINESS_STANDARD,
+      process.env.STRIPE_PRICE_ID_BUSINESS_LUXURY,
     ],
-  },
-  {
-    id: "business-luxury",
-    name: "Business Luxury",
-    price: 3500,
-    interval: "year",
-    tagline: "Flagship partner package",
-    grantsRole: "business",
-    stripePriceId: process.env.STRIPE_PRICE_ID_BUSINESS_LUXURY,
     features: [
-      "Everything in Business",
-      "Priority brand placement",
-      "Flagship Exchange presence",
-      "Closer path to the conference room",
-      "Annual partner commitment",
+      "A business page in the directory",
+      "Five Professional seats for your team",
+      "Job posts on the jobs board",
+      "A listing in member perks",
+      "A quarterly summary of how members engaged with you",
     ],
   },
 ];
 
+/** What anyone gets without paying. Shown as the first column on /pricing. */
+export const FREE_LISTING_DAYS = 90;
+
+export const freeListing = {
+  name: "Founding listing",
+  price: 0,
+  audience: "For every cosmetic, clinical and medical professional who signs up early",
+  summary: `Be in the founding directory free for ${FREE_LISTING_DAYS} days. Choose a plan to stay listed after that.`,
+  features: [
+    `A basic listing for ${FREE_LISTING_DAYS} days: name, discipline, city and specialism`,
+    "The founding badge, kept if you stay on",
+    "The monthly newsletter",
+  ],
+  excludes: [
+    "Photo, services, website and full profile",
+    "Enquiries from the public (held until you claim)",
+    "The community, courses and events",
+  ],
+};
+
 export const flagshipTier = subscriptionTiers.find((t) => t.featured)!;
 
-/** Resolve a Stripe price id back to the tier that owns it (used by webhooks). */
+export function tierById(id: string | null | undefined) {
+  return subscriptionTiers.find((t) => t.id === id);
+}
+
+/** Resolve a Stripe price id back to the plan that owns it (used by webhooks). */
 export function tierByPriceId(priceId: string | null | undefined) {
   if (!priceId) return undefined;
-  return subscriptionTiers.find((t) => t.stripePriceId === priceId);
+  return subscriptionTiers.find(
+    (t) =>
+      t.stripePriceId === priceId ||
+      t.stripeAnnualPriceId === priceId ||
+      t.stripeFoundingPriceId === priceId ||
+      t.legacyPriceIds?.includes(priceId)
+  );
+}
+
+/** Pick the Stripe price for a checkout request. */
+export function priceIdFor(
+  tier: SubscriptionTier,
+  interval: BillingInterval,
+  founding: boolean
+) {
+  if (founding && tier.stripeFoundingPriceId) return tier.stripeFoundingPriceId;
+  if (interval === "year" && tier.stripeAnnualPriceId) return tier.stripeAnnualPriceId;
+  return tier.stripePriceId;
 }

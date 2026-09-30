@@ -11,9 +11,12 @@ function databaseUrl() {
   return raw.replace(/([?&])sslmode=[^&]*/g, "$1").replace(/[?&]$/, "");
 }
 
+const url = databaseUrl();
+const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
+
 const adapter = new PrismaPg({
-  connectionString: databaseUrl(),
-  ssl: { rejectUnauthorized: false },
+  connectionString: url,
+  ssl: isLocal ? false : { rejectUnauthorized: false },
 });
 
 export const prisma =

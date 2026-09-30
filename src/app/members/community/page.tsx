@@ -1,64 +1,84 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Paywall } from "@/components/members/Paywall";
+import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { PostCard } from "@/components/community/PostCard";
 import { Composer } from "@/components/community/Composer";
-import { RoomList } from "@/components/community/RoomList";
-import { getMemberContext, memberCanPost } from "@/lib/member";
-import { getFeedPosts } from "./actions";
-import { ROOMS, normalizeSpace, professionById, type RoomId } from "@/config/rooms";
+import { SpaceNav } from "@/components/community/SpaceNav";
+import { getMemberContext } from "@/lib/member";
+import { getPosts, postableRooms } from "@/lib/community";
+import { prisma } from "@/lib/prisma";
+import { canReadRoom, normalizeSpace, roomById, ROOMS } from "@/config/rooms";
 
-export default async function CommunityPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ space?: string }>;
-}) {
+export const metadata = { title: "Community" };
+
+export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ space?: string }> }) {
   const ctx = await getMemberContext();
-  if (!ctx.session) redirect("/login");
-  if (!ctx.allowed) {
-    return <Paywall title="Rooms" body="Private professional rooms are part of membership." />;
-  }
+  if (!ctx.session?.user?.id) redirect("/login?next=/members/community");
+  if (!ctx.allowed) return <Paywall title="The community" body="Every space, your chapter and direct messages are part of membership." />;
 
   const { space: requested } = await searchParams;
-  const preferred =
-    (requested && normalizeSpace(requested)) ||
-    professionById(ctx.profession || "")?.homeRoom ||
-    "everyone";
-  const space = preferred as RoomId;
-  const room = ROOMS.find((r) => r.id === space)!;
-  const canPost = memberCanPost(space, ctx.profession, ctx.unlocked);
-  const posts = await getFeedPosts([space], ctx.session.user.id);
+  const space = requested && ROOMS.some((r) => r.id === requested) ? normalizeSpace(requested) : undefined;
+  const room = space ? roomById(space) : undefined;
+  const locked = space ? !canReadRoom(space, ctx.professional) : false;
+
+  const [posts, chapter] = await Promise.all([
+    locked ? Promise.resolve([]) : getPosts({ userId: ctx.session.user.id, professional: ctx.professional, space }),
+    ctx.chapterId ? prisma.chapter.findUnique({ where: { id: ctx.chapterId }, select: { city: true } }) : null,
+  ]);
+  const rooms = postableRooms(ctx);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <header className="mb-8 space-y-2">
-        <p className="tricho-caps text-foreground/40">Rooms</p>
-        <h1 className="tricho-title text-4xl">{room.label}</h1>
-        <p className="text-muted-foreground max-w-2xl">{room.blurb}</p>
-      </header>
+    <MemberPage>
+      <PageHeader
+        label="Community"
+        title={room?.label ?? "All spaces"}
+        lede={room?.blurb ?? "Conversation from every space you can read, newest first. Pinned posts from the team sit at the top."}
+      />
 
-      <div className="grid lg:grid-cols-[240px_1fr] gap-8">
-        <aside className="space-y-4">
-          <RoomList active={space} />
-          <Link
-            href="/members"
-            className="block text-sm text-muted-foreground hover:text-foreground px-2"
-          >
-            ← Home feed
-          </Link>
+      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <SpaceNav active={space} professional={ctx.professional} />
         </aside>
 
-        <div className="space-y-4 max-w-2xl">
-          <Composer space={space} canPost={canPost} />
-          {posts.length === 0 ? (
-            <div className="rounded-2xl border border-border/50 bg-card p-8 text-sm text-muted-foreground">
-              Nothing in this room yet. Start the first thread.
+        <div className="flex min-w-0 flex-col gap-4">
+          {locked ? (
+            <div className="rounded-3xl border border-rule bg-card p-6 sm:p-8">
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-paper-2">
+                <Lock className="h-5 w-5 stroke-[1.6]" />
+              </span>
+              <h2 className="display mt-5 text-3xl">The Case Room is for Professional members</h2>
+              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-2">
+                Qualified practitioners bring anonymised cases here and hear how colleagues from other disciplines would
+                approach them. It is kept small and careful on purpose.
+              </p>
+              <Button asChild size="lg" className="mt-6">
+                <Link href="/pricing#professional">See Professional</Link>
+              </Button>
             </div>
           ) : (
-            posts.map((post) => <PostCard key={post.id} post={post} />)
+            <>
+              <Composer
+                rooms={space ? rooms.filter((r) => r.id === space).concat(rooms.filter((r) => r.id !== space)) : rooms}
+                defaultSpace={space}
+                chapter={chapter}
+                collapsed
+                name={null}
+              />
+              {posts.length === 0 ? (
+                <EmptyState
+                  title={room ? `Nothing in ${room.label} yet` : "No posts yet"}
+                  body="Be the first to start a conversation here. A question is often the best way in."
+                />
+              ) : (
+                posts.map((post) => <PostCard key={post.id} post={post} showSpace={!space} />)
+              )}
+            </>
           )}
         </div>
       </div>
-    </div>
+    </MemberPage>
   );
 }
