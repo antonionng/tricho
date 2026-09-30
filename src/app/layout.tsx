@@ -1,26 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter, Inter_Tight } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { site } from "@/config/site";
 import { JsonLd, organizationLd, websiteLd } from "@/lib/seo";
 import { isPreviewDemo } from "@/lib/env";
 
-const inter = Inter({
+// Fonts are bundled from npm (@fontsource-variable) so builds never depend on fetching Google Fonts.
+const inter = localFont({
   variable: "--font-inter",
-  subsets: ["latin"],
   display: "swap",
+  src: [
+    { path: "../../node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2", weight: "100 900", style: "normal" },
+    { path: "../../node_modules/@fontsource-variable/inter/files/inter-latin-standard-italic.woff2", weight: "100 900", style: "italic" },
+  ],
 });
 
-const interTight = Inter_Tight({
+const interTight = localFont({
   variable: "--font-inter-tight",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
   display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  src: [{ path: "../../node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2", weight: "100 900", style: "normal" }],
 });
 
 export const metadata: Metadata = {
@@ -55,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en-GB">
       <body
-        className={`${inter.variable} ${interTight.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground overflow-x-hidden`}
+        className={`${inter.variable} ${interTight.variable} font-sans antialiased bg-background text-foreground overflow-x-hidden`}
       >
         {isPreviewDemo() && (
           <div className="relative z-[100] bg-ink px-4 py-1.5 text-center text-[12px] text-paper">
