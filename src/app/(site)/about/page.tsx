@@ -10,9 +10,9 @@ import { Timeline } from "@/components/site/Timeline";
 
 export const metadata = pageMetadata({
   title: `About us`,
-  description: `How Trichollective began at ${site.founder}'s gatherings at ${site.originPlace}, what we believe, and what we will and won't do as a community for hair and scalp professionals.`,
+  description: `Trichollective was founded by trichologist ${site.founderFull} so cosmetic, clinical and medical professionals can learn from and refer to one another. How it began at ${site.originPlace}, and what we will and won't do.`,
   path: "/about",
-    og: { title: "It started in a room.", sub: "At Whittlebury Hall.", eyebrow: "About Trichollective", img: images.gathering.src, variant: "photo" },
+    og: { title: "Founded so no practitioner works", sub: "through a difficult case alone.", eyebrow: "About Trichollective", img: images.gathering.src, variant: "photo" },
 });
 
 const values = [
@@ -22,7 +22,7 @@ const values = [
   },
   {
     t: "Respect across disciplines",
-    d: "A head spa therapist, a trichologist and a dermatologist each see something the others might miss. Nobody here is more important than anybody else.",
+    d: "A head spa therapist, a trichologist and a dermatologist each see something the others might miss. Every discipline is heard, so every member gets a fuller picture of the case.",
   },
   {
     t: "The client comes first",
@@ -30,7 +30,7 @@ const values = [
   },
   {
     t: "Share what you know",
-    d: "The field moves forward when people pass on what they have learned. We make it easy to share, and we make sure the people who share are recognised.",
+    d: "The field moves forward when people pass on what they have learned. We make it easy to share, and members who share are recognised with invitations to teach and write.",
   },
 ];
 
@@ -70,13 +70,13 @@ export default function AboutPage() {
             <div className="flex flex-col gap-8 animate-rise lg:col-span-6">
               <Eyebrow rule>About Trichollective</Eyebrow>
               <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
-                It started in a room
+                A trichologist founded Trichollective so no practitioner
                 <br />
-                <span className="text-fade">at {site.origin}.</span>
+                <span className="text-fade">has to work through a difficult case alone.</span>
               </h1>
               <p className="lede max-w-xl">
-                Trichollective brings together everyone who cares for hair and the scalp beneath it, from the treatment
-                chair to the consulting room.
+                It began at {site.origin} and now brings trichologists, doctors, nurses and scalp care practitioners
+                together all year, from the treatment chair to the consulting room.
               </p>
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function AboutPage() {
       {/* Timeline */}
       <Section>
         <Container>
-          <SectionHeader eyebrow="So far" title="Trichollective began at Whittlebury Hall" fade="and launches online in Dublin." />
+          <SectionHeader eyebrow="So far" title="The conferences at Whittlebury now continue" fade="online all year, from the Dublin launch onwards." />
           <div className="mt-14">
             <Timeline />
           </div>
@@ -162,8 +162,8 @@ export default function AboutPage() {
         <Container>
           <SectionHeader
             eyebrow="What we believe"
-            title="These are the four things"
-            fade="we hold ourselves to."
+            title="You can rely on four principles"
+            fade="in every conversation, course and referral."
           />
           <ol className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-2">
             {values.map((v, i) => (
@@ -182,8 +182,8 @@ export default function AboutPage() {
         <Container>
           <SectionHeader
             eyebrow="Our commitments"
-            title="Here is what we will always do,"
-            fade="and what we never will."
+            title="You can hold us to what we will always do,"
+            fade="and to what we never will."
             body="Trust is the whole point of a professional community. These are promises, not aspirations."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2">
@@ -236,7 +236,7 @@ export default function AboutPage() {
             <div className="flex flex-col gap-4 lg:col-span-5 lg:col-start-8 lg:justify-end">
               <ArrowLink href="/partners">Partnerships and sponsorship</ArrowLink>
               <ArrowLink href="/for-business">Business membership</ArrowLink>
-              <ArrowLink href="/find">Looking for a professional?</ArrowLink>
+              <ArrowLink href="/find">Find a hair or scalp professional</ArrowLink>
             </div>
           </div>
         </Container>

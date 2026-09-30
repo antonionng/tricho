@@ -17,7 +17,7 @@ export default function TrichoPage() {
       eyebrow="Trichollective Online"
       title="Thank you for commenting TRICHO,"
       fade="your early access is ready."
-      lede="As promised, here is early access to Trichollective and your free place in the founding directory, for cosmetic, clinical and medical hair and scalp professionals."
+      lede="As promised, here is early access to Trichollective and your free place in the founding directory, so people searching near you can find you from day one."
       image={images.heroPortrait}
     />
   );

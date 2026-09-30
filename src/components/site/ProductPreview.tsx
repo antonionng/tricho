@@ -27,7 +27,7 @@ export function ProductPreview() {
               )}
             </ul>
             <p className="label text-muted-foreground mt-6 mb-3">Chapter</p>
-            <p className="rounded-lg px-2.5 py-1.5 text-sm text-ink-2">Dublin</p>
+            <p className="rounded-lg px-2.5 py-1.5 text-sm text-ink-2">Ireland</p>
           </aside>
           <div className="col-span-12 sm:col-span-8 flex flex-col gap-3 p-5">
             <article className="rounded-2xl border border-rule bg-card p-4">
@@ -39,8 +39,8 @@ export function ProductPreview() {
                 </div>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-ink-2">
-                Seeing more post-viral shedding again this autumn. How are you all explaining the timeline
-                to clients who are understandably worried?
+                Client, 34, diffuse shedding that started about three months after a viral illness. Bloods
+                normal via her GP. How are you explaining the timeline, and at what point would you refer to a dermatologist?
               </p>
               <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" /> Useful</span>

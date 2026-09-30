@@ -63,6 +63,7 @@ export function PageHero({
   crumbs,
   children,
   className,
+  imageClassName,
 }: {
   eyebrow: string;
   title: React.ReactNode;
@@ -73,6 +74,8 @@ export function PageHero({
   crumbs?: Crumb[];
   children?: React.ReactNode;
   className?: string;
+  /** Extra classes for the hero photograph, e.g. "mag-bw object-top". */
+  imageClassName?: string;
 }) {
   return (
     <section className={cn("border-b border-rule bg-paper", className)}>
@@ -107,7 +110,7 @@ export function PageHero({
                   fill
                   priority={priority}
                   sizes="(min-width: 1024px) 50vw, 100vw"
-                  className="object-cover"
+                  className={cn("object-cover", imageClassName)}
                 />
               </div>
             </div>

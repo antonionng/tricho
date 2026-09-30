@@ -40,7 +40,7 @@ export default async function WelcomePage({
     },
     {
       t: "Choose your chapter",
-      d: "Pick the local chapter nearest to where you practise, so you meet the members around you and hear about local meet-ups first.",
+      d: "Pick the chapter for the country where you practise, so you meet the colleagues you will refer to and hear about local meet-ups first.",
     },
     {
       t: "Come to the welcome session",
@@ -67,12 +67,12 @@ export default async function WelcomePage({
             <div className="flex flex-col gap-8 animate-rise lg:col-span-7">
               <Eyebrow rule>{tier ? `${tier.name} membership` : "Membership"}</Eyebrow>
               <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
-                Thank you.
+                Thank you, your membership
                 <br />
-                <span className="text-fade">You&apos;re in.</span>
+                <span className="text-fade">is being set up now.</span>
               </h1>
               <p className="lede max-w-xl">
-                Your payment went through and your membership is being set up now. Your account uses the
+                Your payment went through. Your account uses the
                 email address you paid with, so please sign in with that same address to get started.
               </p>
               <div>
@@ -92,7 +92,7 @@ export default async function WelcomePage({
 
       <Section tone="paper-2">
         <Container>
-          <SectionHeader eyebrow="What happens next" title="Four short steps" fade="will get you settled in." />
+          <SectionHeader eyebrow="What happens next" title="Four short steps take you from sign-in" fade="to your first conversation with colleagues." />
           <ol className="mt-12 grid gap-5 md:grid-cols-2">
             {steps.map((s, i) => (
               <li key={s.t} className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-7 md:p-8">

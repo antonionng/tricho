@@ -11,10 +11,10 @@ import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
 export const metadata = pageMetadata({
-  title: "Local chapters across Ireland and the UK",
-  description: `Every ${site.name} member belongs to a local chapter, from Dublin and Cork to Belfast, London and Manchester. Meet the hair and scalp professionals near you.`,
+  title: "Chapters in Ireland, the UK, Europe and the United States",
+  description: `Every ${site.name} member belongs to a country chapter: Ireland, England, Scotland, Wales, Europe or the United States. Find hair and scalp professionals near you to refer to and learn from.`,
   path: "/chapters",
-    og: { title: "Meet the members who practise near you,", sub: "online and in person.", eyebrow: "Community", img: images.dublin.src, variant: "photo" },
+    og: { title: "Find colleagues to refer to in your own country,", sub: "online and at local meetups.", eyebrow: "Community", img: images.dublin.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -23,19 +23,19 @@ const crumbs = [
 ];
 
 export default function ChaptersPage() {
-  const countries = ["Ireland", "United Kingdom"] as const;
+  const countries = ["Ireland and Northern Ireland", "United Kingdom", "International"] as const;
 
   return (
     <>
       <PageHero
-        eyebrow="Local chapters"
-        title="Meet the members who practise near you,"
-        fade="online and in person."
+        eyebrow="Chapters"
+        title="Find colleagues to refer to in your own country,"
+        fade="online and at local meetups."
         lede={
           <p>
-            When you join, you choose a local chapter. It&apos;s where you meet the practitioners who
-            work near you, hear about meetups in your city and find the colleagues you&apos;ll refer
-            clients to.
+            When you join, you choose a chapter for Ireland, England, Scotland, Wales, Europe or the United
+            States. It&apos;s where you meet the practitioners who work near you, hear about meetups and find
+            the colleagues you&apos;ll refer clients to.
           </p>
         }
         image={images.community}
@@ -48,7 +48,7 @@ export default function ChaptersPage() {
         return (
           <Section key={country} tone={ci % 2 === 0 ? "paper" : "paper-2"}>
             <Container>
-              <SectionHeader eyebrow={country} title={country === "Ireland" ? "Chapters in Ireland" : "Chapters in the UK"} />
+              <SectionHeader eyebrow={country} title={country === "United Kingdom" ? "Find colleagues to refer to across England, Scotland and Wales." : country === "International" ? "Connect with practitioners across Europe and the United States." : "Build your referral network across the whole island of Ireland."} />
               <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map((c, i) => {
                   const image = c.imageKey ? images[c.imageKey] : null;
@@ -65,7 +65,7 @@ export default function ChaptersPage() {
                               alt={image.alt}
                               fill
                               sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                              className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                              className="mag-bw object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]"
                             />
                           </div>
                         ) : (
@@ -96,13 +96,13 @@ export default function ChaptersPage() {
         <Container className="py-24 md:py-28">
           <div className="flex flex-col items-center gap-8 text-center">
             <h2 className="display text-5xl sm:text-6xl max-w-3xl">
-              Your city isn&apos;t listed?
+              If you practise somewhere else,
               <br />
-              <span className="text-fade">Join the nearest one.</span>
+              <span className="text-fade">join the nearest chapter and tell us where.</span>
             </h2>
             <p className="lede max-w-xl">
               New chapters open when enough members in a place ask for one. Choose the closest chapter
-              when you join and tell us where you are. We&apos;ll let you know when yours opens.
+              when you join and tell us where you practise, and we&apos;ll let you know when yours opens.
             </p>
             <Button asChild size="xl">
               <Link href="/pricing">

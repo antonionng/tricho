@@ -13,9 +13,9 @@ import { site } from "@/config/site";
 export const metadata = pageMetadata({
   title: "Courses for hair and scalp professionals",
   description:
-    "Short, practical courses for head spa therapists, stylists, trichologists, nurses and doctors. Written and reviewed by practitioners, with a certificate you can share.",
+    "Short courses for trichologists, doctors, nurses and scalp care practitioners, reviewed by a qualified practitioner, with a certificate anyone can verify and CPD recorded for you.",
   path: "/learn",
-    og: { title: "Courses that make Monday easier.", eyebrow: "Learn", img: images.learning.src, variant: "photo" },
+    og: { title: "Earn CPD from courses written by practitioners.", sub: "Certificates anyone can verify online.", eyebrow: "Learn", img: images.ed09.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -37,15 +37,17 @@ export default function LearnPage() {
     <>
       <PageHero
         eyebrow="Learn"
-        title="Courses that make"
-        fade="Monday easier."
+        title="Earn CPD from courses written"
+        fade="by practitioners who see the same clients you do."
         lede={
           <p>
-            Short, practical courses written by the people doing the work. Each one is reviewed by a
-            qualified practitioner before it opens, and ends with a certificate anyone can check online.
+            Each course is reviewed by a qualified practitioner before it opens, ends with a certificate of
+            completion anyone can verify online, and is added to your CPD log automatically. Certificates are
+            not accredited qualifications.
           </p>
         }
-        image={images.learning}
+        image={images.ed09}
+        imageClassName="mag-bw object-top"
         crumbs={crumbs}
       />
 
@@ -55,11 +57,11 @@ export default function LearnPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="The catalogue"
-              title="Browse every course we offer"
-              fade="in one place."
+              title="Choose a course that sharpens your consultations,"
+              fade="your referrals or your treatment protocols."
               body={
                 openCount === 0
-                  ? "Our first courses are being written and reviewed now. Open any course to see what it covers and register your interest, and we'll tell you the day it opens."
+                  ? "Our first courses are being written and reviewed now. Open any course to see what you will be able to do by the end, and register your interest so we can tell you the day it opens."
                   : "Members pay less for every course, and some are included in membership at no extra cost."
               }
             />
@@ -122,8 +124,8 @@ export default function LearnPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="How it works"
-                title="Every course is written by a practitioner"
-                fade="and checked by another before it opens."
+                title="You can trust what you learn, because every course"
+                fade="is checked by a second practitioner before it opens."
               />
             </div>
             <ul className="lg:col-span-7 flex flex-col divide-y divide-rule border-y border-rule">
@@ -131,7 +133,7 @@ export default function LearnPage() {
                 {
                   icon: BookOpen,
                   t: "Short and practical",
-                  d: "Most courses take between two and five hours, split into short lessons you can fit around clients.",
+                  d: "Most courses take between two and five hours, split into short lessons you can fit between appointments. Your hours go into your CPD log automatically.",
                 },
                 {
                   icon: ShieldCheck,
@@ -140,8 +142,8 @@ export default function LearnPage() {
                 },
                 {
                   icon: BadgeCheck,
-                  t: "A certificate you can share",
-                  d: "Finish a course and you receive a certificate of completion with its own public web address, so a client or employer can check it in seconds.",
+                  t: "A certificate clients can check",
+                  d: "Finish a course and you receive a certificate of completion with its own public web address, so a client or employer can check it in seconds. It is not an accredited qualification.",
                 },
               ].map(({ icon: Icon, t, d }) => (
                 <li key={t} className="flex gap-4 py-6">
@@ -165,23 +167,23 @@ export default function LearnPage() {
         <Container>
           <SectionHeader
             eyebrow="Free to read"
-            title="You can start with the basics today,"
-            fade="without creating an account."
-            body="Alongside the courses, we publish plain-English guides and a glossary for anyone who wants to understand hair and scalp care a little better."
+            title="Give clients a clear explanation to read at home,"
+            fade="from our free guides and glossary."
+            body="Alongside the courses, we publish plain-English guides and a glossary. They are free to read without an account, and useful to send after a consultation."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2">
             {[
               {
                 icon: Library,
                 title: "Guides",
-                body: "Clear explanations of head spa, hair shedding, scalp care and choosing the right professional. Useful to share with clients, too.",
+                body: "Clear explanations of head spa, hair shedding, scalp care and choosing the right professional, written so you can send them to clients.",
                 href: "/guides",
                 cta: "Read the guides",
               },
               {
                 icon: BookOpen,
                 title: "Glossary",
-                body: "The words clients and colleagues use, from alopecia to trichoscopy, each explained in a sentence or two.",
+                body: "The terms that come up in consultations and referral letters, from alopecia to trichoscopy, each explained in a sentence or two.",
                 href: "/glossary",
                 cta: "Browse the glossary",
               },
@@ -208,13 +210,13 @@ export default function LearnPage() {
         <Container className="py-24 md:py-28">
           <div className="flex flex-col items-center gap-8 text-center">
             <h2 className="display text-5xl sm:text-6xl max-w-3xl">
-              Members pay less
+              Pay less for every course
               <br />
-              <span className="text-fade">for every course.</span>
+              <span className="text-fade">as a member.</span>
             </h2>
             <p className="lede max-w-xl">
-              Membership brings lower course prices, some courses at no extra cost, and a monthly live
-              masterclass with the rest of the {site.name} community.
+              Membership brings lower course prices, some courses at no extra cost, and a live masterclass
+              and case round every month with the rest of the {site.name} community, recorded for later.
             </p>
             <Button asChild size="xl">
               <Link href="/pricing">

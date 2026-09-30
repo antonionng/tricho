@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { uniqueListingSlug } from "@/lib/directory";
+import { LISTING_COUNTRIES } from "@/content/chapters";
 import { getMemberContext } from "@/lib/member";
 
 function clean(value: FormDataEntryValue | null, max: number) {
@@ -50,6 +51,8 @@ export async function submitFreeListing(formData: FormData) {
   const bio = clean(formData.get("bio"), 800) || null;
   const website = clean(formData.get("website"), 200) || null;
   const phone = clean(formData.get("phone"), 40) || null;
+  const countryRaw = clean(formData.get("country"), 40);
+  const country = (LISTING_COUNTRIES as readonly string[]).includes(countryRaw) ? countryRaw : "Ireland";
   const source = clean(formData.get("source"), 40).toLowerCase().replace(/[^a-z0-9_-]/g, "") || null;
 
   if (name.length < 2 || !email.includes("@") || city.length < 2) {
@@ -83,6 +86,7 @@ export async function submitFreeListing(formData: FormData) {
       status: ListingStatus.pending,
       kind: ListingKind.listed,
       source,
+      country,
     },
   });
 

@@ -36,47 +36,47 @@ import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 export const metadata = pageMetadata({
   title: `How the community works`,
   description:
-    "Take the tour of the Trichollective community: spaces for every part of hair and scalp care, the private Case Room, local chapters, direct messages, live case rounds and a referral network across disciplines.",
+    "See how Trichollective members get a second opinion in the private Case Room, refer clients across cosmetic, clinical and medical practice, and learn in monthly masterclasses and case rounds.",
   path: "/community",
-    og: { title: "Everything you need to understand hair and scalp", sub: "is here, whoever you are.", eyebrow: "The community", img: images.community.src, variant: "photo" },
+    og: { title: "Bring your hardest cases to colleagues", sub: "who have seen them before.", eyebrow: "The community", img: images.community.src, variant: "photo" },
 });
 
 const spaces = [
   {
     icon: Flower2,
     name: "Head Spa & Scalp Care",
-    body: "Techniques, routines, products and the day-to-day craft of looking after the scalp.",
+    body: "Compare treatment protocols, products and aftercare with therapists who do the same work every day.",
   },
   {
     icon: Microscope,
     name: "Hair Loss & Trichology",
-    body: "Shedding, thinning and scalp conditions, discussed by the people who see them every week.",
+    body: "Talk through shedding, thinning and scalp conditions with trichologists and doctors who see them every week.",
   },
   {
     icon: Lock,
     name: "The Case Room",
-    body: "Private to verified professionals. Cases are shared anonymised, with nothing that could identify a client.",
+    body: "Share an anonymised case history and get peer review from verified professionals across all three disciplines.",
     tag: "Verified professionals only",
   },
   {
     icon: Cpu,
     name: "Devices & Technology",
-    body: "Scalp cameras, LED and UV devices and the rest of the kit, with honest notes from people who use them.",
+    body: "Hear from people who already use a scalp camera, LED or UV device before you spend money on one.",
   },
   {
     icon: TrendingUp,
     name: "Business & Marketing",
-    body: "Pricing, bookings, hiring and finding clients, from people who run clinics, salons and head spas.",
+    body: "Learn how other clinics, salons and head spas handle pricing, rebooking, client retention and hiring.",
   },
   {
     icon: Hand,
     name: "Introductions",
-    body: "Say hello, tell people what you do and where, and find the members you should know.",
+    body: "Tell members what you do and where you practise, so the right colleagues know to refer to you.",
   },
   {
     icon: Sparkles,
     name: "Wins",
-    body: "A new qualification, a full diary, a client you helped. Share it with people who understand what it took.",
+    body: "Share a new qualification or a case that went well with people who understand what it took.",
   },
 ];
 
@@ -90,13 +90,14 @@ export default function CommunityPage() {
             <div className="flex flex-col gap-8 animate-rise lg:col-span-5">
               <Eyebrow rule>The community</Eyebrow>
               <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
-                Between gatherings,
+                Bring your hardest cases to colleagues
                 <br />
-                <span className="text-fade">the room stays open.</span>
+                <span className="text-fade">who have seen them before.</span>
               </h1>
               <p className="lede">
                 Trichollective is a private community for cosmetic, clinical and medical hair and scalp
-                professionals. Here is how it works, and what you will find when you join.
+                professionals. Ask for a second opinion, refer a client on and keep learning between
+                conferences.
               </p>
             </div>
             <div className="lg:col-span-7">
@@ -111,8 +112,8 @@ export default function CommunityPage() {
         <Container>
           <SectionHeader
             eyebrow="Spaces"
-            title="There is a space for every part"
-            fade="of hair and scalp care."
+            title="Find the answer to a practice question"
+            fade="in the space where your peers already discuss it."
             body="Conversations are organised by topic, so you can follow what matters to your work and ignore what doesn't. Nothing is lost in a feed, and everything useful stays searchable."
           />
           <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -144,11 +145,11 @@ export default function CommunityPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="Local chapters"
-              title="Meet the people"
-              fade="who practise near you."
-              body="When you join, you choose a chapter. It is where you find members in your area, hear about local meet-ups, and build the relationships that referrals depend on."
+              title="Build a referral network with the people"
+              fade="who practise in your own country."
+              body="When you join, you choose a chapter for Ireland, England, Scotland, Wales, Europe or the United States. It is where you find members nearby, hear about local meet-ups and build the relationships that referrals depend on."
             />
-            <ArrowLink href="/chapters">All chapters</ArrowLink>
+            <ArrowLink href="/chapters">See every chapter</ArrowLink>
           </div>
           <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {CHAPTERS.map((c) => {
@@ -166,7 +167,7 @@ export default function CommunityPage() {
                           alt={image.alt}
                           fill
                           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                          className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                          className="mag-bw object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]"
                         />
                       </div>
                     ) : (
@@ -197,9 +198,9 @@ export default function CommunityPage() {
             <div className="flex flex-col gap-4 md:col-span-5">
               <p className="label opacity-70">Direct messages</p>
               <h2 className="display text-4xl sm:text-5xl">
-                Ask quietly.
+                Ask a colleague for a second opinion
                 <br />
-                <span className="text-fade">Get a real answer.</span>
+                <span className="text-fade">in a private message.</span>
               </h2>
             </div>
             <p className="lede md:col-span-7">
@@ -229,9 +230,9 @@ export default function CommunityPage() {
               The referral network
             </Eyebrow>
             <h2 className="display text-5xl md:text-6xl">
-              The right person,
+              Refer a client to the right discipline,
               <br />
-              <span className="opacity-60">at the right time.</span>
+              <span className="opacity-60">and hear what happened next.</span>
             </h2>
             <p className="text-lg leading-relaxed text-paper/80">
               A head spa therapist notices a change in a client&apos;s scalp. A trichologist needs a
@@ -250,10 +251,10 @@ export default function CommunityPage() {
               ))}
             </ol>
             <p className="text-[15px] leading-relaxed text-paper/70">
-              Professional members can see who practises what, and where, across all three disciplines. You can
-              pass a client on with a short note, so the next professional knows why they are coming. We
-              never diagnose, and the referral network is no substitute for medical advice. It simply makes
-              it easier to pass someone on well.
+              Professional members can see who practises what, and where, across all three disciplines, and
+              the Assistant can draft the referral letter. The next professional knows why the client is coming,
+              and you stay within your scope of practice. We never diagnose, and the referral network is no
+              substitute for medical advice.
             </p>
             <div>
               <Button asChild size="lg" variant="paper">
@@ -272,35 +273,35 @@ export default function CommunityPage() {
           <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
             <div className="relative aspect-[4/5] overflow-hidden rounded-3xl lg:col-span-5">
               <Image
-                src={img(images.learning, 1000)}
-                alt={images.learning.alt}
+                src={img(images.ed15, 1000)}
+                alt={images.ed15.alt}
                 fill
                 sizes="(min-width: 1024px) 40vw, 100vw"
-                className="object-cover"
+                className="mag-bw object-cover object-top"
               />
             </div>
             <div className="flex flex-col gap-8 lg:col-span-7 lg:justify-center">
               <SectionHeader
                 eyebrow="Live"
-                title="Learn live in the room,"
-                fade="or catch up whenever it suits you."
+                title="Learn from a specialist live each month,"
+                fade="or watch the recording between clients."
               />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule">
                 {[
                   {
                     icon: CalendarDays,
                     t: "A monthly masterclass",
-                    d: "A practitioner or specialist teaches one subject in depth, with time for questions.",
+                    d: "A practitioner or specialist teaches one subject in depth, with time for your questions.",
                   },
                   {
                     icon: Microscope,
                     t: "Case rounds",
-                    d: "Verified professionals walk through anonymised cases together, with each discipline adding what it sees.",
+                    d: "Verified professionals walk through anonymised cases together, practising differential thinking as each discipline adds what it sees.",
                   },
                   {
                     icon: PlayCircle,
                     t: "Recordings",
-                    d: "Every masterclass is recorded and kept in the library, so you can watch when your diary allows.",
+                    d: "Every session is recorded and kept in the library, so you can watch when your diary allows.",
                   },
                 ].map(({ icon: Icon, t, d }) => (
                   <li key={t} className="flex gap-4 py-5">
@@ -312,7 +313,7 @@ export default function CommunityPage() {
                   </li>
                 ))}
               </ul>
-              <ArrowLink href="/events">See upcoming sessions and gatherings</ArrowLink>
+              <ArrowLink href="/events">See upcoming masterclasses and conferences</ArrowLink>
             </div>
           </div>
         </Container>
@@ -325,16 +326,16 @@ export default function CommunityPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Recognition"
-                title="When you share what you know,"
-                fade="the community notices."
-                body="Members who answer questions, share cases and help newcomers build a contribution level over time. Higher levels come with real opportunities."
+                title="Build your professional reputation"
+                fade="by answering the questions you know best."
+                body="Members who answer questions, share cases and help newcomers build a contribution level over time. Higher levels bring invitations to teach, write and be featured."
               />
             </div>
             <ul className="grid gap-4 sm:grid-cols-2 lg:col-span-7">
               {[
                 { t: "Speaking slots", d: "An invitation to lead a masterclass, a case round or a talk at a gathering." },
                 { t: "Featured in the directory", d: "A place among featured professionals, where the public looks first." },
-                { t: "Writing for Trichozette", d: "A chance to publish a piece in the monthly edition, with editorial help." },
+                { t: "Writing for Trichozette", d: "A chance to publish a piece in the magazine, with editorial help." },
                 { t: "A say in the programme", d: "An early look at plans, and a voice in what the community does next." },
               ].map((p) => (
                 <li key={p.t} className="flex flex-col gap-3 rounded-3xl border border-rule bg-card p-6">
@@ -355,9 +356,9 @@ export default function CommunityPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Standards"
-                title="This is a careful, professional place"
-                fade="to talk about your work."
-                body="A community is only as good as the way it is looked after. These are the standards every member agrees to."
+                title="Share a case knowing client privacy"
+                fade="and professional standards come first."
+                body="Every member agrees to these standards, and people, not only software, make sure they are kept."
               />
             </div>
             <ul className="flex flex-col divide-y divide-rule border-y border-rule lg:col-span-7">
@@ -405,9 +406,9 @@ export default function CommunityPage() {
         <Container className="py-24 md:py-32">
           <div className="flex flex-col items-center gap-8 text-center">
             <h2 className="display max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
-              Come and join
+              Get your next second opinion
               <br />
-              <span className="text-fade">the conversation.</span>
+              <span className="text-fade">from a colleague you trust.</span>
             </h2>
             <p className="lede max-w-xl">
               Founding members keep their founding price for as long as they stay. Founding places are

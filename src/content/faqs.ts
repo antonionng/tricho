@@ -3,15 +3,15 @@ export type Faq = { q: string; a: string };
 export const homeFaqs: Faq[] = [
   {
     q: "Who is Trichollective for?",
-    a: "Anyone whose work touches the hair and scalp: head spa therapists, stylists, trichologists, nurses, GPs, dermatologists and the brands and clinics that support them. Members come from cosmetic, clinical and medical practice, and that mix is the point.",
+    a: "Trichologists first, and every professional whose work touches the hair and scalp: clinical hair specialists, GPs, dermatologists, aesthetic doctors and nurses, head spa therapists, stylists and scalp care specialists, in Ireland, the UK, Europe and the US. Because members come from cosmetic, clinical and medical practice, you can always find someone who sees the part of a case you don't.",
   },
   {
     q: "What do I get when I join?",
-    a: "A private community with spaces for each part of the field, a local chapter, a monthly live masterclass, Trichozette and the podcast every month, member prices on courses and gatherings, and, on the Professional plan, a public directory profile and the referral network.",
+    a: "Colleagues to ask in spaces for each part of the field and in your country chapter, a live masterclass and case round each month with recordings, Trichozette and its archive, and member prices on courses and conferences. The Professional plan adds a public directory profile with enquiries sent to you, the Case Room, the referral network, the Assistant and a CPD log that records your learning automatically.",
   },
   {
     q: "How is this different from a Facebook group?",
-    a: "It belongs to the people in it. Nothing is lost in an algorithm, the Case Room is private to verified professionals, and everything useful is kept and searchable. It is also where Trichozette, courses, events and the directory live, so it is one place rather than five.",
+    a: "Your case questions reach verified professionals, not the general public. Nothing is lost in an algorithm, the Case Room is private to verified professionals, and every useful answer stays searchable. Trichozette, courses, CPD, events and the directory are in the same place, so you are not juggling five.",
   },
   {
     q: "Can I cancel?",
@@ -38,7 +38,7 @@ export const pricingFaqs: Faq[] = [
   },
   {
     q: "Which plan should I choose?",
-    a: "Choose Community if you want to learn, take part and stay close to the field. Choose Professional if you see clients and want to be found in the directory, receive enquiries and use the referral network. Choose Business for a clinic, salon or brand.",
+    a: "Choose Community if you want colleagues to ask, monthly masterclasses and member prices on learning. Choose Professional if you see clients and want to be found in the directory, receive enquiries, bring cases to the Case Room and use the referral network. Choose Business for a clinic, salon or brand.",
   },
   {
     q: "What is the founding price?",
@@ -46,7 +46,7 @@ export const pricingFaqs: Faq[] = [
   },
   {
     q: "How does verification work?",
-    a: "Professional members can upload proof of training or registration. We check it by hand and add a verified badge to your directory profile. Trichology is not statutorily regulated in Ireland or the UK, so we look for recognised training and membership of a professional body.",
+    a: "Professional members can upload proof of training or registration. We check it by hand and add a verified badge to your directory profile, so the public can see you have been checked. Trichology is not statutorily regulated in Ireland or the UK, so we look for recognised training and membership of a professional body.",
   },
   {
     q: "Is there a contract?",

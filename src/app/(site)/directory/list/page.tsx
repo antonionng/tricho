@@ -5,15 +5,16 @@ import { Container } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { submitFreeListing } from "@/lib/actions/directory";
 import { DISCIPLINES } from "@/content/disciplines";
+import { LISTING_COUNTRIES } from "@/content/chapters";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { pageMetadata } from "@/lib/seo";
 import { SourceField } from "@/components/site/SourceCapture";
 
 export const metadata = pageMetadata({
   title: "Add your founding listing",
-  description: `Hair and scalp professionals can join the Trichollective founding directory free for ${FREE_LISTING_DAYS} days. No card needed.`,
+  description: `Be found by people searching for a trichologist, doctor or scalp specialist near them. List free in the Trichollective founding directory for ${FREE_LISTING_DAYS} days, with no card needed.`,
   path: "/directory/list",
-    og: { title: "Join early.", sub: "Be listed free for 90 days.", eyebrow: "The founding directory", img: images.heroPortrait.src, variant: "photo" },
+    og: { title: "Be found by people searching near you,", sub: "with a free listing for 90 days.", eyebrow: "The founding directory", img: images.heroPortrait.src, variant: "photo" },
 });
 
 const ERRORS: Record<string, string> = {
@@ -37,9 +38,9 @@ export default async function ListPage({
       <Container size="narrow" className="py-24 md:py-32">
         <p className="label text-muted-foreground">Listing received</p>
         <h1 className="display mt-5 text-5xl md:text-6xl">
-          Thank you.
+          Thank you, we&apos;ll check your listing
           <br />
-          <span className="text-fade">We&apos;ll take it from here.</span>
+          <span className="text-fade">and email you when it goes live.</span>
         </h1>
         <p className="lede mt-6">
           A member of the team checks every listing by hand, usually within two working days. We&apos;ll
@@ -65,13 +66,13 @@ export default async function ListPage({
         <div className="lg:col-span-5 flex flex-col gap-6">
           <p className="label text-muted-foreground">The founding directory</p>
           <h1 className="display text-5xl md:text-6xl">
-            Join early.
+            Be found by people searching near you,
             <br />
-            <span className="text-fade">Be listed free for {FREE_LISTING_DAYS} days.</span>
+            <span className="text-fade">with a free listing for {FREE_LISTING_DAYS} days.</span>
           </h1>
           <p className="lede">
-            Add a basic listing so people looking for a head spa therapist, stylist, trichologist or doctor
-            can find you. It takes two minutes and there&apos;s no card.
+            Add a basic listing so people looking for a trichologist, doctor, head spa therapist or stylist in
+            your area can find you. It takes two minutes and there&apos;s no card.
           </p>
           <ul className="flex flex-col gap-3 border-t border-rule pt-6">
             {[
@@ -127,6 +128,16 @@ export default async function ListPage({
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Town or city</span>
                 <input name="city" required autoComplete="address-level2" placeholder="Dublin" className={field} />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">Country</span>
+                <select name="country" defaultValue="Ireland" className={field}>
+                  {LISTING_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c === "Europe" ? "Elsewhere in Europe" : c}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Specialism</span>

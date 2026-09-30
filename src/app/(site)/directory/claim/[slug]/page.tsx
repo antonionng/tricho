@@ -38,7 +38,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ slug: st
       <h1 className="display mt-5 text-5xl md:text-6xl">
         {listing.name},
         <br />
-        <span className="text-fade">make it yours.</span>
+        <span className="text-fade">claim your listing and receive enquiries directly.</span>
       </h1>
       <p className="lede mt-6">
         Claiming turns your founding listing into a full profile, keeps you in the directory beyond your

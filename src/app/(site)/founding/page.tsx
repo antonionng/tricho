@@ -18,7 +18,7 @@ export const metadata = pageMetadata({
   title: `Founding membership`,
   description: `Join Trichollective early and keep the founding price for as long as you stay. A founding badge, a live welcome session with ${site.founder} and a say in what we build first. Founding places are limited.`,
   path: "/founding",
-    og: { title: "Join early.", sub: "Keep your price for life.", eyebrow: "Founding membership", img: images.heroPortrait.src, variant: "photo" },
+    og: { title: "Join early, and keep your founding price", sub: "for as long as you stay.", eyebrow: "Founding membership", img: images.heroPortrait.src, variant: "photo" },
 });
 
 const foundingTiers = subscriptionTiers.filter((t) => t.foundingPrice);
@@ -26,23 +26,23 @@ const foundingTiers = subscriptionTiers.filter((t) => t.foundingPrice);
 const benefits = [
   {
     icon: Lock,
-    t: "The founding price, for life",
+    t: "The founding price, for as long as you stay",
     d: "The price you join at is the price you keep, for as long as you stay a member. When the founding places are gone, new members pay the standard price.",
   },
   {
     icon: BadgeCheck,
     t: "The founding badge",
-    d: "A small mark on your profile and your directory listing that shows you were here from the start.",
+    d: "A mark on your profile and directory listing that tells colleagues and clients you were here from the start.",
   },
   {
     icon: Video,
     t: `A live welcome session with ${site.founder}`,
-    d: "Meet the founder and the other founding members online, hear how the community will run, and ask anything you like.",
+    d: "Meet the founder and the other founding members online, put faces to the names you will refer to, and ask anything you like.",
   },
   {
     icon: Lightbulb,
     t: "A say in what we build first",
-    d: "Founding members vote on which courses, spaces and features come next. The platform will be shaped by the people who use it.",
+    d: "Founding members vote on which courses, spaces and features come next, so the platform fits the way you actually practise.",
   },
 ];
 
@@ -65,7 +65,7 @@ const foundingFaqs: Faq[] = [
   },
   {
     q: "Is this the same as the Facebook group?",
-    a: "No. The group stays as it is. Trichollective is a separate, private community for professionals, with the Case Room, the directory, courses, Trichozette and live sessions in one place.",
+    a: "No. The group stays as it is. Trichollective is a separate, private community for professionals, where you get peer review in the Case Room, a directory listing, courses with a CPD log, Trichozette and live sessions in one place.",
   },
 ];
 
@@ -91,13 +91,13 @@ export default function FoundingPage() {
             <div className="flex flex-col gap-8 animate-rise lg:col-span-7 xl:col-span-6">
               <Eyebrow rule>Founding membership</Eyebrow>
               <h1 className="display text-[3.4rem] leading-[0.92] sm:text-7xl lg:text-[5.5rem]">
-                Join early.
+                Join early and keep
                 <br />
-                <span className="text-fade">Keep your price for life.</span>
+                <span className="text-fade">your founding price for as long as you stay.</span>
               </h1>
               <p className="lede max-w-xl">
-                Trichollective is launching online at {site.launch.title} on 5 October. The first members to
-                join help shape it, and they keep the founding price for as long as they stay.
+                Trichollective launches online at {site.launch.title} on 5 October. Join now to be in the
+                founding directory, bring cases to colleagues from day one and vote on what we build first.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button asChild size="xl">
@@ -132,8 +132,8 @@ export default function FoundingPage() {
           <p className="max-w-3xl py-8 text-[15px] leading-relaxed text-ink-2">
             If you have come from the head spa group, welcome. Trichollective grew out of {site.founder}
             &apos;s gatherings, which began at {site.originPlace}, where head spa therapists, stylists,
-            trichologists, nurses and doctors met to share what they know. Now that conversation runs all
-            year, in one private place.
+            trichologists, nurses and doctors met to share what they know. Now you can ask those same
+            colleagues a question on any day of the year, in one private place.
           </p>
         </Container>
       </section>
@@ -143,8 +143,8 @@ export default function FoundingPage() {
         <Container>
           <SectionHeader
             eyebrow="What founding members get"
-            title="Founding members get a little more"
-            fade="in return for joining first."
+            title="Join first and you pay less, for as long as you stay,"
+            fade="and help decide what we build next."
             body="Every member gets the community, Trichozette, live masterclasses and member prices. Founding members also get these."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2">
@@ -166,8 +166,8 @@ export default function FoundingPage() {
         <Container>
           <SectionHeader
             eyebrow="Founding plans"
-            title="Choose your plan now"
-            fade="and keep the founding price for good."
+            title="Choose your plan now and keep the founding price"
+            fade="for as long as you remain a member."
             body="Pay by card through Stripe. You don't need an account first: we create it from the email you pay with. Cancel anytime."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2">
@@ -249,7 +249,7 @@ export default function FoundingPage() {
             <div className="flex flex-col gap-7 lg:col-span-6">
               <SectionHeader
                 eyebrow="Not ready to join?"
-                title={`List your practice free for ${FREE_LISTING_DAYS} days`}
+                title={`Be found by the public free for ${FREE_LISTING_DAYS} days,`}
                 fade="and decide about membership later."
                 body={freeListing.summary}
               />
@@ -277,7 +277,7 @@ export default function FoundingPage() {
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Answers to the questions people ask us most." />
+              <SectionHeader eyebrow="Questions" title="Know exactly how the founding price works before you join." />
             </div>
             <div className="lg:col-span-8">
               <FaqList faqs={foundingFaqs} />
@@ -293,9 +293,9 @@ export default function FoundingPage() {
             <SectionHeader
               align="center"
               eyebrow="Still deciding"
-              title="You can follow our progress by email"
+              title="See what members are discussing each month"
               fade="before you decide to join."
-              body="Leave your email and we'll send the monthly newsletter, with news from the community and the next gathering. You can unsubscribe at any time."
+              body="Leave your email and we'll send the monthly newsletter, with news from the community and dates for the next masterclass and conference. You can unsubscribe at any time."
             />
             <NewsletterForm source="founding" className="max-w-md" />
           </div>

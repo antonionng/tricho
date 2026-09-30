@@ -75,7 +75,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
     { name: "Events", path: "/events" },
     { name: event.title, path: `/events/${event.slug}` },
   ];
-  const image = event.online ? images.learning : images.gathering;
+  const image = event.online ? images.ed15 : images.gathering;
   const paragraphs = (event.body ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -109,7 +109,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                   fill
                   priority
                   sizes="(min-width: 1024px) 40vw, 100vw"
-                  className="object-cover"
+                  className="mag-bw object-cover object-top"
                 />
               </div>
             </div>

@@ -11,7 +11,7 @@ export const metadata = pageMetadata({
   description:
     "Answer three quick questions and we'll suggest whether a head spa therapist, trichologist or doctor is the right place to start. Signposting, not diagnosis.",
   path: "/find",
-    og: { title: "Who should I see?", sub: "Three questions.", eyebrow: "Find the right professional", img: images.hairDetail.src, variant: "photo" },
+    og: { title: "Find out who to see about your hair or scalp", sub: "by answering three short questions.", eyebrow: "Find the right professional", img: images.hairDetail.src, variant: "photo" },
 });
 
 export default function FindPage() {
@@ -21,9 +21,9 @@ export default function FindPage() {
         <div className="lg:col-span-4 flex flex-col gap-5">
           <p className="label text-muted-foreground">Find the right professional</p>
           <h1 className="display text-5xl">
-            Who should I see?
+            Find out who to see about your hair or scalp
             <br />
-            <span className="text-fade">Three questions.</span>
+            <span className="text-fade">by answering three short questions.</span>
           </h1>
           <p className="text-ink-2">
             Hair and scalp care spans three kinds of professional. These questions help you choose where to

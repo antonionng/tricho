@@ -14,7 +14,7 @@ export const metadata = pageMetadata({
   title: "The Journal: selected pieces from Trichozette",
   description: `The public side of Trichozette, the monthly ${site.name} members' edition. Practical, carefully edited writing on hair and scalp care, free to read.`,
   path: "/journal",
-    og: { title: "The Journal", sub: "Guides from Trichozette.", eyebrow: "Read", img: images.learning.src, variant: "photo" },
+    og: { title: "Read practical pieces from Trichozette for free,", sub: "and share them with your clients.", eyebrow: "Read", img: images.ed18.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -39,8 +39,8 @@ export default function JournalPage() {
     <>
       <PageHero
         eyebrow="The Journal"
-        title="Read a selection of pieces"
-        fade="from Trichozette, free."
+        title="Read practical pieces from Trichozette for free,"
+        fade="and share them with clients who want to understand more."
         lede={
           <p>
             Trichozette is our monthly members&apos; edition: practical, carefully edited writing from
@@ -90,7 +90,7 @@ export default function JournalPage() {
         <Section>
           <Container>
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <SectionHeader eyebrow="Latest" title="There is plenty more to read." />
+              <SectionHeader eyebrow="Latest" title="Find a piece to send a client after their consultation." />
               <ArrowLink href="/guides">All guides</ArrowLink>
             </div>
             <ul className="mt-10 grid gap-x-10 border-t border-rule md:grid-cols-2">
@@ -120,15 +120,15 @@ export default function JournalPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Trichozette"
-                title="Members receive a new edition"
-                fade="of Trichozette every month."
+                title="Members read a new edition of Trichozette each month,"
+                fade="with three professional views of every topic."
               />
             </div>
             <div className="lg:col-span-7 prose-tricho">
               <p>
-                Each month, members receive a new edition of Trichozette. It brings together
-                practical techniques, conversations with practitioners, notes from the community&apos;s
-                case rounds, and news from across Ireland and the UK.
+                Each month, members receive a new interactive edition of Trichozette. It brings together
+                practical techniques, sourced news, Karley&apos;s column, notes from the community&apos;s case
+                rounds, and the cosmetic, clinical and medical view of the same topic side by side.
               </p>
               <p>
                 Pieces are drafted with the help of AI tools, then edited, checked and approved by{" "}
@@ -137,7 +137,7 @@ export default function JournalPage() {
                 advice.
               </p>
               <p>
-                <Link href="/pricing">Membership</Link> includes every edition and the full archive.
+                <Link href="/pricing">Membership</Link> includes every edition and the full archive from 2023 to 2026.
               </p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function JournalPage() {
         <Container>
           <SignupPanel
             eyebrow="The newsletter"
-            title="New pieces, once a month."
+            title="Get new pieces in your inbox once a month."
             body="Sign up for our free monthly newsletter and we'll send you the pieces we publish here, plus news of events and courses."
             source="journal"
             cta="Subscribe"

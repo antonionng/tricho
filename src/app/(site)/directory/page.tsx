@@ -115,9 +115,9 @@ export default async function DirectoryPage({
             <div className="lg:col-span-5 flex flex-col gap-5">
               <p className="label text-muted-foreground">For professionals</p>
               <h2 className="display text-4xl">
-                Be in the founding directory.
+                Be found by people searching near you,
                 <br />
-                <span className="text-fade">Free for {FREE_LISTING_DAYS} days.</span>
+                <span className="text-fade">free for {FREE_LISTING_DAYS} days.</span>
               </h2>
               <p className="text-ink-2">
                 Add a basic listing at no cost. Claim it with the Professional plan to add your photo,
@@ -125,7 +125,7 @@ export default async function DirectoryPage({
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
-                  <Link href="/directory/list">Add your listing</Link>
+                  <Link href="/directory/list">Add your free listing</Link>
                 </Button>
                 <Button asChild variant="outline">
                   <Link href="/pricing#professional">See the Professional plan</Link>

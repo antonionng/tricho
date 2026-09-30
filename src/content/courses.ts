@@ -25,7 +25,7 @@ export const courses: Course[] = [
     slug: "scalp-consultation-for-stylists",
     title: "The scalp consultation for stylists and head spa therapists",
     summary:
-      "Learn a calm, structured way to look at a client's scalp, ask the right questions and know when to refer them on.",
+      "Run a structured scalp consultation, take a short case history, spot the red flags and know exactly when to refer a client on.",
     audience: "Stylists, head spa therapists and scalp care specialists",
     discipline: "cosmetic",
     format: "Six short lessons and a final quiz",
@@ -34,10 +34,10 @@ export const courses: Course[] = [
     memberPriceGBP: 49,
     status: "coming-soon",
     outcomes: [
-      "Run a five-minute scalp check that clients find reassuring",
-      "Recognise the signs that mean a client should see a GP or trichologist",
-      "Write a clear referral note a clinician will welcome",
-      "Talk about shedding and thinning without diagnosing",
+      "Run a structured five-minute scalp check at every appointment",
+      "Recognise the red flags that mean a client should see a GP or trichologist",
+      "Write a clear referral note a clinician will read and act on",
+      "Talk about shedding and thinning within your scope of practice, without diagnosing",
     ],
     syllabus: [
       { title: "Why the scalp matters", detail: "What healthy looks like, and what changes to notice." },
@@ -53,7 +53,7 @@ export const courses: Course[] = [
     slug: "japanese-head-spa-foundations",
     title: "Japanese head spa: foundations and safe practice",
     summary:
-      "The principles, sequence and hygiene standards behind a head spa treatment, with the contraindications every therapist should know.",
+      "Offer head spa treatments safely, with a consistent sequence, clear hygiene standards and a contraindication check before every client.",
     audience: "Therapists new to head spa, and salons adding it to their menu",
     discipline: "cosmetic",
     format: "Eight lessons with video demonstrations and a practical checklist",
@@ -62,10 +62,10 @@ export const courses: Course[] = [
     memberPriceGBP: 99,
     status: "coming-soon",
     outcomes: [
-      "Explain what a head spa is and isn't to clients",
-      "Follow a safe, consistent treatment sequence",
+      "Explain honestly to clients what a head spa can and cannot do",
+      "Follow a safe, consistent treatment protocol",
       "Screen for contraindications before every treatment",
-      "Set up hygiene and aftercare standards for your space",
+      "Give aftercare advice that encourages clients to rebook",
     ],
     syllabus: [
       { title: "Origins and principles", detail: "Where the treatment comes from and what it aims to do." },
@@ -83,7 +83,7 @@ export const courses: Course[] = [
     slug: "working-across-disciplines",
     title: "Working across disciplines: referrals that help the client",
     summary:
-      "How cosmetic, clinical and medical practitioners can refer to each other clearly, respectfully and in the client's interest.",
+      "Refer clients between cosmetic, clinical and medical practice with a letter the next professional can act on, and keep the client informed throughout.",
     audience: "Every member, whatever your discipline",
     discipline: "everyone",
     format: "Four lessons and a referral template pack",
@@ -92,10 +92,10 @@ export const courses: Course[] = [
     memberPriceGBP: 0,
     status: "coming-soon",
     outcomes: [
-      "Understand what each discipline can and can't do",
-      "Know when a referral is urgent",
-      "Write referrals that get read and acted on",
-      "Keep the client informed and in control",
+      "Know what each discipline can and can't do, and where your scope of practice ends",
+      "Tell a routine referral from an urgent one",
+      "Write referral letters that get read and acted on",
+      "Hear back on outcomes and keep the client informed",
     ],
     syllabus: [
       { title: "Three disciplines, one client", detail: "Roles and boundaries." },

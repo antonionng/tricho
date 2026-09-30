@@ -10,31 +10,31 @@ import { PartnerForm } from "./PartnerForm";
 export const metadata = pageMetadata({
   title: `Partner with us: sponsorship and trials`,
   description:
-    "Sponsor an issue of Trichozette, a podcast episode, a gathering or a masterclass, run a product trial with members or offer a featured perk. Reach hair and scalp professionals across Ireland and the UK.",
+    "Reach trichologists, doctors and scalp care professionals across Ireland and the UK by sponsoring Trichozette, a podcast episode, a conference or a masterclass, running a product trial or offering a featured perk.",
   path: "/partners",
-    og: { title: "Partner with Trichollective", eyebrow: "For business", img: images.gathering.src, variant: "photo" },
+    og: { title: "Reach hair and scalp professionals through sponsorship they trust.", eyebrow: "For business", img: images.gathering.src, variant: "photo" },
 });
 
 const options = [
   {
     icon: Newspaper,
     t: "Sponsor an issue of Trichozette",
-    d: "Support one monthly edition. Your name appears on the issue, clearly marked as its sponsor, alongside an optional labelled feature.",
+    d: "Put your name on an edition read by hair and scalp professionals, clearly marked as its sponsor, with an optional labelled feature.",
   },
   {
     icon: Mic,
     t: "Sponsor a podcast episode",
-    d: "A short, labelled mention at the start and end of an episode, read by the host.",
+    d: "Be heard by practitioners with a short, labelled mention at the start and end of an episode, read by the host.",
   },
   {
     icon: CalendarDays,
-    t: "Sponsor a gathering",
-    d: "Support one of our in-person conferences, with space to show your work and time to meet members.",
+    t: "Sponsor a conference",
+    d: "Show your work at one of our in-person conferences and meet members face to face.",
   },
   {
     icon: Presentation,
     t: "Sponsor a masterclass",
-    d: "Support a monthly live masterclass on a subject related to your work. The teaching stays independent.",
+    d: "Put your name to a monthly live masterclass on a subject related to your work. The teaching stays independent.",
   },
   {
     icon: FlaskConical,
@@ -44,7 +44,7 @@ const options = [
   {
     icon: Gift,
     t: "Featured perks",
-    d: "Offer members a discount or trial, featured in the perks directory and the monthly newsletter.",
+    d: "Win new professional customers with a discount or trial, featured in the perks directory and the monthly newsletter.",
   },
 ];
 
@@ -58,9 +58,9 @@ export default function PartnersPage() {
             <div className="flex flex-col gap-8 animate-rise lg:col-span-6">
               <Eyebrow rule>Partnerships</Eyebrow>
               <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
-                Support the work.
+                Reach trichologists, doctors and scalp specialists
                 <br />
-                <span className="text-fade">Meet the people.</span>
+                <span className="text-fade">through sponsorship they trust.</span>
               </h1>
               <p className="lede max-w-xl">
                 Brands, device makers and clinics can support Trichollective and reach the cosmetic, clinical
@@ -88,8 +88,8 @@ export default function PartnersPage() {
         <Container>
           <SectionHeader
             eyebrow="Ways to partner"
-            title="There are six ways"
-            fade="to work with Trichollective."
+            title="Choose one of six ways to reach members,"
+            fade="or combine them over a season."
             body="Each option can stand alone or be combined over a season. Tell us what you have in mind and we'll suggest what fits."
           />
           <ul className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
@@ -111,8 +111,8 @@ export default function PartnersPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Our terms"
-                title="Clear lines between content and sponsorship"
-                fade="keep our members' trust."
+                title="Clear labelling keeps members' trust,"
+                fade="which is what makes your sponsorship worth having."
               />
             </div>
             <div className="prose-tricho lg:col-span-7">

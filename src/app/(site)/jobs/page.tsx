@@ -13,9 +13,9 @@ const business = tierById("business")!;
 export const metadata = pageMetadata({
   title: `Jobs in hair and scalp care`,
   description:
-    "Roles at clinics, salons, head spas and brands across Ireland and the UK, posted by Trichollective Business members. Hire from people who already care about scalp health.",
+    "Find roles at clinics, salons, head spas and brands across Ireland and the UK, posted by Trichollective Business members. Employers reach practitioners already trained in hair and scalp care.",
   path: "/jobs",
-    og: { title: "Jobs in hair and scalp care", eyebrow: "Careers", img: images.salon.src, variant: "photo" },
+    og: { title: "Find your next role in hair and scalp care.", eyebrow: "Careers", img: images.salon.src, variant: "photo" },
 });
 
 export default function JobsPage() {
@@ -26,9 +26,9 @@ export default function JobsPage() {
           <div className="flex flex-col gap-8 animate-rise">
             <Eyebrow rule>Jobs</Eyebrow>
             <h1 className="display max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
-              Work with people
+              Find your next role in a clinic, salon or head spa
               <br />
-              <span className="text-fade">who care about hair.</span>
+              <span className="text-fade">that takes hair and scalp care seriously.</span>
             </h1>
             <p className="lede max-w-2xl">
               Roles at clinics, salons, head spas and brands across Ireland and the UK, posted by
@@ -69,7 +69,7 @@ export default function JobsPage() {
               </div>
               <div className="flex flex-1 flex-col gap-5 p-7 pt-0 md:p-10 md:pt-2">
                 <p className="label text-paper/60">For employers</p>
-                <h2 className="display text-4xl">Post a job and reach people who already care about scalp health.</h2>
+                <h2 className="display text-4xl">Post a job and reach practitioners already trained in hair and scalp care.</h2>
                 <p className="text-[15px] leading-relaxed text-paper/80">
                   Job posts are included with Business membership, along with a business page, five
                   Professional seats for your team and a listing in member perks. Your roles are seen by
@@ -104,7 +104,7 @@ export default function JobsPage() {
                 <h2 className="display text-4xl">Be the first to hear when a new role is posted.</h2>
                 <p className="text-[15px] leading-relaxed text-ink-2">
                   Join the newsletter and we&apos;ll tell you when new roles are posted, along with news from
-                  the community and the next gathering. You can unsubscribe at any time.
+                  the community and the next conference. You can unsubscribe at any time.
                 </p>
                 <div className="mt-auto pt-2">
                   <NewsletterForm source="jobs" cta="Notify me" />
@@ -120,13 +120,13 @@ export default function JobsPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="While you wait"
-              title="Build the skills that employers"
-              fade="in this field look for."
-              body="Short courses written by practitioners, each with a certificate anyone can check online."
+              title="Show employers a certificate"
+              fade="they can verify online in seconds."
+              body="Short courses written by practitioners, each with a certificate of completion anyone can check online. Certificates are not accredited qualifications."
             />
             <div className="flex flex-col gap-3">
-              <ArrowLink href="/learn">Browse courses</ArrowLink>
-              <ArrowLink href="/certification">About certification</ArrowLink>
+              <ArrowLink href="/learn">See the courses</ArrowLink>
+              <ArrowLink href="/certification">How certificates are checked</ArrowLink>
             </div>
           </div>
         </Container>

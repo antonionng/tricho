@@ -21,22 +21,22 @@ export const metadata = pageMetadata({
   title: `Business membership for clinics, salons and brands`,
   description: `Business membership puts your clinic, salon, brand or device company in front of hair and scalp professionals across Ireland and the UK. A business page, five seats, job posts and a perks listing for £${business.price} a month.`,
   path: "/for-business",
-    og: { title: "Reach the people who understand the scalp.", eyebrow: "For business", img: images.products.src, variant: "photo" },
+    og: { title: "Put your clinic or brand in front of hair and scalp professionals.", eyebrow: "For business", img: images.products.src, variant: "photo" },
 });
 
 const who = [
-  { t: "Clinics", d: "Hair loss, trichology and dermatology clinics looking for referrals and good people to hire." },
-  { t: "Salons and head spas", d: "Teams who want to learn together and be found by clients who value scalp care." },
-  { t: "Brands", d: "Haircare and scalp care brands who want honest feedback from the people who use their products." },
-  { t: "Device makers", d: "Makers of scalp cameras, LED and UV devices and other equipment used in salons and clinics." },
+  { t: "Clinics", d: "Hair loss, trichology and dermatology clinics that want to be known to the practitioners who refer, and to hire trained staff." },
+  { t: "Salons and head spas", d: "Teams who want shared CPD, peer support and a directory page where clients looking for scalp care can find them." },
+  { t: "Brands", d: "Haircare and scalp care brands that want their products known to the professionals who recommend them." },
+  { t: "Device makers", d: "Makers of scalp cameras, LED and UV devices who want to reach the salons and clinics deciding what to buy." },
 ];
 
 const includes = [
-  { icon: Building2, t: "A business page", d: "A page in the directory for your clinic, salon or company, with your services, locations and team." },
+  { icon: Building2, t: "A business page", d: "Be found by the public with a directory page for your clinic, salon or company, showing your services, locations and team." },
   { icon: Users, t: "Five Professional seats", d: "Five members of your team get full Professional membership, including the Case Room and the referral network." },
-  { icon: Briefcase, t: "Job posts", d: "Post roles on the jobs board, where they are seen by practitioners who already care about scalp health." },
+  { icon: Briefcase, t: "Job posts", d: "Advertise roles on the jobs board, where they are seen by practitioners already trained in hair and scalp care." },
   { icon: Gift, t: "A listing in member perks", d: "Offer members a discount or trial, and appear in the perks directory every member can browse." },
-  { icon: BarChart3, t: "A quarterly engagement summary", d: "A plain report each quarter on how members viewed and responded to your page, perks and posts." },
+  { icon: BarChart3, t: "A quarterly engagement summary", d: "See each quarter how members viewed and responded to your page, perks and posts, in a plain report." },
 ];
 
 export default function ForBusinessPage() {
@@ -60,14 +60,14 @@ export default function ForBusinessPage() {
             <div className="flex flex-col gap-8 animate-rise lg:col-span-6">
               <Eyebrow rule>Business membership</Eyebrow>
               <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
-                Be known by the people
+                Put your clinic, salon or brand in front
                 <br />
-                <span className="text-fade">who know hair.</span>
+                <span className="text-fade">of the professionals who refer and recommend.</span>
               </h1>
               <p className="lede max-w-xl">
-                Trichollective brings together cosmetic, clinical and medical hair and scalp professionals
-                across Ireland and the UK. Business membership gives your clinic, salon or brand a trusted
-                place among them.
+                Business membership gives you a directory page, five Professional seats for your team, job
+                posts and a place in member perks, among cosmetic, clinical and medical hair and scalp
+                professionals across Ireland and the UK.
               </p>
               <div className="flex flex-col gap-3">
                 <CheckoutButton plan="business" size="xl" wrapperClassName="items-start">
@@ -97,8 +97,8 @@ export default function ForBusinessPage() {
         <Container>
           <SectionHeader
             eyebrow="Who it's for"
-            title="Business membership is for the clinics, salons and brands"
-            fade="that make this work possible."
+            title="Clinics, salons, brands and device makers"
+            fade="each reach the practitioners who matter to them."
           />
           <ul className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-4">
             {who.map((w) => (
@@ -118,8 +118,8 @@ export default function ForBusinessPage() {
             <div className="flex flex-col gap-8 lg:col-span-5">
               <SectionHeader
                 eyebrow="What's included"
-                title="Your team gets everything it needs"
-                fade="to take part fully."
+                title="Your whole team gets peer review, CPD and referrals,"
+                fade="and your business gets a page of its own."
                 body={`Business membership is £${business.price} a month, or £${business.annualPrice} a year. There is no contract and no setup fee.`}
               />
               <div className="relative hidden aspect-[4/5] overflow-hidden rounded-3xl lg:block">
@@ -156,9 +156,9 @@ export default function ForBusinessPage() {
                 How we protect members
               </Eyebrow>
               <h2 className="display text-4xl sm:text-5xl">
-                Trust is why it works.
+                Members trust what they read here,
                 <br />
-                <span className="opacity-60">We look after it.</span>
+                <span className="opacity-60">so your presence carries weight.</span>
               </h2>
             </div>
             <div className="flex flex-col gap-8 lg:col-span-7">
@@ -198,9 +198,9 @@ export default function ForBusinessPage() {
         <Container className="py-24 md:py-32">
           <div className="flex flex-col items-center gap-8 text-center">
             <h2 className="display max-w-4xl text-5xl sm:text-6xl lg:text-7xl">
-              Join as a business.
+              Set up your business page
               <br />
-              <span className="text-fade">Start this week.</span>
+              <span className="text-fade">and invite your team this week.</span>
             </h2>
             <p className="lede max-w-xl">
               Pay by card through Stripe and we&apos;ll help you set up your business page and invite your

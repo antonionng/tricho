@@ -56,19 +56,19 @@ export const EVENT_KIND_LABEL: Record<EventKind, string> = {
 export const EVENT_KINDS_EXPLAINED = [
   {
     title: "Conferences",
-    body: `Where Trichollective began. Members meet in person, from ${site.originPlace} to ${site.launch.city} and next ${site.next.city}, to hear from each other and see new techniques and technology up close.`,
+    body: `Meet the colleagues you refer to and learn about new techniques and technology in person, from ${site.originPlace} to ${site.launch.city} and, next, ${site.next.city}.`,
   },
   {
     title: "Monthly masterclasses",
-    body: "A live online session each month with a practitioner who knows their subject well. Every masterclass is recorded for members who can't make it.",
+    body: "Learn from a specialist live each month and add the hours to your CPD log, with a recording to watch later if you are with clients."
   },
   {
     title: "Case rounds",
-    body: "Small, structured online discussions where members bring an anonymised case and hear how colleagues from other disciplines would approach it.",
+    body: "Bring an anonymised case and hear how a trichologist, a doctor and a cosmetic practitioner would each approach it, so you leave with a clearer plan."
   },
   {
     title: "Chapter meetups",
-    body: "Informal get-togethers for members in the same city. A chance to meet the people you refer to, and who refer to you.",
+    body: "Meet members in your country chapter, build the local referral relationships that bring clients your way, and compare notes on practice."
   },
 ];
 

@@ -32,9 +32,9 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   if (!chapter) return {};
   return pageMetadata({
     title: `${chapter.city} chapter: hair and scalp professionals in ${chapter.city}`,
-    description: `${chapter.blurb} Find ${site.name} members in ${chapter.city} and hear about local meetups.`,
+    description: `${chapter.blurb} Find ${site.name} members to refer to in the ${chapter.city} chapter, and hear about local meetups first.`,
     path: `/chapters/${chapter.slug}`,
-    og: { title: chapter.city, sub: "Trichollective chapter.", eyebrow: chapter.country, img: chapter.imageKey ? images[chapter.imageKey].src : images.community.src, variant: "photo" },
+    og: { title: chapter.city, sub: "Meet the colleagues you will refer to.", eyebrow: chapter.country, img: chapter.imageKey ? images[chapter.imageKey].src : images.community.src, variant: "photo" },
   });
 }
 
@@ -56,11 +56,11 @@ type ListingCard = {
   isVerified: boolean;
 };
 
-async function getChapterData(slug: string, city: string) {
+async function getChapterData(slug: string, countries: string[]) {
   try {
     const [listings, events] = await Promise.all([
       prisma.directoryListing.findMany({
-        where: { ...publicListingWhere(), city: { equals: city, mode: "insensitive" } },
+        where: { ...publicListingWhere(), country: { in: countries } },
         orderBy: [{ kind: "desc" }, { isVerified: "desc" }, { createdAt: "asc" }],
         take: 12,
         select: {
@@ -78,7 +78,7 @@ async function getChapterData(slug: string, city: string) {
         where: {
           published: true,
           startsAt: { gte: new Date() },
-          OR: [{ city: { equals: city, mode: "insensitive" } }, { chapter: { slug } }],
+          chapter: { slug },
         },
         orderBy: { startsAt: "asc" },
         take: 6,
@@ -97,14 +97,14 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
   const chapter = chapterBySlug(slug);
   if (!chapter) notFound();
 
-  const { listings, events } = await getChapterData(chapter.slug, chapter.city);
+  const { listings, events } = await getChapterData(chapter.slug, chapter.countries);
   const image = chapter.imageKey ? images[chapter.imageKey] : null;
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Chapters", path: "/chapters" },
     { name: chapter.city, path: `/chapters/${chapter.slug}` },
   ];
-  const isOrigin = chapter.city === site.launch.city;
+  const isOrigin = chapter.slug === "ireland";
 
   return (
     <>
@@ -118,9 +118,9 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
                 {chapter.country} · Local chapter
               </Eyebrow>
               <h1 className="display text-[3rem] leading-[0.95] sm:text-7xl lg:text-[5.5rem]">
-                {chapter.city}
+                Meet the colleagues you refer to
                 <br />
-                <span className="text-fade">{isOrigin ? "where we launch." : "chapter."}</span>
+                <span className="text-fade">{isOrigin ? `in the ${chapter.city} chapter, where we launch.` : `in the ${chapter.city} chapter.`}</span>
               </h1>
               <p className="lede max-w-xl">{chapter.blurb}</p>
             </div>
@@ -133,7 +133,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
                     fill
                     priority
                     sizes="(min-width: 1024px) 50vw, 100vw"
-                    className="object-cover"
+                    className="mag-bw object-cover object-top"
                   />
                 </div>
               </div>
@@ -148,7 +148,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="In the directory"
-              title={`Professionals in ${chapter.city}`}
+              title={`Find the professionals in the ${chapter.city} chapter you can refer clients to.`}
               body={
                 listings.length > 0
                   ? "Cosmetic, clinical and medical practitioners listed in the founding directory. Every listing is reviewed by a person before it goes live."
@@ -156,7 +156,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
               }
             />
             {listings.length > 0 && (
-              <ArrowLink href={`/directory?city=${encodeURIComponent(chapter.city)}`}>
+              <ArrowLink href="/directory">
                 Search the directory
               </ArrowLink>
             )}
@@ -211,8 +211,8 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
               </p>
               <p className="max-w-xl text-[15px] leading-relaxed text-ink-2">
                 The founding directory is just opening. If you practise in {chapter.city}, you can add
-                your listing free for {FREE_LISTING_DAYS} days and be among the first people clients
-                find here.
+                your listing free for {FREE_LISTING_DAYS} days and be among the first people clients and
+                colleagues find here.
               </p>
               <ArrowLink href="/directory/list">Add your founding listing</ArrowLink>
             </div>
@@ -225,7 +225,7 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
         <Container>
           {events.length > 0 ? (
             <>
-              <SectionHeader eyebrow="Coming up" title={`Events in ${chapter.city}`} />
+              <SectionHeader eyebrow="Coming up" title={`Meet colleagues face to face at the next ${chapter.city} event.`} />
               <ul className="mt-10 divide-y divide-rule border-y border-rule">
                 {events.map((e) => (
                   <EventRow key={e.id} event={e} />
@@ -251,13 +251,13 @@ export default async function ChapterPage({ params }: { params: Promise<Params> 
         <Container className="py-24 md:py-28">
           <div className="flex flex-col items-center gap-8 text-center">
             <h2 className="display text-5xl sm:text-6xl max-w-3xl">
-              Join the {chapter.city} chapter.
+              Join the {chapter.city} chapter
               <br />
-              <span className="text-fade">Meet the people near you.</span>
+              <span className="text-fade">and build your referral network close to home.</span>
             </h2>
             <p className="lede max-w-xl">
               Members choose their chapter when they join. You&apos;ll get the chapter&apos;s space in
-              the community, news of local meetups and a place in the directory.
+              the community, news of local meetups and colleagues nearby to refer to.
             </p>
             <Button asChild size="xl">
               <Link href="/pricing">

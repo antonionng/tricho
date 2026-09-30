@@ -12,9 +12,9 @@ import { cn } from "@/lib/utils";
 export const metadata = pageMetadata({
   title: "Hair and scalp news for professionals",
   description:
-    "The latest news for cosmetic, clinical and medical hair professionals in the UK and Ireland: regulation, treatments, research and product safety, with sources.",
+    "Keep up with regulation, research, treatments and product safety in hair and scalp care, summarised for cosmetic, clinical and medical professionals, with a link to every source.",
   path: "/news",
-    og: { title: "Here is what is changing in hair", sub: "and scalp care right now.", eyebrow: "Trichozette · News" },
+    og: { title: "Keep up with regulation and research in hair", sub: "and scalp care, with every source linked.", eyebrow: "Trichozette · News" },
 });
 
 const FILTERS = [
@@ -36,8 +36,8 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
           <SectionHeader
             as="h1"
             eyebrow="Trichozette · News"
-            title="Here is what is changing in hair"
-            fade="and scalp care right now."
+            title="Keep up with regulation and research in hair"
+            fade="and scalp care, with every source linked."
             body="Real news from regulators, professional bodies and researchers, summarised plainly with a link to every source. Members also get a note on why each story matters in practice."
           />
           <nav className="mt-10 flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Filter by discipline">
@@ -70,7 +70,7 @@ export default async function NewsPage({ searchParams }: { searchParams: Promise
             <aside className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
               <div className="rounded-3xl bg-ink p-7 text-paper">
                 <p className="label text-paper/60">For members</p>
-                <p className="display mt-3 text-3xl leading-tight">What it means for your practice.</p>
+                <p className="display mt-3 text-3xl leading-tight">See what each story means for your practice.</p>
                 <p className="mt-3 text-[15px] leading-relaxed text-paper/75">
                   Members see why each story matters, read it alongside Trichozette, and discuss it with colleagues
                   from every discipline.

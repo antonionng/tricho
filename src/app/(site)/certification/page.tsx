@@ -13,9 +13,9 @@ import { site } from "@/config/site";
 export const metadata = pageMetadata({
   title: "Certificates of completion and how to check one",
   description:
-    "What a Trichollective certificate means, how anyone can verify one online, and why a qualified practitioner reviews every course before it opens.",
+    "Show clients and employers exactly what you have studied. Every Trichollective certificate of completion can be verified online, and every course is reviewed by a qualified practitioner first.",
   path: "/certification",
-    og: { title: "Certificates you can check.", eyebrow: "Certification", img: images.learning.src, variant: "photo" },
+    og: { title: "Show clients a certificate they can check.", sub: "Verified online in seconds.", eyebrow: "Certification", img: images.ed17.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -31,7 +31,7 @@ const faqs = [
   },
   {
     q: "Do courses count towards CPD?",
-    a: "Not yet. We may seek CPD accreditation for individual courses in future. When a course has it, the course page and the certificate will say so, along with the accrediting body.",
+    a: "Your study hours are added to your CPD log automatically, so you have a record to show your professional body. The courses themselves are not CPD-accredited yet. When a course is, the course page and the certificate will say so, along with the accrediting body.",
   },
   {
     q: "Can a certificate be withdrawn?",
@@ -48,13 +48,13 @@ export default function CertificationPage() {
     <>
       <PageHero
         eyebrow="Certification"
-        title="A certificate that means"
-        fade="exactly what it says."
+        title="Show clients and employers a certificate"
+        fade="they can check for themselves in seconds."
         lede={
           <p>
-            Finish a {site.name} course and you receive a certificate of completion. Anyone can check
-            it online in seconds, and every course behind it has been reviewed by a qualified
-            practitioner.
+            Finish a {site.name} course and you receive a certificate of completion with its own web
+            address. Every course behind it has been reviewed by a qualified practitioner, and it is
+            honest about what it is: not an accredited qualification.
           </p>
         }
         image={images.portraitB}
@@ -68,8 +68,8 @@ export default function CertificationPage() {
             <div className="lg:col-span-5 flex flex-col gap-8">
               <SectionHeader
                 eyebrow="How it works"
-                title="Here is what your certificate"
-                fade="tells other people."
+                title="Your certificate tells a client exactly"
+                fade="what you studied, for how long and who checked it."
               />
               <div className="prose-tricho">
                 <p>
@@ -83,9 +83,9 @@ export default function CertificationPage() {
                   the training your profession requires.
                 </p>
                 <p>
-                  We may add CPD accreditation to individual courses later. When we do, the course page
-                  and the certificate will name the accrediting body, so it is always clear which
-                  courses carry it.
+                  Your study hours go into your CPD log automatically. If we add CPD accreditation to a
+                  course later, the course page and the certificate will name the accrediting body, so it
+                  is always clear which courses carry it.
                 </p>
               </div>
             </div>
@@ -104,8 +104,8 @@ export default function CertificationPage() {
         <Container>
           <SectionHeader
             eyebrow="Checking a certificate"
-            title="Every certificate"
-            fade="has its own address."
+            title="Anyone can verify a certificate"
+            fade="at its own address on our site."
             body="If a practitioner shows you a Trichollective certificate, you don't need to take it on trust. Here is how to check it."
           />
           <ol className="mt-14 grid gap-5 md:grid-cols-3">
@@ -146,8 +146,8 @@ export default function CertificationPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Why a reviewer signs off"
-                title="A named person stands"
-                fade="behind every course."
+                title="You learn only what a qualified reviewer"
+                fade="has read and put their name to."
               />
             </div>
             <div className="lg:col-span-7 prose-tricho">
@@ -178,7 +178,7 @@ export default function CertificationPage() {
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Answers to the questions people ask us most." />
+              <SectionHeader eyebrow="Questions" title="Know what a certificate can and cannot say about you." />
             </div>
             <div className="lg:col-span-8">
               <FaqList faqs={faqs} />
@@ -191,13 +191,13 @@ export default function CertificationPage() {
         <Container className="py-24 md:py-28">
           <div className="flex flex-col items-center gap-8 text-center">
             <h2 className="display text-5xl sm:text-6xl max-w-3xl">
-              Learn something useful.
+              Learn something you will use in consultations,
               <br />
-              <span className="text-fade">Show it with confidence.</span>
+              <span className="text-fade">and show clients the proof.</span>
             </h2>
             <Button asChild size="xl">
               <Link href="/learn">
-                Browse the courses <ArrowRight />
+                See the courses <ArrowRight />
               </Link>
             </Button>
             <ArrowLink href="/guides">Or start with our free guides</ArrowLink>

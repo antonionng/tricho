@@ -10,9 +10,9 @@ import { PricingTable } from "./PricingTable";
 
 export const metadata = pageMetadata({
   title: `Membership and pricing`,
-  description: `Compare Trichollective plans for hair and scalp professionals. A free founding listing for ${FREE_LISTING_DAYS} days, Community from £6 a month at the founding price, Professional and Business. Cancel anytime.`,
+  description: `Compare Trichollective plans. Be listed free for ${FREE_LISTING_DAYS} days, join the community from £6 a month at the founding price, or choose Professional for a full profile, the Case Room, referrals and a CPD log. Cancel anytime.`,
   path: "/pricing",
-    og: { title: "Choose the plan that fits your practice,", sub: "and cancel whenever you like.", eyebrow: "Membership", img: images.salon.src, variant: "photo" },
+    og: { title: "Start with a free listing,", sub: "and add peer review, CPD and referrals when you are ready.", eyebrow: "Membership", img: images.salon.src, variant: "photo" },
 });
 
 type Cell = boolean | string;
@@ -25,18 +25,18 @@ const comparison: { group: string; rows: { label: string; values: [Cell, Cell, C
     rows: [
       { label: "Basic listing: name, discipline, city and specialism", values: [`${FREE_LISTING_DAYS} days`, false, true, true] },
       { label: "Full profile with photo, services and website", values: [false, false, true, true] },
-      { label: "Enquiries from the public sent to you", values: ["Held until you claim", false, true, true] },
-      { label: "Verified badge after a manual check", values: [false, false, true, true] },
+      { label: "Enquiries from the public sent straight to you", values: ["Held until you claim", false, true, true] },
+      { label: "Verified badge after a manual check of training and registration", values: [false, false, true, true] },
       { label: "Business page", values: [false, false, false, true] },
     ],
   },
   {
     group: "Community",
     rows: [
-      { label: "Open spaces, your local chapter and direct messages", values: [false, true, true, true] },
-      { label: "The Case Room for anonymised case discussion", values: [false, false, true, true] },
-      { label: "Referral network across disciplines", values: [false, false, true, true] },
-      { label: "Monthly live masterclass and recordings", values: [false, true, true, true] },
+      { label: "Open spaces, your country chapter and direct messages", values: [false, true, true, true] },
+      { label: "The Case Room, for peer review of anonymised cases", values: [false, false, true, true] },
+      { label: "Referral network across cosmetic, clinical and medical practice", values: [false, false, true, true] },
+      { label: "Monthly live masterclass and case round, with recordings", values: [false, true, true, true] },
     ],
   },
   {
@@ -44,9 +44,9 @@ const comparison: { group: string; rows: { label: string; values: [Cell, Cell, C
     rows: [
       { label: "Trichozette and the podcast", values: [false, true, true, true] },
       { label: "The monthly newsletter", values: [true, true, true, true] },
-      { label: "Member prices on courses and gatherings", values: [false, true, true, true] },
-      { label: "CPD log", values: [false, false, true, true] },
-      { label: "The Assistant", values: [false, false, true, true] },
+      { label: "Member prices on courses and conferences", values: [false, true, true, true] },
+      { label: "CPD log that records your learning automatically", values: [false, false, true, true] },
+      { label: "The Assistant, for referral letters, aftercare sheets and consultation summaries", values: [false, false, true, true] },
     ],
   },
   {
@@ -125,9 +125,9 @@ export default async function PricingPage({
             as="h1"
             align="center"
             eyebrow="Membership"
-            title="Choose the plan that fits your practice,"
-            fade="and cancel whenever you like."
-            body={`Start with a free founding listing for ${FREE_LISTING_DAYS} days, or join the community today. Founding members keep their founding price for as long as they stay, and founding places are limited.`}
+            title="Start with a free listing, and add peer review,"
+            fade="CPD and referrals when you are ready."
+            body={`Be listed free for ${FREE_LISTING_DAYS} days, or join today at the founding price. Founding members keep that price for as long as they stay, and founding places are limited.`}
           />
         </Container>
       </Section>
@@ -171,8 +171,8 @@ export default async function PricingPage({
         <Container>
           <SectionHeader
             eyebrow="Compare plans"
-            title="Compare everything each plan includes,"
-            fade="side by side."
+            title="See exactly which plan gives you enquiries,"
+            fade="the Case Room and a CPD log."
             body="Every plan includes the monthly newsletter. The table shows what each one adds."
           />
           {/* Phones: one block per feature, no sideways scrolling */}
@@ -259,7 +259,7 @@ export default async function PricingPage({
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="flex flex-col gap-6 lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Here are the answers to common questions before you join." />
+              <SectionHeader eyebrow="Questions" title="Know what happens to your listing, price and refund before you join." />
               <p className="flex items-start gap-3 text-[15px] leading-relaxed text-ink-2">
                 <CreditCard className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
                 <span>

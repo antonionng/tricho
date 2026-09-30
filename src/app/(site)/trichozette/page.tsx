@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
 export const metadata = pageMetadata({
   title: "Trichozette: the Trichollective magazine",
   description:
-    "Trichozette is Trichollective's magazine for hair and scalp professionals: practical, interactive editions on head spa, hair loss, devices, business and more. Preview any edition free.",
+    "Trichozette, the Trichollective magazine: sourced news, the cosmetic, clinical and medical view of each topic, Karley's column and a four-year archive from 2023 to 2026. Preview any edition free.",
   path: "/trichozette",
-    og: { title: "Trichozette", sub: "Interactive editions for hair professionals.", eyebrow: "The Trichollective magazine", img: images.hairDetail.src, variant: "cover" },
+    og: { title: "Trichozette", sub: "Three professional perspectives on every topic.", eyebrow: "The Trichollective magazine", img: images.hairDetail.src, variant: "cover" },
 });
 
 export default async function GazettePage({ searchParams }: { searchParams: Promise<{ theme?: string; field?: string }> }) {
@@ -73,9 +73,9 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
           <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="Every edition"
-              title="Every edition stays in the library,"
-              fade="ready whenever you want to return to it."
-              body="Each edition mixes long reads with quizzes, checklists and questions you can test yourself on. Open any of them to read the first pages."
+              title="Go back to any edition when a client"
+              fade="brings you the same question months later."
+              body="Each edition mixes long reads with quizzes, checklists and questions you can test yourself on, and every issue stays in the library. Open any of them to read the first pages."
             />
           </div>
           <nav className="mt-10 flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Filter by theme">
@@ -131,13 +131,13 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
             <div className="lg:col-span-7 flex flex-col gap-6">
               <p className="label text-paper/60">Membership</p>
               <h2 className="display text-4xl sm:text-5xl">
-                Read every edition in full.
+                Read every edition in full,
                 <br />
-                <span className="opacity-60">A new one every month.</span>
+                <span className="opacity-60">including the archive from 2023 to 2026.</span>
               </h2>
               <p className="text-lg leading-relaxed text-paper/75">
-                Membership includes the whole Trichozette library, each new monthly edition, the community, live
-                masterclasses and member prices on courses and conferences.
+                Membership includes the whole Trichozette library and every new edition, plus the community,
+                monthly live masterclasses and member prices on courses and conferences.
               </p>
               <div>
                 <Button asChild size="lg" variant="paper">
@@ -149,7 +149,7 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
             </div>
             <div className="lg:col-span-4 lg:col-start-9 flex flex-col justify-end gap-4">
               <p className="font-semibold">Not ready to join?</p>
-              <p className="text-sm text-paper/70">Get a sample edition and the monthly newsletter by email.</p>
+              <p className="text-sm text-paper/70">Get a sample edition and the monthly newsletter by email, and judge it for yourself.</p>
               <NewsletterForm source="gazette" tone="ink" cta="Send it" />
             </div>
           </Container>

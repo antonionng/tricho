@@ -21,9 +21,9 @@ export const revalidate = 300;
 
 export const metadata = pageMetadata({
   title: "Events: gatherings, masterclasses and case rounds",
-  description: `In-person gatherings in Ireland, the UK and beyond, monthly live masterclasses, case rounds and local chapter meetups for hair and scalp professionals.`,
+  description: `Meet the colleagues you refer to at conferences in England, Dublin and Los Angeles, and learn at monthly live masterclasses and case rounds, recorded for members.`,
   path: "/events",
-    og: { title: "Trichollective began with people in one room,", sub: "and it still brings them together.", eyebrow: "Events", img: images.gathering.src, variant: "photo" },
+    og: { title: "Meet the colleagues you refer to,", sub: "and learn from a specialist every month.", eyebrow: "Events", img: images.gathering.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -64,14 +64,14 @@ export default async function EventsPage() {
     <>
       <PageHero
         eyebrow="Events"
-        title="Trichollective began with people in one room,"
-        fade="and it still brings them together."
+        title="Meet the colleagues you refer to in person,"
+        fade="and learn from a specialist live every month."
         lede={
           <p>
             {site.name} began as a gathering at {site.originPlace}, and launches online at{" "}
-            {site.launch.title} on 5 October. Next, {site.next.city} ({site.next.status.toLowerCase()}). Today there are gatherings in
-            person, live masterclasses online, case rounds and meetups in each local chapter. Members
-            hear about every event first and pay less for tickets.
+            {site.launch.title} on 5 October. Next, {site.next.city} ({site.next.status.toLowerCase()}). Between
+            conferences there are live masterclasses and case rounds online, with recordings, and meetups in
+            each chapter. Members hear about every event first and pay less for tickets.
           </p>
         }
         image={images.gathering}
@@ -83,7 +83,7 @@ export default async function EventsPage() {
         <Container>
           {upcoming.length > 0 ? (
             <>
-              <SectionHeader eyebrow="Coming up" title="Here is what is coming up" fade="next." />
+              <SectionHeader eyebrow="Coming up" title="Book your place at the next conference" fade="or live masterclass." />
               <ul className="mt-10 divide-y divide-rule border-y border-rule">
                 {upcoming.map((e) => (
                   <EventRow key={e.id} event={e} />
@@ -95,8 +95,8 @@ export default async function EventsPage() {
               <div className="lg:col-span-5">
                 <SectionHeader
                   eyebrow="Coming up"
-                  title="Nothing is scheduled"
-                  fade="just yet."
+                  title="Hear about the next date first"
+                  fade="by leaving your email below."
                   body="We announce each event as soon as the date and venue are confirmed, and we never list an event before it's real."
                 />
               </div>
@@ -119,9 +119,9 @@ export default async function EventsPage() {
           <div className="flex flex-col gap-5 max-w-3xl">
             <p className="label text-paper/60">The story so far</p>
             <h2 className="display text-4xl sm:text-5xl">
-              From Whittlebury
+              The conferences began at Whittlebury
               <br />
-              <span className="opacity-60">to Dublin, and beyond.</span>
+              <span className="opacity-60">and now reach Dublin and beyond.</span>
             </h2>
           </div>
           <div className="mt-14">
@@ -135,8 +135,8 @@ export default async function EventsPage() {
         <Container>
           <SectionHeader
             eyebrow="Ways to meet"
-            title="We run four kinds of event"
-            fade="throughout the year."
+            title="Choose from four ways to learn"
+            fade="and meet colleagues through the year."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2">
             {EVENT_KINDS_EXPLAINED.map((k, i) => {
@@ -157,7 +157,7 @@ export default async function EventsPage() {
       {past.length > 0 && (
         <Section>
           <Container>
-            <SectionHeader eyebrow="Archive" title="These are the events we have held so far." />
+            <SectionHeader eyebrow="Archive" title="See what past conferences and masterclasses covered." />
             <ul className="mt-10 divide-y divide-rule border-y border-rule">
               {past.map((e) => (
                 <EventRow key={e.id} event={e} past />
@@ -179,12 +179,13 @@ export default async function EventsPage() {
               Local chapters
             </Eyebrow>
             <h2 className="display text-4xl md:text-5xl">
-              Between gatherings,
+              Between conferences, meet colleagues
               <br />
-              <span className="opacity-60">meet closer to home.</span>
+              <span className="opacity-60">in your own country chapter.</span>
             </h2>
             <p className="text-lg leading-relaxed text-paper/80">
-              Members belong to a local chapter, from Dublin to Manchester, with meetups of their own.
+              Members belong to a chapter for Ireland, England, Scotland, Wales, Europe or the United States, with
+              meetups of their own and a ready list of people to refer to.
             </p>
             <Link
               href="/chapters"

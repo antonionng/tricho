@@ -8,7 +8,7 @@ config({ path: ".env" });
 
 import { PrismaClient, type Profession } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { CHAPTERS } from "../src/content/chapters";
+import { CHAPTERS, chapterForCountry } from "../src/content/chapters";
 import { images, img } from "../src/content/images";
 
 const url = process.env.DATABASE_URL ?? "";
@@ -61,7 +61,11 @@ async function main() {
       create: { slug: c.slug, city: c.city, country: c.country, blurb: c.blurb },
     });
   }
-  const dublin = await prisma.chapter.findUniqueOrThrow({ where: { slug: "dublin" } });
+  // Remove chapters from earlier (city-based) builds; members and posts are re-linked below.
+  await prisma.chapter.deleteMany({ where: { slug: { notIn: CHAPTERS.map((c) => c.slug) } } });
+  const dublin = await prisma.chapter.findUniqueOrThrow({ where: { slug: "ireland" } });
+  const countryFor = (city: string) =>
+    ({ Belfast: "Northern Ireland", London: "England", Manchester: "England" } as Record<string, string>)[city] ?? "Ireland";
 
   // Admin (Karley's Studio) and members. Sign in locally with the dev login using these emails.
   const periodEnd = new Date(Date.now() + 30 * day);
@@ -74,11 +78,13 @@ async function main() {
   const users = [];
   for (const [i, l] of SAMPLE_LISTINGS.entries()) {
     const email = `${l.name.toLowerCase().replace(/[^a-z]+/g, ".")}@example.test`;
-    const chapter = await prisma.chapter.findFirst({ where: { city: l.city } });
+    const country = countryFor(l.city);
+    const chapterInfo = chapterForCountry(country);
+    const chapter = chapterInfo ? await prisma.chapter.findUnique({ where: { slug: chapterInfo.slug } }) : null;
     const user = l.claimed || i % 3 === 0
       ? await prisma.user.upsert({
           where: { email },
-          update: {},
+          update: { chapterId: chapter?.id },
           create: {
             email, name: l.name, role: l.claimed ? "trichologist" : "individual",
             plan: l.claimed ? "professional" : "community", isFounding: true,
@@ -92,9 +98,9 @@ async function main() {
     const slug = `${l.name} ${l.city}`.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     await prisma.directoryListing.upsert({
       where: { slug },
-      update: {},
+      update: { country },
       create: {
-        slug, name: l.name, email, profession: l.profession, city: l.city, country: l.country ?? "Ireland",
+        slug, name: l.name, email, profession: l.profession, city: l.city, country,
         specialization: l.specialization, headline: l.headline, bio: l.bio, services: l.services ?? [],
         photoUrl: l.photo ? img(images[l.photo], 800) : null,
         status: "listed", kind: l.claimed ? "member" : "listed", userId: l.claimed ? user?.id : null,
@@ -136,7 +142,7 @@ async function main() {
     { slug: "masterclass-scalp-consultation", title: "Masterclass: the five-minute scalp check", kind: "masterclass" as const, summary: "A live, practical session for stylists and head spa therapists, with time for questions.", startsAt: new Date(Date.now() + 21 * day), online: true, priceGBP: 20, memberPriceGBP: 0 },
   ];
   for (const e of events) {
-    await prisma.event.upsert({ where: { slug: e.slug }, update: {}, create: { ...e, published: true } });
+    await prisma.event.upsert({ where: { slug: e.slug }, update: { chapterId: e.chapterId ?? null }, create: { ...e, published: true } });
   }
 
   console.log(`Seeded. Sign in locally with the dev login as ${admin.email} (admin) or any *@example.test member.`);

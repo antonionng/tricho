@@ -128,7 +128,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
         <Container>
           <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-7 flex flex-col gap-10">
-              <SectionHeader eyebrow="What you'll learn" title="By the end," fade="you'll be able to" />
+              <SectionHeader eyebrow="What you'll learn" title="Here is what you will be able to do" fade="in your own practice by the end." />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule">
                 {course.outcomes.map((o) => (
                   <li key={o} className="flex gap-4 py-5">
@@ -172,7 +172,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
                   <div className="flex flex-col gap-3">
                     <p className="text-[15px] leading-relaxed text-ink">
                       This course is being written and reviewed now. Leave your email and we&apos;ll
-                      tell you the day it opens.
+                      tell you the day it opens, so you can start logging the hours straight away.
                     </p>
                     <NewsletterForm source={`course:${course.slug}`} cta="Register interest" />
                     <p className="text-[13px] text-muted-foreground">
@@ -207,8 +207,8 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
             <div className="lg:col-span-4">
               <SectionHeader
                 eyebrow="Syllabus"
-                title={`${course.syllabus.length} short lessons take you`}
-                fade="from first principles to practice."
+                title={`${course.syllabus.length} short lessons take you from first principles`}
+                fade="to something you can use with your next client."
                 body={course.format + "."}
               />
             </div>
@@ -224,8 +224,8 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
         <Container>
           <div className="grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
             {[
-              { label: "Who it's for", title: course.audience, body: "No previous course is needed. If you're unsure whether it suits you, write to us and we'll tell you honestly." },
-              { label: "Format", title: course.format, body: "Everything is online. Lessons are short, so you can work through them between clients and pick up where you left off." },
+              { label: "Who it's for", title: course.audience, body: "No previous course is needed. If you're unsure whether it fits your scope of practice, write to us and we'll tell you honestly." },
+              { label: "Format", title: course.format, body: "Everything is online. Lessons are short, so you can work through them between clients, and your hours are added to your CPD log." },
               { label: "Review", title: "Checked before it opens", body: `${REVIEW_LINE} The reviewer is named on the course and on your certificate.` },
             ].map((b) => (
               <div key={b.label} className="flex flex-col gap-4 bg-paper p-8 md:p-10">
@@ -245,9 +245,9 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
             <div className="lg:col-span-5 flex flex-col gap-8">
               <SectionHeader
                 eyebrow="Your certificate"
-                title="Your certificate is proof of your learning"
-                fade="that anyone can check."
-                body="When you finish, you receive a certificate of completion with its own public web address. Share it with clients, add it to your directory listing, or send it to an employer."
+                title="Show clients and employers a certificate"
+                fade="they can verify online in seconds."
+                body="When you finish, you receive a certificate of completion with its own public web address. Share it with clients, add it to your directory listing, or send it to an employer. It is not an accredited qualification."
               />
               <p className="text-[15px] leading-relaxed text-ink-2">
                 It is a certificate of completion, not an accredited qualification. Where a course
@@ -267,7 +267,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
         <Section>
           <Container>
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <SectionHeader eyebrow="Keep learning" title="You might also like these courses." />
+              <SectionHeader eyebrow="Keep learning" title="Add to your CPD log with another short course." />
               <ArrowLink href="/learn">All courses</ArrowLink>
             </div>
             <ul className="mt-10 divide-y divide-rule border-y border-rule">

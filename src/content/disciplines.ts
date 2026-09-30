@@ -20,8 +20,8 @@ export const DISCIPLINES: Discipline[] = [
     plural: "Head spa and cosmetic hair specialists",
     who: "Head spa therapists, stylists and scalp care specialists.",
     role:
-      "Often the first to notice a change in someone's hair or scalp. Cosmetic practitioners care for the scalp week to week and know when to refer on.",
-    helpsWith: ["Head spa and scalp treatments", "Dry, oily or flaky scalp care", "Gentle styling for thinning hair", "Knowing when to refer"],
+      "Often the first to notice a change in a client's hair or scalp. Trichollective helps cosmetic practitioners spot red flags early and refer on to the right clinician.",
+    helpsWith: ["Head spa and scalp treatments", "Dry, oily or flaky scalp care", "Styling that works with thinning hair", "Referring on when something needs a closer look"],
     imageKey: "headSpa",
   },
   {
@@ -31,8 +31,8 @@ export const DISCIPLINES: Discipline[] = [
     plural: "Trichologists and clinical hair specialists",
     who: "Trichologists and clinical hair and scalp specialists.",
     role:
-      "Take a full history, examine the hair and scalp closely, and build a care plan. They work alongside GPs and dermatologists when a medical opinion is needed.",
-    helpsWith: ["Hair shedding and thinning", "Scalp conditions", "Consultations and care plans", "Working with your GP"],
+      "Take a full case history, examine the hair and scalp with trichoscopy and build a care plan. They refer to GPs and dermatologists when a medical opinion is needed.",
+    helpsWith: ["Hair shedding and thinning", "Scalp conditions", "Trichoscopy, consultations and care plans", "Working alongside your GP"],
     imageKey: "clinic",
   },
   {
@@ -42,7 +42,7 @@ export const DISCIPLINES: Discipline[] = [
     plural: "Doctors and nurses in hair and scalp care",
     who: "GPs, dermatologists, nurses and aesthetic doctors.",
     role:
-      "Diagnose and treat medical causes of hair loss and scalp disease, order blood tests and prescribe. The right first stop when there are red flags.",
+      "Diagnose and treat medical causes of hair loss and scalp disease, order blood tests and prescribe. They are the right first stop when there are red flags.",
     helpsWith: ["Diagnosis", "Blood tests and prescriptions", "Scarring and sudden hair loss", "Scalp disease"],
     imageKey: "salon",
   },

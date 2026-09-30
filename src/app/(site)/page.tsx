@@ -44,7 +44,7 @@ export const revalidate = 600;
 export const metadata = pageMetadata({
   title: `${site.name}: hair, scalp and the science of both`,
   description:
-    "The community for cosmetic, clinical and medical hair and scalp professionals. Learn the science, refer with confidence and be found, with courses, a public directory, conferences and Trichozette.",
+    "The professional community for trichologists, doctors, nurses and scalp care practitioners. Discuss cases with verified colleagues, refer across disciplines, earn CPD and be found by the public.",
   path: "/",
     og: { title: "Join early.", sub: "Be in the founding directory.", eyebrow: "Cosmetic · Clinical · Medical", img: images.heroPortrait.src, variant: "photo" },
 });
@@ -90,8 +90,8 @@ export default async function HomePage() {
                 <span className="text-fade">Be in the founding directory.</span>
               </h1>
               <p className="lede max-w-xl">
-                Hair, scalp and the science beneath them. Trichollective is where head spa therapists,
-                stylists, trichologists, nurses and doctors learn from one another, all year round.
+                Talk through difficult cases with trichologists, doctors and scalp specialists, refer clients
+                to the right discipline, and be listed where the public looks for help with hair and scalp.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button asChild size="xl">
@@ -150,8 +150,8 @@ export default async function HomePage() {
         <Container>
           <div className="flex flex-col gap-6 py-8 md:flex-row md:items-center md:justify-between">
             <p className="text-[15px] text-ink-2 max-w-xl">
-              Trichollective began as a gathering at {site.originPlace}, where professionals from every
-              side of hair and scalp care met to share what they know. Now it runs all year.
+              Trichollective began as a gathering at {site.originPlace}. Now you can ask the same
+              colleagues for a second opinion on any day of the year, not only at the conference.
             </p>
             {proof.length > 0 && (
               <dl className="flex gap-10">
@@ -172,24 +172,24 @@ export default async function HomePage() {
         <Container>
           <SectionHeader
             eyebrow="Who it's for"
-            title="Everything you need to understand hair and scalp"
-            fade="is here, whoever you are."
-            body="Whether you care for scalps every day, run a clinic or brand, or simply want answers, there's a door here for you."
+            title="Trichologists, doctors and scalp specialists"
+            fade="each find colleagues, CPD and new enquiries here."
+            body="Practitioners get peer review and a referral network, clinics and brands reach a specialist audience, and the public finds the right professional."
           />
           <div className="mt-14 grid gap-5 md:grid-cols-3">
             {[
               {
-                title: "I practise",
-                body: "Head spa, styling, trichology, nursing or medicine. Go deeper into the science of the scalp, learn alongside every discipline, and be found by the people who need you.",
+                title: "I see clients",
+                body: "Trichologist, doctor, nurse, head spa therapist or stylist. Discuss cases with verified colleagues, refer across disciplines, log CPD as you learn and be found by the public.",
                 href: "/pricing",
                 cta: "See membership",
                 image: images.ed16,
               },
               {
                 title: "I run a clinic or brand",
-                body: "Put your work in front of professionals who understand the scalp, and hire from the people who care most about it.",
+                body: "Put your clinic, salon or products in front of hair and scalp professionals, and advertise roles to people already trained in the field.",
                 href: "/for-business",
-                cta: "Business membership",
+                cta: "See business membership",
                 image: images.ed12,
               },
               {
@@ -234,18 +234,18 @@ export default async function HomePage() {
           <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-5 flex flex-col gap-8">
               <SectionHeader
-                eyebrow="Every month, as a member"
-                title="Membership gives you something new"
-                fade="to learn and use every week."
-                body="Membership isn't a login you forget about. Each month brings a new edition of Trichozette, a podcast episode, a live masterclass and a community that keeps the conversation going between gatherings."
+                eyebrow="What members get"
+                title="Membership puts peer review, CPD"
+                fade="and a referral network in one place."
+                body="Post a case for a second opinion, watch a masterclass recording between clients, and pass a client to the right discipline without hunting for a name. A live masterclass and a case round run every month, with recordings."
               />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule">
                 {[
-                  { icon: MessagesSquare, t: "The community", d: "Spaces for every part of the field, your local chapter and direct messages." },
-                  { icon: Newspaper, t: "Trichozette", d: "A monthly edition of practical, well-edited pieces from members and experts." },
-                  { icon: CalendarDays, t: "Live masterclasses", d: "One a month, recorded, so you can watch when your diary allows." },
-                  { icon: BookOpen, t: "Courses and certificates", d: "Short courses with certificates anyone can check online." },
-                  { icon: Search, t: "The directory and referrals", d: "Be found by the public and pass clients to the right colleague." },
+                  { icon: MessagesSquare, t: "The community", d: "Ask the space for your field, meet colleagues in your country chapter and message anyone directly." },
+                  { icon: Newspaper, t: "Trichozette", d: "Sourced news, and the cosmetic, clinical and medical view of the same topic side by side." },
+                  { icon: CalendarDays, t: "Live masterclasses and case rounds", d: "Monthly, and recorded, so you can catch up between appointments." },
+                  { icon: BookOpen, t: "Courses and CPD", d: "Certificates anyone can verify online, and a CPD log that records your learning for you." },
+                  { icon: Search, t: "The directory and referrals", d: "Be found by people searching in your area, and refer clients to the right colleague." },
                 ].map(({ icon: Icon, t, d }) => (
                   <li key={t} className="flex gap-4 py-5">
                     <Icon className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
@@ -256,7 +256,7 @@ export default async function HomePage() {
                   </li>
                 ))}
               </ul>
-              <ArrowLink href="/community">Take the tour of the community</ArrowLink>
+              <ArrowLink href="/community">See inside the community</ArrowLink>
             </div>
             <div className="lg:col-span-7">
               <Reveal>
@@ -271,10 +271,10 @@ export default async function HomePage() {
       <Section>
         <Container>
           <SectionHeader
-            eyebrow="Why it works"
-            title="Clients do best when stylists, trichologists"
-            fade="and doctors talk to each other."
-            body="The scalp is skin, the follicle is biology, and the person in the chair needs all three disciplines. Trichollective brings cosmetic, clinical and medical practice into one conversation, so every client reaches the right person at the right time."
+            eyebrow="Referral pathways"
+            title="Know exactly who to send a client to"
+            fade="when a case is outside your scope of practice."
+            body="Cosmetic, clinical and medical practitioners each see a different part of the picture. Trichollective puts all three in one referral network, so you can pass a client on with confidence and hear what happened next."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
             {DISCIPLINES.map((d) => (
@@ -311,12 +311,13 @@ export default async function HomePage() {
                 Trichozette
               </h2>
               <p className="mag-didone max-w-lg text-[26px] italic leading-[1.25] text-white/85">
-                Editorial features, real news and three perspectives on every story, from the chair, the clinic
-                and the consulting room.
+                Read how the chair, the clinic and the consulting room each see the same topic, and bring
+                better questions to your next consultation.
               </p>
               <p className="mag-serif max-w-lg text-[17px] leading-[1.65] text-white/70">
-                Every edition mixes long reads with quizzes, checklists and questions to test yourself on. Read the
-                opening features of any edition free; members read everything.
+                Interactive editions carry sourced news, Karley&apos;s column, and quizzes and checklists you can
+                test yourself on, with an archive from 2023 to 2026. Read the opening pages free; members read
+                everything.
               </p>
               <div className="flex flex-wrap items-center gap-6">
                 <Button asChild size="lg" variant="paper">
@@ -353,11 +354,11 @@ export default async function HomePage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="Learn"
-              title="Courses that make"
-              fade="Monday easier."
-              body="Short, practical courses written and reviewed by practitioners, each with a certificate at the end."
+              title="Earn a certificate anyone can verify,"
+              fade="with your CPD hours logged as you learn."
+              body="Short, practical courses written and reviewed by practitioners. Certificates of completion can be checked online by clients and employers; they are not accredited qualifications."
             />
-            <ArrowLink href="/learn">All courses</ArrowLink>
+            <ArrowLink href="/learn">See every course</ArrowLink>
           </div>
           <div className="mt-12 grid gap-5 md:grid-cols-3">
             {courses.slice(0, 3).map((c, i) => (
@@ -401,15 +402,15 @@ export default async function HomePage() {
             <SectionHeader
               align="center"
               eyebrow="The founding directory"
-              title="Find the right hair and scalp professional"
-              fade="close to where you live."
+              title="Search for a trichologist, doctor or scalp specialist"
+              fade="who practises close to where you live."
               body="Search cosmetic, clinical and medical professionals across Ireland and the UK. Every listing is reviewed by a person before it goes live."
             />
             <DirectorySearch />
             <p className="text-sm text-muted-foreground">
               Are you a professional?{" "}
               <Link href="/directory/list" className="underline underline-offset-4 text-ink">
-                Add your founding listing, free for {FREE_LISTING_DAYS} days
+                Be found here with a free founding listing for {FREE_LISTING_DAYS} days
               </Link>
             </p>
           </div>
@@ -426,14 +427,14 @@ export default async function HomePage() {
           <div className="max-w-2xl flex flex-col gap-7">
             <Eyebrow rule className="text-paper">Gatherings</Eyebrow>
             <h2 className="display text-5xl md:text-6xl">
-              Trichollective began with people in one room,
+              Meet the colleagues you refer to,
               <br />
-              <span className="opacity-60">and it still brings them together.</span>
+              <span className="opacity-60">in person, at our conferences.</span>
             </h2>
             <p className="text-lg leading-relaxed text-paper/80">
-              Trichollective began with professionals meeting in person at {site.originPlace}. The gatherings
-              are still the heart of it: talks from members, new techniques and technology up close, and
-              faces put to names. Members hear about each one first.
+              Trichollective began with professionals meeting in person at {site.originPlace}. The conferences
+              bring talks from members, devices and techniques you can see up close, and the chance to put faces
+              to the names in your referral network. Members hear about each one first.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <a
@@ -458,7 +459,7 @@ export default async function HomePage() {
             <div>
               <Button asChild size="lg" variant="paper">
                 <Link href="/events">
-                  All events <ArrowRight />
+                  See every event <ArrowRight />
                 </Link>
               </Button>
             </div>
@@ -473,9 +474,9 @@ export default async function HomePage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Membership"
-                title="Choose the plan that fits your practice,"
-                fade="and cancel whenever you like."
-                body={`Start with a free founding listing for ${FREE_LISTING_DAYS} days, or join the community from £${subscriptionTiers[0].price} a month. Founding members keep their founding price for as long as they stay.`}
+                title={`Join from £${subscriptionTiers[0].foundingPrice} a month at the founding price,`}
+                fade="and keep that price for as long as you stay."
+                body={`Start with a free founding listing for ${FREE_LISTING_DAYS} days, or choose the plan that matches your practice. There is no contract, and you can cancel from your account at any time.`}
               />
             </div>
             <div className="lg:col-span-7 grid gap-4 sm:grid-cols-3">
@@ -508,7 +509,7 @@ export default async function HomePage() {
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Answers to the questions people ask us most." />
+              <SectionHeader eyebrow="Questions" title="Find out exactly what you get before you join." />
             </div>
             <div className="lg:col-span-8">
               <FaqList faqs={homeFaqs} />
@@ -527,8 +528,8 @@ export default async function HomePage() {
               <span className="text-fade">together.</span>
             </h2>
             <p className="lede max-w-xl">
-              Join now and you&apos;ll be part of the founding group that shapes what Trichollective
-              becomes.
+              Join now to keep your founding price for as long as you stay, and to be in the founding
+              directory from day one.
             </p>
             <Button asChild size="xl">
               <Link href="/founding">

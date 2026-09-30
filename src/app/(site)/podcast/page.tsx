@@ -10,7 +10,7 @@ export const metadata = pageMetadata({
   title: "The podcast: conversations from the community",
   description: `A monthly podcast from ${site.name}. Unhurried conversations with head spa therapists, stylists, trichologists, nurses and doctors, each with a full transcript.`,
   path: "/podcast",
-    og: { title: "The podcast", sub: "Conversations from the community.", eyebrow: "Listen", img: images.community.src, variant: "photo" },
+    og: { title: "Hear how other practitioners work,", sub: "in conversations you can play between clients.", eyebrow: "Listen", img: images.community.src, variant: "photo" },
 });
 
 const crumbs = [
@@ -23,8 +23,8 @@ export default function PodcastPage() {
     <>
       <PageHero
         eyebrow="The podcast"
-        title="Listen to real conversations"
-        fade="from inside the community."
+        title="Hear how other practitioners work,"
+        fade="in conversations you can play between clients."
         lede={
           <p>
             Once a month, we sit down with someone who works in hair and scalp care and talk about what
@@ -43,8 +43,8 @@ export default function PodcastPage() {
             <div className="lg:col-span-5">
               <SectionHeader
                 eyebrow="Episodes"
-                title="The first episode"
-                fade="is on its way."
+                title="Be the first to hear an episode"
+                fade="when it is published."
                 body="We're recording our first conversations now. When the first episode is ready, it will appear here with a full transcript."
               />
             </div>
@@ -65,8 +65,8 @@ export default function PodcastPage() {
         <Container>
           <SectionHeader
             eyebrow="What to expect"
-            title="Every episode is unhurried, practical"
-            fade="and easy to follow."
+            title="Every episode shows how another discipline"
+            fade="would approach the same client."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
             {[
@@ -105,8 +105,8 @@ export default function PodcastPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <SectionHeader
               eyebrow="In the meantime"
-              title="Here is something to read"
-              fade="while you wait."
+              title="Read a free piece from Trichozette"
+              fade="while the first episode is being recorded."
               body="Selected pieces from Trichozette, our monthly members' edition, are free to read in the Journal."
             />
             <ArrowLink href="/journal">Visit the Journal</ArrowLink>
