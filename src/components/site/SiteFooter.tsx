@@ -55,7 +55,26 @@ export function SiteFooter() {
           <p className="label text-muted-foreground">{site.tagline}.</p>
         </div>
         <div className="mt-8 flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <p>© {new Date().getFullYear()} Trichollective. Founded at {site.originPlace}.</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+            <p>© {new Date().getFullYear()} Trichollective. Founded at {site.originPlace}.</p>
+            <a
+              href="https://experrt.com"
+              target="_blank"
+              rel="noopener"
+              className="group inline-flex items-center gap-2 text-muted-foreground hover:text-ink"
+              aria-label="Designed and managed by Experrt (experrt.com)"
+            >
+              <span>Designed and managed by</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/experrt-logo.png"
+                alt="Experrt"
+                width={1140}
+                height={256}
+                className="h-3.5 w-auto opacity-70 brightness-0 transition-opacity group-hover:opacity-100"
+              />
+            </a>
+          </div>
           <ul className="flex gap-5">
             <li><Link href="/privacy" className="hover:text-ink">Privacy</Link></li>
             <li><Link href="/terms" className="hover:text-ink">Terms</Link></li>
