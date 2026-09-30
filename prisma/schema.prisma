@@ -83,11 +83,13 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
-  plan        Plan?
-  isFounding  Boolean   @default(false)
-  onboardedAt DateTime?
-  chapterId   String?
-  chapter     Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  plan         Plan?
+  isFounding   Boolean   @default(false)
+  /// Where they came from when they first paid, e.g. "dublin", "instagram", "facebook".
+  signupSource String?
+  onboardedAt  DateTime?
+  chapterId    String?
+  chapter      Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
   profile   TrichologistProfile?
   posts     CommunityPost[]
@@ -155,6 +157,8 @@ model DirectoryListing {
   acceptsReferrals Boolean   @default(true)
   /// Dev seed rows. Never shown in production.
   isSample         Boolean   @default(false)
+  /// Where the listing came from, e.g. "dublin", "instagram".
+  source           String?
   enquiries        Enquiry[]
 
   createdAt DateTime @default(now())

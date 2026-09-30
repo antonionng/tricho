@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { subscribe, type SubscribeState } from "@/lib/actions/subscribe";
+import { getSource } from "@/lib/source";
 import { cn } from "@/lib/utils";
 
 export function NewsletterForm({
@@ -23,7 +24,7 @@ export function NewsletterForm({
   // Attribution from the landing URL (e.g. posts in the Facebook group).
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (utmSource.current) utmSource.current.value = p.get("utm_source") ?? "";
+    if (utmSource.current) utmSource.current.value = p.get("utm_source") ?? getSource() ?? "";
     if (utmCampaign.current) utmCampaign.current.value = p.get("utm_campaign") ?? "";
   }, []);
 

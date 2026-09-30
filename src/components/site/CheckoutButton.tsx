@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BillingInterval, PlanId } from "@/config/subscriptions";
+import { getSource } from "@/lib/source";
 
 /**
  * Starts a Stripe checkout for a plan. No sign-in needed: the webhook creates
@@ -42,7 +43,7 @@ export function CheckoutButton({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, interval, founding }),
+        body: JSON.stringify({ plan, interval, founding, source: getSource() }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (data.url) {

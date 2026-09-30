@@ -7,6 +7,7 @@ import { submitFreeListing } from "@/lib/actions/directory";
 import { DISCIPLINES } from "@/content/disciplines";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { pageMetadata } from "@/lib/seo";
+import { SourceField } from "@/components/site/SourceCapture";
 
 export const metadata = pageMetadata({
   title: "Add your founding listing",
@@ -91,6 +92,7 @@ export default async function ListPage({
 
         <div className="lg:col-span-7">
           <form action={submitFreeListing} className="flex flex-col gap-5 rounded-3xl border border-rule bg-card p-6 md:p-10">
+            <SourceField />
             {error && (
               <p role="alert" className="rounded-xl bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {ERRORS[error] ?? "Something went wrong. Please try again."}

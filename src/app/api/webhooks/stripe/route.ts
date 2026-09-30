@@ -74,6 +74,14 @@ export async function POST(req: Request) {
           return new NextResponse("No user or email on session", { status: 400 });
         }
 
+        // First-touch attribution: keep the first source we saw.
+        if (session.metadata?.source && email) {
+          await prisma.user.updateMany({
+            where: { email, signupSource: null },
+            data: { signupSource: session.metadata.source },
+          });
+        }
+
         // Paying with the email on a free listing claims it: full profile, enquiries delivered.
         if (email && (tier?.id === "professional" || tier?.id === "business")) {
           const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });

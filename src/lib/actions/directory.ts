@@ -50,6 +50,7 @@ export async function submitFreeListing(formData: FormData) {
   const bio = clean(formData.get("bio"), 800) || null;
   const website = clean(formData.get("website"), 200) || null;
   const phone = clean(formData.get("phone"), 40) || null;
+  const source = clean(formData.get("source"), 40).toLowerCase().replace(/[^a-z0-9_-]/g, "") || null;
 
   if (name.length < 2 || !email.includes("@") || city.length < 2) {
     redirect("/directory/list?error=missing");
@@ -81,6 +82,7 @@ export async function submitFreeListing(formData: FormData) {
       phone,
       status: ListingStatus.pending,
       kind: ListingKind.listed,
+      source,
     },
   });
 

@@ -24,14 +24,30 @@ export default async function MembersPage({
   const now = new Date();
   const notSystem: Prisma.UserWhereInput = { NOT: { email: SYSTEM_USER_EMAIL } };
 
-  const [users, recentJoins, confirmUser] = await Promise.all([
+  const [users, recentJoins, confirmUser, listingSources, subscriberSources] = await Promise.all([
     prisma.user.findMany({
       where: notSystem,
-      select: { plan: true, isFounding: true, stripeCurrentPeriodEnd: true },
+      select: { plan: true, isFounding: true, stripeCurrentPeriodEnd: true, signupSource: true },
     }),
     prisma.user.count({ where: { ...notSystem, createdAt: { gte: new Date(now.getTime() - 30 * DAY) } } }),
     confirm ? prisma.user.findUnique({ where: { id: confirm }, select: { id: true, name: true, email: true } }) : null,
+    prisma.directoryListing.groupBy({ by: ["source"], where: { isSample: false }, _count: { _all: true } }),
+    prisma.subscriber.groupBy({ by: ["utmSource"], _count: { _all: true } }),
   ]);
+
+  // Where people came from: paid members, free listings and email sign-ups, side by side.
+  const sourceRows = (() => {
+    const map = new Map<string, { members: number; listings: number; emails: number }>();
+    const row = (k: string | null) => {
+      const key = k || "direct";
+      if (!map.has(key)) map.set(key, { members: 0, listings: 0, emails: 0 });
+      return map.get(key)!;
+    };
+    for (const u of users) if (u.plan) row(u.signupSource).members++;
+    for (const l of listingSources) row(l.source).listings += l._count._all;
+    for (const s of subscriberSources) row(s.utmSource).emails += s._count._all;
+    return [...map.entries()].sort((a, b) => b[1].members + b[1].listings + b[1].emails - (a[1].members + a[1].listings + a[1].emails));
+  })();
 
   const isActive = (u: { stripeCurrentPeriodEnd: Date | null }) => !!u.stripeCurrentPeriodEnd && u.stripeCurrentPeriodEnd > now;
   const active = users.filter(isActive);
@@ -115,6 +131,34 @@ export default async function MembersPage({
           note="An estimate: plan prices × active members, using founding prices for founding members. Annual plans and discounts aren't counted. Stripe has the real figure."
         />
       </div>
+
+      <Section title="Where people came from">
+        <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-rule text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">Source</th>
+                <th className="px-4 py-3 font-medium">Paying members</th>
+                <th className="px-4 py-3 font-medium">Free listings</th>
+                <th className="px-4 py-3 font-medium">Email sign-ups</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sourceRows.map(([source, n]) => (
+                <tr key={source} className="border-b border-rule last:border-0">
+                  <td className="px-4 py-3 font-medium capitalize">{source}</td>
+                  <td className="px-4 py-3 tabular-nums">{n.members}</td>
+                  <td className="px-4 py-3 tabular-nums">{n.listings}</td>
+                  <td className="px-4 py-3 tabular-nums">{n.emails}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          The Dublin QR codes count as &ldquo;dublin&rdquo;, the Instagram link as &ldquo;instagram&rdquo; and links with ?utm_source=facebook as &ldquo;facebook&rdquo;.
+        </p>
+      </Section>
 
       <Section title="By plan">
         <div className="overflow-x-auto rounded-2xl border border-rule bg-card">

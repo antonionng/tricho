@@ -19,6 +19,7 @@ export async function POST(req: Request) {
       plan?: string;
       interval?: BillingInterval;
       founding?: boolean;
+      source?: string | null;
     };
     const tier = tierById(body.plan);
     if (!tier) {
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
       metadata: {
         plan: tier.id,
         founding: founding ? "1" : "0",
+        ...(body.source ? { source: String(body.source).toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) } : {}),
         ...(userId ? { userId } : {}),
       },
     });
