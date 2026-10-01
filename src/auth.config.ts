@@ -1,7 +1,12 @@
 import type { NextAuthConfig } from "next-auth";
 
+/**
+ * Edge-safe auth config. This is consumed by the middleware, so it must NOT
+ * import Node-only modules (Prisma, the Stripe SDK, etc). Heavy providers and
+ * the database adapter are added in `auth.ts`.
+ */
 export const authConfig = {
-  providers: [], // Add providers here (e.g. Google, GitHub, Email)
+  providers: [],
   pages: {
     signIn: "/login",
   },
@@ -10,10 +15,9 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const isMembersArea = nextUrl.pathname.startsWith("/members");
       const isProArea = nextUrl.pathname.startsWith("/pro");
-      
+
       if (isMembersArea || isProArea) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+        return isLoggedIn;
       }
       return true;
     },

@@ -1,16 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -18,6 +11,61 @@ enum UserRole {
   trichologist
   business
   admin
+}
+
+enum Profession {
+  cosmetic
+  clinical
+  medical
+  brand
+}
+
+enum ListingStatus {
+  pending
+  listed
+  rejected
+  draft
+  invited
+}
+
+enum ListingKind {
+  listed
+  member
+}
+
+/// The membership a user pays for. Role stays for permissions (admin, business).
+enum Plan {
+  community
+  professional
+  business
+}
+
+enum DraftStatus {
+  draft
+  approved
+  rejected
+  published
+}
+
+enum EnquiryStatus {
+  new
+  forwarded
+  closed
+}
+
+enum ReferralStatus {
+  sent
+  accepted
+  declined
+  seen
+}
+
+enum EventKind {
+  gathering
+  masterclass
+  case_round
+  chapter_meetup
+  welcome
 }
 
 model User {
@@ -35,47 +83,168 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
-  profile TrichologistProfile?
-  posts   CommunityPost[]
+  plan         Plan?
+  isFounding   Boolean   @default(false)
+  /// Where they came from when they first paid, e.g. "dublin", "instagram", "facebook".
+  signupSource String?
+  onboardedAt  DateTime?
+  chapterId    String?
+  chapter      Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  profile   TrichologistProfile?
+  posts     CommunityPost[]
+  comments  Comment[]
+  reactions Reaction[]
+  listings  DirectoryListing[]
+
+  following     Follow[]             @relation("follower")
+  followers     Follow[]             @relation("followee")
+  conversations ConversationMember[]
+  messages      Message[]
+  notifications Notification[]
+  reports       Report[]
+  referralsSent Referral[]           @relation("referralFrom")
+  referralsIn   Referral[]           @relation("referralTo")
+  rsvps         EventRsvp[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TrichologistProfile {
-  id             String @id @default(cuid())
-  userId         String @unique
-  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio            String?
   specialization String?
   location       String?
   website        String?
   phone          String?
-  isVerified     Boolean @default(false)
+  profession     Profession?
+  listingStatus  ListingStatus @default(draft)
+  isVerified     Boolean       @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model DirectoryListing {
+  id             String        @id @default(cuid())
+  name           String
+  email          String
+  profession     Profession
+  city           String
+  specialization String?
+  bio            String?       @db.Text
+  website        String?
+  phone          String?
+  status         ListingStatus @default(pending)
+  kind           ListingKind   @default(listed)
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
+  reviewNote     String?
+
+  slug             String?   @unique
+  headline         String?
+  country          String    @default("Ireland")
+  services         String[]  @default([])
+  photoUrl         String?
+  isFounding       Boolean   @default(true)
+  /// Free listings stay public until this date (90 days from approval). Claimed (paid) listings ignore it.
+  freeUntil        DateTime?
+  isVerified       Boolean   @default(false)
+  acceptsReferrals Boolean   @default(true)
+  /// Dev seed rows. Never shown in production.
+  isSample         Boolean   @default(false)
+  /// Where the listing came from, e.g. "dublin", "instagram".
+  source           String?
+  /// Private token in an invitation link; cleared once the person submits their listing.
+  inviteToken      String?   @unique
+  enquiries        Enquiry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([profession, city])
 }
 
 model CommunityPost {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  category  String   // "discussion", "referral", "resource"
+  id        String     @id @default(cuid())
+  title     String?
+  content   String     @db.Text
+  category  String
+  space     String     @default("everyone")
+  pinned    Boolean    @default(false)
+  chapterId String?
+  chapter   Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  reactions Reaction[]
+  reports   Report[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([space, createdAt])
+  @@index([chapterId, createdAt])
+}
+
+model Comment {
+  id       String        @id @default(cuid())
+  content  String        @db.Text
+  postId   String
+  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+}
+
+model Reaction {
+  id     String        @id @default(cuid())
+  type   String        @default("useful")
+  postId String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model EducationPiece {
+  id        String  @id @default(cuid())
+  title     String
+  summary   String
+  body      String  @db.Text
+  audience  String
+  kind      String
+  published Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([audience, sortOrder])
 }
 
 model ExchangeItem {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
-  description String   @db.Text
+  description String  @db.Text
   link        String?
-  type        String   // "brand_tool", "professional_service"
-  businessId  String?  // Optional relation to a business user in the future
-  
+  type        String
+  businessId  String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -92,12 +261,12 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
- 
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   @@id([provider, providerAccountId])
 }
 
@@ -106,7 +275,7 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -115,6 +284,236 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
- 
+
   @@id([identifier, token])
+}
+
+/// Local chapters: Dublin, London, Manchester and others.
+model Chapter {
+  id      String          @id @default(cuid())
+  slug    String          @unique
+  city    String
+  country String
+  blurb   String?
+  members User[]
+  posts   CommunityPost[]
+  events  Event[]
+
+  createdAt DateTime @default(now())
+}
+
+model Follow {
+  followerId String
+  follower   User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followeeId String
+  followee   User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([followerId, followeeId])
+}
+
+model Conversation {
+  id        String               @id @default(cuid())
+  members   ConversationMember[]
+  messages  Message[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+model ConversationMember {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime?
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  title     String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model Report {
+  id         String        @id @default(cuid())
+  postId     String
+  post       CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId String?
+  reporter   User?         @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  /// "member" or the agent name that flagged it.
+  source     String        @default("member")
+  reason     String
+  resolvedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@unique([postId, reporterId])
+  @@index([resolvedAt, createdAt])
+}
+
+/// A member of the public asking a listed professional for help.
+model Enquiry {
+  id        String           @id @default(cuid())
+  listingId String
+  listing   DirectoryListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  message   String           @db.Text
+  status    EnquiryStatus    @default(new)
+  createdAt DateTime         @default(now())
+
+  @@index([listingId, createdAt])
+}
+
+model Referral {
+  id        String         @id @default(cuid())
+  fromId    String
+  from      User           @relation("referralFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        User           @relation("referralTo", fields: [toId], references: [id], onDelete: Cascade)
+  summary   String         @db.Text
+  status    ReferralStatus @default(sent)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([toId, status])
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  slug           String      @unique
+  title          String
+  kind           EventKind
+  summary        String
+  body           String?     @db.Text
+  startsAt       DateTime
+  endsAt         DateTime?
+  venue          String?
+  city           String?
+  online         Boolean     @default(false)
+  priceGBP       Int         @default(0)
+  memberPriceGBP Int         @default(0)
+  capacity       Int?
+  /// External ticketing (e.g. Eventbrite) until native ticketing ships.
+  ticketUrl      String?
+  published      Boolean     @default(false)
+  chapterId      String?
+  chapter        Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  rsvps          EventRsvp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, startsAt])
+}
+
+model EventRsvp {
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([eventId, userId])
+}
+
+/// Newsletter and lead-magnet sign-ups from the marketing site.
+model Subscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  source         String
+  utmSource      String?
+  utmCampaign    String?
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+/// Everything an agent (or an outside assistant) produces waits here for Karley.
+model Draft {
+  id           String      @id @default(cuid())
+  agent        String
+  kind         String
+  title        String
+  summary      String?
+  body         String      @db.Text
+  payload      Json?
+  status       DraftStatus @default(draft)
+  reviewerNote String?
+  reviewedAt   DateTime?
+  publishedAt  DateTime?
+  runId        String?
+  run          AgentRun?   @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model AgentRun {
+  id         String    @id @default(cuid())
+  agent      String
+  trigger    String    @default("cron")
+  status     String    @default("running")
+  summary    String?
+  error      String?
+  drafts     Draft[]
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([agent, startedAt])
+}
+
+model AgentSetting {
+  agent     String   @id
+  enabled   Boolean  @default(true)
+  /// "ask" = every output needs approval, "auto" = low-risk output publishes itself.
+  autonomy  String   @default("ask")
+  updatedAt DateTime @updatedAt
+}
+
+/// Business and Premium Business partners shown on /partners. Only real, published partners appear.
+model Partner {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  /// "premium" or "business"
+  tier          String    @default("premium")
+  /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
+  category      String
+  logoUrl       String?
+  blurb         String    @db.Text
+  website       String?
+  /// The member perk, shown in the member area.
+  perk          String?   @db.Text
+  contactEmail  String?
+  isFounding    Boolean   @default(false)
+  published     Boolean   @default(false)
+  featuredUntil DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([published, tier])
 }

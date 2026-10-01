@@ -1,60 +1,90 @@
+import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { stripe } from "@/lib/stripe";
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  priceIdFor,
+  tierById,
+  type BillingInterval,
+} from "@/config/subscriptions";
+import { site } from "@/config/site";
+import { foundingMemberPlacesLeft } from "@/lib/founding";
 
+/**
+ * Start a subscription checkout. Signing in first is optional: people can pay
+ * straight away and the webhook creates their account from the checkout email.
+ */
 export async function POST(req: Request) {
   try {
+    const body = (await req.json()) as {
+      plan?: string;
+      interval?: BillingInterval;
+      founding?: boolean;
+      source?: string | null;
+      currency?: "gbp" | "eur";
+    };
+    const tier = tierById(body.plan);
+    if (!tier) {
+      return NextResponse.json({ error: "Unknown plan" }, { status: 400 });
+    }
+    const interval: BillingInterval = body.interval === "year" ? "year" : "month";
+    // The founding price is only offered while founding places genuinely remain.
+    const founding = !!body.founding && !!tier.foundingPrice && (await foundingMemberPlacesLeft()) > 0;
+    const priceId = priceIdFor(tier, interval, founding);
+
+    if (!process.env.STRIPE_SECRET_KEY || !priceId) {
+      return NextResponse.json(
+        { error: "Payments are not switched on yet. Please try again shortly." },
+        { status: 503 }
+      );
+    }
+
     const session = await auth();
-    const { priceId } = await req.json();
+    let customer: string | undefined;
+    let userId: string | undefined;
 
-    if (!session || !session.user || !session.user.email) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    // Get or create stripe customer
-    let user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return new NextResponse("User not found", { status: 404 });
-    }
-
-    let stripeCustomerId = user.stripeCustomerId;
-
-    if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: session.user.email,
-        name: session.user.name || undefined,
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
       });
-      stripeCustomerId = customer.id;
-      
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { stripeCustomerId },
-      });
+      if (user) {
+        userId = user.id;
+        customer = user.stripeCustomerId ?? undefined;
+        if (!customer) {
+          const created = await stripe.customers.create({
+            email: session.user.email,
+            name: session.user.name || undefined,
+          });
+          customer = created.id;
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { stripeCustomerId: customer },
+          });
+        }
+      }
     }
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+    const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/members?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/join?canceled=true`,
+      line_items: [{ price: priceId, quantity: 1 }],
+      ...(customer ? { customer } : {}),
+      allow_promotion_codes: true,
+      // Prices carry EUR currency options; charge in the currency the visitor chose on /pricing.
+      ...(body.currency === "eur" ? { currency: "eur" } : {}),
+      billing_address_collection: "auto",
+      success_url: `${site.url}/welcome?plan=${tier.id}`,
+      cancel_url: `${site.url}/pricing?cancelled=1`,
       metadata: {
-        userId: user.id,
+        plan: tier.id,
+        founding: founding ? "1" : "0",
+        ...(body.source ? { source: String(body.source).toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) } : {}),
+        ...(userId ? { userId } : {}),
       },
     });
 
-    return NextResponse.json({ url: checkoutSession.url });
+    return NextResponse.json({ url: checkout.url });
   } catch (error) {
-    console.error("[STRIPE_ERROR]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("[CHECKOUT]", error);
+    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
   }
 }
