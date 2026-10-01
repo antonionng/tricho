@@ -19,7 +19,7 @@ Also set `CRON_SECRET` (any long random string) so the agents' scheduled runs ar
 
 ## 2. Database (the live Supabase database already has real data)
 
-The change is **additive only**: new tables, new columns and new indexes. A read-only comparison on 30 September found nothing that drops or rewrites existing data. The SQL is in `prisma/go-live/2026-09-30-catch-up.sql` for review.
+The change is **additive only**: new tables, new columns and new indexes. A read-only comparison against the live database on 1 October found nothing that drops or rewrites existing data. The SQL is in `prisma/go-live/2026-10-01-catch-up.sql` for review.
 
 1. Take a backup in Supabase (Database → Backups) before anything else.
 2. Regenerate the comparison on the day, in case the live schema changed:

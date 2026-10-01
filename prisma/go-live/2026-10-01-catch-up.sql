@@ -1,6 +1,3 @@
--- Generated 2026-09-30 by comparing the live Supabase schema with prisma/schema.prisma (read-only).
--- Additive only: new tables, columns and indexes. Regenerate on go-live day in case the live schema changed.
-
 -- CreateEnum
 CREATE TYPE "Plan" AS ENUM ('community', 'professional', 'business');
 
@@ -24,6 +21,7 @@ ALTER TABLE "DirectoryListing" ADD COLUMN     "acceptsReferrals" BOOLEAN NOT NUL
 ADD COLUMN     "country" TEXT NOT NULL DEFAULT 'Ireland',
 ADD COLUMN     "freeUntil" TIMESTAMP(3),
 ADD COLUMN     "headline" TEXT,
+ADD COLUMN     "inviteToken" TEXT,
 ADD COLUMN     "isFounding" BOOLEAN NOT NULL DEFAULT true,
 ADD COLUMN     "isSample" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "isVerified" BOOLEAN NOT NULL DEFAULT false,
@@ -236,6 +234,27 @@ CREATE TABLE "AgentSetting" (
     CONSTRAINT "AgentSetting_pkey" PRIMARY KEY ("agent")
 );
 
+-- CreateTable
+CREATE TABLE "Partner" (
+    "id" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "tier" TEXT NOT NULL DEFAULT 'premium',
+    "category" TEXT NOT NULL,
+    "logoUrl" TEXT,
+    "blurb" TEXT NOT NULL,
+    "website" TEXT,
+    "perk" TEXT,
+    "contactEmail" TEXT,
+    "isFounding" BOOLEAN NOT NULL DEFAULT false,
+    "published" BOOLEAN NOT NULL DEFAULT false,
+    "featuredUntil" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Partner_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Chapter_slug_key" ON "Chapter"("slug");
 
@@ -279,10 +298,19 @@ CREATE INDEX "Draft_status_createdAt_idx" ON "Draft"("status", "createdAt");
 CREATE INDEX "AgentRun_agent_startedAt_idx" ON "AgentRun"("agent", "startedAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Partner_slug_key" ON "Partner"("slug");
+
+-- CreateIndex
+CREATE INDEX "Partner_published_tier_idx" ON "Partner"("published", "tier");
+
+-- CreateIndex
 CREATE INDEX "CommunityPost_chapterId_createdAt_idx" ON "CommunityPost"("chapterId", "createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DirectoryListing_slug_key" ON "DirectoryListing"("slug");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DirectoryListing_inviteToken_key" ON "DirectoryListing"("inviteToken");
 
 -- CreateIndex
 CREATE INDEX "DirectoryListing_profession_city_idx" ON "DirectoryListing"("profession", "city");
