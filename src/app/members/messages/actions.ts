@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMemberContext } from "@/lib/member";
 import { notify } from "@/lib/community";
+import { deliver } from "@/lib/mail/send";
+import { newMessageEmail } from "@/lib/mail/templates/members";
 import type { FormState } from "@/app/members/community/actions";
 
 export async function sendMessage(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -40,7 +43,16 @@ export async function sendMessage(_prev: FormState, formData: FormData): Promise
       where: { userId: m.userId, href, readAt: null },
       select: { id: true },
     });
-    if (!pending) await notify({ userId: m.userId, kind: "message", title: `New message from ${sender}`, href });
+    if (pending) continue;
+    await notify({ userId: m.userId, kind: "message", title: `New message from ${sender}`, href });
+    // Email only alongside a new notification, so a busy conversation sends one email until it is read.
+    const recipientId = m.userId;
+    after(async () => {
+      const to = await prisma.user.findUnique({ where: { id: recipientId }, select: { name: true, email: true } });
+      if (!to?.email) return;
+      const email = newMessageEmail({ recipientName: to.name, senderName: sender, message: body, conversationId });
+      await deliver(to.email, email.subject, email.content, { list: "activity", tag: "activity" });
+    });
   }
 
   revalidatePath(href);

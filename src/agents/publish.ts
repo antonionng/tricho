@@ -1,8 +1,10 @@
 import type { Draft, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { sendEmail, textToHtml } from "@/lib/email";
 import { normalizeSpace } from "@/config/rooms";
-import { site } from "@/config/site";
+import { deliver, wantsList, type EmailList } from "@/lib/mail/send";
+import type { EmailContent } from "@/lib/mail/layout";
+import { draftEmailContent } from "@/lib/mail/templates/members";
+import { announcementEmail, newsletterEmail } from "@/lib/mail/templates/releases";
 
 export const SYSTEM_USER_EMAIL = "team@trichollective.local";
 
@@ -24,22 +26,59 @@ function str(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/** Everyone who should receive the monthly newsletter, de-duplicated by email. */
+function cleanEmails(rows: { email: string | null }[]) {
+  const set = new Set<string>();
+  for (const row of rows) {
+    const email = row.email?.trim().toLowerCase();
+    if (email && email.includes("@") && !email.endsWith(".local")) set.add(email);
+  }
+  return [...set];
+}
+
+/**
+ * Everyone who should receive the monthly newsletter, de-duplicated by email:
+ * subscribers and active paid members who haven't left the updates list.
+ */
 export async function newsletterRecipients() {
   const now = new Date();
   const [subscribers, members] = await Promise.all([
     prisma.subscriber.findMany({ where: { unsubscribedAt: null }, select: { email: true } }),
     prisma.user.findMany({
-      where: { stripeCurrentPeriodEnd: { gt: now }, email: { not: null } },
+      where: { stripeCurrentPeriodEnd: { gt: now }, email: { not: null }, emailUpdates: true },
       select: { email: true },
     }),
   ]);
-  const set = new Set<string>();
-  for (const row of [...subscribers, ...members]) {
-    const email = row.email?.trim().toLowerCase();
-    if (email && email.includes("@") && !email.endsWith(".local")) set.add(email);
+  return cleanEmails([...subscribers, ...members]);
+}
+
+/**
+ * Everyone who hears about new releases: every account with an email (paid
+ * members and free accounts alike) and every subscriber, unless they've left
+ * the updates list. Members-only releases still go to everyone, because
+ * non-members land on the free preview.
+ */
+export async function announcementRecipients() {
+  const [subscribers, users] = await Promise.all([
+    prisma.subscriber.findMany({ where: { unsubscribedAt: null }, select: { email: true } }),
+    prisma.user.findMany({ where: { email: { not: null }, emailUpdates: true }, select: { email: true } }),
+  ]);
+  return cleanEmails([...subscribers, ...users]);
+}
+
+const sendingEnabled = () => !!process.env.AUTH_RESEND_KEY;
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * One email per person, so each carries their own unsubscribe link. Paced
+ * gently when really sending, to stay inside the email provider's rate limit.
+ */
+async function sendToEach(recipients: string[], subject: string, content: EmailContent, list: EmailList, tag: string) {
+  let sent = 0;
+  for (const to of recipients) {
+    if (await deliver(to, subject, content, { list, tag })) sent++;
+    if (sendingEnabled()) await pause(250);
   }
-  return [...set];
+  return sent;
 }
 
 export type PublishResult = { status: "published" | "approved"; message: string };
@@ -91,38 +130,46 @@ export async function publishDraft(id: string): Promise<PublishResult> {
 
     case "email": {
       const to = str(payload.to);
-      const subject = str(payload.subject) || draft.title;
       if (!to.includes("@")) throw new Error("This email has no valid recipient.");
-      const result = await sendEmail({ to, subject, text: draft.body });
-      await done({ sentAt: now.toISOString(), skipped: !!result.skipped });
+      const { subject, content } = draftEmailContent(draft, payload);
+      // Invitations are optional mail, so they carry an unsubscribe link; reminders are part of the service.
+      const list: EmailList | undefined = payload.invite === true ? "updates" : undefined;
+      if (list && !(await wantsList(to, list))) throw new Error(`${to} has asked not to receive these emails.`);
+      const sent = await deliver(to, subject, content, { list, tag: payload.invite === true ? "invite" : "membership" });
+      if (!sent) throw new Error("The email couldn't be sent. Please try again in a moment.");
+      const skipped = !sendingEnabled();
+      await done({ sentAt: now.toISOString(), skipped });
       return {
         status: "published",
-        message: result.skipped ? "Approved. Email sending isn't switched on yet, so it was logged instead." : `Sent to ${to}.`,
+        message: skipped ? "Approved. Email sending isn't switched on yet, so it was logged instead." : `Sent to ${to}.`,
       };
     }
 
     case "newsletter": {
       const recipients = await newsletterRecipients();
-      const subject = str(payload.subject) || draft.title;
-      const text = `${draft.body}\n\nYou're receiving this because you joined Trichollective or signed up at ${site.url}. To stop receiving the newsletter, reply to this email and we'll take you off the list.`;
-      const html = textToHtml(text);
-      let sent = 0;
-      let skipped = false;
-      for (const to of recipients) {
-        try {
-          const r = await sendEmail({ to, subject, text, html });
-          skipped = skipped || !!r.skipped;
-          sent++;
-        } catch (error) {
-          console.error(`[newsletter] failed for ${to}`, error);
-        }
-      }
+      const { subject, content } = newsletterEmail(draft, payload);
+      const sent = await sendToEach(recipients, subject, content, "updates", "newsletter");
+      const skipped = !sendingEnabled();
       await done({ sentAt: now.toISOString(), sentCount: sent, recipientCount: recipients.length, skipped });
       return {
         status: "published",
         message: skipped
           ? `Approved for ${recipients.length} people. Email sending isn't switched on yet, so it was logged instead.`
           : `Sent to ${sent} of ${recipients.length} people.`,
+      };
+    }
+
+    case "announcement": {
+      const recipients = await announcementRecipients();
+      const { subject, content } = announcementEmail(draft, payload);
+      const sent = await sendToEach(recipients, subject, content, "updates", "release");
+      const skipped = !sendingEnabled();
+      await done({ sentAt: now.toISOString(), sentCount: sent, recipientCount: recipients.length, skipped });
+      return {
+        status: "published",
+        message: skipped
+          ? `Approved for ${recipients.length} ${recipients.length === 1 ? "person" : "people"}. Email sending isn't switched on yet, so it was logged instead.`
+          : `Announced to ${sent} ${sent === 1 ? "person" : "people"}${sent < recipients.length ? ` of ${recipients.length}; the rest have left the list or couldn't be reached` : ""}.`,
       };
     }
 

@@ -9,6 +9,8 @@ import { getAgent } from "@/agents";
 import { publishDraft, payloadOf } from "@/agents/publish";
 import { releaseDraftRef, runAgent } from "@/agents/runtime";
 import { studioAction } from "./_lib/guard";
+import { deliver } from "@/lib/mail/send";
+import { listingApprovedEmail, listingNotApprovedEmail, studioAccessEmail } from "@/lib/mail/templates/directory";
 
 function s(form: FormData, key: string, max = 20000) {
   return String(form.get(key) ?? "").trim().slice(0, max);
@@ -40,7 +42,7 @@ export async function approveDraftAction(form: FormData) {
   const draft = await prisma.draft.findUnique({ where: { id }, select: { kind: true } });
   if (!draft) redirect(inboxUrl(form, { notice: "That draft no longer exists." }));
 
-  if (draft.kind === "newsletter" && s(form, "confirm", 8) !== "yes") {
+  if ((draft.kind === "newsletter" || draft.kind === "announcement") && s(form, "confirm", 8) !== "yes") {
     redirect(inboxUrl(form, { id, confirm: "1" }));
   }
 
@@ -185,7 +187,12 @@ export async function makeAdminAction(form: FormData) {
   const id = s(form, "id", 64);
   const q = s(form, "q", 100) || undefined;
   if (s(form, "confirm", 8) !== "yes") redirect(withParams("/studio/members", { q, confirm: id }));
+  const before = await prisma.user.findUnique({ where: { id }, select: { role: true } });
   const user = await prisma.user.update({ where: { id }, data: { role: "admin" }, select: { name: true, email: true } });
+  if (before && before.role !== "admin" && user.email) {
+    const { subject, content } = studioAccessEmail(user);
+    await deliver(user.email, subject, content, { tag: "studio-access" });
+  }
   revalidatePath("/studio/members");
   redirect(withParams("/studio/members", { q, notice: `${user.name ?? user.email} now has Studio access.` }));
 }
@@ -200,14 +207,26 @@ export async function reviewListingAction(form: FormData) {
   const id = s(form, "id", 64);
   const decision = s(form, "decision", 16);
   if (!id || (decision !== "approve" && decision !== "reject")) return;
-  await prisma.directoryListing.update({
+  const before = await prisma.directoryListing.findUnique({ where: { id }, select: { status: true } });
+  const listing = await prisma.directoryListing.update({
     where: { id },
     data: {
       status: decision === "approve" ? "listed" : "rejected",
       reviewedAt: new Date(),
       ...(decision === "approve" ? { freeUntil: new Date(Date.now() + FREE_LISTING_DAYS * 24 * 60 * 60 * 1000) } : {}),
     },
+    select: { name: true, email: true, slug: true, kind: true, freeUntil: true, isSample: true, status: true },
   });
+  // Only on a real change of decision, never for sample listings or paid members (already live).
+  if (before && before.status !== listing.status && !listing.isSample && listing.kind === "listed") {
+    const email =
+      decision === "approve" && listing.slug && listing.freeUntil
+        ? listingApprovedEmail({ name: listing.name, slug: listing.slug, freeUntil: listing.freeUntil })
+        : decision === "reject"
+          ? listingNotApprovedEmail(listing)
+          : null;
+    if (email) await deliver(listing.email, email.subject, email.content, { tag: `listing-${decision}` });
+  }
   revalidatePath("/studio/listings");
   revalidatePath("/directory", "layout");
 }
@@ -338,14 +357,35 @@ export async function saveEventAction(form: FormData) {
     published: form.get("published") === "on",
   };
 
+  let eventId: string;
+  let newlyPublished = data.published;
   if (id) {
+    const before = await prisma.event.findUnique({ where: { id }, select: { published: true } });
+    newlyPublished = data.published && !before?.published;
     // The slug stays as it was, so links already shared keep working.
-    await prisma.event.update({ where: { id }, data });
+    eventId = (await prisma.event.update({ where: { id }, data, select: { id: true } })).id;
   } else {
-    await prisma.event.create({ data: { ...data, slug: await uniqueEventSlug(title) } });
+    eventId = (await prisma.event.create({ data: { ...data, slug: await uniqueEventSlug(title) }, select: { id: true } })).id;
   }
+
+  // A newly published event gets its announcement drafted straight away, for Karley to approve in the inbox.
+  let announced = false;
+  if (newlyPublished) {
+    const { announceEvent } = await import("@/agents/announce");
+    announced = !!(await announceEvent(eventId));
+    if (announced) revalidatePath("/studio", "layout");
+  }
+
   revalidatePath("/studio/events");
   revalidatePath("/events", "layout");
   revalidatePath("/members", "layout");
-  redirect(withParams("/studio/events", { notice: data.published ? "Event saved and published." : "Event saved as a draft." }));
+  redirect(
+    withParams("/studio/events", {
+      notice: data.published
+        ? announced
+          ? "Event saved and published. An announcement email is waiting for your approval in the inbox."
+          : "Event saved and published."
+        : "Event saved as a draft.",
+    })
+  );
 }

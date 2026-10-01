@@ -2,11 +2,12 @@ import { auth } from "@/auth";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { site } from "@/config/site";
 
 export async function POST() {
   const session = await auth();
   if (!session?.user?.email) {
-    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL));
+    return NextResponse.redirect(new URL("/login", site.url));
   }
 
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -17,12 +18,12 @@ export async function POST() {
     where: { email: session.user.email },
   });
   if (!user?.stripeCustomerId) {
-    return NextResponse.redirect(new URL("/pricing", process.env.NEXT_PUBLIC_APP_URL));
+    return NextResponse.redirect(new URL("/pricing", site.url));
   }
 
   const portal = await stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/members/billing`,
+    return_url: `${site.url}/members/billing`,
   });
 
   return NextResponse.redirect(portal.url, { status: 303 });

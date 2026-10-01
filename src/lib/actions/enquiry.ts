@@ -2,6 +2,9 @@
 
 import { prisma } from "@/lib/prisma";
 import { PARTNER_CATEGORIES } from "@/lib/partners";
+import { after } from "next/server";
+import { alertOwners, deliver } from "@/lib/mail/send";
+import { partnerAcknowledgementEmail, partnerAlert, type PartnerEnquiry } from "@/lib/mail/templates/leads";
 
 export type EnquiryState =
   | { ok: true; message: string }
@@ -120,8 +123,9 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
     .filter((line) => line !== null)
     .join("\n");
 
+  let draftId: string;
   try {
-    await prisma.draft.create({
+    const draft = await prisma.draft.create({
       data: {
         agent: "website",
         kind: "partner_enquiry",
@@ -146,7 +150,9 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
             }
           : { company, name, email, role, interest: safeInterest, budget, message },
       },
+      select: { id: true },
     });
+    draftId = draft.id;
   } catch (error) {
     console.error("[PARTNER_ENQUIRY]", error);
     return {
@@ -156,10 +162,32 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
     };
   }
 
+  const enquiry: PartnerEnquiry = isApplication
+    ? {
+        application: true,
+        company,
+        name,
+        email,
+        role,
+        tier: APPLICATION_TIERS[tier],
+        category,
+        sells,
+        website: companyUrl,
+        message,
+      }
+    : { application: false, company, name, email, role, interest: safeInterest, budget, message };
+  after(async () => {
+    const { subject, content } = partnerAcknowledgementEmail(enquiry);
+    await Promise.all([
+      alertOwners(partnerAlert(enquiry, draftId)),
+      deliver(email, subject, content, { tag: isApplication ? "partner-application" : "business-enquiry" }),
+    ]);
+  });
+
   return {
     ok: true,
     message: isApplication
-      ? `Thank you, ${name.split(" ")[0]}. Your application has reached us. We read every one ourselves and will reply by email within a few working days.`
-      : `Thank you, ${name.split(" ")[0]}. Your enquiry has reached us, and we'll reply by email within a few working days.`,
+      ? `Thank you, ${name.split(" ")[0]}. Your application has reached us. We read every one ourselves and will reply by email within three working days.`
+      : `Thank you, ${name.split(" ")[0]}. Your enquiry has reached us, and we'll reply by email within three working days.`,
   };
 }

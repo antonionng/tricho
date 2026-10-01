@@ -17,6 +17,14 @@ Target: live and tested by **Saturday 3 October**, ready for Trichollective Dubl
 
 Also set `CRON_SECRET` (any long random string) so the agents' scheduled runs are authorised, and **do not** set `DEV_MEMBERSHIP_UNLOCK` in production.
 
+## Emails
+
+Every email is listed, with a preview and a "Send me a test" button, in Studio → Emails. Owner alerts go to everyone in `OWNER_EMAILS` (set to ag@experrt.com and karley@trichollective.net); replies to platform emails go to `EMAIL_REPLY_TO` (karley@trichollective.net). The owners also get a daily summary at 8am when anything happened.
+
+- The Stripe webhook must include `invoice.payment_failed` as well as the four events above.
+- New releases (Trichozette editions, courses, events) are drafted by the Release announcer agent every morning and wait in the Studio inbox; nothing goes to members until Karley approves it.
+- New database changes are applied with `bash scripts/migrate-live.sh` (shows what's pending) and then `bash scripts/migrate-live.sh --apply`.
+
 ## 2. Database (the live Supabase database already has real data)
 
 The change is **additive only**: new tables, new columns and new indexes. A read-only comparison against the live database on 1 October found nothing that drops or rewrites existing data. The SQL is in `prisma/go-live/2026-10-01-catch-up.sql` for review.

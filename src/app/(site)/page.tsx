@@ -39,6 +39,7 @@ import { flagshipTier, subscriptionTiers, FREE_LISTING_DAYS } from "@/config/sub
 import { getPublicStats, STAT_THRESHOLDS } from "@/lib/stats";
 import { faqLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
+import { freeListingOfferLive } from "@/lib/launch";
 
 export const revalidate = 600;
 
@@ -59,6 +60,7 @@ const pillars = [
 
 export default async function HomePage() {
   const stats = await getPublicStats();
+  const freeOffer = freeListingOfferLive();
   const proof = [
     stats.members >= STAT_THRESHOLDS.members && { value: stats.members, label: "members" },
     stats.listings >= STAT_THRESHOLDS.listings && { value: stats.listings, label: "professionals listed" },
@@ -85,29 +87,62 @@ export default async function HomePage() {
           <div className="grid min-h-[calc(100svh-72px)] items-center py-16 lg:grid-cols-12 lg:py-24">
             <div className="lg:col-span-7 xl:col-span-6 flex flex-col gap-8 animate-rise">
               <Eyebrow rule>Cosmetic · Clinical · Medical</Eyebrow>
-              <h1 className="display text-[3.4rem] leading-[0.92] sm:text-7xl lg:text-[5.5rem]">
-                Join early.
-                <br />
-                <span className="text-fade">Be in the founding directory.</span>
-              </h1>
-              <p className="lede max-w-xl">
-                Talk through difficult cases with trichologists, doctors and scalp specialists, refer clients
-                to the right discipline, and be listed where the public looks for help with hair and scalp.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Button asChild size="xl">
-                  <Link href="/founding">
-                    Become a founding member <ArrowRight />
-                  </Link>
-                </Button>
-                <Button asChild size="xl" variant="outline">
-                  <Link href="/signup">Create a free account</Link>
-                </Button>
-              </div>
-              <div className="flex flex-col gap-1">
-                <p className="label text-ink">Launching at {site.launch.title}, 5 October</p>
-                <p className="label text-muted-foreground">Founding places are limited</p>
-              </div>
+              {freeOffer ? (
+                <>
+                  <h1 className="display text-[3.4rem] leading-[0.92] sm:text-7xl lg:text-[5.5rem]">
+                    List your practice for free.
+                    <br />
+                    <span className="text-fade">Be found from day one.</span>
+                  </h1>
+                  <p className="lede max-w-xl">
+                    People looking for a trichologist, doctor, stylist or scalp specialist near them can find you in
+                    the founding directory, and your full profile and client enquiries are included for your first{" "}
+                    {FREE_LISTING_DAYS} days.
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <Button asChild size="xl">
+                      <Link href="/directory/list">
+                        Add my free listing <ArrowRight />
+                      </Link>
+                    </Button>
+                    <Button asChild size="xl" variant="outline">
+                      <Link href="/founding">Become a founding member</Link>
+                    </Button>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="label text-ink">Your listing stays free for good, with no card needed</p>
+                    <p className="label text-muted-foreground">
+                      After {FREE_LISTING_DAYS} days, {flagshipTier.name} keeps your full profile and enquiries
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h1 className="display text-[3.4rem] leading-[0.92] sm:text-7xl lg:text-[5.5rem]">
+                    Join early.
+                    <br />
+                    <span className="text-fade">Be in the founding directory.</span>
+                  </h1>
+                  <p className="lede max-w-xl">
+                    Talk through difficult cases with trichologists, doctors and scalp specialists, refer clients
+                    to the right discipline, and be listed where the public looks for help with hair and scalp.
+                  </p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <Button asChild size="xl">
+                      <Link href="/founding">
+                        Become a founding member <ArrowRight />
+                      </Link>
+                    </Button>
+                    <Button asChild size="xl" variant="outline">
+                      <Link href="/signup">Create a free account</Link>
+                    </Button>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="label text-ink">Launching at {site.launch.title}, 5 October</p>
+                    <p className="label text-muted-foreground">Founding places are limited</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </Container>
@@ -543,7 +578,11 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      <StickyJoin label="Join" note="Founding places are limited." href="/founding" />
+      {freeOffer ? (
+        <StickyJoin label="List free" note="Your listing is free for good." href="/directory/list" />
+      ) : (
+        <StickyJoin label="Join" note="Founding places are limited." href="/founding" />
+      )}
       <JsonLd data={faqLd(homeFaqs)} />
     </>
   );

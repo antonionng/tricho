@@ -26,6 +26,11 @@ export const site = {
     endsAt: "2026-10-05T18:00:00+01:00",
     ticketUrl: "https://www.eventbrite.co.uk/e/trichollective-dublin-tickets-1992021489900",
   },
+  /** Free listing leads the homepage hero for the first 90 days after launch. */
+  freeListingOffer: {
+    startsAt: "2026-10-05T00:00:00+01:00",
+    endsAt: "2027-01-04T00:00:00+00:00",
+  },
   /** Real past conferences, newest first. */
   pastGatherings: [
     {
@@ -66,7 +71,7 @@ export const site = {
     places: 200,
     closes: "the end of the founding period",
   },
-  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "hello@trichollective.com",
+  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "karley@trichollective.net",
   social: [] as { label: string; href: string }[],
 };
 

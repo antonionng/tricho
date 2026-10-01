@@ -2,14 +2,23 @@
 
 import { prisma } from "@/lib/prisma";
 import { hasFullProfile } from "@/lib/directory";
-import { sendEmail } from "@/lib/email";
+import { deliver, deliverOnce } from "@/lib/mail/send";
+import {
+  enquiryHeldPractitionerEmail,
+  enquiryHeldReceiptEmail,
+  enquirySentEmail,
+  enquiryToPractitionerEmail,
+} from "@/lib/mail/templates/directory";
 
 export type EnquiryState = { ok: boolean; message: string } | null;
 
 /**
- * A member of the public contacting a listed professional. Claimed listings
- * are notified straight away; free listings hold the enquiry until claimed,
- * and the Membership agent emails the professional to say it's waiting.
+ * A member of the public contacting a listed professional. Full profiles
+ * (paid, or within the 90-day trial) get the message straight away, with
+ * replies going to the enquirer. Otherwise the enquiry is held until they
+ * join: the professional is told at once that someone is trying to reach
+ * them (ref "enquiry-held:{listingId}:{enquiryId}", which the Membership
+ * agent checks so it never drafts a second email for the same enquiry).
  */
 export async function sendEnquiry(_prev: EnquiryState, formData: FormData): Promise<EnquiryState> {
   const listingId = String(formData.get("listingId") ?? "");
@@ -25,28 +34,36 @@ export async function sendEnquiry(_prev: EnquiryState, formData: FormData): Prom
 
   const listing = await prisma.directoryListing.findUnique({
     where: { id: listingId },
-    select: { id: true, kind: true, userId: true, name: true, email: true, freeUntil: true },
+    select: { id: true, kind: true, userId: true, name: true, email: true, freeUntil: true, slug: true },
   });
   if (!listing) return { ok: false, message: "This listing is no longer available." };
 
   // Delivered for paid listings and free listings in their 90-day trial; otherwise held until they join.
   const claimed = hasFullProfile(listing);
-  await prisma.enquiry.create({
+  const enquiry = await prisma.enquiry.create({
     data: { listingId: listing.id, name, email, message, status: claimed ? "forwarded" : "new" },
+    select: { id: true },
   });
 
+  const facts = { practitionerName: listing.name, enquirerName: name, enquirerEmail: email, message };
   if (claimed) {
-    await sendEmail({
-      to: listing.email,
-      subject: `New enquiry from ${name} via Trichollective`,
-      text: [
-        `Hello ${listing.name.split(" ")[0]},`,
-        `${name} contacted you through your Trichollective directory listing:`,
-        message,
-        `You can reply to them directly at ${email}.`,
-        `The Trichollective team`,
-      ].join("\n\n"),
-    }).catch((e) => console.error("[enquiry] email failed", e));
+    // Replies go straight to the enquirer; the practitioner's address is never shown to them.
+    const toPractitioner = enquiryToPractitionerEmail(facts);
+    const receipt = enquirySentEmail(facts);
+    await Promise.all([
+      deliver(listing.email, toPractitioner.subject, toPractitioner.content, { replyTo: email, tag: "enquiry" }),
+      deliver(email, receipt.subject, receipt.content, { tag: "enquiry-receipt" }),
+    ]);
+  } else {
+    // Held: the practitioner hears someone is waiting, without the enquirer's details or message.
+    const held = enquiryHeldPractitionerEmail(listing);
+    const receipt = enquiryHeldReceiptEmail(facts);
+    await Promise.all([
+      deliverOnce(`enquiry-held:${listing.id}:${enquiry.id}`, listing.email, held.subject, held.content, {
+        tag: "enquiry-held",
+      }),
+      deliver(email, receipt.subject, receipt.content, { tag: "enquiry-receipt" }),
+    ]);
   }
 
   if (listing.kind === "member" && listing.userId) {

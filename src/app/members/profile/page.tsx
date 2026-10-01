@@ -24,13 +24,14 @@ import { PROFESSIONS, professionById } from "@/config/rooms";
 import { hasFullProfile } from "@/lib/directory";
 import { tierById } from "@/config/subscriptions";
 import { cn } from "@/lib/utils";
-import { saveMemberDetails, signOutAction } from "./actions";
+import { saveEmailPreferences, saveMemberDetails, signOutAction } from "./actions";
 
 export const metadata = { title: "Your profile" };
 
 const MESSAGES: Record<string, string> = {
   about: "Your details are saved.",
   listing: "Your directory profile is saved and live.",
+  emails: "Your email preferences are saved.",
 };
 const ERRORS: Record<string, string> = {
   name: "Please add your name, at least two letters.",
@@ -77,6 +78,8 @@ export default async function ProfilePage({
         email: true,
         image: true,
         isFounding: true,
+        emailUpdates: true,
+        emailActivity: true,
         chapter: { select: { slug: true, city: true } },
         profile: true,
         listings: {
@@ -379,6 +382,47 @@ export default async function ProfilePage({
             ))}
           </ul>
         )}
+      </section>
+
+      <section id="emails" className="mt-10 scroll-mt-20">
+        <SectionLabel>Emails</SectionLabel>
+        <Card className="p-5 sm:p-6">
+          <form action={saveEmailPreferences} className="flex flex-col gap-5">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                name="emailUpdates"
+                defaultChecked={user.emailUpdates}
+                className="mt-1 h-5 w-5 shrink-0 accent-ink"
+              />
+              <span className="flex flex-col gap-1">
+                <span className="text-[15px] font-medium">News and new releases</span>
+                <span className="text-sm text-muted-foreground">
+                  The monthly newsletter, and an email when a new Trichozette edition, course or event is released.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                name="emailActivity"
+                defaultChecked={user.emailActivity}
+                className="mt-1 h-5 w-5 shrink-0 accent-ink"
+              />
+              <span className="flex flex-col gap-1">
+                <span className="text-[15px] font-medium">Replies and messages</span>
+                <span className="text-sm text-muted-foreground">
+                  An email when someone replies to your post or sends you a private message. You&apos;ll always see them in
+                  the app.
+                </span>
+              </span>
+            </label>
+            <p className="text-sm text-muted-foreground">
+              Emails about your account, event bookings and payments are always sent to {user.email ?? "your email address"}.
+            </p>
+            <SubmitButton className="self-start">Save email preferences</SubmitButton>
+          </form>
+        </Card>
       </section>
 
       <section className="mt-10">

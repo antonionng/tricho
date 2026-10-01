@@ -127,9 +127,17 @@ export const membershipAgent: AgentDefinition = {
         enquiries: { where: { status: "new" }, select: { id: true, createdAt: true }, orderBy: { createdAt: "desc" } },
       },
     });
+    // Enquiries already emailed at the moment they arrived (sendEnquiry) are skipped, so nobody gets two emails.
+    const heldRefs = waiting.flatMap((l) => l.enquiries.map((e) => `enquiry-held:${l.id}:${e.id}`));
+    const alreadyEmailed = new Set(
+      heldRefs.length
+        ? (await prisma.emailLog.findMany({ where: { ref: { in: heldRefs } }, select: { ref: true } })).map((r) => r.ref)
+        : []
+    );
     for (const l of waiting) {
-      const count = l.enquiries.length;
-      const latest = l.enquiries[0];
+      const unnotified = l.enquiries.filter((e) => !alreadyEmailed.has(`enquiry-held:${l.id}:${e.id}`));
+      const count = unnotified.length;
+      const latest = unnotified[0];
       if (!latest) continue;
       const first = firstName(l.name);
       const template = {

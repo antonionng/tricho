@@ -9,6 +9,8 @@ import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { hasFullProfile, uniqueListingSlug } from "@/lib/directory";
 import { LISTING_COUNTRIES } from "@/content/chapters";
 import { getMemberContext } from "@/lib/member";
+import { alertOwners, deliver } from "@/lib/mail/send";
+import { listingReceivedEmail, newListingAlert } from "@/lib/mail/templates/directory";
 
 function clean(value: FormDataEntryValue | null, max: number) {
   return String(value ?? "").trim().slice(0, max);
@@ -40,6 +42,18 @@ function parsePhotoUrl(value: FormDataEntryValue | null) {
 function safeNext(value: FormDataEntryValue | null) {
   const next = clean(value, 200);
   return next.startsWith("/members/profile") ? next : null;
+}
+
+/** Thank the submitter and tell the owners a listing is waiting. Never throws. */
+async function notifyListingSubmitted(
+  l: { name: string; email: string; profession: string; city: string; country: string | null; source: string | null },
+  via: string
+) {
+  const { subject, content } = listingReceivedEmail(l);
+  await Promise.all([
+    deliver(l.email, subject, content, { tag: "listing-received" }),
+    alertOwners(newListingAlert({ ...l, via })),
+  ]);
 }
 
 export async function submitFreeListing(formData: FormData) {
@@ -92,6 +106,7 @@ export async function submitFreeListing(formData: FormData) {
         inviteToken: null,
       },
     });
+    await notifyListingSubmitted({ name, email, profession, city, country, source }, "an invitation link");
     redirect("/directory/list?submitted=1");
   }
 
@@ -123,6 +138,7 @@ export async function submitFreeListing(formData: FormData) {
     },
   });
 
+  await notifyListingSubmitted({ name, email, profession, city, country, source }, "the public listing form");
   redirect("/directory/list?submitted=1");
 }
 
@@ -249,6 +265,22 @@ export async function publishMemberListing(formData: FormData) {
         ...(paid ? { reviewedAt: new Date() } : {}),
       },
     });
+  }
+
+  // A free account's listing has just joined the review queue: tell the owners.
+  const nowPending = !paid && (!existing || existing.status === ListingStatus.invited);
+  if (nowPending) {
+    await alertOwners(
+      newListingAlert({
+        name,
+        email: session.user.email.toLowerCase(),
+        profession,
+        city,
+        country: existing?.country ?? null,
+        source: existing?.source ?? null,
+        via: "a member's profile page",
+      })
+    );
   }
 
   revalidatePath("/directory");

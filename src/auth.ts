@@ -6,6 +6,10 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { isDevOrDemo, isPreviewDemo } from "@/lib/env";
+import { sendEmail } from "@/lib/email";
+import { renderEmail } from "@/lib/mail/layout";
+import { alertOwners, deliver } from "@/lib/mail/send";
+import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib/mail/templates/leads";
 
 const providers: NextAuthConfig["providers"] = [];
 
@@ -23,6 +27,12 @@ if (process.env.AUTH_RESEND_KEY) {
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY,
       from: process.env.AUTH_EMAIL_FROM || "Trichollective <onboarding@resend.dev>",
+      // Branded magic link. Throws on failure so NextAuth shows the sign-in error.
+      async sendVerificationRequest({ identifier, url }) {
+        const { subject, content } = signInLinkEmail({ url });
+        const { html, text } = renderEmail(content);
+        await sendEmail({ to: identifier, subject, html, text, tag: "sign-in" });
+      },
     })
   );
 }
@@ -76,6 +86,19 @@ export const {
   session: { strategy: "jwt" },
   ...authConfig,
   providers,
+  events: {
+    // Fires only when the adapter creates a user (first sign-in by email link or
+    // Google). Paid sign-ups created by the Stripe webhook and dev logins are
+    // written directly with Prisma, so they don't get this free-account welcome.
+    async createUser({ user }) {
+      if (!user.email) return;
+      const { subject, content } = welcomeFreeAccountEmail({ name: user.name });
+      await Promise.all([
+        deliver(user.email, subject, content, { tag: "welcome-free" }),
+        alertOwners(newAccountAlert({ name: user.name, email: user.email })),
+      ]);
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
     async session({ session, token }) {

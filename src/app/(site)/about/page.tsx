@@ -224,7 +224,11 @@ export default function AboutPage() {
                 fade="and we read every message."
                 body={
                   <>
-                    For questions about membership, the directory or anything else, email{" "}
+                    For questions about membership, the directory or anything else,{" "}
+                    <Link href="/contact" className="text-ink underline underline-offset-4">
+                      send us a message
+                    </Link>{" "}
+                    or email{" "}
                     <a href={`mailto:${site.contactEmail}`} className="text-ink underline underline-offset-4">
                       {site.contactEmail}
                     </a>
@@ -234,6 +238,7 @@ export default function AboutPage() {
               />
             </div>
             <div className="flex flex-col gap-4 lg:col-span-5 lg:col-start-8 lg:justify-end">
+              <ArrowLink href="/contact">Send us a message</ArrowLink>
               <ArrowLink href="/partners">Partnerships and sponsorship</ArrowLink>
               <ArrowLink href="/for-business">Business membership</ArrowLink>
               <ArrowLink href="/find">Find a hair or scalp professional</ArrowLink>
