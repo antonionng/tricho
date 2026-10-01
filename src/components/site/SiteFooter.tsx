@@ -78,7 +78,7 @@ export function SiteFooter() {
           <ul className="flex gap-5">
             <li><Link href="/privacy" className="hover:text-ink">Privacy</Link></li>
             <li><Link href="/terms" className="hover:text-ink">Terms</Link></li>
-            <li><a href={`mailto:${site.contactEmail}`} className="hover:text-ink">Contact</a></li>
+            <li><Link href="/contact" className="hover:text-ink">Contact</Link></li>
           </ul>
         </div>
       </Container>

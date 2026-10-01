@@ -3,7 +3,10 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import type { DraftStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AGENTS, agentLabel, getAgent } from "@/agents";
-import { newsletterRecipients, payloadOf } from "@/agents/publish";
+import { announcementRecipients, newsletterRecipients, payloadOf } from "@/agents/publish";
+import { renderEmail } from "@/lib/mail/layout";
+import { draftEmailContent } from "@/lib/mail/templates/members";
+import { announcementEmail, newsletterEmail } from "@/lib/mail/templates/releases";
 import { roomById, normalizeSpace } from "@/config/rooms";
 import { Button } from "@/components/ui/button";
 import { DraftBody } from "@/components/studio/DraftBody";
@@ -202,7 +205,21 @@ async function DraftDetail({
   const payload = payloadOf(draft);
   const open = draft.status === "draft";
   const canRegenerate = !!getAgent(draft.agent) && draft.status !== "published";
-  const recipients = draft.kind === "newsletter" && confirm ? await newsletterRecipients() : null;
+  const recipients = !confirm
+    ? null
+    : draft.kind === "newsletter"
+      ? await newsletterRecipients()
+      : draft.kind === "announcement"
+        ? await announcementRecipients()
+        : null;
+  const emailPreview =
+    draft.kind === "email"
+      ? draftEmailContent(draft, payload)
+      : draft.kind === "newsletter"
+        ? newsletterEmail(draft, payload)
+        : draft.kind === "announcement"
+          ? announcementEmail(draft, payload)
+          : null;
   const space = typeof payload.space === "string" ? roomById(normalizeSpace(payload.space)) : null;
 
   const hidden = (
@@ -232,8 +249,8 @@ async function DraftDetail({
         View in the community
       </Link>,
     ]);
-  if (draft.kind === "partner_enquiry") {
-    for (const key of ["company", "name", "email", "role", "interest", "tier", "category", "website", "budget"]) {
+  if (draft.kind === "partner_enquiry" || draft.kind === "contact") {
+    for (const key of ["company", "name", "email", "topic", "role", "interest", "tier", "category", "website", "budget"]) {
       const v = payload[key];
       if (typeof v === "string" && v) facts.push([key.charAt(0).toUpperCase() + key.slice(1), v]);
     }
@@ -282,14 +299,33 @@ async function DraftDetail({
         <DraftBody body={draft.body} />
       </div>
 
-      {/* Newsletter confirm step */}
-      {open && draft.kind === "newsletter" && recipients && (
+      {emailPreview && (
+        <details className="group rounded-2xl border border-rule" open={draft.kind !== "email"}>
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-ink">
+            See the email as people will receive it
+            <span className="ml-2 text-muted-foreground">Subject: {emailPreview.subject}</span>
+          </summary>
+          <iframe
+            title="Email preview"
+            srcDoc={renderEmail(emailPreview.content).html}
+            sandbox=""
+            className="h-[640px] w-full rounded-b-2xl border-t border-rule bg-[#f4f3f0]"
+          />
+        </details>
+      )}
+
+      {/* Newsletter and announcement confirm step */}
+      {open && (draft.kind === "newsletter" || draft.kind === "announcement") && recipients && (
         <div className="space-y-3 rounded-2xl border-2 border-ink p-5">
           <p className="font-medium text-ink">
-            Send this newsletter to {recipients.length} {recipients.length === 1 ? "person" : "people"}?
+            Send this {draft.kind === "newsletter" ? "newsletter" : "announcement"} to {recipients.length}{" "}
+            {recipients.length === 1 ? "person" : "people"}?
           </p>
           <p className="text-sm text-ink-2">
-            That&apos;s every subscriber who hasn&apos;t unsubscribed, plus every active member. It can&apos;t be unsent.
+            {draft.kind === "newsletter"
+              ? "That's every subscriber who hasn't unsubscribed, plus every active member."
+              : "That's every member, every free account and every subscriber who still wants news of new releases."}{" "}
+            It can&apos;t be unsent.
           </p>
           <div className="flex flex-wrap gap-2">
             <form action={approveDraftAction}>

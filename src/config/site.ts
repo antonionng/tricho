@@ -71,7 +71,7 @@ export const site = {
     places: 200,
     closes: "the end of the founding period",
   },
-  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "hello@trichollective.com",
+  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "karley@trichollective.net",
   social: [] as { label: string; href: string }[],
 };
 

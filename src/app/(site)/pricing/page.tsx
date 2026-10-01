@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { images } from "@/content/images";
 import { Check, CreditCard, RotateCcw, ShieldCheck } from "lucide-react";
 import { Container, Section, SectionHeader } from "@/components/site/primitives";
@@ -307,10 +308,10 @@ export default async function PricingPage({
               <p className="flex items-start gap-3 text-[15px] leading-relaxed text-ink-2">
                 <CreditCard className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
                 <span>
-                  Something we haven&apos;t answered? Email{" "}
-                  <a href={`mailto:${site.contactEmail}`} className="text-ink underline underline-offset-4">
-                    {site.contactEmail}
-                  </a>{" "}
+                  Something we haven&apos;t answered?{" "}
+                  <Link href="/contact?topic=Membership%20and%20billing" className="text-ink underline underline-offset-4">
+                    Send us a message
+                  </Link>{" "}
                   and a person will reply.
                 </span>
               </p>

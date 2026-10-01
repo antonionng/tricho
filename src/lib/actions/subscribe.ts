@@ -1,6 +1,10 @@
 "use server";
 
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { courseBySlug } from "@/content/courses";
+import { deliver } from "@/lib/mail/send";
+import { subscribeEmail } from "@/lib/mail/templates/leads";
 
 export type SubscribeState = { ok: boolean; message: string } | null;
 
@@ -15,11 +19,22 @@ export async function subscribe(_prev: SubscribeState, formData: FormData): Prom
     return { ok: false, message: "Please check your email address." };
   }
 
+  // Welcome only new (or returning) subscribers. A guide or a course they've just
+  // asked for is still sent, since that is a fresh request rather than a re-subscribe.
+  const existing = await prisma.subscriber.findUnique({ where: { email }, select: { unsubscribedAt: true } });
+  const alreadySubscribed = !!existing && !existing.unsubscribedAt;
+
   await prisma.subscriber.upsert({
     where: { email },
     update: { unsubscribedAt: null },
     create: { email, source, utmSource, utmCampaign },
   });
+
+  const isRequest = source === "starter-guide" || source.startsWith("course:");
+  if (!alreadySubscribed || isRequest) {
+    const { subject, content } = subscribeEmail(source, (slug) => courseBySlug(slug)?.title);
+    after(() => deliver(email, subject, content, { list: "updates", tag: `subscribe-${source.split(":")[0]}` }));
+  }
 
   return {
     ok: true,

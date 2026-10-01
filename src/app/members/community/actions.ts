@@ -1,10 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMemberContext, memberCanPost } from "@/lib/member";
 import { canReadRoom, normalizeSpace, roomById } from "@/config/rooms";
 import { firstName, notify } from "@/lib/community";
+import { alertOwners, deliver } from "@/lib/mail/send";
+import { commentReplyEmail } from "@/lib/mail/templates/members";
+import { postReportedAlert } from "@/lib/mail/templates/owners";
 
 export type FormState = { ok?: boolean; error?: string; message?: string; id?: string } | null;
 
@@ -88,6 +92,19 @@ export async function createComment(_prev: FormState, formData: FormData): Promi
       title: `${who} replied to “${about}”`,
       href: `/members/community/${postId}`,
     });
+    const commenter = ctx.session?.user?.name?.trim() || "A member";
+    after(async () => {
+      const author = await prisma.user.findUnique({ where: { id: post.authorId }, select: { name: true, email: true } });
+      if (!author?.email) return;
+      const email = commentReplyEmail({
+        recipientName: author.name,
+        commenterName: commenter,
+        postTitle: post.title || post.content,
+        comment: content,
+        postId,
+      });
+      await deliver(author.email, email.subject, email.content, { list: "activity", tag: "activity" });
+    });
   }
 
   revalidateFeeds(postId, post.chapter?.slug);
@@ -132,7 +149,7 @@ export async function reportPost(_prev: FormState, formData: FormData): Promise<
   const detail = clean(formData.get("detail"), 600);
   if (!postId || !REASONS[kind]) return { error: "Choose a reason so we know what to look for." };
 
-  const post = await prisma.communityPost.findUnique({ where: { id: postId }, select: { id: true } });
+  const post = await prisma.communityPost.findUnique({ where: { id: postId }, select: { id: true, title: true, content: true } });
   if (!post) return { error: "That post could not be found." };
 
   const already = await prisma.report.findFirst({
@@ -140,14 +157,14 @@ export async function reportPost(_prev: FormState, formData: FormData): Promise<
     select: { id: true },
   });
   if (!already) {
+    const reason = detail ? `${REASONS[kind]}: ${detail}` : REASONS[kind];
     await prisma.report.create({
-      data: {
-        postId,
-        reporterId: userId,
-        source: "member",
-        reason: detail ? `${REASONS[kind]}: ${detail}` : REASONS[kind],
-      },
+      data: { postId, reporterId: userId, source: "member", reason },
     });
+    const reporterName = member.ctx.session?.user?.name ?? null;
+    after(() =>
+      alertOwners(postReportedAlert({ reason, postTitle: post.title || post.content, reporterName }))
+    );
   }
   return { ok: true, message: "Thank you. The team will look at this quietly and in confidence." };
 }

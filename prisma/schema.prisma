@@ -83,13 +83,17 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
-  plan         Plan?
-  isFounding   Boolean   @default(false)
+  plan          Plan?
+  isFounding    Boolean   @default(false)
   /// Where they came from when they first paid, e.g. "dublin", "instagram", "facebook".
-  signupSource String?
-  onboardedAt  DateTime?
-  chapterId    String?
-  chapter      Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  signupSource  String?
+  onboardedAt   DateTime?
+  /// Newsletter and announcements of new editions, courses and events.
+  emailUpdates  Boolean   @default(true)
+  /// Emails about replies, messages and enquiries inside the platform.
+  emailActivity Boolean   @default(true)
+  chapterId     String?
+  chapter       Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
   profile   TrichologistProfile?
   posts     CommunityPost[]
@@ -516,4 +520,14 @@ model Partner {
   updatedAt     DateTime  @updatedAt
 
   @@index([published, tier])
+}
+
+/// One row per email that must only ever go out once (reminders, announcements).
+model EmailLog {
+  id        String   @id @default(cuid())
+  ref       String   @unique
+  to        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
