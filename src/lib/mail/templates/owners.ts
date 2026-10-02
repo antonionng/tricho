@@ -19,6 +19,21 @@ export function postReportedAlert(p: { reason: string; postTitle: string; report
   };
 }
 
+export function reportEscalatedAlert(p: { reason: string; content: string; escalatedBy: string; note?: string | null }): OwnerAlert {
+  return {
+    subject: "A community report needs an owner",
+    heading: "A moderator has escalated a community report because it needs an owner's decision.",
+    body: "The content is still visible unless it was hidden separately. Please review it in Studio and decide what should happen next.",
+    facts: [
+      ["Reason", p.reason],
+      ["Content", clip(p.content, 140)],
+      ["Escalated by", p.escalatedBy],
+      ...(p.note ? ([["Note", clip(p.note, 300)]] as [string, string][]) : []),
+    ],
+    cta: { label: "Review reports", href: "/studio/community" },
+  };
+}
+
 export type DigestLead = { name: string | null; email: string; source: string };
 
 export type OwnerDigest = {

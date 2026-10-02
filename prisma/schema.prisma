@@ -60,6 +60,36 @@ enum ReferralStatus {
   seen
 }
 
+/// Staff roles in Studio. Separate from UserRole, which billing writes.
+enum StaffRole {
+  owner
+  editor
+  events
+  moderator
+  support
+}
+
+enum AccessStatus {
+  active
+  suspended
+  banned
+}
+
+enum EditionStatus {
+  generating
+  draft
+  scheduled
+  published
+  withdrawn
+}
+
+enum EpisodeStatus {
+  planning
+  draft
+  published
+  withdrawn
+}
+
 enum EventKind {
   gathering
   masterclass
@@ -69,12 +99,23 @@ enum EventKind {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?      @unique
   emailVerified DateTime?
   image         String?
-  role          UserRole  @default(individual)
+  role          UserRole     @default(individual)
+  /// Set for the Trichollective team. Decides what they can do in Studio.
+  staffRole     StaffRole?
+  accessStatus  AccessStatus @default(active)
+  accessReason  String?
+  /// When a suspension ends. Empty with "suspended" means until it is lifted.
+  accessUntil   DateTime?
+  /// Can read the community but not post or comment until this time.
+  mutedUntil    DateTime?
+  /// A plan given by the team without Stripe, e.g. for a speaker or partner.
+  compPlan      Plan?
+  compUntil     DateTime?
   accounts      Account[]
   sessions      Session[]
 
@@ -110,6 +151,9 @@ model User {
   referralsSent Referral[]           @relation("referralFrom")
   referralsIn   Referral[]           @relation("referralTo")
   rsvps         EventRsvp[]
+  auditLogs     AuditLog[]           @relation("auditActor")
+  memberNotes   MemberNote[]         @relation("noteSubject")
+  notesWritten  MemberNote[]         @relation("noteAuthor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -176,19 +220,21 @@ model DirectoryListing {
 }
 
 model CommunityPost {
-  id        String     @id @default(cuid())
-  title     String?
-  content   String     @db.Text
-  category  String
-  space     String     @default("everyone")
-  pinned    Boolean    @default(false)
-  chapterId String?
-  chapter   Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  authorId  String
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments  Comment[]
-  reactions Reaction[]
-  reports   Report[]
+  id           String     @id @default(cuid())
+  title        String?
+  content      String     @db.Text
+  category     String
+  space        String     @default("everyone")
+  pinned       Boolean    @default(false)
+  chapterId    String?
+  chapter      Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+  reactions    Reaction[]
+  reports      Report[]
+  hiddenAt     DateTime?
+  hiddenReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,12 +244,15 @@ model CommunityPost {
 }
 
 model Comment {
-  id       String        @id @default(cuid())
-  content  String        @db.Text
-  postId   String
-  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  authorId String
-  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid())
+  content      String        @db.Text
+  postId       String
+  post         CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reports      Report[]
+  hiddenAt     DateTime?
+  hiddenReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -362,18 +411,26 @@ model Notification {
 }
 
 model Report {
-  id         String        @id @default(cuid())
-  postId     String
-  post       CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporterId String?
-  reporter   User?         @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  id           String        @id @default(cuid())
+  postId       String
+  post         CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId   String?
+  reporter     User?         @relation(fields: [reporterId], references: [id], onDelete: SetNull)
   /// "member" or the agent name that flagged it.
-  source     String        @default("member")
-  reason     String
-  resolvedAt DateTime?
-  createdAt  DateTime      @default(now())
+  source       String        @default("member")
+  reason       String
+  /// Set when the report is about a comment rather than the post itself.
+  commentId    String?
+  comment      Comment?      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  /// The moderation assistant's view: { severity, category, rationale, suggestedAction }.
+  aiVerdict    Json?
+  /// "dismissed" | "hidden" | "removed" | "muted" | "escalated"
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
 
-  @@unique([postId, reporterId])
+  @@index([postId, reporterId])
   @@index([resolvedAt, createdAt])
 }
 
@@ -500,29 +557,29 @@ model AgentSetting {
 
 /// Business and Premium Business partners shown on /partners. Only real, published partners appear.
 model Partner {
-  id            String    @id @default(cuid())
-  slug          String    @unique
+  id            String       @id @default(cuid())
+  slug          String       @unique
   name          String
   /// "premium" or "business"
-  tier          String    @default("premium")
+  tier          String       @default("premium")
   /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
   category      String
   logoUrl       String?
-  blurb         String    @db.Text
+  blurb         String       @db.Text
   website       String?
   /// The member perk, shown in the member area.
-  perk          String?   @db.Text
+  perk          String?      @db.Text
   contactEmail  String?
-  isFounding    Boolean   @default(false)
-  published     Boolean   @default(false)
+  isFounding    Boolean      @default(false)
+  published     Boolean      @default(false)
   featuredUntil DateTime?
   /// The sign-in email of the person who manages this page from the member area.
-  ownerEmail    String?   @unique
+  ownerEmail    String?      @unique
   /// Taken down by the Studio: hidden, and the owner can't republish it.
-  hidden        Boolean   @default(false)
+  hidden        Boolean      @default(false)
   logo          PartnerLogo?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([published, tier])
 }
@@ -538,11 +595,11 @@ model PartnerLogo {
 
 /// A team member given Professional membership through a business plan (five per business).
 model BusinessSeat {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   /// The business account holder's sign-in email.
   ownerEmail String
   email      String
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime @default(now())
 
   @@unique([ownerEmail, email])
   @@index([email])
@@ -556,4 +613,142 @@ model EmailLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// Every change made in Studio, for owners to look back on.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("auditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String
+  /// e.g. "member.suspend", "staff.assign", "gazette.publish"
+  action     String
+  /// "user" | "post" | "event" | "edition" | "room" | "draft" | "episode" ...
+  targetType String
+  targetId   String?
+  summary    String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+/// Private notes the team keeps about a member.
+model MemberNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("noteSubject", fields: [userId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("noteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Community rooms the team can create and edit. Seeded from DEFAULT_ROOMS.
+model CommunityRoom {
+  /// The slug, e.g. "case-room".
+  id               String    @id
+  label            String
+  blurb            String
+  prompt           String
+  professionalOnly Boolean   @default(false)
+  noBrands         Boolean   @default(false)
+  aiModeration     Boolean   @default(false)
+  position         Int       @default(0)
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+/// A Trichozette edition written in Studio. Built-in editions stay in src/content/gazette.
+model GazetteEdition {
+  id            String            @id @default(cuid())
+  slug          String            @unique
+  number        Int               @default(0)
+  /// "current" | "archive"
+  series        String            @default("current")
+  status        EditionStatus     @default(draft)
+  title         String
+  fade          String            @default("")
+  theme         String            @default("")
+  standfirst    String            @default("") @db.Text
+  coverImageKey String?
+  coverTone     String            @default("light")
+  audience      String[]
+  period        String?
+  focus         String?
+  /// Page[] from src/content/gazette/types.ts, validated by schema.ts.
+  pages         Json              @default("[]")
+  /// { label, url }[]
+  sources       Json?
+  newsTopics    String[]
+  brief         String?           @db.Text
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  createdById   String?
+  updatedById   String?
+  revisions     GazetteRevision[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model GazetteRevision {
+  id        String         @id @default(cuid())
+  editionId String
+  edition   GazetteEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  authorId  String?
+  note      String?
+  createdAt DateTime       @default(now())
+
+  @@index([editionId, createdAt])
+}
+
+/// A podcast episode. Audio lives with the podcast host; we keep the notes and transcript.
+model PodcastEpisode {
+  id               String        @id @default(cuid())
+  slug             String        @unique
+  number           Int?
+  season           Int?
+  status           EpisodeStatus @default(planning)
+  title            String
+  fade             String        @default("")
+  summary          String        @default("") @db.Text
+  showNotes        String        @default("") @db.Text
+  /// { t: seconds, label }[]
+  keyMoments       Json?
+  quotes           String[]
+  guestName        String?
+  guestRole        String?
+  guestBio         String?       @db.Text
+  guestUserId      String?
+  topic            String?
+  /// The host's direct MP3 file.
+  audioUrl         String?
+  embedUrl         String?
+  /// The host's GUID, used to match episodes when syncing the feed.
+  externalId       String?       @unique
+  durationSec      Int?
+  coverImageKey    String?
+  transcript       String?       @db.Text
+  /// "none" | "transcribing" | "ready" | "failed"
+  transcriptStatus String        @default("none")
+  /// Interview questions and running order.
+  plan             Json?
+  /// Transcript readable by members only.
+  membersOnly      Boolean       @default(true)
+  publishedAt      DateTime?
+  createdById      String?
+  updatedById      String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([status, publishedAt])
 }

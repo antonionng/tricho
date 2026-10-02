@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { courses } from "@/content/courses";
-import { editions, type Edition } from "@/content/gazette";
+import type { Edition } from "@/content/gazette";
 import {
   articlesAnnouncement,
   courseAnnouncement,
@@ -103,7 +103,9 @@ export const releasesAgent: AgentDefinition = {
     };
 
     /* 1. Trichozette editions. Several published on one day share one email. */
-    for (const group of newEditions(editions, now, known)) await add(editionsAnnouncement(group));
+    // Built-in editions and those published from Studio. Imported here so tests of this module never load server-only code.
+    const { getEditions } = await import("@/content/gazette/loader");
+    for (const group of newEditions(await getEditions(), now, known)) await add(editionsAnnouncement(group));
 
     /* 2. Courses, once they open. The catalogue has no publication date, so opening is the release. */
     for (const c of courses) if (c.status === "open") await add(courseAnnouncement(c));

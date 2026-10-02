@@ -1,10 +1,16 @@
+import Image from "next/image";
+import Link from "next/link";
 import { FileText, Headphones, Mic } from "lucide-react";
 import { ArrowLink, Container, Section, SectionHeader } from "@/components/site/primitives";
 import { PageHero } from "@/components/editorial/PageHero";
 import { SignupPanel } from "@/components/editorial/SignupPanel";
-import { images } from "@/content/images";
+import { images, img } from "@/content/images";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
+import { episodeImage, publishedEpisodes } from "@/lib/podcast";
+import { formatDuration } from "@/lib/podcast-feed";
+
+export const revalidate = 3600;
 
 export const metadata = pageMetadata({
   title: "The podcast: conversations from the community",
@@ -18,7 +24,8 @@ const crumbs = [
   { name: "Podcast", path: "/podcast" },
 ];
 
-export default function PodcastPage() {
+export default async function PodcastPage() {
+  const episodes = await publishedEpisodes();
   return (
     <>
       <PageHero
@@ -37,29 +44,76 @@ export default function PodcastPage() {
         crumbs={crumbs}
       />
 
-      {/* Empty state */}
-      <Section>
-        <Container>
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-            <div className="lg:col-span-5">
-              <SectionHeader
-                eyebrow="Episodes"
-                title="Be the first to hear an episode"
-                fade="when it is published."
-                body="We're recording our first conversations now. When the first episode is ready, it will appear here with a full transcript."
-              />
+      {episodes.length > 0 ? (
+        <Section>
+          <Container>
+            <SectionHeader
+              eyebrow="Episodes"
+              title="Listen to the latest conversations,"
+              fade="each with show notes and a transcript."
+            />
+            <ul className="mt-14 divide-y divide-rule border-y border-rule">
+              {episodes.map((e) => {
+                const cover = episodeImage(e.coverImageKey);
+                return (
+                  <li key={e.id}>
+                    <Link href={`/podcast/${e.slug}`} className="group grid gap-6 py-10 sm:grid-cols-[180px_1fr] sm:gap-10">
+                      <div className="relative aspect-square overflow-hidden rounded-2xl bg-paper-2">
+                        <Image src={img(cover, 400)} alt={cover.alt} fill sizes="180px" className="mag-bw object-cover" />
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <p className="label text-muted-foreground">
+                          {[
+                            e.number ? `Episode ${e.number}` : null,
+                            e.guestName,
+                            formatDuration(e.durationSec),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                        <h2 className="display text-3xl sm:text-4xl">
+                          <span className="group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">{e.title}</span>
+                          {e.fade && (
+                            <>
+                              {" "}
+                              <span className="text-fade">{e.fade}</span>
+                            </>
+                          )}
+                        </h2>
+                        {e.summary && <p className="max-w-2xl text-[15px] leading-relaxed text-ink-2">{e.summary}</p>}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </Container>
+        </Section>
+      ) : (
+        /* Empty state */
+        <Section>
+          <Container>
+            <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+              <div className="lg:col-span-5">
+                <SectionHeader
+                  eyebrow="Episodes"
+                  title="Be the first to hear an episode"
+                  fade="when it is published."
+                  body="We're recording our first conversations now. When the first episode is ready, it will appear here with a full transcript."
+                />
+              </div>
+              <div className="lg:col-span-7">
+                <SignupPanel
+                  eyebrow="Hear it first"
+                  title="Get the first episode in your inbox."
+                  body="Leave your email and we'll send you the first episode as soon as it's published, followed by our monthly newsletter."
+                  source="podcast"
+                />
+              </div>
             </div>
-            <div className="lg:col-span-7">
-              <SignupPanel
-                eyebrow="Hear it first"
-                title="Get the first episode in your inbox."
-                body="Leave your email and we'll send you the first episode as soon as it's published, followed by our monthly newsletter."
-                source="podcast"
-              />
-            </div>
-          </div>
-        </Container>
-      </Section>
+          </Container>
+        </Section>
+      )}
 
       {/* What to expect */}
       <Section tone="paper-2">
@@ -101,19 +155,21 @@ export default function PodcastPage() {
         </Container>
       </Section>
 
-      <Section>
-        <Container>
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <SectionHeader
-              eyebrow="In the meantime"
-              title="Read a free piece from Trichozette"
-              fade="while the first episode is being recorded."
-              body="Selected pieces from Trichozette, our monthly members' edition, are free to read in the Journal."
-            />
-            <ArrowLink href="/journal">Visit the Journal</ArrowLink>
-          </div>
-        </Container>
-      </Section>
+      {episodes.length === 0 && (
+        <Section>
+          <Container>
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <SectionHeader
+                eyebrow="In the meantime"
+                title="Read a free piece from Trichozette"
+                fade="while the first episode is being recorded."
+                body="Selected pieces from Trichozette, our monthly members' edition, are free to read in the Journal."
+              />
+              <ArrowLink href="/journal">Visit the Journal</ArrowLink>
+            </div>
+          </Container>
+        </Section>
+      )}
 
       <JsonLd data={breadcrumbLd(crumbs)} />
     </>

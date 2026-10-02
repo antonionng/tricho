@@ -156,3 +156,19 @@ export function dateOnly(d: Date | null | undefined) {
   if (!d) return "";
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" });
 }
+
+/** Shown when someone on the team opens a part of Studio their role doesn't cover. */
+export function NoAccess({ what = "this part of Studio" }: { what?: string }) {
+  return (
+    <div className="mx-auto max-w-xl space-y-4 py-16 text-center">
+      <h1 className="display text-4xl">Your role doesn&apos;t include {what}.</h1>
+      <p className="text-[15px] leading-relaxed text-ink-2">
+        Each person on the team sees the parts of Studio they look after. If you need access to this, ask an owner to change your
+        role on the Team page.
+      </p>
+      <Link href="/studio" className="inline-block text-sm text-ink underline underline-offset-4">
+        Back to the overview
+      </Link>
+    </div>
+  );
+}

@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { ROOMS, normalizeSpace, roomById, type RoomId } from "@/config/rooms";
+import { normalizeSpace, roomById, type KnownRoomId } from "@/config/rooms";
+import { getAllRooms, getRooms } from "@/lib/rooms";
 import { generate, generateStructured, aiAvailable } from "./ai";
+import { CASE_PRIVACY_GUIDANCE } from "./moderation";
 import { SYSTEM_USER_EMAIL } from "./publish";
 import type { AgentDefinition } from "./types";
 import { DAY, excerpt, firstName, isoWeekKey, professionPhrase } from "./util";
@@ -10,7 +12,7 @@ import { DAY, excerpt, firstName, isoWeekKey, professionPhrase } from "./util";
 /* Weekly discussion prompts. Several per space, rotated by week.       */
 /* ------------------------------------------------------------------ */
 
-const PROMPT_BANK: Record<RoomId, { title: string; body: string }[]> = {
+const PROMPT_BANK: Record<KnownRoomId, { title: string; body: string }[]> = {
   lounge: [
     { title: "What's one small change that made your week easier?", body: "It might be a new booking habit, a better way of writing notes, or simply a morning routine that stuck. Share one small change that made a difference this week, and what prompted it." },
     { title: "What are you reading, watching or listening to?", body: "Books, podcasts, courses or a good thread elsewhere. What's been worth your time lately, and who would you recommend it to?" },
@@ -99,6 +101,7 @@ export const communityAgent: AgentDefinition = {
         onboardedAt: { gte: new Date(now.getTime() - DAY) },
         email: { not: SYSTEM_USER_EMAIL },
         role: { not: "admin" },
+        staffRole: null,
       },
       select: {
         id: true,
@@ -146,6 +149,7 @@ export const communityAgent: AgentDefinition = {
     const quiet = await prisma.communityPost.findMany({
       where: {
         createdAt: { lt: new Date(now.getTime() - 2 * DAY), gte: new Date(now.getTime() - 14 * DAY) },
+        hiddenAt: null,
         comments: { none: {} },
         author: { email: { not: SYSTEM_USER_EMAIL } },
       },
@@ -153,8 +157,9 @@ export const communityAgent: AgentDefinition = {
       orderBy: { createdAt: "asc" },
       take: 20,
     });
+    const allRooms = await getAllRooms();
     for (const post of quiet) {
-      const room = roomById(normalizeSpace(post.space));
+      const room = roomById(normalizeSpace(post.space, allRooms), allRooms);
       const topic = post.title || excerpt(post.content, 80);
       const ai = await generate(
         "Write a gentle, two-sentence comment the Trichollective team could add under a community post that nobody has answered yet, inviting members with relevant experience to share. Do not answer the question yourself and do not give clinical advice.",
@@ -177,8 +182,8 @@ export const communityAgent: AgentDefinition = {
 
     /* 3. One discussion prompt per space, once a week. */
     const { key: weekKey, week } = isoWeekKey(now);
-    for (const room of ROOMS) {
-      const bank = PROMPT_BANK[room.id];
+    for (const room of await getRooms()) {
+      const bank = PROMPT_BANK[room.id as KnownRoomId];
       if (!bank?.length) continue;
       const pick = bank[week % bank.length];
       let title = pick.title;
@@ -221,9 +226,10 @@ export const communityAgent: AgentDefinition = {
       where: {
         space: { in: caseSpaces },
         createdAt: { gte: new Date(now.getTime() - 14 * DAY) },
+        hiddenAt: null,
         reports: { none: { source: "community" } },
       },
-      select: { id: true, title: true, content: true, comments: { select: { content: true } } },
+      select: { id: true, title: true, content: true, comments: { where: { hiddenAt: null }, select: { content: true } } },
       take: 50,
     });
     for (const post of casePosts) {
@@ -232,7 +238,7 @@ export const communityAgent: AgentDefinition = {
       if (!reason && aiAvailable()) {
         const out = await generateStructured(
           idSchema,
-          "You check anonymised clinical case posts shared between hair and scalp professionals. Decide whether the text contains information that could identify the client: a name, a name with an age, contact details, an exact address, workplace, or a rare combination of specifics. Broad details such as 'a woman in her 30s' are fine. Explain briefly in one sentence.",
+          `${CASE_PRIVACY_GUIDANCE} Explain briefly in one sentence.`,
           text.slice(0, 4000)
         );
         if (out?.identifying) reason = out.reason;

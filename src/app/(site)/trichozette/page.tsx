@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { NewsletterForm } from "@/components/site/NewsletterForm";
 import { Cover } from "@/components/gazette/Cover";
 import { TiltCover } from "@/components/gazette/TiltCover";
-import { archive, editionLabel, editions, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { editionLabel, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { getArchive, getEditions } from "@/content/gazette/loader";
 import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
 import { PartnerStrip } from "@/components/site/PartnerStrip";
 import { getMemberContext } from "@/lib/member";
@@ -23,7 +24,7 @@ export const metadata = pageMetadata({
 
 export default async function GazettePage({ searchParams }: { searchParams: Promise<{ theme?: string; field?: string }> }) {
   const { theme, field } = await searchParams;
-  const ctx = await getMemberContext();
+  const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
   const [latest, ...rest] = editions;
   const themes = [...new Set(editions.map((e) => e.theme))];
   const shown = theme ? editions.filter((e) => e.theme === theme) : rest;

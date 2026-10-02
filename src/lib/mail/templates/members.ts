@@ -313,6 +313,72 @@ export function seatInviteEmail(p: { businessName: string; email: string }): Ema
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Account access                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Sent when the team pauses someone's account. Calm and factual: what it means, how long, and who to talk to. */
+export function accountSuspendedEmail(p: { name: string | null; until: Date | null; reason?: string | null }): Email {
+  const when = p.until ? `until ${eventDate(p.until)}` : "until the team lifts it";
+  return {
+    subject: "Your Trichollective account has been paused",
+    content: {
+      preheader: p.until
+        ? `You can sign in again from ${eventDate(p.until)}.`
+        : "You can sign in again once the team lifts the pause.",
+      eyebrow: "Your account",
+      heading: "Your Trichollective account has been paused.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        `The Trichollective team has paused your account ${when}. While it is paused you cannot open the member area, post in the community or send messages.`,
+        ...(p.reason ? [`The reason the team gave is: ${p.reason.trim().replace(/([^.!?])$/, "$1.")}`] : []),
+        "Your membership and billing are not changed by this, and nothing you have shared has been deleted.",
+        `If you think this is a mistake, or you would like to talk it through, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      reason: "This email is about access to your Trichollective account.",
+    },
+  };
+}
+
+/** Sent when the team closes someone's account. Billing is a separate matter, so the email says so plainly. */
+export function accountClosedEmail(p: { name: string | null; reason?: string | null }): Email {
+  return {
+    subject: "Your Trichollective account has been closed",
+    content: {
+      preheader: "You can no longer sign in to Trichollective.",
+      eyebrow: "Your account",
+      heading: "Your Trichollective account has been closed.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "The Trichollective team has closed your account, so you can no longer sign in, open the member area or take part in the community.",
+        ...(p.reason ? [`The reason the team gave is: ${p.reason.trim().replace(/([^.!?])$/, "$1.")}`] : []),
+        "Closing an account does not cancel a membership subscription. If you have one, the team will be in touch about it separately.",
+        `If you would like to ask about this decision, write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      reason: "This email is about access to your Trichollective account.",
+    },
+  };
+}
+
+/** Sent when the team lifts a pause or reopens an account. */
+export function accountRestoredEmail(p: { name: string | null }): Email {
+  return {
+    subject: "Your Trichollective account is open again",
+    content: {
+      preheader: "You can sign in and take part in the community again.",
+      eyebrow: "Your account",
+      heading: "Your Trichollective account is open again.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "The Trichollective team has restored your account, so you can sign in, read the community and post again.",
+        `If anything does not work as it should, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      cta: { label: "Sign in to Trichollective", href: "/login?next=/members" },
+      reason: "This email is about access to your Trichollective account.",
+    },
+  };
+}
+
 const rsvp = rsvpConfirmedEmail({ name: "Niamh Byrne", event: sampleEvent });
 const reminder = eventReminderEmail({ name: "Niamh Byrne", event: sampleEvent });
 const reply = commentReplyEmail({
@@ -335,9 +401,37 @@ const reminderEmail = draftEmailContent(
   { subject: "Your full Trichollective profile: 29 days of your trial to go", ref: "listing-reminder:sample:30" }
 );
 
+const suspended = accountSuspendedEmail({
+  name: "Niamh Byrne",
+  until: new Date("2026-11-01T12:00:00Z"),
+  reason: "Repeated posts promoting products in the Case Room after a reminder.",
+});
+const closed = accountClosedEmail({ name: "Niamh Byrne", reason: "Sharing photographs that identified a client." });
+const restored = accountRestoredEmail({ name: "Niamh Byrne" });
 const seat = seatInviteEmail({ businessName: "Scalp Science Ltd", email: "ciara@example.com" });
 
 export const samples: EmailSample[] = [
+  {
+    id: "account-suspended",
+    name: "Account paused",
+    trigger: "Sent when someone on the team suspends a member in Studio, with the end date if there is one.",
+    audience: "members",
+    ...suspended,
+  },
+  {
+    id: "account-closed",
+    name: "Account closed",
+    trigger: "Sent when an owner bans a member in Studio. It says plainly that billing is handled separately.",
+    audience: "members",
+    ...closed,
+  },
+  {
+    id: "account-restored",
+    name: "Account open again",
+    trigger: "Sent when someone on the team lifts a suspension or ban in Studio.",
+    audience: "members",
+    ...restored,
+  },
   {
     id: "business-seat",
     name: "Team member given Professional",

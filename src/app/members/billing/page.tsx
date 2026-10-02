@@ -36,7 +36,11 @@ export default async function BillingPage() {
         <h2 className="display mt-4 text-4xl">{active ? (tier?.name ?? "Membership") : "Not a member yet"}</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
           {active
-            ? ctx.membership.via
+            ? ctx.membership.complimentary
+              ? end
+                ? `Your membership is a gift from the Trichollective team until ${longDate(end)}, so there is nothing to pay.`
+                : "Your membership is a gift from the Trichollective team, so there is nothing to pay."
+              : ctx.membership.via
               ? `Your Professional membership is provided by ${ctx.membership.via}.`
               : end
               ? `Your membership renews or ends on ${longDate(end)}.`

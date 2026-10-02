@@ -11,7 +11,8 @@ export const PROFESSIONS: {
   { id: "brand", label: "Business", blurb: "Clinics, salons, brands and device makers" },
 ];
 
-export type RoomId =
+/** The rooms that ship with the platform. Code that maps by room (prompt banks, agent copy) keys on these. */
+export type KnownRoomId =
   | "lounge"
   | "introductions"
   | "head-spa"
@@ -20,6 +21,9 @@ export type RoomId =
   | "devices"
   | "business"
   | "wins";
+
+/** Rooms are managed in Studio, so any slug is a valid room id. */
+export type RoomId = string;
 
 export type Room = {
   id: RoomId;
@@ -31,10 +35,14 @@ export type Room = {
   noBrands?: boolean;
   /** Suggested post prompt in the composer. */
   prompt: string;
+  /** New posts and replies are checked by the moderation assistant. */
+  aiModeration?: boolean;
+  /** Archived rooms keep their old posts readable but are hidden from navigation and posting. */
+  archived?: boolean;
 };
 
-/** Community spaces. Order is the order shown in the app. */
-export const ROOMS: Room[] = [
+/** The built-in community spaces, used until rooms exist in the database. Order is the order shown in the app. */
+export const DEFAULT_ROOMS: (Room & { id: KnownRoomId })[] = [
   {
     id: "lounge",
     label: "The Lounge",
@@ -66,6 +74,7 @@ export const ROOMS: Room[] = [
     blurb: "Anonymised cases for verified professionals. Never share anything that identifies a client.",
     professionalOnly: true,
     noBrands: true,
+    aiModeration: true,
     prompt: "Describe the case without names, photos of faces or anything identifying.",
   },
   {
@@ -88,40 +97,51 @@ export const ROOMS: Room[] = [
   },
 ];
 
-export function roomById(id: string) {
-  return ROOMS.find((r) => r.id === id);
+/** Kept for older imports. Server code should prefer getRooms() from src/lib/rooms. */
+export const ROOMS: Room[] = DEFAULT_ROOMS;
+
+export function roomById(id: string, rooms: Room[] = DEFAULT_ROOMS) {
+  return rooms.find((r) => r.id === id);
 }
 
 export function professionById(id: string) {
   return PROFESSIONS.find((p) => p.id === id);
 }
 
-/** Map space names from earlier builds so old posts keep a home. */
-export function normalizeSpace(space: string): RoomId {
-  const legacy: Record<string, RoomId> = {
-    everyone: "lounge",
-    consultation: "case-room",
-    cosmetic: "head-spa",
-    clinical: "hair-loss",
-    medical: "case-room",
-  };
-  if (legacy[space]) return legacy[space];
-  if (ROOMS.some((r) => r.id === space)) return space as RoomId;
+/** Space names from earlier builds, and the room each now belongs to. */
+export const LEGACY_SPACES: Record<string, KnownRoomId> = {
+  everyone: "lounge",
+  consultation: "case-room",
+  cosmetic: "head-spa",
+  clinical: "hair-loss",
+  medical: "case-room",
+};
+
+/**
+ * Map a stored space to a room so old posts keep a home. Legacy names win, so a
+ * new room can never take over posts that belonged to the Case Room. Anything
+ * not in `rooms` lands in the Lounge.
+ */
+export function normalizeSpace(space: string, rooms: Room[] = DEFAULT_ROOMS): RoomId {
+  if (LEGACY_SPACES[space]) return LEGACY_SPACES[space];
+  if (rooms.some((r) => r.id === space)) return space;
   return "lounge";
 }
 
-export function canReadRoom(roomId: RoomId, professional: boolean) {
-  const room = roomById(roomId);
+export function canReadRoom(roomId: RoomId, professional: boolean, rooms: Room[] = DEFAULT_ROOMS) {
+  const room = roomById(roomId, rooms);
   if (!room) return false;
   return !room.professionalOnly || professional;
 }
 
 export function canPostInRoom(
   roomId: RoomId,
-  opts: { professional: boolean; profession?: ProfessionId | null; unlocked?: boolean }
+  opts: { professional: boolean; profession?: ProfessionId | null; unlocked?: boolean },
+  rooms: Room[] = DEFAULT_ROOMS
 ) {
+  const room = roomById(roomId, rooms);
+  if (room?.archived) return false;
   if (opts.unlocked) return true;
-  const room = roomById(roomId);
   if (!room) return false;
   if (room.professionalOnly && !opts.professional) return false;
   if (room.noBrands && opts.profession === "brand") return false;

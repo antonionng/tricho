@@ -51,7 +51,7 @@ async function uniquePartnerSlug(tx: Prisma.TransactionClient, name: string) {
 }
 
 export async function savePartnerAction(form: FormData) {
-  await studioAction();
+  await studioAction("partners.manage");
   const id = s(form, "id", 64) || undefined;
   const back = id ? { edit: id } : { new: "1" };
   const fail = (notice: string) => redirect(withParams("/studio/partners", { ...back, notice, tone: "danger" }));

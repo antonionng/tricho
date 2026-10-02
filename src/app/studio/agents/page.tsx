@@ -3,7 +3,7 @@ import { AGENTS } from "@/agents";
 import { nextRun } from "@/agents/cron";
 import { aiAvailable } from "@/agents/ai";
 import { SubmitButton } from "@/components/studio/SubmitButton";
-import { Empty, Notice, PageHeader, Tag, dateTime } from "@/components/studio/ui";
+import { Empty, Notice, PageHeader, Tag, dateTime, NoAccess } from "@/components/studio/ui";
 import { cn } from "@/lib/utils";
 import { studioPage } from "../_lib/guard";
 import { runAgentNowAction, setAgentAutonomyAction, setAgentEnabledAction } from "../actions";
@@ -11,7 +11,7 @@ import { runAgentNowAction, setAgentAutonomyAction, setAgentEnabledAction } from
 export const dynamic = "force-dynamic";
 
 export default async function AgentsPage({ searchParams }: { searchParams: Promise<{ notice?: string; tone?: string }> }) {
-  if (!(await studioPage("/studio/agents"))) return null;
+  if (!(await studioPage("/studio/agents", "agents.view"))) return <NoAccess what="the agents" />;
   const sp = await searchParams;
 
   const [settings, runs] = await Promise.all([

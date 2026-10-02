@@ -28,7 +28,7 @@ function newToken() {
 }
 
 export async function createInvitesAction(form: FormData) {
-  await studioAction();
+  await studioAction("invite.send");
   const { valid, problems } = parseInviteLines(s(form, "lines", 50000));
   const note = s(form, "note", 2000);
 
@@ -131,7 +131,7 @@ export async function createInvitesAction(form: FormData) {
 }
 
 export async function sendInvitesAction(form: FormData) {
-  await studioAction();
+  await studioAction("invite.send");
   if (s(form, "confirm", 8) !== "yes") redirect(back({ confirm: "send" }));
 
   const drafts = await prisma.draft.findMany({

@@ -21,8 +21,9 @@ const NEWS_TOPICS: Record<string, NewsItem["topics"]> = {
   dublin: ["events", "regulation", "hair-loss", "products"],
 };
 
-function newsFor(e: Edition): NewsItem[] {
-  const topics = NEWS_TOPICS[e.slug] ?? [];
+/** The news topics an edition draws on: its own list if given, otherwise the built-in map. */
+export function newsFor(e: Edition, topicsOverride?: NewsItem["topics"]): NewsItem[] {
+  const topics = topicsOverride ?? NEWS_TOPICS[e.slug] ?? [];
   const scored = news
     .map((n) => ({
       n,
@@ -42,8 +43,9 @@ function newsFor(e: Edition): NewsItem[] {
   return picked.sort((a, b) => b.date.localeCompare(a.date));
 }
 
-function withNews(e: Edition): Edition {
-  const items = newsFor(e);
+/** Adds the generated "In the news" page after the preview and perspectives, when there are at least two items. */
+export function withNews(e: Edition, topicsOverride?: NewsItem["topics"]): Edition {
+  const items = newsFor(e, topicsOverride);
   if (items.length < 2) return e;
   const page: Page = {
     kind: "news",
@@ -58,15 +60,21 @@ function withNews(e: Edition): Edition {
   return { ...e, pages };
 }
 
-/** The monthly magazine, newest first. */
+/** Newest monthly edition first. */
+export const byNumberDesc = (a: Edition, b: Edition) => b.number - a.number;
+/** Newest year first, then in edition order within a year. */
+export const byPeriodDesc = (a: Edition, b: Edition) =>
+  (b.period ?? "").localeCompare(a.period ?? "") || a.number - b.number;
+
+/** The monthly magazine, newest first. Built-in editions only: server code reads src/content/gazette/loader.ts to include Studio editions. */
 export const editions: Edition[] = [...editionsA, ...editionsB]
-  .map(withNews)
-  .sort((a, b) => b.number - a.number);
+  .map((e) => withNews(e))
+  .sort(byNumberDesc);
 
 /** "Four years in review": look-back editions for 2023–2026, newest year first. */
 export const archive: Edition[] = [...archive2026, ...archive2025, ...archive2024, ...archive2023]
   .map((e) => ({ ...e, series: "archive" as const }))
-  .sort((a, b) => (b.period ?? "").localeCompare(a.period ?? "") || a.number - b.number);
+  .sort(byPeriodDesc);
 
 /** Everything readable, for lookups, the sitemap and static params. */
 export const allEditions: Edition[] = [...editions, ...archive];

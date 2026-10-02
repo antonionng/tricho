@@ -4,7 +4,7 @@ import type { Partner } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/studio/SubmitButton";
-import { Empty, Field, Notice, PageHeader, Section, Stat, Tag, TextLink, dateOnly, fieldClass } from "@/components/studio/ui";
+import { Empty, Field, Notice, PageHeader, Section, Stat, Tag, TextLink, dateOnly, fieldClass, NoAccess } from "@/components/studio/ui";
 import { premiumBusiness } from "@/config/subscriptions";
 import { foundingPartnerPlacesLeft } from "@/lib/founding";
 import { PARTNER_CATEGORIES, partnerTierLabel, sortPartners } from "@/lib/partners";
@@ -22,7 +22,7 @@ export default async function StudioPartnersPage({
 }: {
   searchParams: Promise<{ edit?: string; new?: string; notice?: string; tone?: string }>;
 }) {
-  if (!(await studioPage("/studio/partners"))) return null;
+  if (!(await studioPage("/studio/partners", "partners.view"))) return <NoAccess what="partner pages" />;
   const sp = await searchParams;
 
   const [partners, editing, foundingLeft, applications] = await Promise.all([
@@ -71,7 +71,7 @@ export default async function StudioPartnersPage({
         />
       </div>
       <p className="text-sm text-ink-2">
-        <TextLink href="/studio?agent=website">Open partner applications in the inbox</TextLink>
+        <TextLink href="/studio/inbox?agent=website">Open partner applications in the inbox</TextLink>
       </p>
 
       {showForm && <PartnerForm partner={editing} />}

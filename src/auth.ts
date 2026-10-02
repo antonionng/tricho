@@ -101,12 +101,24 @@ export const {
   },
   callbacks: {
     ...authConfig.callbacks,
+    async signIn({ user }) {
+      if (!user?.email) return true;
+      const existing = await prisma.user.findUnique({
+        where: { email: user.email.toLowerCase() },
+        select: { accessStatus: true },
+      });
+      return existing?.accessStatus !== "banned";
+    },
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
       if (token.role && session.user) {
         session.user.role = token.role as never;
+      }
+      if (session.user) {
+        // A hint for the interface only. Studio always re-checks the database.
+        session.user.staffRole = (token.staffRole ?? null) as never;
       }
       return session;
     },
@@ -118,8 +130,11 @@ export const {
       });
 
       if (!existingUser) return token;
+      // A banned account is signed out on its next request.
+      if (existingUser.accessStatus === "banned") return null;
 
       token.role = existingUser.role;
+      token.staffRole = existingUser.staffRole;
       return token;
     },
   },

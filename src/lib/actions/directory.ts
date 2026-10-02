@@ -143,8 +143,8 @@ export async function submitFreeListing(formData: FormData) {
 }
 
 export async function reviewListing(formData: FormData) {
-  const session = await auth();
-  if (session?.user?.role !== "admin") {
+  const { getStaff } = await import("@/lib/staff");
+  if (!(await getStaff())?.perms.has("listings.review")) {
     redirect("/login");
   }
 

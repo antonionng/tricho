@@ -1,4 +1,4 @@
-import { PageHeader, Section, Tag } from "@/components/studio/ui";
+import { PageHeader, Section, Tag, NoAccess } from "@/components/studio/ui";
 import { renderEmail } from "@/lib/mail/layout";
 import { ownerEmails } from "@/lib/mail/send";
 import { emailGroups } from "@/lib/mail/samples";
@@ -16,7 +16,7 @@ const audienceLabel = {
 } as const;
 
 export default async function EmailsPage() {
-  if (!(await studioPage("/studio/emails"))) return null;
+  if (!(await studioPage("/studio/emails", "emails.view"))) return <NoAccess what="emails" />;
   const total = emailGroups.reduce((n, g) => n + g.samples.length, 0);
 
   return (

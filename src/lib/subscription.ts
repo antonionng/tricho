@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isDevOrDemo } from "@/lib/env";
-import { tierByPriceId, type PlanId } from "@/config/subscriptions";
+import { subscriptionTiers, tierByPriceId, type PlanId } from "@/config/subscriptions";
 
 /** Small grace window so a member isn't locked out the instant a renewal is processing. */
 const GRACE_PERIOD_MS = 1000 * 60 * 60 * 24; // 24h
@@ -10,8 +10,33 @@ export interface MembershipStatus {
   tierId?: PlanId;
   tierName?: string;
   currentPeriodEnd?: Date | null;
-  /** Set when Professional comes through a business: the business's name or email. */
+  /** Set when Professional comes through a business (its name or email), or "Complimentary" for a plan the team gave. */
   via?: string;
+  /** True when the plan was given by the team without Stripe. */
+  complimentary?: boolean;
+}
+
+export const COMPLIMENTARY = "Complimentary";
+
+/**
+ * A plan the team gave without Stripe, e.g. to a speaker or partner. It lasts
+ * until compUntil, or until the team takes it away when there is no end date.
+ */
+export function resolveComp(
+  user: { compPlan?: string | null; compUntil?: Date | null },
+  now = new Date()
+): MembershipStatus | null {
+  const tier = subscriptionTiers.find((t) => t.id === user.compPlan);
+  if (!tier) return null;
+  if (user.compUntil && user.compUntil.getTime() <= now.getTime()) return null;
+  return {
+    isActive: true,
+    tierId: tier.id,
+    tierName: tier.name,
+    currentPeriodEnd: user.compUntil ?? null,
+    via: COMPLIMENTARY,
+    complimentary: true,
+  };
 }
 
 /** Team members a Business or Premium Business account can give Professional membership to. */
@@ -62,17 +87,20 @@ export async function getMembershipByEmail(
 
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { stripePriceId: true, stripeCurrentPeriodEnd: true },
+    select: { stripePriceId: true, stripeCurrentPeriodEnd: true, compPlan: true, compUntil: true },
   });
 
   const own = user ? resolveMembership(user) : ({ isActive: false } as MembershipStatus);
   if (own.isActive && own.tierId !== "community") return own;
+  // A complimentary Professional or Business plan comes before a business seat; a complimentary Community plan after it.
+  const comp = user ? resolveComp(user) : null;
+  if (comp && comp.tierId !== "community") return comp;
   // Never let the business lookup lock a member out, e.g. before its tables exist.
   const viaBusiness = await businessMembership(email.toLowerCase()).catch((error) => {
     console.error("[BUSINESS_MEMBERSHIP]", error);
     return null;
   });
-  return viaBusiness ?? own;
+  return viaBusiness ?? (own.isActive ? own : comp ?? own);
 }
 
 /** True when this email holds an active Business plan or manages a Premium partner page. */

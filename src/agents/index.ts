@@ -14,6 +14,7 @@ export function getAgent(id: string) {
 /** Friendly names for draft sources that aren't agents. */
 export function agentLabel(id: string) {
   if (id === "website") return "Website";
+  if (id === "podcast") return "Podcast";
   return getAgent(id)?.name ?? id;
 }
 

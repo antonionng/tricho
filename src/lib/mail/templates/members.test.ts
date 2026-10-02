@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { absoluteUrl, esc, renderEmail } from "../layout";
 import { buildIcs, icsEscape } from "../ics";
 import { unsubscribeToken, unsubscribeUrl, oneClickUnsubscribeUrl, verifyUnsubscribeToken } from "../send";
-import { samples as members, draftHeading } from "./members";
+import { samples as members, draftHeading, accountSuspendedEmail, accountClosedEmail, accountRestoredEmail } from "./members";
 import { samples as releases, editionsAnnouncement } from "./releases";
 import { samples as owners, digestIsEmpty } from "./owners";
 import { newEditions } from "@/agents/releases";
@@ -155,5 +155,42 @@ describe("release window", () => {
     const a = editionsAnnouncement(sameDay);
     if (sameDay.length > 1) expect(a.covers).toHaveLength(sameDay.length);
     expect(a.heading).toMatch(/\.$/);
+  });
+});
+
+describe("account access emails", () => {
+  it("says when a pause ends, or that the team will lift it", () => {
+    const dated = accountSuspendedEmail({ name: "Niamh Byrne", until: new Date("2026-11-01T12:00:00Z"), reason: null });
+    expect(dated.content.body).toMatch(/until Sunday,? 1 November 2026/);
+    expect(dated.content.body).toContain("Hello Niamh,");
+    const open = accountSuspendedEmail({ name: null, until: null });
+    expect(open.content.body).toContain("until the team lifts it");
+    expect(open.content.body).not.toContain("reason the team gave");
+  });
+
+  it("gives the reason as a full sentence", () => {
+    const e = accountSuspendedEmail({ name: "Aoife", until: null, reason: "Promoting products" });
+    expect(e.content.body).toContain("The reason the team gave is: Promoting products.");
+  });
+
+  it("tells a closed account that billing is not cancelled", () => {
+    const e = accountClosedEmail({ name: "Aoife", reason: null });
+    expect(e.content.body).toContain("does not cancel a membership subscription");
+    expect(e.content.cta).toBeUndefined();
+  });
+
+  it("invites a restored member to sign in", () => {
+    const e = accountRestoredEmail({ name: "Aoife" });
+    expect(e.content.cta?.href).toBe("/login?next=/members");
+  });
+
+  it("never uses exclamation marks", () => {
+    for (const e of [
+      accountSuspendedEmail({ name: "A", until: null, reason: "x" }),
+      accountClosedEmail({ name: "A", reason: "x" }),
+      accountRestoredEmail({ name: "A" }),
+    ]) {
+      expect(`${e.subject}${e.content.heading}${e.content.body}`).not.toContain("!");
+    }
   });
 });

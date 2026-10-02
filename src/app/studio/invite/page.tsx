@@ -3,7 +3,7 @@ import { ListingStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/studio/SubmitButton";
-import { Card, Empty, Field, Notice, PageHeader, Section, Stat, Tag, dateOnly, fieldClass } from "@/components/studio/ui";
+import { Card, Empty, Field, Notice, PageHeader, Section, Stat, Tag, dateOnly, fieldClass, NoAccess } from "@/components/studio/ui";
 import { LISTING_COUNTRIES } from "@/content/chapters";
 import { studioPage } from "../_lib/guard";
 import { createInvitesAction, sendInvitesAction } from "./actions";
@@ -23,7 +23,7 @@ export default async function InvitePage({
 }: {
   searchParams: Promise<{ notice?: string; tone?: string; skipped?: string; confirm?: string }>;
 }) {
-  if (!(await studioPage("/studio/invite"))) return null;
+  if (!(await studioPage("/studio/invite", "invite.send"))) return <NoAccess what="invitations" />;
   const { notice, tone, skipped, confirm } = await searchParams;
 
   const [invites, waiting] = await Promise.all([
@@ -116,7 +116,7 @@ export default async function InvitePage({
               <Button type="submit">Approve and send all waiting invitations…</Button>
             </form>
             <Button asChild variant="ghost">
-              <Link href="/studio?agent=membership&status=draft">Review them in the inbox</Link>
+              <Link href="/studio/inbox?agent=membership&status=draft">Review them in the inbox</Link>
             </Button>
           </div>
         )}
