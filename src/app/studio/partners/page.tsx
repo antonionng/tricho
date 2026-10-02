@@ -34,18 +34,12 @@ export default async function StudioPartnersPage({
   const showForm = !!editing || sp.new === "1";
   const sorted = sortPartners(partners);
 
-  // Published premium partners in each category, against the limit of two.
-  const perCategory = new Map<string, number>();
-  for (const p of partners) {
-    if (p.tier === "premium" && p.published) perCategory.set(p.category, (perCategory.get(p.category) ?? 0) + 1);
-  }
-  const fullCategories = [...perCategory.entries()].filter(([, n]) => n >= premiumBusiness.perCategoryLimit).map(([c]) => c);
 
   return (
     <div className="space-y-10">
       <PageHeader
         title="Partners"
-        intro={`Premium and Business partners shown on /partners, in member perks and in the partner strip. Nothing appears until you tick Published. Each category takes at most ${premiumBusiness.perCategoryLimit} published Premium partners, and only the first ${premiumBusiness.foundingPlaces} Premium partners can be founding partners.`}
+        intro={`Premium and Business partners shown on /partners, in member perks and in the partner strip. Nothing appears until you tick Published, except Premium pages bought online, which go live as soon as they are paid. Only the first ${premiumBusiness.foundingPlaces} Premium partners can be founding partners.`}
         actions={
           !showForm && (
             <Button asChild>
@@ -78,9 +72,6 @@ export default async function StudioPartnersPage({
       </div>
       <p className="text-sm text-ink-2">
         <TextLink href="/studio?agent=website">Open partner applications in the inbox</TextLink>
-        {fullCategories.length > 0 && (
-          <span className="text-muted-foreground"> · Full categories: {fullCategories.join(", ")}</span>
-        )}
       </p>
 
       {showForm && <PartnerForm partner={editing} />}
@@ -101,7 +92,14 @@ export default async function StudioPartnersPage({
                 <div className="flex items-center gap-2">
                   {p.isFounding && <Tag tone="ink">Founding</Tag>}
                   {p.perk ? <Tag>Perk</Tag> : <Tag tone="warn">No perk</Tag>}
-                  {p.published ? <Tag tone="positive">Published</Tag> : <Tag tone="warn">Not published</Tag>}
+                  {p.hidden ? (
+                    <Tag tone="warn">Paused</Tag>
+                  ) : p.published ? (
+                    <Tag tone="positive">Published</Tag>
+                  ) : (
+                    <Tag tone="warn">Not published</Tag>
+                  )}
+                  {p.ownerEmail && <Tag>Brand manages</Tag>}
                   {p.published && (
                     <Button asChild size="xs" variant="ghost">
                       <Link href={`/partners/${p.slug}`} target="_blank">
@@ -154,7 +152,7 @@ function PartnerForm({ partner }: { partner: Partner | null }) {
             <option value="business">Business</option>
           </select>
         </Field>
-        <Field label="Category" hint={`At most ${premiumBusiness.perCategoryLimit} published Premium partners each.`}>
+        <Field label="Category">
           <select name="category" defaultValue={partner?.category ?? ""} required className={fieldClass}>
             <option value="" disabled>
               Choose
@@ -173,8 +171,8 @@ function PartnerForm({ partner }: { partner: Partner | null }) {
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Logo address" hint="A full link to a PNG or SVG, ideally on a transparent background.">
-          <input type="url" name="logoUrl" defaultValue={partner?.logoUrl ?? ""} placeholder="https://…" className={fieldClass} />
+        <Field label="Logo address" hint="A full link to a PNG or SVG, ideally on a transparent background. Logos the brand uploads appear here by themselves.">
+          <input type="text" name="logoUrl" defaultValue={partner?.logoUrl ?? ""} placeholder="https://…" className={fieldClass} />
         </Field>
         <Field label="Website">
           <input name="website" defaultValue={partner?.website ?? ""} placeholder="https://…" className={fieldClass} />
@@ -193,6 +191,24 @@ function PartnerForm({ partner }: { partner: Partner | null }) {
           <input type="date" name="featuredUntil" defaultValue={dateInput(partner?.featuredUntil)} className={fieldClass} />
         </Field>
       </div>
+
+      <Field
+        label="Managed by"
+        hint="The email the brand signs in with. They can then edit this page, upload a logo and give five of their team Professional from Your business in the member area. Premium partners managed this way also get Professional themselves."
+      >
+        <input type="email" name="ownerEmail" defaultValue={partner?.ownerEmail ?? ""} className={fieldClass} />
+      </Field>
+
+      <label className="flex items-start gap-3 rounded-2xl border border-rule p-4 text-sm">
+        <input type="checkbox" name="hidden" defaultChecked={partner?.hidden ?? false} className="mt-0.5 h-4 w-4 accent-ink" />
+        <span>
+          <span className="font-medium text-ink">Paused</span>
+          <span className="block text-muted-foreground">
+            Takes the page down and stops the brand republishing it from their portal, for example if a payment stops or
+            something breaks the guidelines.
+          </span>
+        </span>
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex items-start gap-3 rounded-2xl border border-rule p-4 text-sm">

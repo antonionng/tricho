@@ -10,7 +10,8 @@ import { StickyJoin } from "@/components/site/StickyJoin";
 import { CheckoutButton } from "@/components/site/CheckoutButton";
 import { images, img } from "@/content/images";
 import type { Faq } from "@/content/faqs";
-import { FREE_LISTING_DAYS, freeListing, subscriptionTiers } from "@/config/subscriptions";
+import { FREE_LISTING_DAYS, freeListing, premiumBusiness, subscriptionTiers } from "@/config/subscriptions";
+import { foundingPartnerPlacesLeft } from "@/lib/founding";
 import { breadcrumbLd, faqLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -22,6 +23,7 @@ export const metadata = pageMetadata({
 });
 
 const foundingTiers = subscriptionTiers.filter((t) => t.foundingPrice);
+const business = subscriptionTiers.find((t) => t.id === "business")!;
 
 const benefits = [
   {
@@ -56,6 +58,10 @@ const foundingFaqs: Faq[] = [
     a: "Founding places are limited, and the offer closes at the end of the founding period. When it closes, the standard price applies to new members.",
   },
   {
+    q: "Is there a founding price for brands?",
+    a: `Yes. The first ${premiumBusiness.foundingPlaces} brands to join Premium Business pay £${premiumBusiness.foundingAnnualPrice.toLocaleString("en-GB")} a year instead of £${premiumBusiness.annualPrice.toLocaleString("en-GB")}, and keep that price for as long as they stay.`,
+  },
+  {
     q: "Do I need an account before I pay?",
     a: "No. Choose a plan and pay with your email address. Your account is created from that email, and you sign in with it afterwards.",
   },
@@ -69,7 +75,14 @@ const foundingFaqs: Faq[] = [
   },
 ];
 
-export default function FoundingPage() {
+export const dynamic = "force-dynamic";
+
+const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
+
+export default async function FoundingPage() {
+  const partnerLeft = await foundingPartnerPlacesLeft();
+  const partnerFoundingOpen = partnerLeft > 0;
+  const premiumPrice = partnerFoundingOpen ? premiumBusiness.foundingAnnualPrice : premiumBusiness.annualPrice;
   return (
     <>
       {/* Hero */}
@@ -219,10 +232,83 @@ export default function FoundingPage() {
               );
             })}
           </div>
+          <h3 id="brands" className="display mt-16 scroll-mt-28 text-3xl">Clinics, salons and brands can join now as well.</h3>
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <article className="flex flex-col gap-6 rounded-3xl border border-rule bg-card p-7 md:p-9">
+              <header className="flex flex-col gap-3">
+                <p className="label text-muted-foreground">{business.name}</p>
+                <p className="display text-6xl">
+                  {gbp(business.price)}
+                  <span className="text-base font-normal opacity-60">/mo</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Or {gbp(business.annualPrice)} a year, two months free.
+                </p>
+              </header>
+              <p className="text-[15px] leading-relaxed text-ink-2">{business.summary}</p>
+              <ul className="flex flex-col gap-2.5 text-[15px]">
+                {business.features.map((f) => (
+                  <li key={f} className="flex gap-3">
+                    <span className="mt-2.5 h-px w-3 shrink-0 bg-current opacity-60" aria-hidden />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-auto pt-2">
+                <CheckoutButton plan="business" size="xl" variant="outline" className="w-full">
+                  Join {business.name} at {gbp(business.price)} a month
+                </CheckoutButton>
+              </div>
+            </article>
+
+            <article className="flex flex-col gap-6 rounded-3xl border border-ink bg-ink p-7 text-paper md:p-9">
+              <header className="flex flex-col gap-3">
+                <p className="label text-paper/70">{premiumBusiness.name}</p>
+                <p className="display text-6xl">
+                  {gbp(premiumPrice)}
+                  <span className="text-base font-normal opacity-60">/yr</span>
+                </p>
+                <p className="text-sm text-paper/70">
+                  {partnerFoundingOpen ? (
+                    <>
+                      Founding partner price.{" "}
+                      <s aria-label={`Standard price ${gbp(premiumBusiness.annualPrice)} a year`}>
+                        {gbp(premiumBusiness.annualPrice)}
+                      </s>{" "}
+                      for brands who join later.
+                    </>
+                  ) : (
+                    "Billed yearly, and your partner page goes live as soon as you join."
+                  )}
+                </p>
+                {partnerFoundingOpen && (
+                  <p className="label text-paper">
+                    {partnerLeft} of {premiumBusiness.foundingPlaces} founding partner places remaining
+                  </p>
+                )}
+              </header>
+              <p className="text-[15px] leading-relaxed text-paper/80">{premiumBusiness.summary}</p>
+              <ul className="flex flex-col gap-2.5 text-[15px]">
+                {premiumBusiness.features.map((f) => (
+                  <li key={f} className="flex gap-3">
+                    <span className="mt-2.5 h-px w-3 shrink-0 bg-current opacity-60" aria-hidden />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-auto pt-2">
+                <CheckoutButton plan="premium" interval="year" size="xl" variant="paper" errorTone="ink" className="w-full">
+                  {partnerFoundingOpen
+                    ? `Join as a founding partner at ${gbp(premiumPrice)}`
+                    : `Join ${premiumBusiness.name} at ${gbp(premiumPrice)}`}
+                </CheckoutButton>
+              </div>
+            </article>
+          </div>
           <p className="mt-8 text-sm text-muted-foreground">
-            Running a clinic, salon or brand? See{" "}
+            Want to know more about the brand plans?{" "}
             <Link href="/for-business" className="text-ink underline underline-offset-4">
-              Business membership
+              See Trichollective for business
             </Link>
             . Want to compare every plan?{" "}
             <Link href="/pricing" className="text-ink underline underline-offset-4">

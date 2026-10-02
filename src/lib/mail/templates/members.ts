@@ -289,6 +289,30 @@ const reminderBody = [
   `${site.founder}, Trichollective`,
 ].join("\n\n");
 
+/* ------------------------------------------------------------------ */
+/* Business seats                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Sent when a business gives a team member one of its five Professional seats. */
+export function seatInviteEmail(p: { businessName: string; email: string }): Email {
+  return {
+    subject: `${p.businessName} has given you Professional membership of Trichollective`,
+    content: {
+      preheader: "Sign in with this email address and your Professional membership is ready.",
+      eyebrow: "Your membership",
+      heading: `${p.businessName} has given you Professional membership of Trichollective.`,
+      body: [
+        "Hello,",
+        `${p.businessName} has added you to their team on Trichollective, so your Professional membership is paid for while you stay on it.`,
+        "You can talk through difficult cases with trichologists, doctors and scalp specialists, take courses for CPD, list yourself in the directory with a full profile and receive client enquiries.",
+        `Sign in with ${p.email} and everything is ready for you. There is no card to add.`,
+      ].join("\n\n"),
+      cta: { label: "Sign in to Trichollective", href: "/login?next=/members" },
+      reason: `${p.businessName} added this email address to their team on Trichollective.`,
+    },
+  };
+}
+
 const rsvp = rsvpConfirmedEmail({ name: "Niamh Byrne", event: sampleEvent });
 const reminder = eventReminderEmail({ name: "Niamh Byrne", event: sampleEvent });
 const reply = commentReplyEmail({
@@ -311,7 +335,16 @@ const reminderEmail = draftEmailContent(
   { subject: "Your full Trichollective profile: 29 days of your trial to go", ref: "listing-reminder:sample:30" }
 );
 
+const seat = seatInviteEmail({ businessName: "Scalp Science Ltd", email: "ciara@example.com" });
+
 export const samples: EmailSample[] = [
+  {
+    id: "business-seat",
+    name: "Team member given Professional",
+    trigger: "Sent when a Business or Premium Business account adds someone to one of its five Professional seats.",
+    audience: "members",
+    ...seat,
+  },
   {
     id: "event-rsvp",
     name: "Event place saved",

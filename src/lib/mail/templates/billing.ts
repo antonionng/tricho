@@ -41,6 +41,12 @@ const FIRST_STEPS: Record<string, string[]> = {
     "- Invite up to five of your team to Professional membership",
     "- Post your first role on the jobs board",
   ],
+  "Premium Business": [
+    "- Make your live partner page your own by adding your logo and what you offer in Your business",
+    "- Give five of your team Professional membership",
+    "- Add a perk for members, so practitioners can try your products",
+    "- Reply to this email to plan your sponsored masterclass and Trichozette feature",
+  ],
 };
 
 export type WelcomeFacts = {

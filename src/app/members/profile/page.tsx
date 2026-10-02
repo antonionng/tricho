@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
   Bell,
+  Building2,
   ChevronRight,
   CreditCard,
   LayoutDashboard,
@@ -23,6 +24,7 @@ import { publishMemberListing } from "@/lib/actions/directory";
 import { PROFESSIONS, professionById } from "@/config/rooms";
 import { hasFullProfile } from "@/lib/directory";
 import { tierById } from "@/config/subscriptions";
+import { isBusinessAccount } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
 import { saveEmailPreferences, saveMemberDetails, signOutAction } from "./actions";
 
@@ -145,6 +147,12 @@ export default async function ProfilePage({
   const fullProfile = ctx.professional || (!!listing && listing.status === "listed" && hasFullProfile(listing));
   const publicHref = listing?.slug && listing.status === "listed" ? `/directory/p/${listing.slug}` : null;
 
+  const ownEmail = user.email?.toLowerCase();
+  const business = ownEmail
+    ? !!(await prisma.partner.findUnique({ where: { ownerEmail: ownEmail }, select: { id: true } }).catch(() => null)) ||
+      (await isBusinessAccount(ownEmail))
+    : false;
+
   const links = [
     { href: "/members/billing", label: "Plan and billing", icon: CreditCard },
     { href: "/members/notifications", label: "Notifications", icon: Bell },
@@ -152,6 +160,7 @@ export default async function ProfilePage({
     { href: "/members/people", label: "People", icon: Search },
     { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
     { href: "/members/assistant", label: "Assistant", icon: Sparkles },
+    ...(business ? [{ href: "/members/business", label: "Your business", icon: Building2 }] : []),
     ...(ctx.isAdmin || ctx.unlocked ? [{ href: "/studio", label: "Studio", icon: LayoutDashboard }] : []),
   ];
 

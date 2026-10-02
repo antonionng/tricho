@@ -516,10 +516,36 @@ model Partner {
   isFounding    Boolean   @default(false)
   published     Boolean   @default(false)
   featuredUntil DateTime?
+  /// The sign-in email of the person who manages this page from the member area.
+  ownerEmail    String?   @unique
+  /// Taken down by the Studio: hidden, and the owner can't republish it.
+  hidden        Boolean   @default(false)
+  logo          PartnerLogo?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@index([published, tier])
+}
+
+/// A logo uploaded from the brand portal, served at /api/partners/{slug}/logo.
+model PartnerLogo {
+  partnerId   String   @id
+  partner     Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  data        Bytes
+  contentType String
+  updatedAt   DateTime @updatedAt
+}
+
+/// A team member given Professional membership through a business plan (five per business).
+model BusinessSeat {
+  id         String    @id @default(cuid())
+  /// The business account holder's sign-in email.
+  ownerEmail String
+  email      String
+  createdAt  DateTime  @default(now())
+
+  @@unique([ownerEmail, email])
+  @@index([email])
 }
 
 /// One row per email that must only ever go out once (reminders, announcements).

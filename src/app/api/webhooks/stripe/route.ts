@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { tierById, tierByPriceId } from "@/config/subscriptions";
+import { revalidatePath } from "next/cache";
+import { isPremiumPriceId, premiumBusiness, tierById, tierByPriceId } from "@/config/subscriptions";
+import { activatePremiumPartner, endPremiumPartner, premiumCheckoutAnswers } from "@/lib/partners";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import {
   formatMoney,
@@ -158,8 +160,18 @@ export async function POST(req: Request) {
         const to = (payer?.email || email).toLowerCase();
         const name = session.customer_details?.name || payer?.name || null;
         const founding = session.metadata?.founding === "1";
-        if (to && tier) {
-          const welcome = welcomeEmail({ name, plan: tier.name, founding, listingClaimed, enquiriesReleased });
+        const premium = isPremiumPriceId(priceId);
+        const planName = premium ? premiumBusiness.name : tier?.name;
+
+        // Premium Business: the partner page goes live as soon as it is paid.
+        if (premium && to) {
+          await activatePremiumPartner({ ownerEmail: to, isFounding: founding, ...premiumCheckoutAnswers(session.custom_fields) });
+          revalidatePath("/partners");
+          revalidatePath("/for-business");
+        }
+
+        if (to && planName) {
+          const welcome = welcomeEmail({ name, plan: planName, founding, listingClaimed, enquiriesReleased });
           await deliverOnce(`stripe:${event.id}:welcome`, to, welcome.subject, welcome.content, { tag: "welcome-member" });
         }
         if (to && (await claimOnce(`stripe:${event.id}:owners`))) {
@@ -167,7 +179,7 @@ export async function POST(req: Request) {
             newMemberAlert({
               name,
               email: to,
-              plan: tier?.name ?? `Unknown plan (${priceId ?? "no price"})`,
+              plan: planName ?? `Unknown plan (${priceId ?? "no price"})`,
               interval: subscription.items.data[0]?.price.recurring?.interval ?? null,
               amount: formatMoney(session.amount_total, session.currency),
               founding,
@@ -231,9 +243,17 @@ export async function POST(req: Request) {
           data: { role: "individual" },
         });
 
+        const endedPriceId = subscription.items?.data?.[0]?.price.id;
+        if (member?.email && isPremiumPriceId(endedPriceId)) {
+          await endPremiumPartner(member.email.toLowerCase());
+          revalidatePath("/partners");
+          revalidatePath("/for-business");
+        }
+
         if (member?.email) {
-          const plan =
-            tierByPriceId(subscription.items?.data?.[0]?.price.id)?.name ?? tierById(member.plan)?.name ?? "Trichollective";
+          const plan = isPremiumPriceId(endedPriceId)
+            ? premiumBusiness.name
+            : tierByPriceId(endedPriceId)?.name ?? tierById(member.plan)?.name ?? "Trichollective";
           const ended = membershipEndedEmail({ name: member.name, plan });
           await deliverOnce(`stripe:${event.id}:ended`, member.email, ended.subject, ended.content, { tag: "membership-ended" });
           if (await claimOnce(`stripe:${event.id}:owners`)) {

@@ -45,7 +45,7 @@ export async function getMemberContext() {
   const unlocked = devMembershipUnlock();
   const role = user?.role ?? session.user.role ?? null;
   const isAdmin = role === "admin";
-  const plan = user?.plan ?? membership.tierId ?? null;
+  const plan = (membership.via ? membership.tierId : user?.plan ?? membership.tierId) ?? null;
 
   return {
     session,
@@ -57,7 +57,7 @@ export async function getMemberContext() {
     isAdmin,
     professional: isProfessionalPlan(plan, role) || unlocked,
     profession: (user?.profile?.profession as ProfessionId | null) ?? null,
-    consultation: canEnterConsultation(role) || unlocked,
+    consultation: canEnterConsultation(role) || !!membership.via || unlocked,
     chapterId: user?.chapterId ?? null,
     onboarded: !!user?.onboardedAt,
   };

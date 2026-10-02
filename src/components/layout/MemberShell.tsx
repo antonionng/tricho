@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  Building2,
   BookOpen,
   CalendarDays,
   Home,
@@ -44,11 +45,14 @@ export function MemberShell({
   name,
   unread = 0,
   isAdmin = false,
+  business = false,
 }: {
   children: React.ReactNode;
   name?: string | null;
   unread?: number;
   isAdmin?: boolean;
+  /** Business and Premium Business accounts get a link to their business portal. */
+  business?: boolean;
 }) {
   const pathname = usePathname();
   const isActive = (href: string, exact?: boolean) =>
@@ -81,6 +85,20 @@ export function MemberShell({
               </li>
             ))}
           </ul>
+          {business && (
+            <Link
+              href="/members/business"
+              aria-current={isActive("/members/business") ? "page" : undefined}
+              className={cn(
+                "mt-6 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-[15px] transition-colors",
+                isActive("/members/business")
+                  ? "border-ink bg-ink text-paper"
+                  : "border-rule text-ink-2 hover:border-ink/40 hover:text-ink"
+              )}
+            >
+              <Building2 className="h-[18px] w-[18px] stroke-[1.6]" /> Your business
+            </Link>
+          )}
           {isAdmin && (
             <Link
               href="/studio"

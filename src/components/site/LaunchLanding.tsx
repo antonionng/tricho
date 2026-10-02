@@ -74,11 +74,13 @@ export function LaunchLanding({
             <li className="flex flex-col gap-4 rounded-3xl bg-ink p-7 text-paper">
               <Users className="h-6 w-6 stroke-[1.5]" />
               <p className="display text-2xl leading-tight">
-                Become a founding member and keep your founding price for as long as you stay.
+                Become a founding member and help build Trichollective for everyone who works with hair and scalp.
               </p>
               <p className="text-[15px] leading-relaxed text-paper/75">
-                Professional is £{pro.foundingPrice} a month instead of £{pro.price}, and Community is £
-                {community.foundingPrice} instead of £{community.price}. You can cancel at any time.
+                Your listing stays free either way. Founding members are what fund the directory, Trichozette and the
+                events in these first months, and you keep the founding price for as long as you stay: Professional is
+                £{pro.foundingPrice} a month instead of £{pro.price}, and Community is £{community.foundingPrice} instead
+                of £{community.price}. You can cancel at any time.
               </p>
               <div className="mt-auto flex flex-col gap-3">
                 <CheckoutButton plan="professional" founding variant="paper" errorTone="ink">

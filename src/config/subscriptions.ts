@@ -128,8 +128,9 @@ export const freeListing = {
 };
 
 /**
- * Premium Business: sold by application, never through checkout. Karley approves and invoices.
- * Founding partners (the first six) keep the founding rate while they stay.
+ * Premium Business: bought online with a yearly checkout, and the partner page goes live as soon as
+ * it is paid. Karley can still invoice a brand from the same prices in the Dashboard. Founding
+ * partners (the first six) keep the founding rate while they stay.
  */
 export const premiumBusiness = {
   id: "premium" as const,
@@ -137,7 +138,9 @@ export const premiumBusiness = {
   annualPrice: 3500,
   foundingAnnualPrice: 1950,
   foundingPlaces: 6,
-  perCategoryLimit: 2,
+  /** Yearly prices; a Premium subscription also unlocks everything in Business. */
+  stripePriceId: process.env.STRIPE_PRICE_ID_PREMIUM,
+  stripeFoundingPriceId: process.env.STRIPE_PRICE_ID_PREMIUM_FOUNDING,
   audience: "For brands, device makers and education providers who want to support the profession and reach it properly",
   summary:
     "Everything in Business, plus education, editorial and conference placements with the practitioners who recommend products to their clients.",
@@ -153,7 +156,6 @@ export const premiumBusiness = {
     "A partner page and the Premium partner badge",
   ],
   guardrails: [
-    "At most two partners in each product category",
     "Every sponsored piece is clearly labelled",
     "No clinical claims, and brands never post in the clinical spaces",
   ],
@@ -168,9 +170,23 @@ export function tierById(id: string | null | undefined) {
   return subscriptionTiers.find((t) => t.id === id);
 }
 
-/** Resolve a Stripe price id back to the plan that owns it (used by webhooks). */
+/** True for either Premium Business price. */
+export function isPremiumPriceId(priceId: string | null | undefined) {
+  return !!priceId && (priceId === premiumBusiness.stripePriceId || priceId === premiumBusiness.stripeFoundingPriceId);
+}
+
+/** The Premium Business price for a checkout: the founding rate while founding places remain. */
+export function premiumPriceIdFor(founding: boolean) {
+  return (founding && premiumBusiness.stripeFoundingPriceId) || premiumBusiness.stripePriceId;
+}
+
+/**
+ * Resolve a Stripe price id back to the plan that owns it (used by webhooks).
+ * Premium Business resolves to Business, because it includes everything in Business.
+ */
 export function tierByPriceId(priceId: string | null | undefined) {
   if (!priceId) return undefined;
+  if (isPremiumPriceId(priceId)) return tierById("business");
   return subscriptionTiers.find(
     (t) =>
       t.stripePriceId === priceId ||

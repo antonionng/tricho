@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowUpRight, Gift, Info } from "lucide-react";
 import { Container, Pill, Section } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
-import { displayHost, partnerTierLabel, safeHttpUrl } from "@/lib/partners";
+import { displayHost, partnerTierLabel, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -32,7 +32,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
   const partner = await getPartner(slug);
   if (!partner) notFound();
 
-  const logo = safeHttpUrl(partner.logoUrl);
+  const logo = partnerLogoSrc(partner.logoUrl);
   const website = safeHttpUrl(partner.website);
   const host = displayHost(partner.website);
   const premium = partner.tier === "premium";

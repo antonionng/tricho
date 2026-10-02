@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/components/site/primitives";
-import { publishedPremiumPartners, safeHttpUrl } from "@/lib/partners";
+import { publishedPremiumPartners, partnerLogoSrc } from "@/lib/partners";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,7 +22,7 @@ export async function PartnerStrip({ className }: { className?: string }) {
           </h2>
           <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
             {partners.map((p) => {
-              const logo = safeHttpUrl(p.logoUrl);
+              const logo = partnerLogoSrc(p.logoUrl);
               return (
                 <li key={p.id}>
                   <Link

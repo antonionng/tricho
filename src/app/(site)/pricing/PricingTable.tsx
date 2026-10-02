@@ -272,7 +272,7 @@ export function PricingTable({
               <div className="flex items-center justify-between gap-3">
                 <p className="label text-paper/70">{premiumBusiness.name}</p>
                 <span className="rounded-full bg-paper px-2.5 py-1 text-[11px] font-medium leading-none text-ink">
-                  By application
+                  Join online
                 </span>
               </div>
               <p className="display text-5xl">
@@ -289,7 +289,7 @@ export function PricingTable({
                     a year after that.
                   </>
                 ) : (
-                  "Invoiced yearly once your application is approved."
+                  "Billed yearly, and your partner page goes live as soon as you join."
                 )}
                 {currency === "eur" && " Priced in pounds sterling."}
               </p>
@@ -302,15 +302,13 @@ export function PricingTable({
             <p className="text-[15px] leading-relaxed text-paper/80">{premiumBusiness.audience}.</p>
             <FeatureList features={premiumBusiness.features} />
             <p className="text-sm text-paper/70">
-              We approve every partner by hand and accept at most {premiumBusiness.perCategoryLimit} in each product
-              category, so members never feel sold to.
+              Everything you sponsor is clearly labelled and reviewed so that it teaches rather than sells, so members
+              trust what they see from you.
             </p>
             <div className="mt-auto pt-2">
-              <Button asChild size="lg" variant="paper" className="w-full">
-                <Link href="/for-business#apply">
-                  Apply to become a partner <ArrowRight />
-                </Link>
-              </Button>
+              <CheckoutButton plan="premium" interval="year" variant="paper" errorTone="ink" className="w-full">
+                Join {premiumBusiness.name}
+              </CheckoutButton>
             </div>
           </article>
         </div>

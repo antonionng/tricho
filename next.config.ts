@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
       { source: "/admin/:path*", destination: "/studio/:path*", permanent: false },
     ];
   },
+  // Brand portal logo uploads are up to 1MB, sent with the rest of the page form.
+  experimental: {
+    serverActions: { bodySizeLimit: "2mb" },
+  },
   images: {
     remotePatterns: [
       {

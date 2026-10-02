@@ -10,6 +10,7 @@ import { foundingPartnerPlacesLeft } from "@/lib/founding";
 import { PARTNER_CATEGORIES } from "@/lib/partners";
 import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
+import { CheckoutButton } from "@/components/site/CheckoutButton";
 import { BusinessCheckout, BusinessPrice } from "./BusinessCheckout";
 
 export const dynamic = "force-dynamic";
@@ -137,7 +138,7 @@ export default async function ForBusinessPage() {
                   </Link>
                 </Button>
                 <Button asChild size="xl" variant="outline">
-                  <Link href="#apply">Apply to become a partner</Link>
+                  <Link href="#apply">Talk to us about a partnership</Link>
                 </Button>
               </div>
             </div>
@@ -180,8 +181,8 @@ export default async function ForBusinessPage() {
           <SectionHeader
             eyebrow="Two tiers"
             title="Join Business today,"
-            fade="or apply to become a Premium partner."
-            body="Business is open to any clinic, salon or brand, and you can join straight away. Premium Business is by application, because we only take two partners in each product category."
+            fade="or go further with Premium."
+            body="Both are open to any clinic, salon or brand, and you can join either one online straight away. Premium Business adds education, editorial and conference placements with the practitioners who recommend products to their clients."
           />
 
           <div className="mt-14 grid gap-5 lg:grid-cols-2">
@@ -216,7 +217,7 @@ export default async function ForBusinessPage() {
                 <div className="flex items-center justify-between gap-3">
                   <p className="label text-paper/70">{premiumBusiness.name}</p>
                   <span className="rounded-full bg-paper px-2.5 py-1 text-[11px] font-medium leading-none text-ink">
-                    By application
+                    Join online
                   </span>
                 </div>
                 <p className="display text-5xl">
@@ -231,10 +232,10 @@ export default async function ForBusinessPage() {
                       <s aria-label={`Standard price ${gbp(premiumBusiness.annualPrice)} a year`}>
                         {gbp(premiumBusiness.annualPrice)}
                       </s>{" "}
-                      a year after that. Invoiced yearly.
+                      a year after that. Billed yearly, and your partner page goes live as soon as you join.
                     </>
                   ) : (
-                    "Invoiced yearly once your application is approved."
+                    "Billed yearly, and your partner page goes live as soon as you join."
                   )}
                 </p>
                 {foundingOpen && (
@@ -253,11 +254,9 @@ export default async function ForBusinessPage() {
                 ))}
               </ul>
               <div className="mt-auto pt-2">
-                <Button asChild size="lg" variant="paper">
-                  <Link href="#apply">
-                    Apply to become a partner <ArrowRight />
-                  </Link>
-                </Button>
+                <CheckoutButton plan="premium" interval="year" variant="paper" errorTone="ink">
+                  Join Premium for {gbp(premiumPrice)} a year
+                </CheckoutButton>
               </div>
             </article>
           </div>
@@ -330,7 +329,7 @@ export default async function ForBusinessPage() {
                     How you join
                   </th>
                   <td className="px-2 py-4 text-center text-sm text-ink-2">Online, straight away</td>
-                  <td className="bg-card px-2 py-4 text-center text-sm text-ink-2">By application, approved by hand</td>
+                  <td className="bg-card px-2 py-4 text-center text-sm text-ink-2">Online, straight away</td>
                 </tr>
               </tbody>
             </table>
@@ -410,7 +409,7 @@ export default async function ForBusinessPage() {
               </p>
               <ul className="flex flex-col divide-y divide-paper/15 border-y border-paper/15">
                 {premiumBusiness.guardrails.map((g, i) => {
-                  const Icon = [Users, Tag, ShieldCheck][i] ?? ShieldCheck;
+                  const Icon = [Tag, ShieldCheck][i] ?? ShieldCheck;
                   return (
                     <li key={g} className="flex gap-4 py-5">
                       <Icon className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
@@ -434,15 +433,15 @@ export default async function ForBusinessPage() {
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="flex flex-col gap-6 lg:col-span-4">
               <SectionHeader
-                eyebrow="Apply"
-                title="Apply to become a partner"
+                eyebrow="Talk to us"
+                title="Tell us about your brand"
                 fade="and we will reply personally."
               />
               <div className="flex flex-col gap-4 text-[15px] leading-relaxed text-ink-2">
                 <p>
-                  We approve every partner by hand. We look at what you sell, who it is for and whether it fits the
-                  people we serve, and we accept at most {premiumBusiness.perCategoryLimit} Premium partners in each
-                  product category.
+                  You can join Premium online and your partner page goes live as soon as you pay. If you would like
+                  to plan your masterclass, editorial or conference placements with us first, tell us about your
+                  brand here.
                 </p>
                 <p>
                   {foundingOpen
@@ -454,7 +453,7 @@ export default async function ForBusinessPage() {
                   <Link href="#compare" className="text-ink underline underline-offset-4">
                     join online today
                   </Link>{" "}
-                  and apply for Premium later.
+                  and move up to Premium whenever you are ready.
                 </p>
               </div>
               <p className="text-[15px] text-ink-2">
@@ -494,7 +493,7 @@ export default async function ForBusinessPage() {
                 name: premiumBusiness.name,
                 price: premiumPrice,
                 priceCurrency: "GBP",
-                url: absoluteUrl("/for-business#apply"),
+                url: absoluteUrl("/for-business#compare"),
               },
             ],
           },
