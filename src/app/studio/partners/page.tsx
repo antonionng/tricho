@@ -136,7 +136,7 @@ function PartnerForm({ partner }: { partner: (Partner & { organisation: { id: st
   if (partner && !categories.includes(partner.category)) categories.unshift(partner.category);
 
   return (
-    <form action={savePartnerAction} className="space-y-5 rounded-3xl border border-rule bg-card p-5 sm:p-8">
+    <form action={savePartnerAction} className="max-w-4xl space-y-5 rounded-2xl border border-rule bg-card p-5 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-ink">{partner ? `Edit ${partner.name}` : "New partner"}</h2>
         <div className="flex items-center gap-4">

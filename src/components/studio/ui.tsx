@@ -48,12 +48,18 @@ export function Section({
   );
 }
 
+/**
+ * A figure with its label. The label sits on one line and the figure always
+ * lines up across a row, however long the note underneath is.
+ */
 export function Stat({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
   return (
-    <div className="rounded-2xl border border-rule bg-card p-5">
-      <p className="label text-muted-foreground">{label}</p>
-      <p className="display mt-3 text-4xl tabular-nums">{value}</p>
-      {note && <p className="mt-2 text-xs text-muted-foreground">{note}</p>}
+    <div className="flex h-full min-w-0 flex-col rounded-2xl border border-rule bg-card p-4 sm:p-5">
+      <p className="truncate text-[13px] font-medium text-muted-foreground" title={label}>
+        {label}
+      </p>
+      <p className="display mt-2 text-3xl leading-none tabular-nums sm:text-[2.5rem]">{value}</p>
+      {note && <p className="mt-3 line-clamp-3 text-xs leading-snug text-muted-foreground">{note}</p>}
     </div>
   );
 }

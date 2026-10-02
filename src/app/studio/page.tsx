@@ -28,10 +28,10 @@ export default async function OverviewPage() {
       />
 
       {has("members.view") && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <Stat label="Active members" value={o.members.active} note={`${o.members.accounts} accounts in total`} />
-          <Stat label="Joined, last 30 days" value={o.members.joined30} />
-          <Stat label="Lapsed, last 30 days" value={o.members.lapsed30} note="Memberships that ended and weren't renewed" />
+          <Stat label="Joined" value={o.members.joined30} note="Last 30 days" />
+          <Stat label="Lapsed" value={o.members.lapsed30} note="Memberships that ended in the last 30 days and weren't renewed" />
           {staff.role === "owner" && <Stat label="Monthly income" value={`£${o.members.mrr.toLocaleString("en-GB")}`} />}
           {has("subscribers.view") && <Stat label="Newsletter readers" value={o.subscribers} note={`${o.subscribers30} new in 30 days`} />}
         </div>
@@ -61,8 +61,8 @@ export default async function OverviewPage() {
           <Section title="Community" actions={<Link href="/studio/community" className="text-sm underline underline-offset-4">Moderation queue</Link>}>
             <div className="grid grid-cols-3 gap-3">
               <Stat label="Open reports" value={o.openReports} />
-              <Stat label="Posts, 30 days" value={o.posts30} />
-              <Stat label="Replies, 30 days" value={o.comments30} />
+              <Stat label="New posts" value={o.posts30} note="Last 30 days" />
+              <Stat label="New replies" value={o.comments30} note="Last 30 days" />
             </div>
           </Section>
         )}
@@ -80,7 +80,7 @@ export default async function OverviewPage() {
                         {e.title} {!e.published && <Tag tone="warn">Draft</Tag>}
                         <span className="block text-xs text-muted-foreground">{dateTime(e.startsAt)}</span>
                       </span>
-                      <span className="tabular-nums text-ink-2">
+                      <span className="shrink-0 whitespace-nowrap tabular-nums text-ink-2">
                         {e._count.rsvps}
                         {e.capacity ? ` of ${e.capacity}` : ""} going
                       </span>

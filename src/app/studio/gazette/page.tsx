@@ -92,8 +92,14 @@ export default async function GazetteStudioPage({ searchParams }: { searchParams
         )}
       </Section>
 
-      <Section title="Built-in editions" intro="These editions are part of the site's code. They are always shown, and a Studio edition can't reuse their web addresses.">
-        <ul className="divide-y divide-rule rounded-2xl border border-rule bg-card">
+      <details className="group rounded-2xl border border-rule bg-card">
+        <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-2 px-5 py-4">
+          <span className="text-sm font-medium text-ink">Built-in editions ({allEditions.length})</span>
+          <span className="text-xs text-muted-foreground">
+            These are part of the site&apos;s code and always shown. A Studio edition can&apos;t reuse their web addresses.
+          </span>
+        </summary>
+        <ul className="divide-y divide-rule border-t border-rule">
           {allEditions.map((e) => (
             <li key={e.slug} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
               <div className="min-w-0 space-y-0.5">
@@ -113,7 +119,7 @@ export default async function GazetteStudioPage({ searchParams }: { searchParams
             </li>
           ))}
         </ul>
-      </Section>
+      </details>
     </div>
   );
 }

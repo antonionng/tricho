@@ -198,3 +198,11 @@ describe("export", () => {
     expect(row.startsWith(`"'=Acme, Ltd",brand,lead,premium,1200,2026-10-10,Sam,vip; devices`)).toBe(true);
   });
 });
+
+describe("describeChanges", async () => {
+  const { describeChanges } = await import("./crm");
+  it("reads like a sentence", () => {
+    expect(describeChanges(["logoFileId"])).toBe("logo");
+    expect(describeChanges(["website", "vatNumber", "addressLine1", "addressLine2"])).toBe("website, VAT number and address");
+  });
+});

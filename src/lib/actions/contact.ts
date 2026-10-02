@@ -9,6 +9,7 @@ import {
   contactAlert,
   type ContactMessage,
 } from "@/lib/mail/templates/leads";
+import { shortName } from "@/lib/names";
 
 export type ContactState =
   | { ok: true; message: string }
@@ -82,6 +83,6 @@ export async function sendContactMessage(_prev: ContactState, formData: FormData
 
   return {
     ok: true,
-    message: `Thank you, ${name.split(" ")[0]}. We've received your message and a real person will reply within two working days. A copy is on its way to your inbox.`,
+    message: `Thank you, ${shortName(name, "you")}. We've received your message and a real person will reply within two working days. A copy is on its way to your inbox.`,
   };
 }

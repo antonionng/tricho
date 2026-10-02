@@ -125,7 +125,7 @@ function EventList({ events, empty }: { events: (Event & { _count: { rsvps: numb
 
 function DescribeEvent() {
   return (
-    <form action={draftEventAction} className="space-y-3 rounded-3xl border border-rule bg-card p-5 sm:p-8">
+    <form action={draftEventAction} className="max-w-4xl space-y-3 rounded-2xl border border-rule bg-card p-5 sm:p-6">
       <Field
         label="Describe the event in a sentence"
         hint="For example: a masterclass on scalp micropigmentation next Thursday evening in Dublin, £40 for members and £60 for guests, 20 places. The form below is filled in for you to check before anything is saved."
@@ -146,7 +146,7 @@ function EventForm({ event, prefill }: { event: Event | null; prefill: Prefill }
   const miss = (f: RequiredEventField) => !!prefill?.missing.includes(f);
   const missHint = "This still needs filling in.";
   return (
-    <form action={saveEventAction} className="space-y-5 rounded-3xl border border-rule bg-card p-5 sm:p-8">
+    <form action={saveEventAction} className="max-w-4xl space-y-5 rounded-2xl border border-rule bg-card p-5 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-ink">{event ? "Edit event" : "New event"}</h2>
         <Link href="/studio/events" className="text-sm text-ink-2 underline underline-offset-4">

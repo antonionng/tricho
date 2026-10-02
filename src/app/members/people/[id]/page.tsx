@@ -15,6 +15,7 @@ import { professionById } from "@/config/rooms";
 import { urlForFile } from "@/lib/storage";
 import { SOCIAL_KEYS, SOCIAL_NETWORKS, membershipLabel, readQualifications, readSocials } from "@/lib/profile";
 import { startConversation } from "../actions";
+import { shortName } from "@/lib/names";
 
 export const metadata = { title: "People" };
 
@@ -210,7 +211,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         <SectionLabel>Recent posts</SectionLabel>
         {posts.length === 0 ? (
           <EmptyState
-            title={isMe ? "You haven't posted yet" : `${(person.name || "This member").split(" ")[0]} hasn't posted yet`}
+            title={isMe ? "You haven't posted yet" : `${shortName(person.name, "This member")} hasn't posted yet`}
             body={isMe ? "Introductions is a good place to start." : "Their posts will appear here when they do."}
           />
         ) : (

@@ -289,6 +289,38 @@ export function changedFields<T extends Record<string, unknown>>(before: T, afte
   return { before: b, after: a, changed: Object.keys(a) as (keyof T)[] };
 }
 
+const FIELD_LABEL: Record<string, string> = {
+  name: "name",
+  kind: "kind",
+  category: "category",
+  website: "website",
+  email: "email",
+  phone: "phone",
+  addressLine1: "address",
+  addressLine2: "address",
+  city: "town",
+  region: "region",
+  postcode: "postcode",
+  country: "country",
+  companyNumber: "company number",
+  vatNumber: "VAT number",
+  size: "team size",
+  description: "description",
+  logoFileId: "logo",
+  socials: "social links",
+  accountEmail: "account email",
+  valueGBP: "value",
+  followUpAt: "follow-up date",
+  interest: "interest",
+};
+
+/** Changed fields as a readable list, e.g. "logo, website and VAT number". */
+export function describeChanges(fields: readonly (string | number | symbol)[]) {
+  const names = [...new Set(fields.map((f) => FIELD_LABEL[String(f)] ?? String(f).replace(/([A-Z])/g, " $1").toLowerCase()))];
+  if (names.length <= 1) return names[0] ?? "nothing";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 // ---------- Export ----------
 
 export const ORG_CSV_HEADER = [

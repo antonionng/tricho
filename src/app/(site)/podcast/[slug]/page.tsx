@@ -9,6 +9,7 @@ import { episodeImage, isoDuration, publishedEpisode } from "@/lib/podcast";
 import { formatDuration, keyMomentsOf, parseTimestamp, transcriptParagraphs } from "@/lib/podcast-feed";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
+import { shortName } from "@/lib/names";
 
 /** Non-members see this many transcript paragraphs before the invitation to join. */
 const PREVIEW_PARAGRAPHS = 3;
@@ -153,7 +154,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
                   href={`/members/people/${episode.guestUserId}`}
                   className="inline-flex items-center gap-2 text-[15px] text-ink underline underline-offset-4"
                 >
-                  See {episode.guestName.split(" ")[0]}&apos;s member profile <ArrowRight className="h-4 w-4" />
+                  See {shortName(episode.guestName, "the guest")}&apos;s member profile <ArrowRight className="h-4 w-4" />
                 </Link>
               )}
             </section>

@@ -15,6 +15,7 @@ import {
   syncListingFromProfile,
 } from "@/lib/profile";
 import { PROGRESS_COOKIE, readProgress } from "./progress";
+import { shortName } from "@/lib/names";
 
 async function requireUser() {
   const ctx = await getMemberContext();
@@ -111,7 +112,7 @@ export async function finishOnboarding(formData: FormData) {
   if (ctx.allowed && intro.length >= 2) {
     await prisma.communityPost.create({
       data: {
-        title: `Hello from ${(user.name || "a new member").split(" ")[0]}`,
+        title: `Hello from ${shortName(user.name, "a new member")}`,
         content: intro,
         category: "discussion",
         space: "introductions",

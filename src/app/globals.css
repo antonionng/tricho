@@ -95,6 +95,11 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";
   }
+  /* Checkboxes and radios in the brand ink rather than the browser's blue. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--ink);
+  }
   ::selection {
     background: var(--ink);
     color: var(--paper);

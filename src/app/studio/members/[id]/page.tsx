@@ -284,7 +284,11 @@ export default async function MemberDetailPage({
         <Card>
           <dl>
             <Row label="Plan">
-              {membership.isActive ? membership.tierName : "No active membership"}
+              {membership.isActive
+                ? membership.tierName ??
+                  subscriptionTiers.find((t) => t.id === (membership.tierId ?? user.plan))?.name ??
+                  "Active membership"
+                : "No active membership"}
               {membership.via && !membership.complimentary ? `, provided by ${membership.via}` : ""}
               {membership.complimentary ? ", complimentary" : ""}
             </Row>

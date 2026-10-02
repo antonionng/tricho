@@ -51,8 +51,8 @@ function Hidden({ id }: { id: string }) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-rule py-2.5 last:border-0 sm:flex-row sm:gap-4">
-      <dt className="w-44 shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-sm text-ink">{children}</dd>
+      <dt className="w-32 shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 break-words text-sm text-ink">{children}</dd>
     </div>
   );
 }
@@ -221,7 +221,252 @@ export default async function BusinessPage({ params, searchParams }: { params: P
         <p className="text-xs text-muted-foreground">{STAGE_LABEL[org.stage].description}</p>
       </Card>
 
-      <Section title="Details" intro="Everything we know about the business. Only the team can see this.">
+      <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] xl:gap-8">
+        <div className="min-w-0 space-y-10">
+        <Section title="Notes and activity" intro="Calls, emails and meetings, every change the team has made, and the original application, newest first.">
+          {canEdit && (
+            <form action={addOrgNoteAction} className="space-y-2">
+              <Hidden id={org.id} />
+              <div className="flex flex-wrap gap-2">
+                <select name="kind" defaultValue="note" aria-label="Kind of note" className={cn(fieldClass, "w-auto py-2")}>
+                  {NOTE_KINDS.map((k) => (
+                    <option key={k} value={k}>
+                      {NOTE_KIND_LABEL[k]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label htmlFor="org-note" className="sr-only">
+                Note
+              </label>
+              <textarea id="org-note" name="body" rows={3} maxLength={6000} required placeholder="What was said, and what happens next." className={fieldClass} />
+              <SubmitButton size="sm" variant="outline" pendingLabel="Saving…">
+                Add to the timeline
+              </SubmitButton>
+            </form>
+          )}
+          {timeline.length === 0 ? (
+            <Empty>Nothing has happened with this business yet.</Empty>
+          ) : (
+            <ol className="space-y-2">
+              {timeline.map((item) => (
+                <li key={`${item.type}-${item.id}`}>
+                  {item.type === "note" ? (
+                    <Card className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Tag tone="ink">{NOTE_KIND_LABEL[item.kind as NoteKind] ?? item.kind}</Tag>
+                        <span className="text-xs text-muted-foreground">
+                          {item.author ?? "Someone who has since left the team"}, {dateTime(item.at)}
+                        </span>
+                      </div>
+                      <p className="whitespace-pre-line text-sm text-ink">{item.body}</p>
+                    </Card>
+                  ) : item.type === "audit" ? (
+                    <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-rule px-5 py-3 text-sm">
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="text-ink">{item.summary ?? item.action}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.actor}, {dateTime(item.at)}
+                        </p>
+                      </div>
+                      <Tag>{item.action}</Tag>
+                    </div>
+                  ) : (
+                    <Card className="space-y-2 bg-paper-2/60">
+                      <p className="text-sm font-medium text-ink">
+                        The original {item.source === "application" ? "application" : "enquiry"}, received on {dateOnly(item.at)}.
+                      </p>
+                      <dl>
+                        {item.fields.map(([label, value]) => (
+                          <Row key={label} label={label}>
+                            <span className="whitespace-pre-line">{value}</span>
+                          </Row>
+                        ))}
+                      </dl>
+                    </Card>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </Section>
+        <Section title="Contacts" intro="The people we deal with. Anyone with a member account is linked to their profile.">
+          {org.contacts.length === 0 ? (
+            <Empty>There are no contacts for this business yet.</Empty>
+          ) : (
+            <Card className="divide-y divide-rule p-0">
+              {org.contacts.map((c) => (
+                <div key={c.id} className="space-y-2 px-5 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-0.5 text-sm">
+                      <p className="font-medium text-ink">
+                        {c.name}
+                        {c.title && <span className="font-normal text-muted-foreground">, {c.title}</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{[c.email, c.phone].filter(Boolean).join(" · ") || "No email or phone yet"}</p>
+                      {c.user && (
+                        <p className="text-xs">
+                          <TextLink href={`/studio/members/${c.user.id}`}>Open their member profile</TextLink>
+                        </p>
+                      )}
+                    </div>
+                    {c.isPrimary && <Tag tone="ink">Main contact</Tag>}
+                  </div>
+                  {canEdit && (
+                    <details className="text-sm">
+                      <summary className="cursor-pointer text-xs text-ink-2 underline underline-offset-4">Edit or remove</summary>
+                      <form action={updateContactAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <Hidden id={org.id} />
+                        <input type="hidden" name="contactId" value={c.id} />
+                        <ContactFields c={c} />
+                        <div className="flex flex-wrap gap-2 sm:col-span-2">
+                          <SubmitButton size="sm" variant="outline" pendingLabel="Saving…">
+                            Save contact
+                          </SubmitButton>
+                        </div>
+                      </form>
+                      <form action={removeContactAction} className="mt-2">
+                        <Hidden id={org.id} />
+                        <input type="hidden" name="contactId" value={c.id} />
+                        <SubmitButton size="sm" variant="ghost" className="text-destructive" pendingLabel="Removing…">
+                          Remove this contact
+                        </SubmitButton>
+                      </form>
+                    </details>
+                  )}
+                </div>
+              ))}
+            </Card>
+          )}
+          {canEdit && (
+            <details className="group rounded-2xl border border-rule bg-card" open={org.contacts.length === 0}>
+              <summary className="cursor-pointer list-none px-5 py-3.5 text-sm font-medium text-ink">
+                Add a contact
+                <span className="ml-2 font-normal text-muted-foreground group-open:hidden">Someone else you deal with at {org.name}.</span>
+              </summary>
+              <form action={addContactAction} className="grid gap-3 border-t border-rule p-5 sm:grid-cols-2">
+                <Hidden id={org.id} />
+                <ContactFields />
+                <div className="sm:col-span-2">
+                  <SubmitButton size="sm" variant="outline" pendingLabel="Adding…">
+                    Add contact
+                  </SubmitButton>
+                </div>
+              </form>
+            </details>
+          )}
+        </Section>
+        </div>
+        <div className="min-w-0 space-y-10">
+        <Section title="Platform" intro="What they have on Trichollective, and whether their account is active.">
+          <Card>
+            <dl>
+              <Row label="Brand page">
+                {org.partner ? (
+                  <span className="flex flex-wrap items-center gap-2">
+                    {org.partner.name}, {partnerTierLabel(org.partner.tier)}
+                    {org.partner.isFounding && <Tag>Founding</Tag>}
+                    {org.partner.hidden ? <Tag tone="danger">Taken down</Tag> : org.partner.published ? <Tag tone="positive">Published</Tag> : <Tag tone="warn">Draft</Tag>}
+                    <TextLink href="/studio/partners">Manage on the Partners page</TextLink>
+                    {org.partner.published && !org.partner.hidden && <TextLink href={`/partners/${org.partner.slug}`}>View the public page</TextLink>}
+                  </span>
+                ) : (
+                  "This business does not have a brand page yet."
+                )}
+              </Row>
+              <Row label="Account email">
+                {accountEmail ? (
+                  <span>
+                    {accountEmail}
+                    {account && (
+                      <>
+                        {" "}
+                        <TextLink href={`/studio/members/${account.id}`}>Open their member profile</TextLink>
+                      </>
+                    )}
+                    {!account && <span className="text-muted-foreground">. Nobody has signed up with this email yet.</span>}
+                  </span>
+                ) : (
+                  "No account email has been set. Add one in Details so the right person can manage their page."
+                )}
+              </Row>
+              {accountEmail && (
+                <Row label="Membership">
+                  {membership?.isActive
+                    ? `Active on ${membership.tierName ?? "a paid plan"}${membership.via ? `, provided by ${membership.via}` : ""}.`
+                    : "This account does not have an active plan."}
+                </Row>
+              )}
+              {accountEmail && <Row label="Team seats in use">{seats} of {BUSINESS_SEATS}</Row>}
+              {website && (
+                <Row label="Website">
+                  <a href={website} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                    {website}
+                  </a>
+                </Row>
+              )}
+            </dl>
+          </Card>
+
+          {canEdit && !org.partner && (
+            <Card className="space-y-3">
+              <p className="font-medium text-ink">Convert to a brand page</p>
+              <p className="text-sm text-ink-2">
+                This creates an unpublished partner page from these details, links it to this business and moves the deal to Won. The page
+                is managed by {org.accountEmail ?? primaryEmail ?? "the account email you set in Details"}, who can finish and publish it
+                from the member area.
+              </p>
+              <form action={convertToPartnerAction} className="grid gap-3 sm:grid-cols-2">
+                <Hidden id={org.id} />
+                <Field label="Tier">
+                  <select name="tier" defaultValue={org.interest?.toLowerCase().includes("premium") ? "premium" : "business"} className={fieldClass}>
+                    <option value="business">Business partner</option>
+                    <option value="premium">Premium partner</option>
+                  </select>
+                </Field>
+                <Field label="Category">
+                  <select
+                    name="category"
+                    defaultValue={(PARTNER_CATEGORIES as readonly string[]).includes(org.category ?? "") ? (org.category as string) : ""}
+                    required
+                    className={fieldClass}
+                  >
+                    <option value="" disabled>
+                      Choose a category
+                    </option>
+                    {PARTNER_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Description for the page" hint="At least 20 characters. They can change it later." className="sm:col-span-2">
+                  <textarea name="blurb" rows={3} maxLength={4000} defaultValue={org.description ?? ""} className={fieldClass} />
+                </Field>
+                <label className="flex items-center gap-2 text-sm text-ink-2 sm:col-span-2">
+                  <input type="checkbox" name="isFounding" /> They are a founding partner, which takes one of the limited founding Premium places.
+                </label>
+                <div className="sm:col-span-2">
+                  <SubmitButton size="sm" pendingLabel="Creating…">
+                    Create the brand page
+                  </SubmitButton>
+                </div>
+              </form>
+            </Card>
+          )}
+        </Section>
+        </div>
+      </div>
+
+      <details className="group rounded-2xl border border-rule bg-card/60" open={!org.website && !org.email && !org.description}>
+        <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-2 px-5 py-4">
+          <span className="text-lg font-semibold tracking-tight text-ink">Details</span>
+          <span className="text-sm text-muted-foreground group-open:hidden">
+            Address, company records, social links and description. Open to edit.
+          </span>
+        </summary>
+        <div className="border-t border-rule p-4 sm:p-5">
         {canEdit ? (
           <Card>
             <form action={updateDetailsAction} className="grid gap-4 sm:grid-cols-2">
@@ -336,238 +581,9 @@ export default async function BusinessPage({ params, searchParams }: { params: P
             </dl>
           </Card>
         )}
-      </Section>
+        </div>
+      </details>
 
-      <Section title="Contacts" intro="The people we deal with. Anyone with a member account is linked to their profile.">
-        {org.contacts.length === 0 ? (
-          <Empty>There are no contacts for this business yet.</Empty>
-        ) : (
-          <Card className="divide-y divide-rule p-0">
-            {org.contacts.map((c) => (
-              <div key={c.id} className="space-y-2 px-5 py-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-0.5 text-sm">
-                    <p className="font-medium text-ink">
-                      {c.name}
-                      {c.title && <span className="font-normal text-muted-foreground">, {c.title}</span>}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{[c.email, c.phone].filter(Boolean).join(" · ") || "No email or phone yet"}</p>
-                    {c.user && (
-                      <p className="text-xs">
-                        <TextLink href={`/studio/members/${c.user.id}`}>Open their member profile</TextLink>
-                      </p>
-                    )}
-                  </div>
-                  {c.isPrimary && <Tag tone="ink">Main contact</Tag>}
-                </div>
-                {canEdit && (
-                  <details className="text-sm">
-                    <summary className="cursor-pointer text-xs text-ink-2 underline underline-offset-4">Edit or remove</summary>
-                    <form action={updateContactAction} className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <Hidden id={org.id} />
-                      <input type="hidden" name="contactId" value={c.id} />
-                      <ContactFields c={c} />
-                      <div className="flex flex-wrap gap-2 sm:col-span-2">
-                        <SubmitButton size="sm" variant="outline" pendingLabel="Saving…">
-                          Save contact
-                        </SubmitButton>
-                      </div>
-                    </form>
-                    <form action={removeContactAction} className="mt-2">
-                      <Hidden id={org.id} />
-                      <input type="hidden" name="contactId" value={c.id} />
-                      <SubmitButton size="sm" variant="ghost" className="text-destructive" pendingLabel="Removing…">
-                        Remove this contact
-                      </SubmitButton>
-                    </form>
-                  </details>
-                )}
-              </div>
-            ))}
-          </Card>
-        )}
-        {canEdit && (
-          <Card>
-            <p className="mb-3 font-medium text-ink">Add a contact</p>
-            <form action={addContactAction} className="grid gap-3 sm:grid-cols-2">
-              <Hidden id={org.id} />
-              <ContactFields />
-              <div className="sm:col-span-2">
-                <SubmitButton size="sm" variant="outline" pendingLabel="Adding…">
-                  Add contact
-                </SubmitButton>
-              </div>
-            </form>
-          </Card>
-        )}
-      </Section>
-
-      <Section title="Platform" intro="What they have on Trichollective, and whether their account is active.">
-        <Card>
-          <dl>
-            <Row label="Brand page">
-              {org.partner ? (
-                <span className="flex flex-wrap items-center gap-2">
-                  {org.partner.name}, {partnerTierLabel(org.partner.tier)}
-                  {org.partner.isFounding && <Tag>Founding</Tag>}
-                  {org.partner.hidden ? <Tag tone="danger">Taken down</Tag> : org.partner.published ? <Tag tone="positive">Published</Tag> : <Tag tone="warn">Draft</Tag>}
-                  <TextLink href="/studio/partners">Manage on the Partners page</TextLink>
-                  {org.partner.published && !org.partner.hidden && <TextLink href={`/partners/${org.partner.slug}`}>View the public page</TextLink>}
-                </span>
-              ) : (
-                "This business does not have a brand page yet."
-              )}
-            </Row>
-            <Row label="Account email">
-              {accountEmail ? (
-                <span>
-                  {accountEmail}
-                  {account && (
-                    <>
-                      {" "}
-                      <TextLink href={`/studio/members/${account.id}`}>Open their member profile</TextLink>
-                    </>
-                  )}
-                  {!account && <span className="text-muted-foreground">. Nobody has signed up with this email yet.</span>}
-                </span>
-              ) : (
-                "No account email has been set. Add one in Details so the right person can manage their page."
-              )}
-            </Row>
-            {accountEmail && (
-              <Row label="Membership">
-                {membership?.isActive
-                  ? `Active on ${membership.tierName ?? "a paid plan"}${membership.via ? `, provided by ${membership.via}` : ""}.`
-                  : "This account does not have an active plan."}
-              </Row>
-            )}
-            {accountEmail && <Row label="Team seats in use">{seats} of {BUSINESS_SEATS}</Row>}
-            {website && (
-              <Row label="Website">
-                <a href={website} target="_blank" rel="noreferrer" className="underline underline-offset-4">
-                  {website}
-                </a>
-              </Row>
-            )}
-          </dl>
-        </Card>
-
-        {canEdit && !org.partner && (
-          <Card className="space-y-3">
-            <p className="font-medium text-ink">Convert to a brand page</p>
-            <p className="text-sm text-ink-2">
-              This creates an unpublished partner page from these details, links it to this business and moves the deal to Won. The page
-              is managed by {org.accountEmail ?? primaryEmail ?? "the account email you set in Details"}, who can finish and publish it
-              from the member area.
-            </p>
-            <form action={convertToPartnerAction} className="grid gap-3 sm:grid-cols-2">
-              <Hidden id={org.id} />
-              <Field label="Tier">
-                <select name="tier" defaultValue={org.interest?.toLowerCase().includes("premium") ? "premium" : "business"} className={fieldClass}>
-                  <option value="business">Business partner</option>
-                  <option value="premium">Premium partner</option>
-                </select>
-              </Field>
-              <Field label="Category">
-                <select
-                  name="category"
-                  defaultValue={(PARTNER_CATEGORIES as readonly string[]).includes(org.category ?? "") ? (org.category as string) : ""}
-                  required
-                  className={fieldClass}
-                >
-                  <option value="" disabled>
-                    Choose a category
-                  </option>
-                  {PARTNER_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Description for the page" hint="At least 20 characters. They can change it later." className="sm:col-span-2">
-                <textarea name="blurb" rows={3} maxLength={4000} defaultValue={org.description ?? ""} className={fieldClass} />
-              </Field>
-              <label className="flex items-center gap-2 text-sm text-ink-2 sm:col-span-2">
-                <input type="checkbox" name="isFounding" /> They are a founding partner, which takes one of the limited founding Premium places.
-              </label>
-              <div className="sm:col-span-2">
-                <SubmitButton size="sm" pendingLabel="Creating…">
-                  Create the brand page
-                </SubmitButton>
-              </div>
-            </form>
-          </Card>
-        )}
-      </Section>
-
-      <Section title="Notes and activity" intro="Calls, emails and meetings, every change the team has made, and the original application, newest first.">
-        {canEdit && (
-          <form action={addOrgNoteAction} className="space-y-2">
-            <Hidden id={org.id} />
-            <div className="flex flex-wrap gap-2">
-              <select name="kind" defaultValue="note" aria-label="Kind of note" className={cn(fieldClass, "w-auto py-2")}>
-                {NOTE_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {NOTE_KIND_LABEL[k]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <label htmlFor="org-note" className="sr-only">
-              Note
-            </label>
-            <textarea id="org-note" name="body" rows={3} maxLength={6000} required placeholder="What was said, and what happens next." className={fieldClass} />
-            <SubmitButton size="sm" variant="outline" pendingLabel="Saving…">
-              Add to the timeline
-            </SubmitButton>
-          </form>
-        )}
-        {timeline.length === 0 ? (
-          <Empty>Nothing has happened with this business yet.</Empty>
-        ) : (
-          <ol className="space-y-2">
-            {timeline.map((item) => (
-              <li key={`${item.type}-${item.id}`}>
-                {item.type === "note" ? (
-                  <Card className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Tag tone="ink">{NOTE_KIND_LABEL[item.kind as NoteKind] ?? item.kind}</Tag>
-                      <span className="text-xs text-muted-foreground">
-                        {item.author ?? "Someone who has since left the team"}, {dateTime(item.at)}
-                      </span>
-                    </div>
-                    <p className="whitespace-pre-line text-sm text-ink">{item.body}</p>
-                  </Card>
-                ) : item.type === "audit" ? (
-                  <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-rule px-5 py-3 text-sm">
-                    <div className="min-w-0 space-y-0.5">
-                      <p className="text-ink">{item.summary ?? item.action}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.actor}, {dateTime(item.at)}
-                      </p>
-                    </div>
-                    <Tag>{item.action}</Tag>
-                  </div>
-                ) : (
-                  <Card className="space-y-2 bg-paper-2/60">
-                    <p className="text-sm font-medium text-ink">
-                      The original {item.source === "application" ? "application" : "enquiry"}, received on {dateOnly(item.at)}.
-                    </p>
-                    <dl>
-                      {item.fields.map(([label, value]) => (
-                        <Row key={label} label={label}>
-                          <span className="whitespace-pre-line">{value}</span>
-                        </Row>
-                      ))}
-                    </dl>
-                  </Card>
-                )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </Section>
 
       {isOwner && !confirmingDelete && (
         <Section title="Delete this business" intro="Only owners can delete a business, and you will be asked to confirm.">

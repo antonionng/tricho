@@ -1,3 +1,4 @@
+import { shortName } from "@/lib/names";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
@@ -187,7 +188,7 @@ export function memberDirectoryWhere(): Prisma.UserWhereInput {
 }
 
 export function firstName(name?: string | null) {
-  return (name || "").trim().split(/\s+/)[0] || "";
+  return shortName(name);
 }
 
 /** Creates a notification. Never throws: a failed notification must not break the action. */

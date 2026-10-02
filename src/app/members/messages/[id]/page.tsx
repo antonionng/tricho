@@ -10,6 +10,7 @@ import { shortDate, timeOfDay } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
+import { shortName } from "@/lib/names";
 
 export const metadata = { title: "Messages" };
 
@@ -63,7 +64,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
       <ol className="flex flex-1 flex-col gap-1.5 py-6" aria-live="polite">
         {convo.messages.length === 0 && (
           <li className="py-10 text-center text-sm text-muted-foreground">
-            Say hello. Messages are private between you{other?.name ? ` and ${other.name.split(" ")[0]}` : ""}.
+            Say hello. Messages are private between you{other?.name ? ` and ${shortName(other.name)}` : ""}.
           </li>
         )}
         {thread.map((m) => {

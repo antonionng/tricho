@@ -183,7 +183,7 @@ function PlanTab({ episode, canEdit }: { episode: PodcastEpisode; canEdit: boole
 
 function AudioTab({ episode, canEdit, guestEmail }: { episode: PodcastEpisode; canEdit: boolean; guestEmail: string }) {
   return (
-    <form action={saveAudioAction} className="space-y-5 rounded-3xl border border-rule bg-card p-5 sm:p-8">
+    <form action={saveAudioAction} className="max-w-4xl space-y-5 rounded-2xl border border-rule bg-card p-5 sm:p-6">
       <input type="hidden" name="id" value={episode.id} />
       <fieldset disabled={!canEdit} className="space-y-5">
         <Field label="Audio file" hint="The direct MP3 link from your podcast host. Sync from host fills this in for you.">
@@ -322,7 +322,7 @@ function NotesTab({ episode, canEdit }: { episode: PodcastEpisode; canEdit: bool
         </form>
       )}
 
-      <form action={saveNotesAction} className="space-y-5 rounded-3xl border border-rule bg-card p-5 sm:p-8">
+      <form action={saveNotesAction} className="max-w-4xl space-y-5 rounded-2xl border border-rule bg-card p-5 sm:p-6">
         <input type="hidden" name="id" value={episode.id} />
         <fieldset disabled={!canEdit} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -375,7 +375,7 @@ function PublishTab({ episode, canEdit, canPublish }: { episode: PodcastEpisode;
   ];
   const ready = checks.every((c) => c.ok || !c.required);
   return (
-    <form action={publishAction} className="space-y-6 rounded-3xl border border-rule bg-card p-5 sm:p-8">
+    <form action={publishAction} className="max-w-4xl space-y-6 rounded-2xl border border-rule bg-card p-5 sm:p-6">
       <input type="hidden" name="id" value={episode.id} />
       <fieldset disabled={!canEdit && !canPublish} className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">

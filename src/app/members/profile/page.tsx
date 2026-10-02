@@ -167,8 +167,22 @@ export default async function ProfilePage({
     ...(ctx.isAdmin || ctx.unlocked ? [{ href: "/studio", label: "Studio", icon: LayoutDashboard }] : []),
   ];
 
+  const sections = [
+    { id: "about", label: "About you" },
+    { id: "photo", label: "Photo" },
+    { id: "practice", label: "Practice" },
+    { id: "qualifications", label: "Qualifications" },
+    { id: "contact", label: "Contact and address" },
+    { id: "goals", label: "Goals and interests" },
+    ...(fullProfile ? [{ id: "listing", label: "Directory profile" }] : []),
+    { id: "emails", label: "Email preferences" },
+    { id: "enquiries", label: "Enquiries" },
+  ];
+
   return (
-    <MemberPage size="narrow">
+    <MemberPage>
+      <div className="lg:grid lg:grid-cols-[minmax(0,42rem)_12rem] lg:justify-between lg:gap-12">
+      <div className="min-w-0">
       <header className="mb-8 flex items-center gap-4">
         <Avatar name={user.name} src={[uploadedPhoto, listing?.photoUrl, user.image]} size="xl" />
         <div className="min-w-0">
@@ -510,6 +524,19 @@ export default async function ProfilePage({
           </SubmitButton>
         </form>
       </section>
+      </div>
+      <nav aria-label="Profile sections" className="hidden lg:block">
+        <div className="sticky top-24 space-y-1 border-l border-rule pl-4">
+          <p className="pb-2 text-xs font-medium text-muted-foreground">On this page</p>
+          {sections.map((sec) => (
+            <a key={sec.id} href={`#${sec.id}`} className="block py-1 text-sm text-ink-2 hover:text-ink">
+              {sec.label}
+            </a>
+          ))}
+          <p className="pt-4 text-xs leading-relaxed text-muted-foreground">Your profile is {completeness.percent}% complete.</p>
+        </div>
+      </nav>
+      </div>
     </MemberPage>
   );
 }

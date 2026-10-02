@@ -17,6 +17,7 @@ import {
   STAGE_LABEL,
   changedFields,
   cleanUrl,
+  describeChanges,
   formatGBP,
   isEmail,
   isStage,
@@ -351,7 +352,7 @@ export async function updateDetailsAction(form: FormData) {
     action: "organisation.update",
     targetType: "organisation",
     targetId: id,
-    summary: `Updated the details for ${name}: ${diff.changed.join(", ")}.`,
+    summary: `Updated the ${describeChanges(diff.changed)} for ${name}.`,
     before: diff.before,
     after: diff.after,
   });

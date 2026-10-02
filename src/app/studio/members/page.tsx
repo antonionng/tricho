@@ -315,7 +315,7 @@ function Chips({
   options: { value: string; label: string }[];
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
+    <div className="no-scrollbar -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="group" aria-label={label}>
       <span className="mr-1 w-14 text-xs text-muted-foreground">{label}</span>
       {options.map((o) => {
         const on = (filters[name] ?? "") === o.value;
@@ -325,7 +325,7 @@ function Chips({
             href={`/studio/members${memberFilterQuery({ ...filters, [name]: o.value })}`}
             aria-current={on ? "true" : undefined}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs transition-colors",
+              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors",
               on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink"
             )}
           >

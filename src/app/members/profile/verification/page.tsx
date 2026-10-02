@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BadgeCheck, ChevronLeft, FileText } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
+import { cn } from "@/lib/utils";
 import { Card, MemberPage, PageHeader, SectionLabel, fieldClass } from "@/components/members/MemberPage";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { shortDate } from "@/components/members/format";
@@ -71,7 +72,7 @@ export default async function VerificationPage({
       />
 
       <Card className="mb-8 space-y-3 p-5 sm:p-6">
-        <SectionLabel className="mb-0">What the badge means</SectionLabel>
+        <SectionLabel className="mb-3">What the badge means</SectionLabel>
         <ul className="space-y-2 text-sm leading-relaxed text-ink-2">
           <li>Clients see the badge on your directory profile, in directory search results and on your chapter page, so they know your qualifications have been checked.</li>
           <li>Colleagues can refer clients to you with more confidence, because they know someone has looked at your evidence.</li>
@@ -174,7 +175,7 @@ export default async function VerificationPage({
                       minLength={3}
                       maxLength={160}
                       placeholder="IAT Diploma in Trichology, 2019"
-                      className={fieldClass}
+                      className={cn(fieldClass, "h-12")}
                     />
                     <span className="text-xs text-muted-foreground">Include the awarding body and the year, so the team can check it quickly.</span>
                   </label>
@@ -200,7 +201,7 @@ export default async function VerificationPage({
                       rows={3}
                       maxLength={2000}
                       placeholder="For example, if the certificate is in your maiden name."
-                      className={fieldClass}
+                      className={cn(fieldClass, "resize-y py-3 leading-relaxed")}
                     />
                   </label>
 

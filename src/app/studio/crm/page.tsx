@@ -108,7 +108,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
         intro={
           filtered
             ? `${totals.total} ${totals.total === 1 ? "business matches" : "businesses match"} these filters.`
-            : `${totals.total} businesses in the CRM, with the soonest follow-up first.`
+            : `${totals.total} ${totals.total === 1 ? "business" : "businesses"} in the CRM, with the soonest follow-up first.`
         }
         actions={
           <div className="flex flex-wrap gap-2">
@@ -197,62 +197,78 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
               : "There are no businesses in the CRM yet. Partner applications appear here automatically, and you can add a business yourself."}
           </Empty>
         ) : filters.view === "board" ? (
-          <div className="-mx-4 overflow-x-auto px-4 pb-2">
-            <div className="grid min-w-[1260px] grid-cols-7 gap-3">
-              {ORG_STAGES.map((stage) => {
-                const cards = rows.filter((r) => r.stage === stage);
-                return (
-                  <div key={stage} className="space-y-2 rounded-2xl border border-rule bg-paper-2/60 p-2.5">
-                    <div className="px-1 pb-1">
-                      <p className="text-sm font-semibold text-ink">{STAGE_LABEL[stage].label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {totals.byStage[stage].count} · {formatGBP(totals.byStage[stage].value)}
-                      </p>
+          <div className="space-y-4">
+            <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+              <div className="grid min-w-[880px] grid-cols-5 gap-3">
+                {BOARD_STAGES.map((stage) => {
+                  const cards = rows.filter((r) => r.stage === stage);
+                  return (
+                    <div key={stage} className="flex min-w-0 flex-col gap-2 rounded-2xl border border-rule bg-paper-2/60 p-2.5">
+                      <div className="flex items-baseline justify-between gap-2 px-1 pb-1">
+                        <p className="text-sm font-semibold text-ink">{STAGE_LABEL[stage].label}</p>
+                        <p className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                          {totals.byStage[stage].count} · {formatGBP(totals.byStage[stage].value)}
+                        </p>
+                      </div>
+                      {cards.length === 0 && <p className="px-1 pb-2 text-xs text-muted-foreground">Nothing at this stage.</p>}
+                      {cards.map((o) => (
+                        <div key={o.id} className="min-w-0 space-y-2 rounded-xl border border-rule bg-card p-3 text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <Link href={`/studio/crm/${o.id}`} className="min-w-0 break-words text-sm font-medium leading-snug text-ink hover:underline">
+                              {o.name}
+                            </Link>
+                            {o.ownerStaffId && (
+                              <span
+                                title={`Looked after by ${ownerName.get(o.ownerStaffId) ?? "a former team member"}`}
+                                className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink text-[10px] font-semibold text-paper"
+                              >
+                                {initials(ownerName.get(o.ownerStaffId))}
+                              </span>
+                            )}
+                          </div>
+                          {o.interest && <p className="line-clamp-2 text-ink-2">{o.interest}</p>}
+                          {(o.valueGBP !== null || o.followUpAt) && (
+                            <div className="flex flex-wrap gap-1">
+                              {o.valueGBP !== null && <Tag>{formatGBP(o.valueGBP)}</Tag>}
+                              {o.followUpAt && (
+                                <Tag tone={isFollowUpDue(o.followUpAt, now) ? "warn" : "default"}>{dateOnly(o.followUpAt)}</Tag>
+                              )}
+                            </div>
+                          )}
+                          {canEdit && <StageMover id={o.id} name={o.name} stage={o.stage} here={here} />}
+                        </div>
+                      ))}
                     </div>
-                    {cards.length === 0 && <p className="px-1 text-xs text-muted-foreground">Nothing at this stage.</p>}
-                    {cards.map((o) => (
-                      <div key={o.id} className="space-y-2 rounded-xl border border-rule bg-card p-3 text-xs">
-                        <div className="flex items-start justify-between gap-2">
-                          <Link href={`/studio/crm/${o.id}`} className="text-sm font-medium leading-snug text-ink hover:underline">
+                  );
+                })}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-rule bg-card">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-rule px-4 py-3">
+                <p className="text-sm font-semibold text-ink">Closed</p>
+                <p className="text-xs text-muted-foreground">
+                  {totals.byStage.lost.count} lost and {totals.byStage.churned.count} churned. They stay on record for a later conversation.
+                </p>
+              </div>
+              {rows.filter((r) => r.stage === "lost" || r.stage === "churned").length === 0 ? (
+                <p className="px-4 py-3 text-xs text-muted-foreground">No businesses have been lost or have cancelled.</p>
+              ) : (
+                <ul className="divide-y divide-rule">
+                  {rows
+                    .filter((r) => r.stage === "lost" || r.stage === "churned")
+                    .map((o) => (
+                      <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Link href={`/studio/crm/${o.id}`} className="truncate font-medium text-ink hover:underline">
                             {o.name}
                           </Link>
-                          {o.ownerStaffId && (
-                            <span
-                              title={`Looked after by ${ownerName.get(o.ownerStaffId) ?? "a former team member"}`}
-                              className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink text-[10px] font-semibold text-paper"
-                            >
-                              {initials(ownerName.get(o.ownerStaffId))}
-                            </span>
-                          )}
-                        </div>
-                        {o.interest && <p className="text-ink-2">{o.interest}</p>}
-                        <div className="flex flex-wrap gap-1">
-                          {o.valueGBP !== null && <Tag>{formatGBP(o.valueGBP)}</Tag>}
-                          {o.followUpAt && (
-                            <Tag tone={isFollowUpDue(o.followUpAt, now) ? "warn" : "default"}>{dateOnly(o.followUpAt)}</Tag>
-                          )}
-                        </div>
-                        {canEdit && (
-                          <form action={setStageAction} className="flex gap-1">
-                            <input type="hidden" name="id" value={o.id} />
-                            <input type="hidden" name="return" value={here} />
-                            <select name="stage" defaultValue={o.stage} aria-label={`Stage for ${o.name}`} className={cn(fieldClass, "px-2 py-1 text-xs")}>
-                              {ORG_STAGES.map((s) => (
-                                <option key={s} value={s}>
-                                  {STAGE_LABEL[s].label}
-                                </option>
-                              ))}
-                            </select>
-                            <SubmitButton size="sm" variant="outline" className="h-auto px-2 py-1 text-xs" pendingLabel="…">
-                              Move
-                            </SubmitButton>
-                          </form>
-                        )}
-                      </div>
+                          <StageTag stage={o.stage} />
+                        </span>
+                        {canEdit && <StageMover id={o.id} name={o.name} stage={o.stage} here={here} inline />}
+                      </li>
                     ))}
-                  </div>
-                );
-              })}
+                </ul>
+              )}
             </div>
           </div>
         ) : (
@@ -318,16 +334,20 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
         )}
       </Section>
 
-      <Section title="What each stage means">
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <details className="group rounded-2xl border border-rule bg-card">
+        <summary className="cursor-pointer list-none px-5 py-4 text-sm font-medium text-ink">
+          What each stage means
+          <span className="ml-2 font-normal text-muted-foreground group-open:hidden">Show the definitions</span>
+        </summary>
+        <dl className="grid gap-x-8 gap-y-4 border-t border-rule px-5 py-4 sm:grid-cols-2 lg:grid-cols-3">
           {ORG_STAGES.map((s) => (
-            <div key={s} className="rounded-2xl border border-rule bg-card p-4">
+            <div key={s}>
               <dt className="text-sm font-medium text-ink">{STAGE_LABEL[s].label}</dt>
-              <dd className="mt-1 text-xs leading-relaxed text-ink-2">{STAGE_LABEL[s].description}</dd>
+              <dd className="mt-0.5 text-xs leading-relaxed text-ink-2">{STAGE_LABEL[s].description}</dd>
             </div>
           ))}
         </dl>
-      </Section>
+      </details>
     </div>
   );
 }
@@ -344,8 +364,8 @@ function Chips({
   href: (value: string) => string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
-      <span className="mr-1 w-16 text-xs text-muted-foreground">{label}</span>
+    <div className="no-scrollbar -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="group" aria-label={label}>
+      <span className="mr-1 w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
       {options.map((o) => {
         const on = current === o.value;
         return (
@@ -354,7 +374,7 @@ function Chips({
             href={href(o.value)}
             aria-current={on ? "true" : undefined}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs transition-colors",
+              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors",
               on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink"
             )}
           >
@@ -363,5 +383,26 @@ function Chips({
         );
       })}
     </div>
+  );
+}
+
+const BOARD_STAGES = ["lead", "contacted", "proposal", "won", "customer"] as const;
+
+function StageMover({ id, name, stage, here, inline }: { id: string; name: string; stage: string; here: string; inline?: boolean }) {
+  return (
+    <form action={setStageAction} className={cn("flex gap-1.5", inline ? "items-center" : "flex-col")}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="return" value={here} />
+      <select name="stage" defaultValue={stage} aria-label={`Stage for ${name}`} className={cn(fieldClass, "w-full min-w-0 px-2 py-1.5 text-xs", inline && "w-36")}>
+        {ORG_STAGES.map((s) => (
+          <option key={s} value={s}>
+            {STAGE_LABEL[s].label}
+          </option>
+        ))}
+      </select>
+      <SubmitButton size="sm" variant="outline" className="h-8 text-xs" pendingLabel="Moving…">
+        Move
+      </SubmitButton>
+    </form>
   );
 }

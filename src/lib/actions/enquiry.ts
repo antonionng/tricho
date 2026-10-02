@@ -6,6 +6,7 @@ import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
 import { after } from "next/server";
 import { alertOwners, deliver } from "@/lib/mail/send";
 import { partnerAcknowledgementEmail, partnerAlert, type PartnerEnquiry } from "@/lib/mail/templates/leads";
+import { shortName } from "@/lib/names";
 
 export type EnquiryState =
   | { ok: true; message: string }
@@ -218,7 +219,7 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
   return {
     ok: true,
     message: isApplication
-      ? `Thank you, ${name.split(" ")[0]}. Your application has reached us. We read every one ourselves and will reply by email within three working days.`
-      : `Thank you, ${name.split(" ")[0]}. Your enquiry has reached us, and we'll reply by email within three working days.`,
+      ? `Thank you, ${shortName(name, "you")}. Your application has reached us. We read every one ourselves and will reply by email within three working days.`
+      : `Thank you, ${shortName(name, "you")}. Your enquiry has reached us, and we'll reply by email within three working days.`,
   };
 }

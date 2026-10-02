@@ -3,6 +3,7 @@
  * Each function returns { subject, content } for deliver(), or an OwnerAlert
  * for alertOwners(). `samples` feeds the Studio email gallery.
  */
+import { shortName } from "@/lib/names";
 import { site } from "@/config/site";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import type { EmailContent } from "../layout";
@@ -11,7 +12,7 @@ import type { EmailSample } from "../catalogue";
 
 export type Email = { subject: string; content: EmailContent };
 
-const firstName = (name?: string | null) => (name ?? "").trim().split(/\s+/)[0] || "";
+const firstName = (name?: string | null) => shortName(name);
 const hello = (name?: string | null) => (firstName(name) ? `Hello ${firstName(name)},` : "Hello,");
 
 // ---------------------------------------------------------------------------

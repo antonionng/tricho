@@ -10,6 +10,7 @@ import { hasFullProfile, listingBySlug, cityKey } from "@/lib/directory";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { prisma } from "@/lib/prisma";
 import { SOCIAL_KEYS, SOCIAL_NETWORKS, membershipLabel, readQualifications, readSocials } from "@/lib/profile";
+import { shortName } from "@/lib/names";
 
 /** The richer details a member keeps on their own profile, for listings linked to an account. */
 async function linkedProfile(listingId: string) {
@@ -163,7 +164,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
                 )}
                 {profile.yearsInPractice != null && profile.yearsInPractice > 0 && (
                   <p className="mt-4 text-[15px] text-ink-2">
-                    {listing.name.split(" ")[0]} has been in practice for {profile.yearsInPractice}{" "}
+                    {shortName(listing.name, "They")} has been in practice for {profile.yearsInPractice}{" "}
                     {profile.yearsInPractice === 1 ? "year" : "years"}.
                   </p>
                 )}
@@ -206,8 +207,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
               <h2 id="enquire" className="display text-2xl mb-1">Get in touch</h2>
               <p className="mb-6 text-[15px] text-ink-2">
                 {claimed
-                  ? `Your message goes straight to ${listing.name.split(" ")[0]}, who will reply by email.`
-                  : `${listing.name.split(" ")[0]} hasn't claimed this listing yet. We'll keep your message safe and let them know it's waiting.`}
+                  ? `Your message goes straight to ${shortName(listing.name, "They")}, who will reply by email.`
+                  : `${shortName(listing.name, "They")} hasn't claimed this listing yet. We'll keep your message safe and let them know it's waiting.`}
               </p>
               <EnquiryForm listingId={listing.id} name={listing.name} />
             </section>
