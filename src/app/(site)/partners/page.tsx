@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export const metadata = pageMetadata({
   title: `Our partners`,
   description:
-    "The brands, device makers and educators who support Trichollective and the hair and scalp professionals in it. Every partner is approved by hand, with at most two in each product category.",
+    "The brands, device makers and educators who support Trichollective and the hair and scalp professionals in it. Everything a partner sponsors is clearly labelled.",
   path: "/partners",
   og: { title: "The partners who support hair and scalp professionals.", eyebrow: "Partners", img: images.ed09.src, variant: "photo" },
 });
@@ -70,14 +70,13 @@ export default async function PartnersPage() {
                 <span className="text-fade">hair and scalp professionals.</span>
               </h1>
               <p className="lede max-w-xl">
-                Our partners are brands, device makers and educators who help keep Trichollective independent. We
-                approve each one by hand, take at most {premiumBusiness.perCategoryLimit} in each product category and
-                label everything they sponsor.
+                Our partners are brands, device makers and educators who help keep Trichollective independent, and
+                everything they sponsor is clearly labelled.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg">
-                  <Link href="/for-business#apply">
-                    Apply to become a partner <ArrowRight />
+                  <Link href="/for-business#compare">
+                    Become a partner <ArrowRight />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
@@ -155,10 +154,10 @@ export default async function PartnersPage() {
                 We are choosing our first partners now.{" "}
                 {placesLeft > 0
                   ? `${placesLeft} of ${premiumBusiness.foundingPlaces} founding partner places remain at £${premiumBusiness.foundingAnnualPrice.toLocaleString("en-GB")} a year, kept for as long as the partner stays.`
-                  : `Premium Business is £${premiumBusiness.annualPrice.toLocaleString("en-GB")} a year, with at most ${premiumBusiness.perCategoryLimit} partners in each product category.`}{" "}
+                  : `Premium Business is £${premiumBusiness.annualPrice.toLocaleString("en-GB")} a year.`}{" "}
                 Partners who join will be shown here.
               </p>
-              <ArrowLink href="/for-business#apply">Apply for a founding partner place</ArrowLink>
+              <ArrowLink href="/for-business#compare">Join as a founding partner</ArrowLink>
             </div>
           )}
         </Container>
@@ -228,14 +227,14 @@ export default async function PartnersPage() {
               <span className="text-fade">and we will reply personally.</span>
             </h2>
             <p className="lede max-w-xl">
-              We read every application ourselves.{" "}
+              Join online and your partner page goes live as soon as you pay.{" "}
               {placesLeft > 0
                 ? `${placesLeft} of ${premiumBusiness.foundingPlaces} founding partner places remain.`
                 : `Founding partner places have all been taken. Premium Business is £${premiumBusiness.annualPrice.toLocaleString("en-GB")} a year.`}
             </p>
             <Button asChild size="xl">
-              <Link href="/for-business#apply">
-                Apply to become a partner <ArrowRight />
+              <Link href="/for-business#compare">
+                Become a partner <ArrowRight />
               </Link>
             </Button>
             <p className="text-sm text-muted-foreground">

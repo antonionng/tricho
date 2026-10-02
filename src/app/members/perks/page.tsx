@@ -28,7 +28,7 @@ export default async function PerksPage() {
       <PageHeader
         label="Perks"
         title="Member perks"
-        lede="Offers from the partners who support Trichollective. Every partner is approved by hand, and every offer here is for members only."
+        lede="Offers from the partners who support Trichollective. Every offer here is for members only."
       />
 
       {partners.length === 0 ? (

@@ -84,14 +84,14 @@ function extraFaqs(foundingLeft: number, partnerLeft: number): Faq[] {
     },
     {
       q: "What is the difference between Business and Premium Business?",
-      a: "Business gives your clinic, salon or brand a directory page, five Professional seats, job posts and a member perk, and you can join straight away. Premium Business adds a sponsored masterclass, a labelled Trichozette feature, newsletter spotlights, conference presence, a product trial panel and a partner page. It is by application only, with at most two partners in each product category.",
+      a: "Business gives your clinic, salon or brand a directory page, five Professional seats, job posts and a member perk, and you can join straight away. Premium Business adds a sponsored masterclass, a labelled Trichozette feature, newsletter spotlights, conference presence, a product trial panel and a partner page. You can join either one online and start straight away.",
     },
     {
       q: "How do I become a Premium partner?",
       a:
         partnerLeft > 0
-          ? `Apply on the For business page. We read every application ourselves, and if it is a good fit we invoice you yearly. The first ${premiumBusiness.foundingPlaces} partners pay the founding rate of £${premiumBusiness.foundingAnnualPrice.toLocaleString("en-GB")} a year instead of £${premiumBusiness.annualPrice.toLocaleString("en-GB")}, and ${partnerLeft} of those places remain.`
-          : `Apply on the For business page. We read every application ourselves, and if it is a good fit we invoice you £${premiumBusiness.annualPrice.toLocaleString("en-GB")} a year.`,
+          ? `Join online from the For business page, and your partner page goes live as soon as you pay. The first ${premiumBusiness.foundingPlaces} partners pay the founding rate of £${premiumBusiness.foundingAnnualPrice.toLocaleString("en-GB")} a year instead of £${premiumBusiness.annualPrice.toLocaleString("en-GB")}, and ${partnerLeft} of those places remain.`
+          : `Join online from the For business page for £${premiumBusiness.annualPrice.toLocaleString("en-GB")} a year, and your partner page goes live as soon as you pay.`,
     },
   ];
 }

@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container, Eyebrow, Section, SectionHeader } from "@/components/site/primitives";
 import { images, img } from "@/content/images";
-import { tierById } from "@/config/subscriptions";
+import { premiumBusiness, tierById } from "@/config/subscriptions";
 import { pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -23,13 +23,22 @@ export default async function WelcomePage({
   searchParams: Promise<{ plan?: string }>;
 }) {
   const { plan } = await searchParams;
-  const tier = tierById(plan);
+  const premium = plan === premiumBusiness.id;
+  const tier = tierById(premium ? "business" : plan);
 
   const steps = [
     {
       t: "Sign in with the email you paid with",
       d: "Your account was created from the email address you used at checkout. Enter that address on the sign-in page and we'll email you a sign-in link, or continue with Google if it is a Google address. There is no password to remember.",
     },
+    ...(premium
+      ? [
+          {
+            t: "Make your partner page your own",
+            d: "Your partner page is already live. Open Your business in the member area to add your logo, describe what you offer and give five of your team Professional membership.",
+          },
+        ]
+      : []),
     {
       t: "Set up your profile",
       d: `Onboarding takes a few minutes. Tell us your discipline and what you work on${
@@ -65,7 +74,7 @@ export default async function WelcomePage({
         <Container className="relative">
           <div className="grid py-20 md:py-28 lg:grid-cols-12">
             <div className="flex flex-col gap-8 animate-rise lg:col-span-7">
-              <Eyebrow rule>{tier ? `${tier.name} membership` : "Membership"}</Eyebrow>
+              <Eyebrow rule>{premium ? premiumBusiness.name : tier ? `${tier.name} membership` : "Membership"}</Eyebrow>
               <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
                 Thank you, your membership
                 <br />

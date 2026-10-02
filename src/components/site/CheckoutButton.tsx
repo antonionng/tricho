@@ -25,7 +25,8 @@ export function CheckoutButton({
 }: {
   /** "eur" to charge in euros (the prices carry EUR options). Defaults to pounds. */
   currency?: "gbp" | "eur";
-  plan: PlanId;
+  /** "premium" buys Premium Business, which is yearly and in pounds. */
+  plan: PlanId | "premium";
   interval?: BillingInterval;
   founding?: boolean;
   children: React.ReactNode;

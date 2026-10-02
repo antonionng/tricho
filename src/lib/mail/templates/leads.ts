@@ -4,7 +4,7 @@
  * for alertOwners(). `samples` feeds the Studio email gallery.
  */
 import { site } from "@/config/site";
-import { FREE_LISTING_DAYS, premiumBusiness } from "@/config/subscriptions";
+import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import type { EmailContent } from "../layout";
 import type { OwnerAlert } from "../send";
 import type { EmailSample } from "../catalogue";
@@ -274,7 +274,7 @@ export function partnerAcknowledgementEmail(e: PartnerEnquiry): Email {
         body: [
           hello(e.name),
           `Thank you for applying on behalf of ${e.company}. ${site.founderFull} reviews every Premium Business application personally, looking at what you sell, who it is for and whether it fits the cosmetic, clinical and medical professionals we serve.`,
-          `We accept at most ${premiumBusiness.perCategoryLimit} Premium partners in each product category, so that members hear from a small number of partners they can trust rather than everyone at once.`,
+          "If you would rather start straight away, you can join Premium Business online at any time and your partner page goes live as soon as you pay.",
           "You will hear from us by email within three working days. If you would like to add anything in the meantime, reply to this email.",
         ].join("\n\n"),
         facts: [
