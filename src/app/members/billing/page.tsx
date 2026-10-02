@@ -46,7 +46,7 @@ export default async function BillingPage() {
         {active && tier && <p className="mt-2 text-sm text-muted-foreground">{tier.summary}</p>}
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          {active || user?.stripeCustomerId ? (
+          {(active && !ctx.membership.via) || user?.stripeCustomerId ? (
             <form action="/api/billing/portal" method="POST">
               <Button type="submit" size="lg" className="w-full sm:w-auto">
                 Manage billing
@@ -59,7 +59,7 @@ export default async function BillingPage() {
             </Button>
           )}
         </div>
-        {(active || user?.stripeCustomerId) && (
+        {((active && !ctx.membership.via) || user?.stripeCustomerId) && (
           <p className="mt-3 text-xs text-muted-foreground">
             Opens Stripe, where you can update your card, download invoices or cancel.
           </p>
