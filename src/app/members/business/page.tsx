@@ -1,41 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, Check, Circle } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { Card, MemberPage, PageHeader, SectionLabel, fieldClass } from "@/components/members/MemberPage";
 import { SubmitButton } from "@/components/members/SubmitButton";
-import { shortDate } from "@/components/members/format";
+import { ImageUpload } from "@/components/forms/ImageUpload";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
 import { BUSINESS_SEATS, isBusinessAccount } from "@/lib/subscription";
+import { SETUP_STEPS, setupProgress } from "@/lib/business-profile";
 import { PARTNER_CATEGORIES, partnerLogoSrc, partnerTierLabel } from "@/lib/partners";
 import { cn } from "@/lib/utils";
-import { addSeat, removeSeat, saveBusinessPage } from "./actions";
+import { saveBusinessPage } from "./actions";
+import { loadBusiness } from "./_data";
+import { errorText as describeError, SAVED_MESSAGES } from "./messages";
+import { TeamSeats } from "./TeamSeats";
 
 export const metadata = { title: "Your business" };
-
-const MESSAGES: Record<string, string> = {
-  live: "Your page is saved and live in the partner directory.",
-  draft: "Your page is saved. It stays hidden until you tick Show my page.",
-  hidden: "Your changes are saved. The Trichollective team has paused your page, so it isn't showing yet. Reply to any of our emails and we'll help.",
-  seat: "Your team member is added, and we've emailed them to say their Professional membership is ready.",
-  "seat-removed": "That seat is free again.",
-};
-const ERRORS: Record<string, string> = {
-  plan: "The business portal comes with the Business and Premium Business plans.",
-  name: "Please add your business name.",
-  category: "Please choose the category closest to what you do.",
-  blurb: "Please describe your business in at least a sentence.",
-  website: "Please check your website address.",
-  contact: "Please check the contact email.",
-  "logo-size": "Your logo needs to be under 1MB. A PNG of about 600 pixels wide is plenty.",
-  "logo-type": "Please upload your logo as a PNG, JPG or WebP image.",
-  "seat-email": "Please check that email address.",
-  "seat-self": "You already have your own membership, so add someone else from your team.",
-  "seat-full": `All ${BUSINESS_SEATS} seats are in use. Remove someone to add a new team member.`,
-  "seat-exists": "That person already has one of your seats.",
-};
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -57,11 +38,7 @@ export default async function BusinessPage({
   if (!email) redirect("/login?next=/members/business");
   const { saved, error, message } = await searchParams;
 
-  const [page, seats, business] = await Promise.all([
-    prisma.partner.findUnique({ where: { ownerEmail: email } }),
-    prisma.businessSeat.findMany({ where: { ownerEmail: email }, orderBy: { createdAt: "asc" } }),
-    isBusinessAccount(email),
-  ]);
+  const [{ page, org, seats }, business] = await Promise.all([loadBusiness(email), isBusinessAccount(email)]);
 
   if (!page && !business) {
     return (
@@ -84,7 +61,9 @@ export default async function BusinessPage({
   }
 
   const logo = partnerLogoSrc(page?.logoUrl);
-  const errorText = error === "cap" ? message : error ? ERRORS[error] : null;
+  const errorText = describeError(error, message);
+  const progress = setupProgress({ page, org, seats: seats.length });
+  const stepsLeft = SETUP_STEPS.filter((st) => !progress[st.id]).length;
 
   return (
     <MemberPage size="narrow">
@@ -116,9 +95,9 @@ export default async function BusinessPage({
         </div>
       )}
 
-      {saved && MESSAGES[saved] && (
+      {saved && SAVED_MESSAGES[saved] && (
         <p className="mb-6 rounded-2xl border border-positive/25 bg-positive/10 px-4 py-3 text-sm text-positive" role="status">
-          {MESSAGES[saved]}
+          {SAVED_MESSAGES[saved]}
         </p>
       )}
       {errorText && (
@@ -126,6 +105,39 @@ export default async function BusinessPage({
           {errorText}
         </p>
       )}
+
+      <section id="setup" className="mb-10 scroll-mt-20">
+        <SectionLabel>{stepsLeft ? `Your profile: ${stepsLeft} of ${SETUP_STEPS.length} steps left` : "Your profile is complete"}</SectionLabel>
+        <Card className="p-5 sm:p-6">
+          <p className="text-[15px] leading-relaxed text-ink-2">
+            {stepsLeft
+              ? "A complete profile helps professionals understand what you offer and gives our team what it needs for your invoices. Each step takes a minute or two, and you can stop and come back at any time."
+              : "Everything is in place. You can change any part of your profile below or step through the guided setup again."}
+          </p>
+          <ol className="mt-5 grid gap-2 sm:grid-cols-2">
+            {SETUP_STEPS.map((st) => (
+              <li key={st.id}>
+                <Link
+                  href={`/members/business/setup?step=${st.id}`}
+                  className="flex items-center gap-2.5 rounded-xl border border-rule px-3.5 py-2.5 text-[15px] hover:border-ink/40"
+                >
+                  {progress[st.id] ? (
+                    <Check className="h-4 w-4 shrink-0 text-positive" aria-label="Done" />
+                  ) : (
+                    <Circle className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="To do" />
+                  )}
+                  {st.label}
+                </Link>
+              </li>
+            ))}
+          </ol>
+          {stepsLeft > 0 && (
+            <Button asChild className="mt-5">
+              <Link href="/members/business/setup">Continue setting up</Link>
+            </Button>
+          )}
+        </Card>
+      </section>
 
       <section id="page" className="scroll-mt-20">
         <SectionLabel>Your page</SectionLabel>
@@ -149,30 +161,14 @@ export default async function BusinessPage({
 
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">Logo</span>
-              <div className="flex items-center gap-4">
-                <div className="flex h-20 w-32 shrink-0 items-center justify-center rounded-xl border border-rule bg-paper p-2">
-                  {logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={logo} alt={`${page?.name ?? "Your"} logo`} className="max-h-full max-w-full object-contain" />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">No logo yet</span>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  name="logo"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="text-sm file:mr-3 file:h-10 file:rounded-full file:border file:border-rule file:bg-card file:px-4 file:text-sm"
-                />
-              </div>
-              <span className="text-xs text-muted-foreground">
-                A PNG, JPG or WebP under 1MB. A logo on a transparent or white background looks best.
-              </span>
-              {logo && (
-                <label className="mt-1 flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="removeLogo" className="h-4 w-4 accent-ink" /> Remove my logo
-                </label>
-              )}
+              <ImageUpload
+                name="logo"
+                currentUrl={logo}
+                shape="wide"
+                label={logo ? "Choose a new logo" : "Choose your logo"}
+                hint="A PNG, JPG or WebP up to 5MB. We resize it for you and keep a transparent background."
+                removeName="removeLogo"
+              />
             </div>
 
             <Field label="About your business" hint="Two or three sentences on what you make or offer, and who it helps.">
@@ -205,59 +201,7 @@ export default async function BusinessPage({
         <SectionLabel>
           Your team: {seats.length} of {BUSINESS_SEATS} seats used
         </SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <p className="text-[15px] leading-relaxed text-ink-2">
-            Give up to {BUSINESS_SEATS} people on your team Professional membership, paid for by your plan. They sign in with
-            the email you add here.
-          </p>
-          {!business && (
-            <p className="mt-3 text-sm text-destructive">
-              Seats only work while your Business plan is active.{" "}
-              <Link href="/members/billing" className="underline underline-offset-4">
-                Check your plan
-              </Link>
-              .
-            </p>
-          )}
-
-          {seats.length > 0 && (
-            <ul className="mt-5 flex flex-col divide-y divide-rule rounded-xl border border-rule">
-              {seats.map((seat) => (
-                <li key={seat.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[15px]">{seat.email}</p>
-                    <p className="text-xs text-muted-foreground">Added {shortDate(seat.createdAt)}</p>
-                  </div>
-                  <form action={removeSeat}>
-                    <input type="hidden" name="id" value={seat.id} />
-                    <button
-                      type="submit"
-                      className="inline-flex h-9 items-center gap-1 rounded-full border border-rule px-3 text-sm hover:border-ink/40"
-                      aria-label={`Remove ${seat.email}`}
-                    >
-                      <X className="h-4 w-4" /> Remove
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {seats.length < BUSINESS_SEATS && (
-            <form action={addSeat} className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <input
-                type="email"
-                name="email"
-                required
-                maxLength={160}
-                placeholder="colleague@yourbusiness.com"
-                aria-label="Team member's email"
-                className={cn(fieldClass, "h-12 flex-1")}
-              />
-              <SubmitButton pending="Adding…">Add to my team</SubmitButton>
-            </form>
-          )}
-        </Card>
+        <TeamSeats seats={seats} business={business} />
       </section>
     </MemberPage>
   );

@@ -90,6 +90,23 @@ enum EpisodeStatus {
   withdrawn
 }
 
+/// Where a business sits with us, from first contact to customer.
+enum OrgStage {
+  lead
+  contacted
+  proposal
+  won
+  customer
+  lost
+  churned
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+}
+
 enum EventKind {
   gathering
   masterclass
@@ -116,6 +133,10 @@ model User {
   /// A plan given by the team without Stripe, e.g. for a speaker or partner.
   compPlan      Plan?
   compUntil     DateTime?
+  /// Team labels, e.g. "speaker", "ambassador", "dublin-2026".
+  tags          String[]     @default([])
+  /// The person on the team who looks after this member.
+  crmOwnerId    String?
   accounts      Account[]
   sessions      Session[]
 
@@ -142,18 +163,21 @@ model User {
   reactions Reaction[]
   listings  DirectoryListing[]
 
-  following     Follow[]             @relation("follower")
-  followers     Follow[]             @relation("followee")
-  conversations ConversationMember[]
-  messages      Message[]
-  notifications Notification[]
-  reports       Report[]
-  referralsSent Referral[]           @relation("referralFrom")
-  referralsIn   Referral[]           @relation("referralTo")
-  rsvps         EventRsvp[]
-  auditLogs     AuditLog[]           @relation("auditActor")
-  memberNotes   MemberNote[]         @relation("noteSubject")
-  notesWritten  MemberNote[]         @relation("noteAuthor")
+  following      Follow[]              @relation("follower")
+  followers      Follow[]              @relation("followee")
+  conversations  ConversationMember[]
+  messages       Message[]
+  notifications  Notification[]
+  reports        Report[]
+  referralsSent  Referral[]            @relation("referralFrom")
+  referralsIn    Referral[]            @relation("referralTo")
+  rsvps          EventRsvp[]
+  auditLogs      AuditLog[]            @relation("auditActor")
+  memberNotes    MemberNote[]          @relation("noteSubject")
+  notesWritten   MemberNote[]          @relation("noteAuthor")
+  files          StoredFile[]
+  verifications  VerificationRequest[] @relation("verificationSubject")
+  orgMemberships OrganisationContact[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,6 +195,30 @@ model TrichologistProfile {
   profession     Profession?
   listingStatus  ListingStatus @default(draft)
   isVerified     Boolean       @default(false)
+
+  /// The member's own profile is the source of truth; the directory listing is kept in step with it.
+  photoFileId     String?
+  headline        String?
+  practiceName    String?
+  city            String?
+  country         String?
+  specialisms     String[] @default([])
+  services        String[] @default([])
+  /// { title, body?, year? }[]: training, qualifications and registrations.
+  qualifications  Json?
+  /// Professional bodies, e.g. "IAT", "WTS".
+  memberships     String[] @default([])
+  yearsInPractice Int?
+  /// { instagram?, tiktok?, linkedin?, facebook?, youtube? }
+  socials         Json?
+  addressLine1    String?
+  addressLine2    String?
+  postcode        String?
+  showPhone       Boolean  @default(false)
+  showAddress     Boolean  @default(false)
+  /// What they want from the community, e.g. "referrals", "learning", "business".
+  goals           String[] @default([])
+  interests       String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -443,6 +491,8 @@ model Enquiry {
   email     String
   message   String           @db.Text
   status    EnquiryStatus    @default(new)
+  /// Team note, e.g. why it was closed.
+  teamNote  String?
   createdAt DateTime         @default(now())
 
   @@index([listingId, createdAt])
@@ -557,29 +607,31 @@ model AgentSetting {
 
 /// Business and Premium Business partners shown on /partners. Only real, published partners appear.
 model Partner {
-  id            String       @id @default(cuid())
-  slug          String       @unique
+  id            String        @id @default(cuid())
+  slug          String        @unique
   name          String
   /// "premium" or "business"
-  tier          String       @default("premium")
+  tier          String        @default("premium")
   /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
   category      String
   logoUrl       String?
-  blurb         String       @db.Text
+  blurb         String        @db.Text
   website       String?
   /// The member perk, shown in the member area.
-  perk          String?      @db.Text
+  perk          String?       @db.Text
   contactEmail  String?
-  isFounding    Boolean      @default(false)
-  published     Boolean      @default(false)
+  isFounding    Boolean       @default(false)
+  published     Boolean       @default(false)
   featuredUntil DateTime?
   /// The sign-in email of the person who manages this page from the member area.
-  ownerEmail    String?      @unique
+  ownerEmail    String?       @unique
   /// Taken down by the Studio: hidden, and the owner can't republish it.
-  hidden        Boolean      @default(false)
+  hidden        Boolean       @default(false)
   logo          PartnerLogo?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  logoFileId    String?
+  organisation  Organisation?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([published, tier])
 }
@@ -751,4 +803,130 @@ model PodcastEpisode {
   updatedAt        DateTime      @updatedAt
 
   @@index([status, publishedAt])
+}
+
+/// An uploaded file. Stored in Supabase Storage when it is configured, otherwise in the database.
+model StoredFile {
+  id          String   @id @default(cuid())
+  /// "logo" | "avatar" | "document"
+  kind        String
+  /// "supabase" | "db"
+  driver      String
+  bucket      String
+  path        String
+  contentType String
+  size        Int
+  width       Int?
+  height      Int?
+  /// Original file name, for documents.
+  name        String?
+  /// Public files can be shown to anyone; private ones only to their owner and the team.
+  isPublic    Boolean  @default(true)
+  data        Bytes?
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([ownerId, kind])
+}
+
+/// A business we work with or want to: a brand, clinic, salon, supplier or school.
+model Organisation {
+  id            String                @id @default(cuid())
+  name          String
+  /// "brand" | "clinic" | "salon" | "supplier" | "education" | "other"
+  kind          String                @default("brand")
+  category      String?
+  website       String?
+  email         String?
+  phone         String?
+  addressLine1  String?
+  addressLine2  String?
+  city          String?
+  region        String?
+  postcode      String?
+  country       String?
+  companyNumber String?
+  vatNumber     String?
+  /// "1" | "2-10" | "11-50" | "51-200" | "200+"
+  size          String?
+  description   String?               @db.Text
+  logoFileId    String?
+  /// { instagram?, tiktok?, linkedin?, facebook?, youtube? }
+  socials       Json?
+  tags          String[]              @default([])
+  stage         OrgStage              @default(lead)
+  /// Where they came from, e.g. "application", "premium-checkout", "business-checkout", "studio".
+  source        String?
+  /// What they asked for or bought, e.g. "premium", "business", "advertising".
+  interest      String?
+  /// Rough annual value in pounds, for the pipeline.
+  valueGBP      Int?
+  followUpAt    DateTime?
+  /// The person on the team who looks after them.
+  ownerStaffId  String?
+  /// The sign-in email of the account that manages them on the platform.
+  accountEmail  String?
+  partnerId     String?               @unique
+  partner       Partner?              @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  /// The original application or enquiry, as submitted.
+  intake        Json?
+  contacts      OrganisationContact[]
+  notes         OrganisationNote[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([stage, updatedAt])
+  @@index([accountEmail])
+}
+
+model OrganisationContact {
+  id             String       @id @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name           String
+  email          String?
+  phone          String?
+  title          String?
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId])
+  @@index([email])
+}
+
+model OrganisationNote {
+  id             String       @id @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  authorId       String?
+  /// "note" | "call" | "email" | "meeting"
+  kind           String       @default("note")
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId, createdAt])
+}
+
+/// Proof of training, registration or insurance sent by a member for the verified badge.
+model VerificationRequest {
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation("verificationSubject", fields: [userId], references: [id], onDelete: Cascade)
+  /// "training" | "registration" | "membership" | "insurance" | "other"
+  kind         String
+  /// What the document is, e.g. "IAT Diploma in Trichology, 2019".
+  title        String
+  fileId       String?
+  note         String?            @db.Text
+  status       VerificationStatus @default(pending)
+  reviewedById String?
+  reviewNote   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime           @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId])
 }

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
+  BadgeCheck,
   Bot,
+  Building2,
   CalendarDays,
   CalendarRange,
   Handshake,
@@ -18,6 +20,7 @@ import {
   Mic,
   Newspaper,
   ShieldCheck,
+  MessageSquareText,
   UserPlus,
   Users,
   type LucideIcon,
@@ -51,6 +54,9 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   subscribers: Mail,
   emails: MailCheck,
   agents: Bot,
+  crm: Building2,
+  verification: BadgeCheck,
+  enquiries: MessageSquareText,
 };
 
 export function StudioRail({

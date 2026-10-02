@@ -39,6 +39,10 @@ export const PERMISSIONS = [
   "emails.test",
   "agents.view",
   "agents.manage",
+  "crm.view",
+  "crm.edit",
+  "verification.review",
+  "enquiries.view",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -60,6 +64,7 @@ export const ROLE_PERMISSIONS: Record<StaffRoleId, readonly Permission[]> = {
     "emails.test",
     "events.view",
     "agents.view",
+    "crm.view",
   ],
   events: ["overview.view", "inbox.view", "events.view", "events.edit", "emails.view"],
   moderator: [
@@ -73,6 +78,9 @@ export const ROLE_PERMISSIONS: Record<StaffRoleId, readonly Permission[]> = {
     "community.rooms",
     "listings.view",
     "listings.review",
+    "verification.review",
+    "enquiries.view",
+    "crm.view",
   ],
   support: VIEW_ONLY,
 };
@@ -180,7 +188,10 @@ export type NavIcon =
   | "podcast"
   | "subscribers"
   | "emails"
-  | "agents";
+  | "agents"
+  | "crm"
+  | "verification"
+  | "enquiries";
 
 export type NavItem = {
   href: string;
@@ -201,7 +212,10 @@ export const NAV: NavItem[] = [
   { href: "/studio/podcast", label: "Podcast", icon: "podcast", perm: "podcast.view", group: "publish" },
   { href: "/studio/events", label: "Events", icon: "events", perm: "events.view", group: "publish" },
   { href: "/studio/emails", label: "Emails", icon: "emails", perm: "emails.view", group: "publish" },
+  { href: "/studio/crm", label: "Businesses", icon: "crm", perm: "crm.view", group: "people" },
   { href: "/studio/members", label: "Members", icon: "members", perm: "members.view", group: "people" },
+  { href: "/studio/verification", label: "Verification", icon: "verification", perm: "verification.review", group: "people" },
+  { href: "/studio/enquiries", label: "Enquiries", icon: "enquiries", perm: "enquiries.view", group: "people" },
   { href: "/studio/community", label: "Community", icon: "community", perm: "community.view", group: "people" },
   { href: "/studio/listings", label: "Listings", icon: "listings", perm: "listings.view", group: "people" },
   { href: "/studio/partners", label: "Partners", icon: "partners", perm: "partners.view", group: "people" },

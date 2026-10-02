@@ -33,7 +33,9 @@ const listSelect = {
   onboardedAt: true,
   signupSource: true,
   createdAt: true,
-  profile: { select: { location: true } },
+  tags: true,
+  crmOwnerId: true,
+  profile: { select: { location: true, city: true, country: true } },
 } as const;
 
 /** One page of members matching the Studio filters, newest first. */
@@ -41,9 +43,11 @@ export async function searchMembers(f: {
   q?: string;
   plan?: MemberPlanFilter;
   status?: MemberStatusFilter;
+  tag?: string;
+  owner?: string;
   cursor?: string;
 }) {
-  const filters: MemberFilters = { q: f.q?.trim() ?? "", plan: f.plan ?? "", status: f.status ?? "" };
+  const filters: MemberFilters = { q: f.q?.trim() ?? "", plan: f.plan ?? "", status: f.status ?? "", tag: f.tag, owner: f.owner };
   const where = buildMemberWhere(filters, new Date(), SYSTEM_USER_EMAIL);
   const [rows, total] = await Promise.all([
     prisma.user.findMany({
@@ -103,7 +107,7 @@ export async function memberDetail(id: string) {
   });
   if (!user || user.email === SYSTEM_USER_EMAIL) return null;
 
-  const [posts, reports, rsvps, notes, activity, membership] = await Promise.all([
+  const [posts, reports, rsvps, notes, activity, membership, organisations, enquiries, team] = await Promise.all([
     prisma.communityPost.findMany({
       where: { authorId: id },
       orderBy: { createdAt: "desc" },
@@ -144,9 +148,49 @@ export async function memberDetail(id: string) {
       select: { id: true, action: true, summary: true, actorEmail: true, createdAt: true },
     }),
     getMembershipByEmail(user.email),
+    // The businesses they are a contact for, matched by account or by email.
+    prisma.organisationContact.findMany({
+      where: {
+        OR: [{ userId: id }, ...(user.email ? [{ email: { equals: user.email, mode: "insensitive" as const } }] : [])],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        title: true,
+        isPrimary: true,
+        organisation: { select: { id: true, name: true, stage: true, kind: true } },
+      },
+    }),
+    // Client enquiries sent to their directory listings.
+    prisma.enquiry.findMany({
+      where: { listing: { userId: id } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: { id: true, name: true, message: true, status: true, createdAt: true, listing: { select: { name: true } } },
+    }),
+    studioTeam(),
   ]);
 
-  return { user, posts, reports, rsvps, notes, activity, membership };
+  return { user, posts, reports, rsvps, notes, activity, membership, organisations, enquiries, team };
 }
 
 export type MemberDetail = NonNullable<Awaited<ReturnType<typeof memberDetail>>>;
+
+/** Every CRM tag in use on member accounts, most used first. */
+export async function memberTags() {
+  const rows = await prisma.user.findMany({ where: { tags: { isEmpty: false } }, select: { tags: true } });
+  const counts = new Map<string, number>();
+  for (const r of rows) for (const t of r.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
+}
+
+/** Everyone on the Studio team, for the "looked after by" filter and select. */
+export async function studioTeam() {
+  const rows = await prisma.user.findMany({
+    where: { staffRole: { not: null } },
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+    select: { id: true, name: true, email: true },
+  });
+  return rows.map((u) => ({ id: u.id, name: u.name ?? u.email ?? "Team member" }));
+}

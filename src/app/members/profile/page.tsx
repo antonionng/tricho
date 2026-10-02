@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
+  BadgeCheck,
   Bell,
   Building2,
   ChevronRight,
@@ -22,16 +23,32 @@ import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { publishMemberListing } from "@/lib/actions/directory";
 import { PROFESSIONS, professionById } from "@/config/rooms";
-import { hasFullProfile } from "@/lib/directory";
+import { hasFullProfile, trialDaysLeft } from "@/lib/directory";
+import { urlForFile } from "@/lib/storage";
+import { profileCompleteness } from "@/lib/profile";
+import { ImageUpload } from "@/components/forms/ImageUpload";
+import {
+  ContactFields,
+  Field,
+  GoalsFields,
+  IdentityFields,
+  PracticeFields,
+  QualificationFields,
+} from "@/components/members/ProfileFields";
 import { tierById } from "@/config/subscriptions";
 import { isBusinessAccount } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
-import { saveEmailPreferences, saveMemberDetails, signOutAction } from "./actions";
+import { saveEmailPreferences, saveMemberDetails, saveProfilePhotoAction, saveProfileSection, signOutAction } from "./actions";
 
 export const metadata = { title: "Your profile" };
 
 const MESSAGES: Record<string, string> = {
   about: "Your details are saved.",
+  photo: "Your photo is saved.",
+  practice: "Your practice details are saved.",
+  qualifications: "Your qualifications and memberships are saved.",
+  contact: "Your contact details are saved.",
+  goals: "Your goals and interests are saved.",
   listing: "Your directory profile is saved and live.",
   emails: "Your email preferences are saved.",
 };
@@ -39,28 +56,10 @@ const ERRORS: Record<string, string> = {
   name: "Please add your name, at least two letters.",
   discipline: "Please choose the discipline closest to your work.",
   profession: "Please choose your discipline in About you first, then save your directory profile.",
-  city: "Please add the city you practise in.",
+  city: "Please add the town or city you practise in under Practice, then publish your directory profile.",
+  photo: "We couldn't use that photo. Please upload a JPEG, PNG or WebP image under 8MB.",
+  nophoto: "Please choose a photo to upload, or tick the box to remove the current one.",
 };
-
-function Field({
-  label,
-  hint,
-  children,
-  className,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={cn("flex flex-col gap-1.5", className)}>
-      <span className="text-sm font-medium">{label}</span>
-      {children}
-      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-    </label>
-  );
-}
 
 export default async function ProfilePage({
   searchParams,
@@ -142,6 +141,10 @@ export default async function ProfilePage({
     ? user.listings.flatMap((l) => l.enquiries).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     : (listing?.enquiries ?? []);
   const profession = user.profile?.profession ?? null;
+  const profile = user.profile;
+  const uploadedPhoto = await urlForFile(profile?.photoFileId);
+  const photoUrl = uploadedPhoto ?? listing?.photoUrl ?? user.image ?? null;
+  const completeness = profileCompleteness(profile, { name: user.name, image: photoUrl });
   const plan = tierById(ctx.plan)?.name;
   // Paid members always have the full profile; free accounts during their 90-day trial.
   const fullProfile = ctx.professional || (!!listing && listing.status === "listed" && hasFullProfile(listing));
@@ -167,7 +170,7 @@ export default async function ProfilePage({
   return (
     <MemberPage size="narrow">
       <header className="mb-8 flex items-center gap-4">
-        <Avatar name={user.name} src={listing?.photoUrl ?? user.image} size="xl" />
+        <Avatar name={user.name} src={[uploadedPhoto, listing?.photoUrl, user.image]} size="xl" />
         <div className="min-w-0">
           <p className="label text-muted-foreground">Your profile</p>
           <h1 className="display mt-2 truncate text-4xl sm:text-5xl">{user.name || "Member"}</h1>
@@ -207,6 +210,47 @@ export default async function ProfilePage({
         </p>
       )}
 
+      <Card className="mb-4 p-5 sm:p-6">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-[15px] font-medium">Your profile is {completeness.percent}% complete.</p>
+          <span className="text-sm text-muted-foreground">{completeness.percent}%</span>
+        </div>
+        <div
+          className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper-3"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={completeness.percent}
+          aria-label="Profile completeness"
+        >
+          <div className="h-full rounded-full bg-ink" style={{ width: `${completeness.percent}%` }} />
+        </div>
+        {completeness.missing.length > 0 && (
+          <p className="mt-3 text-sm leading-relaxed text-ink-2">
+            Adding {completeness.missing.slice(0, 3).join(", ")} will help colleagues and clients understand your work and
+            refer to you with confidence.
+          </p>
+        )}
+      </Card>
+
+      <Link
+        href="/members/profile/verification"
+        className="mb-10 flex items-center gap-4 rounded-2xl border border-rule bg-card p-5 hover:border-ink/40"
+      >
+        <BadgeCheck className="h-6 w-6 shrink-0 text-positive" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-medium">
+            {profile?.isVerified ? "Your credentials are verified." : "Get the verified badge on your profile."}
+          </span>
+          <span className="mt-0.5 block text-sm text-muted-foreground">
+            {profile?.isVerified
+              ? "The verified badge shows on your member and directory profiles."
+              : "Upload proof of your qualification and we will check it, so clients and colleagues know your credentials are confirmed."}
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
+
       <section id="about" className="scroll-mt-20">
         <SectionLabel>About you</SectionLabel>
         <Card className="p-5 sm:p-6">
@@ -243,6 +287,79 @@ export default async function ProfilePage({
         </Card>
       </section>
 
+      <section id="photo" className="mt-10 scroll-mt-20">
+        <SectionLabel>Photo</SectionLabel>
+        <Card className="p-5 sm:p-6">
+          <form action={saveProfilePhotoAction} className="flex flex-col gap-4">
+            <ImageUpload
+              name="photo"
+              currentUrl={photoUrl}
+              shape="circle"
+              label={photoUrl ? "Choose a new photo" : "Choose a photo"}
+              hint="A clear, square head-and-shoulders photo works best. JPEG, PNG or WebP, up to 8MB."
+              removeName="removePhoto"
+            />
+            <SubmitButton className="self-start" pending="Uploading…">
+              Save photo
+            </SubmitButton>
+          </form>
+        </Card>
+      </section>
+
+      <section id="practice" className="mt-10 scroll-mt-20">
+        <SectionLabel>Practice</SectionLabel>
+        <Card className="p-5 sm:p-6">
+          <form action={saveProfileSection} className="flex flex-col gap-4">
+            <input type="hidden" name="section" value="practice" />
+            <IdentityFields profile={profile} fallbackCity={user.chapter?.city} />
+            <PracticeFields profile={profile} withBio />
+            {!fullProfile && (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                These details are saved to your member profile straight away. Your headline, photo, services and website
+                appear in the public directory while you have a full profile.
+              </p>
+            )}
+            <SubmitButton className="self-start">Save practice details</SubmitButton>
+          </form>
+        </Card>
+      </section>
+
+      <section id="qualifications" className="mt-10 scroll-mt-20">
+        <SectionLabel>Qualifications and memberships</SectionLabel>
+        <Card className="p-5 sm:p-6">
+          <form action={saveProfileSection} className="flex flex-col gap-5">
+            <input type="hidden" name="section" value="qualifications" />
+            <QualificationFields profile={profile} />
+            <SubmitButton className="self-start">Save qualifications</SubmitButton>
+          </form>
+        </Card>
+      </section>
+
+      <section id="contact" className="mt-10 scroll-mt-20">
+        <SectionLabel>Contact and address</SectionLabel>
+        <Card className="p-5 sm:p-6">
+          <form action={saveProfileSection} className="flex flex-col gap-5">
+            <input type="hidden" name="section" value="contact" />
+            <ContactFields profile={profile} />
+            <SubmitButton className="self-start">Save contact details</SubmitButton>
+          </form>
+        </Card>
+      </section>
+
+      <section id="goals" className="mt-10 scroll-mt-20">
+        <SectionLabel>Goals and interests</SectionLabel>
+        <Card className="p-5 sm:p-6">
+          <form action={saveProfileSection} className="flex flex-col gap-5">
+            <input type="hidden" name="section" value="goals" />
+            <p className="text-sm leading-relaxed text-ink-2">
+              Only you can see these. We use them to suggest people, discussions and learning that match what you want.
+            </p>
+            <GoalsFields profile={profile} />
+            <SubmitButton className="self-start">Save goals and interests</SubmitButton>
+          </form>
+        </Card>
+      </section>
+
       {fullProfile ? (
         <section id="listing" className="mt-10 scroll-mt-20">
           <SectionLabel
@@ -254,12 +371,13 @@ export default async function ProfilePage({
               ) : undefined
             }
           >
-            Directory profile
+            Directory profile visibility
           </SectionLabel>
           <Card className="p-5 sm:p-6">
             <p className="mb-5 text-sm leading-relaxed text-ink-2">
-              This is what the public sees in the directory. Enquiries come straight to you here. Your phone number stays
-              private.
+              Your directory listing is filled from the profile above, including your photo, headline, practice,
+              specialisms, services, qualifications and website. Enquiries come straight to you here. Your phone number and
+              address stay private unless you choose to show them in Contact and address.
             </p>
             {!profession ? (
               <p className="rounded-xl bg-paper-2 p-4 text-sm text-ink-2">
@@ -268,81 +386,20 @@ export default async function ProfilePage({
             ) : (
               <form action={publishMemberListing} className="flex flex-col gap-4">
                 <input type="hidden" name="next" value="/members/profile?saved=listing#listing" />
-                <input type="hidden" name="name" value={user.name ?? ""} />
-                <input type="hidden" name="profession" value={profession} />
-                <Field label="Headline" hint="One line about what you do and who you help.">
-                  <input
-                    name="headline"
-                    maxLength={140}
-                    defaultValue={listing?.headline ?? ""}
-                    placeholder="Trichologist helping women with shedding and thinning"
-                    className={cn(fieldClass, "h-12")}
-                  />
-                </Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Specialism">
-                    <input
-                      name="specialization"
-                      maxLength={120}
-                      defaultValue={listing?.specialization ?? user.profile?.specialization ?? ""}
-                      className={cn(fieldClass, "h-12")}
-                    />
-                  </Field>
-                  <Field label="City">
-                    <input
-                      name="city"
-                      required
-                      minLength={2}
-                      maxLength={80}
-                      defaultValue={listing?.city ?? user.profile?.location ?? user.chapter?.city ?? ""}
-                      className={cn(fieldClass, "h-12")}
-                    />
-                  </Field>
-                </div>
-                <Field label="About your practice">
-                  <textarea
-                    name="bio"
-                    rows={5}
-                    maxLength={800}
-                    defaultValue={listing?.bio ?? user.profile?.bio ?? ""}
-                    className={cn(fieldClass, "resize-y py-3 leading-relaxed")}
-                  />
-                </Field>
-                <Field label="Services" hint="Separate each one with a comma, for example: Scalp consultation, Head spa, Hair loss assessment.">
-                  <input name="services" defaultValue={listing?.services.join(", ") ?? ""} className={cn(fieldClass, "h-12")} />
-                </Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Website">
-                    <input
-                      name="website"
-                      type="url"
-                      inputMode="url"
-                      placeholder="https://"
-                      defaultValue={listing?.website ?? user.profile?.website ?? ""}
-                      className={cn(fieldClass, "h-12")}
-                    />
-                  </Field>
-                  <Field label="Phone" hint="Private. Never shown publicly.">
-                    <input
-                      name="phone"
-                      type="tel"
-                      defaultValue={listing?.phone ?? user.profile?.phone ?? ""}
-                      className={cn(fieldClass, "h-12")}
-                    />
-                  </Field>
-                </div>
-                <Field label="Photo URL" hint="A link to a square photo of you, starting with https://">
-                  <input
-                    name="photoUrl"
-                    type="url"
-                    inputMode="url"
-                    placeholder="https://"
-                    defaultValue={listing?.photoUrl ?? ""}
-                    className={cn(fieldClass, "h-12")}
-                  />
-                </Field>
+                {listing && (
+                  <p className="text-sm text-ink-2">
+                    {listing.status === "listed"
+                      ? "Your listing is live in the directory."
+                      : listing.status === "pending"
+                        ? "Your listing is waiting for a quick check by our team before it goes live."
+                        : "Your listing is not public yet. Publishing sends it to the directory."}
+                    {listing.kind !== "member" && listing.freeUntil && trialDaysLeft(listing) > 0
+                      ? ` Your full profile is included for another ${trialDaysLeft(listing)} days.`
+                      : ""}
+                  </p>
+                )}
                 <SubmitButton className="self-start" pending="Publishing…">
-                  {listing ? "Save and publish" : "Publish to the directory"}
+                  {listing ? "Update my directory listing" : "Publish to the directory"}
                 </SubmitButton>
               </form>
             )}
@@ -363,38 +420,8 @@ export default async function ProfilePage({
         </section>
       )}
 
-      <section id="enquiries" className="mt-10 scroll-mt-20">
-        <SectionLabel>Enquiries</SectionLabel>
-        {!fullProfile ? (
-          <Card className="p-5 text-sm leading-relaxed text-ink-2">
-            {enquiries.length > 0
-              ? `${enquiries.length} ${enquiries.length === 1 ? "enquiry is" : "enquiries are"} waiting for your listing. They are held until you join the Professional plan.`
-              : "When a member of the public contacts you through the directory, it will appear here once you're on Professional."}
-          </Card>
-        ) : enquiries.length === 0 ? (
-          <Card className="p-5 text-sm leading-relaxed text-muted-foreground">
-            No enquiries yet. A clear headline, a list of services and a photo make it easier for people to reach out.
-          </Card>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {enquiries.map((e) => (
-              <li key={e.id} className="rounded-2xl border border-rule bg-card p-4 sm:p-5">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium">{e.name}</p>
-                  <p className="text-xs text-muted-foreground">{shortDate(e.createdAt)}</p>
-                </div>
-                <a href={`mailto:${e.email}`} className="text-sm text-ink-2 underline underline-offset-4">
-                  {e.email}
-                </a>
-                <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{e.message}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <section id="emails" className="mt-10 scroll-mt-20">
-        <SectionLabel>Emails</SectionLabel>
+        <SectionLabel>Email preferences</SectionLabel>
         <Card className="p-5 sm:p-6">
           <form action={saveEmailPreferences} className="flex flex-col gap-5">
             <label className="flex items-start gap-3">
@@ -432,6 +459,36 @@ export default async function ProfilePage({
             <SubmitButton className="self-start">Save email preferences</SubmitButton>
           </form>
         </Card>
+      </section>
+
+      <section id="enquiries" className="mt-10 scroll-mt-20">
+        <SectionLabel>Enquiries</SectionLabel>
+        {!fullProfile ? (
+          <Card className="p-5 text-sm leading-relaxed text-ink-2">
+            {enquiries.length > 0
+              ? `${enquiries.length} ${enquiries.length === 1 ? "enquiry is" : "enquiries are"} waiting for your listing. They are held until you join the Professional plan.`
+              : "When a member of the public contacts you through the directory, it will appear here once you're on Professional."}
+          </Card>
+        ) : enquiries.length === 0 ? (
+          <Card className="p-5 text-sm leading-relaxed text-muted-foreground">
+            No enquiries yet. A clear headline, a list of services and a photo make it easier for people to reach out.
+          </Card>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {enquiries.map((e) => (
+              <li key={e.id} className="rounded-2xl border border-rule bg-card p-4 sm:p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-medium">{e.name}</p>
+                  <p className="text-xs text-muted-foreground">{shortDate(e.createdAt)}</p>
+                </div>
+                <a href={`mailto:${e.email}`} className="text-sm text-ink-2 underline underline-offset-4">
+                  {e.email}
+                </a>
+                <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{e.message}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="mt-10">

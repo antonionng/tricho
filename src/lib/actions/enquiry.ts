@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { PARTNER_CATEGORIES } from "@/lib/partners";
+import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
 import { after } from "next/server";
 import { alertOwners, deliver } from "@/lib/mail/send";
 import { partnerAcknowledgementEmail, partnerAlert, type PartnerEnquiry } from "@/lib/mail/templates/leads";
@@ -58,6 +59,7 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
   const name = field(formData, "name", 120);
   const email = field(formData, "email", 160).toLowerCase();
   const role = field(formData, "role", 120);
+  const phone = field(formData, "phone", 40);
   const interest = field(formData, "interest", 40);
   const budget = field(formData, "budget", 80);
   const message = field(formData, "message", 4000);
@@ -74,14 +76,17 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
   const companyUrl = cleanWebsite(companyUrlRaw);
 
   const fields: Record<string, string> = isApplication
-    ? { company, name, email, role, message, tier, category: categoryRaw, sells, companyUrl: companyUrlRaw }
-    : { company, name, email, role, interest, budget, message };
+    ? { company, name, email, role, phone, message, tier, category: categoryRaw, sells, companyUrl: companyUrlRaw }
+    : { company, name, email, role, phone, interest, budget, message };
 
   if (!company || !name) {
     return { ok: false, message: "Please tell us your name and your company.", fields };
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, message: "Please check your email address.", fields };
+  }
+  if (phone && !/^[+()\d\s.-]{6,40}$/.test(phone)) {
+    return { ok: false, message: "Please check your phone number, or leave it empty.", fields };
   }
   if (isApplication) {
     if (!category) {
@@ -112,6 +117,7 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
     `Company: ${company}`,
     `Name: ${name}${role ? ` (${role})` : ""}`,
     `Email: ${email}`,
+    phone ? `Phone: ${phone}` : null,
     isApplication ? `Tier: ${APPLICATION_TIERS[tier]}` : `Interested in: ${safeInterest}`,
     isApplication ? `Category: ${category}` : null,
     companyUrl ? `Website: ${companyUrl}` : null,
@@ -122,6 +128,23 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
   ]
     .filter((line) => line !== null)
     .join("\n");
+
+  const payload = isApplication
+    ? {
+        application: true,
+        company,
+        name,
+        email,
+        role,
+        phone,
+        interest: safeInterest,
+        tier,
+        category,
+        sells,
+        website: companyUrl,
+        message,
+      }
+    : { company, name, email, role, phone, interest: safeInterest, budget, message };
 
   let draftId: string;
   try {
@@ -134,21 +157,7 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
           ? `${name} · ${APPLICATION_TIERS[tier]} · ${category}`
           : `${name} · ${safeInterest}`,
         body,
-        payload: isApplication
-          ? {
-              application: true,
-              company,
-              name,
-              email,
-              role,
-              interest: safeInterest,
-              tier,
-              category,
-              sells,
-              website: companyUrl,
-              message,
-            }
-          : { company, name, email, role, interest: safeInterest, budget, message },
+        payload,
       },
       select: { id: true },
     });
@@ -160,6 +169,28 @@ export async function partnerEnquiry(_prev: EnquiryState, formData: FormData): P
       message: "Something went wrong sending your enquiry. Please try again, or email us instead.",
       fields,
     };
+  }
+
+  // The business also becomes a lead in the CRM. A failure here never loses the enquiry itself.
+  try {
+    await upsertOrganisationFromIntake({
+      name: company,
+      category: category || null,
+      website: companyUrl || null,
+      email,
+      contactName: name,
+      contactTitle: role || null,
+      phone: phone || null,
+      source: isApplication ? "application" : "enquiry",
+      interest: isApplication ? (tier === "unsure" ? null : tier) : safeInterest,
+      stage: "lead",
+      intake: { ...payload, draftId },
+      note: isApplication
+        ? `Partner application received (${APPLICATION_TIERS[tier]}).${sells ? ` They sell: ${sells}` : ""}`
+        : `Business enquiry received about ${safeInterest}.${message ? ` ${message}` : ""}`,
+    });
+  } catch (error) {
+    console.error("[PARTNER_ENQUIRY_CRM]", error);
   }
 
   const enquiry: PartnerEnquiry = isApplication

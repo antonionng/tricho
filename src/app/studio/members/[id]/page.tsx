@@ -29,9 +29,12 @@ import {
   muteMemberAction,
   restoreMemberAction,
   setCompPlanAction,
+  setMemberOwnerAction,
   setMemberRoleAction,
+  setMemberTagsAction,
   suspendMemberAction,
 } from "../actions";
+import { SOCIAL_LABEL, STAGE_LABEL, kindLabel, readSocials, type OrgStageId } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +74,7 @@ export default async function MemberDetailPage({
 
   const detail = await memberDetail(id);
   if (!detail) notFound();
-  const { user, posts, reports, rsvps, notes, activity, membership } = detail;
+  const { user, posts, reports, rsvps, notes, activity, membership, organisations, enquiries, team } = detail;
 
   const can = (p: Parameters<typeof staff.perms.has>[0]) => staff.perms.has(p);
   const now = new Date();
@@ -81,6 +84,11 @@ export default async function MemberDetailPage({
   const paying = !!user.stripeCurrentPeriodEnd && user.stripeCurrentPeriodEnd > now;
   const compActive = !!user.compPlan && (!user.compUntil || user.compUntil > now);
   const tierName = (plan: string | null | undefined) => subscriptionTiers.find((t) => t.id === plan)?.name ?? "None";
+  const canCrm = can("crm.edit") || can("members.edit");
+  const profile = user.profile;
+  const socials = readSocials(profile?.socials);
+  const qualifications = readQualifications(profile?.qualifications);
+  const ownerName = user.crmOwnerId ? (team.find((t) => t.id === user.crmOwnerId)?.name ?? "A former team member") : null;
   const confirmingBan = sp.confirm === "ban" && can("members.ban") && !onTeam && !isSelf;
 
   return (
@@ -135,6 +143,142 @@ export default async function MemberDetailPage({
           </form>
         </div>
       )}
+
+      <Section title="Relationship" intro="How the team keeps track of this member. Members never see tags or who looks after them.">
+        {canCrm ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            <Card className="space-y-3">
+              <p className="font-medium text-ink">Tags</p>
+              <form action={setMemberTagsAction} className="flex flex-wrap items-end gap-2">
+                <Hidden id={user.id} />
+                <Field label="Tags" hint="Separate tags with commas, for example speaker, dublin 2026." className="min-w-0 flex-1">
+                  <input name="tags" defaultValue={user.tags.join(", ")} maxLength={2000} className={fieldClass} />
+                </Field>
+                <SubmitButton size="sm" variant="outline" pendingLabel="Saving…">
+                  Save tags
+                </SubmitButton>
+              </form>
+            </Card>
+            <Card className="space-y-3">
+              <p className="font-medium text-ink">Looked after by</p>
+              <form action={setMemberOwnerAction} className="flex flex-wrap items-end gap-2">
+                <Hidden id={user.id} />
+                <select name="owner" defaultValue={user.crmOwnerId ?? ""} aria-label="Looked after by" className={`${fieldClass} w-auto py-2`}>
+                  <option value="">Nobody yet</option>
+                  {team.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+                <SubmitButton size="sm" variant="outline" pendingLabel="Saving…">
+                  Save
+                </SubmitButton>
+              </form>
+            </Card>
+          </div>
+        ) : (
+          <Card>
+            <dl>
+              <Row label="Tags">{user.tags.length ? user.tags.join(", ") : "No tags yet"}</Row>
+              <Row label="Looked after by">{ownerName ?? "Nobody yet"}</Row>
+            </dl>
+          </Card>
+        )}
+      </Section>
+
+      <Section title="Profile" intro="What they have told us about themselves and their practice.">
+        {profile ? (
+          <Card>
+            <dl>
+              {profile.headline && <Row label="Headline">{profile.headline}</Row>}
+              <Row label="Practice">{profile.practiceName ?? "Not given"}</Row>
+              <Row label="Where">{[profile.city, profile.country].filter(Boolean).join(", ") || profile.location || "Not given"}</Row>
+              {profile.yearsInPractice !== null && <Row label="Years in practice">{profile.yearsInPractice}</Row>}
+              <Row label="Specialisms">{profile.specialisms.length ? profile.specialisms.join(", ") : "None given"}</Row>
+              {profile.services.length > 0 && <Row label="Services">{profile.services.join(", ")}</Row>}
+              <Row label="Qualifications">
+                {qualifications.length ? (
+                  <ul className="space-y-0.5">
+                    {qualifications.map((q, i) => (
+                      <li key={i}>
+                        {q.title}
+                        {q.year ? ` (${q.year})` : ""}
+                        {q.body ? <span className="text-muted-foreground">, {q.body}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  "None given"
+                )}
+              </Row>
+              <Row label="Professional bodies">{profile.memberships.length ? profile.memberships.join(", ") : "None given"}</Row>
+              <Row label="Phone">
+                {profile.phone ?? "Not given"}
+                {profile.phone && <span className="text-muted-foreground">{profile.showPhone ? ", shown publicly" : ", kept private"}</span>}
+              </Row>
+              <Row label="Address">
+                {[profile.addressLine1, profile.addressLine2, profile.city, profile.postcode].filter(Boolean).join(", ") || "Not given"}
+                {profile.addressLine1 && (
+                  <span className="text-muted-foreground">{profile.showAddress ? ", shown publicly" : ", kept private"}</span>
+                )}
+              </Row>
+              {profile.website && <Row label="Website">{profile.website}</Row>}
+              <Row label="Socials">
+                {Object.entries(socials)
+                  .map(([k, v]) => `${SOCIAL_LABEL[k as keyof typeof SOCIAL_LABEL]}: ${v}`)
+                  .join(", ") || "None given"}
+              </Row>
+              <Row label="Looking for">{profile.goals.length ? profile.goals.join(", ") : "Not given"}</Row>
+              {profile.interests.length > 0 && <Row label="Interests">{profile.interests.join(", ")}</Row>}
+            </dl>
+          </Card>
+        ) : (
+          <Empty>They haven&apos;t filled in a profile yet.</Empty>
+        )}
+      </Section>
+
+      <Section title="Businesses and enquiries" intro="The businesses they are a contact for, and the clients who have written to them.">
+        {organisations.length === 0 ? (
+          <Empty>They are not a contact for any business in the CRM.</Empty>
+        ) : (
+          <Card className="divide-y divide-rule p-0">
+            {organisations.map((c) => (
+              <div key={c.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm">
+                <div className="min-w-0 space-y-0.5">
+                  <Link href={`/studio/crm/${c.organisation.id}`} className="font-medium text-ink hover:underline">
+                    {c.organisation.name}
+                  </Link>
+                  <p className="text-xs text-muted-foreground">
+                    {kindLabel(c.organisation.kind)}
+                    {c.title ? `, ${c.title}` : ""}
+                    {c.isPrimary ? ", main contact" : ""}
+                  </p>
+                </div>
+                <Tag>{STAGE_LABEL[c.organisation.stage as OrgStageId]?.label ?? c.organisation.stage}</Tag>
+              </div>
+            ))}
+          </Card>
+        )}
+        {enquiries.length === 0 ? (
+          <Empty>No clients have sent them an enquiry through the directory yet.</Empty>
+        ) : (
+          <Card className="divide-y divide-rule p-0">
+            {enquiries.map((e) => (
+              <div key={e.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm">
+                <div className="min-w-0 space-y-0.5">
+                  <p className="text-ink">{e.message.length > 140 ? `${e.message.slice(0, 140)}…` : e.message}</p>
+                  <p className="text-xs text-muted-foreground">
+                    From {e.name} to {e.listing.name}, {dateTime(e.createdAt)}
+                  </p>
+                </div>
+                <Tag tone={e.status === "new" ? "warn" : "default"}>{e.status[0].toUpperCase() + e.status.slice(1)}</Tag>
+              </div>
+            ))}
+          </Card>
+        )}
+        {can("enquiries.view") && enquiries.length > 0 && <TextLink href="/studio/enquiries">See every enquiry</TextLink>}
+      </Section>
 
       <Section title="Membership" intro="What they pay for, and anything the team has given them.">
         <Card>
@@ -478,4 +622,23 @@ export default async function MemberDetailPage({
       </Section>
     </div>
   );
+}
+
+type Qualification = { title: string; body?: string; year?: string };
+
+/** Qualifications are stored as JSON; keep only entries with a title. */
+function readQualifications(value: unknown): Qualification[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((q) => {
+    if (!q || typeof q !== "object") return [];
+    const { title, body, year } = q as Record<string, unknown>;
+    if (typeof title !== "string" || !title.trim()) return [];
+    return [
+      {
+        title: title.trim(),
+        body: typeof body === "string" && body.trim() ? body.trim() : undefined,
+        year: typeof year === "string" || typeof year === "number" ? String(year) : undefined,
+      },
+    ];
+  });
 }

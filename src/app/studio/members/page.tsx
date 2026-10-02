@@ -5,7 +5,7 @@ import { subscriptionTiers } from "@/config/subscriptions";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
 import { Button } from "@/components/ui/button";
 import { Empty, NoAccess, Notice, PageHeader, Section, Stat, Tag, dateOnly, fieldClass } from "@/components/studio/ui";
-import { searchMembers, parseMemberFilters, memberFilterQuery, accessState, ACCESS_LABEL } from "@/lib/members-admin";
+import { searchMembers, parseMemberFilters, memberFilterQuery, accessState, ACCESS_LABEL, memberTags, studioTeam } from "@/lib/members-admin";
 import type { MemberFilters } from "@/lib/members-filter";
 import { cn } from "@/lib/utils";
 import { studioPage } from "../_lib/guard";
@@ -18,7 +18,7 @@ const DAY = 24 * 60 * 60 * 1000;
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; plan?: string; status?: string; cursor?: string; notice?: string; tone?: string }>;
+  searchParams: Promise<{ q?: string; plan?: string; status?: string; tag?: string; owner?: string; cursor?: string; notice?: string; tone?: string }>;
 }) {
   const staff = await studioPage("/studio/members", "members.view");
   if (!staff) return <NoAccess what="members" />;
@@ -67,9 +67,17 @@ export default async function MembersPage({
   const noPlan = users.filter((u) => !u.plan).length;
   const mrr = byPlan.reduce((sum, p) => sum + p.mrr, 0);
 
-  const results = await searchMembers({ ...filters, cursor });
+  const [results, tags, team] = await Promise.all([searchMembers({ ...filters, cursor }), memberTags(), studioTeam()]);
   const members = results.rows;
-  const filtered = !!(filters.q || filters.plan || filters.status);
+  const filtered = !!(filters.q || filters.plan || filters.status || filters.tag || filters.owner);
+  const ownerName = new Map(team.map((t) => [t.id, t.name]));
+  const ownerChips = [
+    { value: "", label: "Anyone" },
+    { value: staff.userId, label: "Looked after by me" },
+    ...team.filter((t) => t.id !== staff.userId).map((t) => ({ value: t.id, label: t.name })),
+    { value: "none", label: "Nobody yet" },
+  ];
+  const tagChips = [{ value: "", label: "Any tag" }, ...tags.slice(0, 30).map((t) => ({ value: t, label: t }))];
   return (
     <div className="space-y-10">
       <PageHeader title="Members" intro="Who has joined, which plan they're on, and roughly what that brings in each month." />
@@ -161,6 +169,8 @@ export default async function MembersPage({
             <form action="/studio/members" className="flex gap-2" role="search">
               {filters.plan && <input type="hidden" name="plan" value={filters.plan} />}
               {filters.status && <input type="hidden" name="status" value={filters.status} />}
+              {filters.tag && <input type="hidden" name="tag" value={filters.tag} />}
+              {filters.owner && <input type="hidden" name="owner" value={filters.owner} />}
               <label htmlFor="member-search" className="sr-only">
                 Search members
               </label>
@@ -186,6 +196,8 @@ export default async function MembersPage({
         <div className="space-y-2">
           <Chips label="Plan" filters={filters} name="plan" options={PLAN_CHIPS} />
           <Chips label="Status" filters={filters} name="status" options={STATUS_CHIPS} />
+          <Chips label="Owner" filters={filters} name="owner" options={ownerChips} />
+          {tags.length > 0 && <Chips label="Tag" filters={filters} name="tag" options={tagChips} />}
         </div>
 
         {members.length === 0 ? (
@@ -214,6 +226,18 @@ export default async function MembersPage({
                           {u.name ?? "No name yet"}
                         </Link>
                         <p className="text-xs text-muted-foreground">{u.email}</p>
+                        {(u.tags.length > 0 || u.crmOwnerId) && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {u.tags.map((t) => (
+                              <Tag key={t}>{t}</Tag>
+                            ))}
+                            {u.crmOwnerId && (
+                              <span className="text-[11px] text-muted-foreground">
+                                Looked after by {ownerName.get(u.crmOwnerId) ?? "a former team member"}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1">
@@ -229,7 +253,7 @@ export default async function MembersPage({
                           {!u.onboardedAt && <Tag tone="warn">Not set up</Tag>}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-ink-2">{u.profile?.location ?? "–"}</td>
+                      <td className="px-4 py-3 text-ink-2">{u.profile?.city ?? u.profile?.location ?? "–"}</td>
                       <td className="px-4 py-3 text-ink-2">{dateOnly(u.createdAt)}</td>
                       <td className="px-4 py-3">
                         {u.staffRole ? <Tag tone="ink">{STAFF_ROLE_LABEL[u.staffRole as StaffRoleId]}</Tag> : <span className="text-muted-foreground">–</span>}
@@ -286,7 +310,7 @@ function Chips({
   options,
 }: {
   label: string;
-  name: "plan" | "status";
+  name: "plan" | "status" | "tag" | "owner";
   filters: MemberFilters;
   options: { value: string; label: string }[];
 }) {
@@ -294,7 +318,7 @@ function Chips({
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
       <span className="mr-1 w-14 text-xs text-muted-foreground">{label}</span>
       {options.map((o) => {
-        const on = filters[name] === o.value;
+        const on = (filters[name] ?? "") === o.value;
         return (
           <Link
             key={o.value || "any"}

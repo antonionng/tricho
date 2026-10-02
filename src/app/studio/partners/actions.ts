@@ -6,6 +6,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { partnerCapError, partnerLogoSrc } from "@/lib/partners";
 import { studioAction } from "../_lib/guard";
+import { audit } from "@/lib/staff";
+import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
+import { deleteStoredFile, storeUpload } from "@/lib/storage";
 
 function s(form: FormData, key: string, max = 4000) {
   return String(form.get(key) ?? "").trim().slice(0, max);
@@ -51,7 +54,7 @@ async function uniquePartnerSlug(tx: Prisma.TransactionClient, name: string) {
 }
 
 export async function savePartnerAction(form: FormData) {
-  await studioAction("partners.manage");
+  const staff = await studioAction("partners.manage");
   const id = s(form, "id", 64) || undefined;
   const back = id ? { edit: id } : { new: "1" };
   const fail = (notice: string) => redirect(withParams("/studio/partners", { ...back, notice, tone: "danger" }));
@@ -68,9 +71,23 @@ export async function savePartnerAction(form: FormData) {
   if (!name || !category || blurb.length < 20) {
     fail("Please add a name, a category and a blurb of at least a sentence.");
   }
-  // A logo the brand uploaded is served by us; keep that path as it is.
-  const logoUrl = logoRaw.startsWith("/api/partners/") ? partnerLogoSrc(logoRaw) : cleanUrl(logoRaw);
+  // A logo served by us (an upload) keeps its path; anything else must be a full web address.
+  let logoUrl = logoRaw.startsWith("/api/") ? partnerLogoSrc(logoRaw) : cleanUrl(logoRaw);
   if (logoRaw && !logoUrl) fail("Please check the logo address. It needs to be a full web address.");
+  const before = id ? await prisma.partner.findUnique({ where: { id } }) : null;
+  let logoFileId: string | null = before?.logoFileId ?? null;
+  // A new upload wins; ticking Remove clears it; typing a different address replaces the stored file.
+  const upload = await storeUpload({ kind: "logo", file: form.get("logoFile") as File | null, ownerId: staff.userId });
+  if (upload && !upload.ok) fail(upload.message);
+  if (upload?.ok) {
+    logoFileId = upload.file.id;
+    logoUrl = upload.file.url;
+  } else if (form.get("removeLogo") === "on") {
+    logoFileId = null;
+    logoUrl = null;
+  } else if (logoUrl !== (before?.logoUrl ?? null)) {
+    logoFileId = null;
+  }
   const website = cleanUrl(websiteRaw);
   if (websiteRaw && !website) fail("Please check the website address.");
   if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) fail("Please check the contact email.");
@@ -89,6 +106,7 @@ export async function savePartnerAction(form: FormData) {
     category,
     blurb,
     logoUrl,
+    logoFileId,
     website,
     perk: s(form, "perk", 2000) || null,
     contactEmail: contactEmail || null,
@@ -100,7 +118,7 @@ export async function savePartnerAction(form: FormData) {
     featuredUntil,
   };
 
-  let result: { error: string } | { slug: string };
+  let result: { error: string } | { slug: string; id: string };
   try {
     // Serializable, so two saves at once can't both squeeze past the caps.
     result = await prisma.$transaction(
@@ -109,12 +127,11 @@ export async function savePartnerAction(form: FormData) {
         if (error) return { error };
         if (id) {
           // The slug stays as it was, so links already shared keep working.
-          const saved = await tx.partner.update({ where: { id }, data, select: { slug: true } });
-          return { slug: saved.slug };
+          const saved = await tx.partner.update({ where: { id }, data, select: { slug: true, id: true } });
+          return saved;
         }
         const slug = await uniquePartnerSlug(tx, name);
-        await tx.partner.create({ data: { ...data, slug } });
-        return { slug };
+        return tx.partner.create({ data: { ...data, slug }, select: { slug: true, id: true } });
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
@@ -125,7 +142,41 @@ export async function savePartnerAction(form: FormData) {
     }
     result = { error: "Something went wrong saving this partner, possibly because someone else saved at the same moment. Please try again." };
   }
-  if ("error" in result) return fail(result.error);
+  if ("error" in result) {
+    if (upload?.ok) await deleteStoredFile(upload.file.id);
+    return fail(result.error);
+  }
+  if (before?.logoFileId && before.logoFileId !== logoFileId) await deleteStoredFile(before.logoFileId);
+  if (before?.logoFileId !== logoFileId) await prisma.partnerLogo.deleteMany({ where: { partnerId: result.id } }).catch(() => null);
+
+  // Keep the CRM record in step: linked (or created) for this page, with the same logo.
+  try {
+    const org = await upsertOrganisationFromIntake({
+      name,
+      category,
+      website,
+      email: contactEmail || null,
+      accountEmail: ownerEmail || null,
+      partnerId: result.id,
+      source: "studio",
+      interest: tier,
+      stage: data.published ? "customer" : null,
+    });
+    if (org.partnerId === result.id) {
+      await prisma.organisation.update({ where: { id: org.id }, data: { logoFileId } });
+    }
+  } catch (error) {
+    console.error("[STUDIO_PARTNER_CRM]", error);
+  }
+
+  await audit(staff, {
+    action: id ? "partner.update" : "partner.create",
+    targetType: "partner",
+    targetId: result.id,
+    summary: `${id ? "Updated" : "Created"} partner page ${name}${data.published ? " (published)" : ""}`,
+    before: before ? { name: before.name, tier: before.tier, published: before.published, hidden: before.hidden, ownerEmail: before.ownerEmail } : undefined,
+    after: { name, tier, published: data.published, hidden, ownerEmail: data.ownerEmail },
+  });
 
   revalidatePath("/studio/partners");
   revalidatePath("/partners", "layout");

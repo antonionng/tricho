@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { audit, isEnvOwner, requirePermission } from "@/lib/staff";
+import { audit, getStaff, isEnvOwner, requirePermission } from "@/lib/staff";
 import { deliver } from "@/lib/mail/send";
 import { accountClosedEmail, accountRestoredEmail, accountSuspendedEmail } from "@/lib/mail/templates/members";
 import { untilFromDays } from "@/lib/members-filter";
+import { parseTags } from "@/lib/crm";
 import { dateOnly } from "@/components/studio/ui";
 
 function s(form: FormData, key: string, max = 200) {
@@ -272,4 +273,59 @@ export async function addNoteAction(form: FormData) {
   });
   refresh(id);
   redirect(back(id, { notice: "Your note has been saved. Only the team can see it." }));
+}
+
+/** CRM changes on a member record need crm.edit or members.edit. */
+async function requireCrmEdit() {
+  const staff = await getStaff();
+  if (!staff) throw new Error("Studio is for the Trichollective team.");
+  if (!staff.perms.has("crm.edit") && !staff.perms.has("members.edit")) throw new Error("Your role does not include this action.");
+  return staff;
+}
+
+/** Tags for finding and grouping members, e.g. "speaker" or "dublin 2026". Members never see them. */
+export async function setMemberTagsAction(form: FormData) {
+  const staff = await requireCrmEdit();
+  const id = s(form, "id", 64);
+  await target(id);
+  const before = await prisma.user.findUnique({ where: { id }, select: { name: true, email: true, tags: true } });
+  if (!before) fail(id, "That account no longer exists.");
+  const tags = parseTags(s(form, "tags", 2000));
+  if (JSON.stringify(tags) === JSON.stringify(before.tags)) redirect(back(id, { notice: "The tags had not changed." }));
+
+  await prisma.user.update({ where: { id }, data: { tags } });
+  const summary = tags.length ? `${who(before)} is now tagged ${tags.join(", ")}.` : `${who(before)} no longer has any tags.`;
+  await audit(staff, { action: "member.tags", targetType: "user", targetId: id, summary, before: { tags: before.tags }, after: { tags } });
+  refresh(id);
+  redirect(back(id, { notice: summary }));
+}
+
+/** Choose who on the team looks after this member. */
+export async function setMemberOwnerAction(form: FormData) {
+  const staff = await requireCrmEdit();
+  const id = s(form, "id", 64);
+  await target(id);
+  const before = await prisma.user.findUnique({ where: { id }, select: { name: true, email: true, crmOwnerId: true } });
+  if (!before) fail(id, "That account no longer exists.");
+  const ownerId = s(form, "owner", 64) || null;
+  let ownerName: string | null = null;
+  if (ownerId) {
+    const owner = await prisma.user.findFirst({ where: { id: ownerId, staffRole: { not: null } }, select: { name: true, email: true } });
+    if (!owner) fail(id, "Please choose someone who is on the team.");
+    ownerName = owner.name ?? owner.email ?? "A team member";
+  }
+  if (ownerId === before.crmOwnerId) redirect(back(id, { notice: "Nothing had changed, so there was nothing to save." }));
+
+  await prisma.user.update({ where: { id }, data: { crmOwnerId: ownerId } });
+  const summary = ownerName ? `${ownerName} now looks after ${who(before)}.` : `Nobody on the team is looking after ${who(before)} now.`;
+  await audit(staff, {
+    action: "member.owner",
+    targetType: "user",
+    targetId: id,
+    summary,
+    before: { crmOwnerId: before.crmOwnerId },
+    after: { crmOwnerId: ownerId },
+  });
+  refresh(id);
+  redirect(back(id, { notice: summary }));
 }

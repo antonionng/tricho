@@ -5,6 +5,8 @@ import { unsubscribeToken, unsubscribeUrl, oneClickUnsubscribeUrl, verifyUnsubsc
 import { samples as members, draftHeading, accountSuspendedEmail, accountClosedEmail, accountRestoredEmail } from "./members";
 import { samples as releases, editionsAnnouncement } from "./releases";
 import { samples as owners, digestIsEmpty } from "./owners";
+import { verificationApprovedEmail, verificationRejectedEmail } from "./members";
+import { verificationSubmittedAlert } from "./owners";
 import { newEditions } from "@/agents/releases";
 import { editions, archive } from "@/content/gazette";
 
@@ -190,6 +192,37 @@ describe("account access emails", () => {
       accountClosedEmail({ name: "A", reason: "x" }),
       accountRestoredEmail({ name: "A" }),
     ]) {
+      expect(`${e.subject}${e.content.heading}${e.content.body}`).not.toContain("!");
+    }
+  });
+});
+
+describe("verification emails", () => {
+  it("tells an approved member where the badge shows and links to their verification page", () => {
+    const e = verificationApprovedEmail({ name: "Niamh Byrne" });
+    expect(e.content.body).toContain("Hello Niamh,");
+    expect(e.content.body).toContain("directory profile");
+    expect(e.content.cta?.href).toBe("/members/profile/verification");
+  });
+
+  it("gives the reason as a full sentence and explains how to resubmit", () => {
+    const e = verificationRejectedEmail({ name: "Aoife", reason: "The certificate does not show your name" });
+    expect(e.content.body).toContain("The reason the team gave is: The certificate does not show your name.");
+    expect(e.content.body).toContain("send another document");
+    expect(e.content.cta?.href).toBe("/members/profile/verification");
+  });
+
+  it("alerts the owners with the member and the document, replying to the member", () => {
+    const a = verificationSubmittedAlert({ name: null, email: "aoife@example.com", title: "IAT Diploma in Trichology, 2019" });
+    expect(a.facts).toContainEqual(["Member", "No name given"]);
+    expect(a.facts).toContainEqual(["Document", "IAT Diploma in Trichology, 2019"]);
+    expect(a.replyTo).toBe("aoife@example.com");
+    expect(a.cta?.href).toBe("/studio/verification");
+    expect(a.heading).toMatch(/\.$/);
+  });
+
+  it("never uses exclamation marks", () => {
+    for (const e of [verificationApprovedEmail({ name: "A" }), verificationRejectedEmail({ name: "A", reason: "x" })]) {
       expect(`${e.subject}${e.content.heading}${e.content.body}`).not.toContain("!");
     }
   });

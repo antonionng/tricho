@@ -482,3 +482,71 @@ export const samples: EmailSample[] = [
     ...inviteEmail,
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/* Verification                                                         */
+/* ------------------------------------------------------------------ */
+
+/** Sent when the team approves a member's evidence and turns on the verified badge. */
+export function verificationApprovedEmail(p: { name: string | null }): Email {
+  return {
+    subject: "You are now verified on Trichollective",
+    content: {
+      preheader: "The verified badge now shows on your directory profile.",
+      eyebrow: "Verification",
+      heading: "The team has checked your evidence and you are now verified.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "Thank you for sending your documents. The verified badge now shows on your directory profile, in directory search results and on your chapter page, so clients and colleagues can see that the Trichollective team has checked your training.",
+        "Your documents stay private. Only you and the members of the team who review verification can open them.",
+        `If any of your details change, or you have a question, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      cta: { label: "See your verification", href: "/members/profile/verification" },
+      reason: "This email is about the verified badge on your Trichollective profile.",
+    },
+  };
+}
+
+/** Sent when the team cannot verify a member from what they sent, with the reason and how to try again. */
+export function verificationRejectedEmail(p: { name: string | null; reason: string }): Email {
+  return {
+    subject: "We could not verify your document yet",
+    content: {
+      preheader: "The team has explained why, and you can send another document at any time.",
+      eyebrow: "Verification",
+      heading: "The team could not verify you from the document you sent.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "Thank you for sending evidence of your training. The team has looked at it carefully but could not add the verified badge from this document.",
+        `The reason the team gave is: ${p.reason.trim().replace(/([^.!?])$/, "$1.")}`,
+        "You are welcome to send another document from your verification page, such as a clearer copy, a certificate that shows your name, or proof of membership of a professional body.",
+        `If you would like to talk it through, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      cta: { label: "Send another document", href: "/members/profile/verification" },
+      reason: "This email is about the verified badge on your Trichollective profile.",
+    },
+  };
+}
+
+const verified = verificationApprovedEmail({ name: "Niamh Byrne" });
+const notVerified = verificationRejectedEmail({
+  name: "Niamh Byrne",
+  reason: "The certificate is cropped, so we cannot see the awarding body or the date you qualified",
+});
+
+samples.push(
+  {
+    id: "verification-approved",
+    name: "Verified badge added",
+    trigger: "Sent when someone on the team approves a member's evidence in Studio, Verification.",
+    audience: "members",
+    ...verified,
+  },
+  {
+    id: "verification-rejected",
+    name: "Verification not approved",
+    trigger: "Sent when someone on the team rejects a member's evidence in Studio, Verification, with the reason they gave.",
+    audience: "members",
+    ...notVerified,
+  }
+);

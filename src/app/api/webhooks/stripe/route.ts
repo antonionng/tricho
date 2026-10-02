@@ -5,7 +5,16 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { isPremiumPriceId, premiumBusiness, tierById, tierByPriceId } from "@/config/subscriptions";
-import { activatePremiumPartner, endPremiumPartner, premiumCheckoutAnswers } from "@/lib/partners";
+import {
+  activatePremiumPartner,
+  checkoutAddress,
+  checkoutBrandAnswers,
+  endBusinessPartner,
+  endPremiumPartner,
+  ensureBusinessPartner,
+  premiumCheckoutAnswers,
+} from "@/lib/partners";
+import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import {
   formatMoney,
@@ -164,10 +173,49 @@ export async function POST(req: Request) {
         const planName = premium ? premiumBusiness.name : tier?.name;
 
         // Premium Business: the partner page goes live as soon as it is paid.
-        if (premium && to) {
-          await activatePremiumPartner({ ownerEmail: to, isFounding: founding, ...premiumCheckoutAnswers(session.custom_fields) });
+        // Business: the page is prepared from the short form and published by the brand after setup.
+        const businessPlan = !premium && tier?.id === "business";
+        if ((premium || businessPlan) && to) {
+          const answers = checkoutBrandAnswers(session.metadata, session.custom_fields) ?? premiumCheckoutAnswers(session.custom_fields);
+          const partner = premium
+            ? await activatePremiumPartner({ ownerEmail: to, isFounding: founding, ...answers })
+            : await ensureBusinessPartner({ ownerEmail: to, ...answers });
           revalidatePath("/partners");
           revalidatePath("/for-business");
+          revalidatePath("/members/business");
+
+          // The CRM record. Safe to repeat on a retried event; the timeline note is added once.
+          try {
+            const firstTime = await claimOnce(`stripe:${event.id}:crm`);
+            await upsertOrganisationFromIntake({
+              name: partner.name,
+              category: partner.category,
+              website: partner.website ?? answers.website,
+              email: to,
+              contactName: name,
+              phone: session.customer_details?.phone ?? null,
+              address: checkoutAddress(session.customer_details?.address),
+              source: premium ? "premium-checkout" : "business-checkout",
+              interest: premium ? "premium" : "business",
+              stage: "customer",
+              accountEmail: to,
+              partnerId: partner.id,
+              intake: {
+                plan: premium ? "premium" : "business",
+                brand: answers.name,
+                category: answers.category,
+                website: answers.website,
+                founding,
+                interval: subscription.items.data[0]?.price.recurring?.interval ?? null,
+                checkoutSessionId: session.id,
+              },
+              note: firstTime
+                ? `Paid for ${planName ?? "a business plan"}${founding ? " at the founding price" : ""}, ${formatMoney(session.amount_total, session.currency)}.`
+                : null,
+            });
+          } catch (error) {
+            console.error("[STRIPE_WEBHOOK_CRM]", error);
+          }
         }
 
         if (to && planName) {
@@ -244,14 +292,35 @@ export async function POST(req: Request) {
         });
 
         const endedPriceId = subscription.items?.data?.[0]?.price.id;
-        if (member?.email && isPremiumPriceId(endedPriceId)) {
-          await endPremiumPartner(member.email.toLowerCase());
-          revalidatePath("/partners");
+        const endedPremium = isPremiumPriceId(endedPriceId);
+        const endedBusiness = !endedPremium && tierByPriceId(endedPriceId)?.id === "business";
+        if (member?.email && (endedPremium || endedBusiness)) {
+          const ownerEmail = member.email.toLowerCase();
+          if (endedPremium) await endPremiumPartner(ownerEmail);
+          else await endBusinessPartner(ownerEmail);
+          revalidatePath("/partners", "layout");
           revalidatePath("/for-business");
+          revalidatePath("/members/perks");
+
+          // The CRM record becomes churned, unless the business still has a Premium page the team invoices.
+          const stillPremium = endedBusiness
+            ? await prisma.partner.findFirst({ where: { ownerEmail, tier: "premium", hidden: false }, select: { id: true } })
+            : null;
+          if (!stillPremium) {
+            await prisma.organisation
+              .updateMany({
+                where: {
+                  OR: [{ accountEmail: { equals: ownerEmail, mode: "insensitive" } }, { partner: { ownerEmail } }],
+                  stage: { notIn: ["lost", "churned"] },
+                },
+                data: { stage: "churned" },
+              })
+              .catch((error) => console.error("[STRIPE_WEBHOOK_CRM]", error));
+          }
         }
 
         if (member?.email) {
-          const plan = isPremiumPriceId(endedPriceId)
+          const plan = endedPremium
             ? premiumBusiness.name
             : tierByPriceId(endedPriceId)?.name ?? tierById(member.plan)?.name ?? "Trichollective";
           const ended = membershipEndedEmail({ name: member.name, plan });

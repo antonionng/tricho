@@ -6,13 +6,16 @@ import { Container, Pill, Section } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { displayHost, partnerTierLabel, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
+import { socialLinks } from "@/lib/business-profile";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
 export const dynamic = "force-dynamic";
 
 async function getPartner(slug: string) {
-  const partner = await prisma.partner.findUnique({ where: { slug } }).catch(() => null);
+  const partner = await prisma.partner
+    .findUnique({ where: { slug }, include: { organisation: { select: { socials: true } } } })
+    .catch(() => null);
   return partner?.published ? partner : null;
 }
 
@@ -36,6 +39,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
   const website = safeHttpUrl(partner.website);
   const host = displayHost(partner.website);
   const premium = partner.tier === "premium";
+  const socials = socialLinks(partner.organisation?.socials);
 
   return (
     <>
@@ -72,13 +76,26 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
                 ))}
             </div>
 
-            {website && (
-              <div>
-                <Button asChild size="lg" variant="outline">
-                  <a href={website} target="_blank" rel="noopener noreferrer sponsored">
-                    Visit {host ?? "their website"} <ArrowUpRight />
+            {(website || socials.length > 0) && (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+                {website && (
+                  <Button asChild size="lg" variant="outline">
+                    <a href={website} target="_blank" rel="noopener noreferrer sponsored">
+                      Visit {host ?? "their website"} <ArrowUpRight />
+                    </a>
+                  </Button>
+                )}
+                {socials.map((s) => (
+                  <a
+                    key={s.id}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer sponsored"
+                    className="text-sm text-ink-2 underline underline-offset-4 hover:text-ink"
+                  >
+                    {s.label}
                   </a>
-                </Button>
+                ))}
               </div>
             )}
 
@@ -122,7 +139,8 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
             "@type": "Organization",
             name: partner.name,
             ...(website ? { url: website } : {}),
-            ...(logo ? { logo } : {}),
+            ...(logo ? { logo: new URL(logo, site.url).toString() } : {}),
+            ...(socials.length ? { sameAs: socials.map((s) => s.url) } : {}),
             description: partner.blurb,
           },
           breadcrumbLd([

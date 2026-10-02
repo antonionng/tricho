@@ -67,9 +67,13 @@ export function safeHttpUrl(value: string | null | undefined) {
   }
 }
 
-/** A partner's logo: one uploaded in the brand portal (served by us), or an http(s) link set in the Studio. */
+/**
+ * A partner's logo: a stored upload (served by us at /api/files, or straight from storage),
+ * an older portal upload at /api/partners/{slug}/logo, or an http(s) link set in the Studio.
+ */
 export function partnerLogoSrc(value: string | null | undefined) {
   if (value && /^\/api\/partners\/[a-z0-9-]+\/logo(\?v=\d+)?$/.test(value)) return value;
+  if (value && /^\/api\/files\/[A-Za-z0-9_-]+$/.test(value)) return value;
   return safeHttpUrl(value);
 }
 
@@ -132,6 +136,80 @@ export function premiumCheckoutAnswers(fields: Stripe.Checkout.Session.CustomFie
   return { name: value("brand").slice(0, 120), category, website };
 }
 
+export type BrandAnswers = { name: string; category: string; website: string | null };
+
+/** A website typed as "example.com" or a full link, kept only if it is http(s). */
+function websiteFrom(raw: string) {
+  const v = raw.trim();
+  if (!v) return null;
+  return safeHttpUrl(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+}
+
+/**
+ * Checks the short form shown before the Business checkout. The answers travel to Stripe as
+ * checkout metadata, so they are checked here rather than trusted from the payment page.
+ */
+export function businessCheckoutDetails(body: {
+  brandName?: unknown;
+  category?: unknown;
+  website?: unknown;
+}): { ok: true; value: BrandAnswers } | { ok: false; error: string } {
+  const name = typeof body.brandName === "string" ? body.brandName.trim().replace(/\s+/g, " ") : "";
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  const rawWebsite = typeof body.website === "string" ? body.website.trim().slice(0, 300) : "";
+  if (name.length < 2 || name.length > 120) {
+    return { ok: false, error: "Please enter your brand or business name." };
+  }
+  if (!(PARTNER_CATEGORIES as readonly string[]).includes(category)) {
+    return { ok: false, error: "Please choose the category closest to what you make or offer." };
+  }
+  const website = websiteFrom(rawWebsite);
+  if (rawWebsite && !website) {
+    return { ok: false, error: "Please check your website address, or leave it empty." };
+  }
+  return { ok: true, value: { name, category, website } };
+}
+
+/** Checkout metadata for a brand's answers. Stripe metadata values must stay under 500 characters. */
+export function brandMetadata(answers: BrandAnswers): Record<string, string> {
+  return {
+    brand: answers.name.slice(0, 120),
+    category: answers.category.slice(0, 60),
+    ...(answers.website ? { website: answers.website.slice(0, 300) } : {}),
+  };
+}
+
+/**
+ * The brand's answers from a completed checkout: from our own short form (metadata) when it
+ * was used, otherwise from the fields Stripe asked for. Null when neither has a name.
+ */
+export function checkoutBrandAnswers(
+  metadata: Record<string, string> | null | undefined,
+  fields: Stripe.Checkout.Session.CustomField[] | null | undefined
+): BrandAnswers | null {
+  const fromMeta = metadata?.brand ? businessCheckoutDetails({ brandName: metadata.brand, category: metadata.category, website: metadata.website ?? "" }) : null;
+  if (fromMeta?.ok) return fromMeta.value;
+  if (metadata?.brand) {
+    const category = (PARTNER_CATEGORIES as readonly string[]).includes(metadata.category ?? "") ? metadata.category! : "Something else";
+    return { name: metadata.brand.trim().slice(0, 120), category, website: websiteFrom(metadata.website ?? "") };
+  }
+  const answers = premiumCheckoutAnswers(fields);
+  return answers.name ? answers : null;
+}
+
+/** The billing address from a checkout, in the shape the CRM record uses. */
+export function checkoutAddress(address: Stripe.Address | null | undefined) {
+  if (!address) return null;
+  return {
+    line1: address.line1,
+    line2: address.line2,
+    city: address.city,
+    region: address.state,
+    postcode: address.postal_code,
+    country: address.country,
+  };
+}
+
 async function uniquePartnerSlug(tx: Prisma.TransactionClient, name: string) {
   const base = slugify(name).slice(0, 60) || "partner";
   for (let i = 1; i < 50; i++) {
@@ -176,6 +254,40 @@ export async function activatePremiumPartner(p: {
         published: true,
       },
     });
+  });
+}
+
+/**
+ * A brand paid for Business online: their partner page is made from the checkout answers and
+ * stays hidden until they finish setting it up and publish it. A page they already have is
+ * left exactly as it is, so a retried webhook or a returning customer never loses their work.
+ */
+export async function ensureBusinessPartner(p: { ownerEmail: string; name: string; category: string; website: string | null }) {
+  const name = p.name || p.ownerEmail.split("@")[0];
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.partner.findUnique({ where: { ownerEmail: p.ownerEmail } });
+    if (existing) return existing;
+    return tx.partner.create({
+      data: {
+        slug: await uniquePartnerSlug(tx, name),
+        name,
+        tier: "business",
+        category: p.category,
+        blurb: "",
+        website: p.website,
+        contactEmail: p.ownerEmail,
+        ownerEmail: p.ownerEmail,
+        published: false,
+      },
+    });
+  });
+}
+
+/** Business ended: a Business page comes down with the subscription. Premium pages are left to endPremiumPartner. */
+export async function endBusinessPartner(ownerEmail: string) {
+  return prisma.partner.updateMany({
+    where: { ownerEmail, tier: "business", published: true },
+    data: { published: false },
   });
 }
 

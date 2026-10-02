@@ -12,17 +12,29 @@ export type MemberPlanFilter = (typeof MEMBER_PLANS)[number] | "none" | "";
 export const MEMBER_STATUSES = ["active", "lapsed", "suspended", "banned", "staff"] as const;
 export type MemberStatusFilter = (typeof MEMBER_STATUSES)[number] | "";
 
-export type MemberFilters = { q: string; plan: MemberPlanFilter; status: MemberStatusFilter };
+export type MemberFilters = {
+  q: string;
+  plan: MemberPlanFilter;
+  status: MemberStatusFilter;
+  /** A CRM tag, lower case. Left out when not filtering. */
+  tag?: string;
+  /** The team member who looks after them, or "none". Left out when not filtering. */
+  owner?: string;
+};
 
 /** Read filters from search params, ignoring anything we don't recognise. */
 export function parseMemberFilters(sp: Record<string, string | string[] | undefined>): MemberFilters {
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v ?? "").trim();
   const plan = one(sp.plan);
   const status = one(sp.status);
+  const tag = one(sp.tag).toLowerCase().replace(/\s+/g, " ").slice(0, 40);
+  const owner = one(sp.owner);
   return {
     q: one(sp.q).slice(0, 120),
     plan: (MEMBER_PLANS as readonly string[]).includes(plan) || plan === "none" ? (plan as MemberPlanFilter) : "",
     status: (MEMBER_STATUSES as readonly string[]).includes(status) ? (status as MemberStatusFilter) : "",
+    tag: tag || undefined,
+    owner: /^[a-z0-9_-]{1,64}$/i.test(owner) ? owner : undefined,
   };
 }
 
@@ -32,6 +44,8 @@ export function memberFilterQuery(f: Partial<MemberFilters>, extra: Record<strin
   if (f.q) params.set("q", f.q);
   if (f.plan) params.set("plan", f.plan);
   if (f.status) params.set("status", f.status);
+  if (f.tag) params.set("tag", f.tag);
+  if (f.owner) params.set("owner", f.owner);
   for (const [k, v] of Object.entries(extra)) if (v) params.set(k, v);
   const s = params.toString();
   return s ? `?${s}` : "";
@@ -58,6 +72,10 @@ export function buildMemberWhere(f: MemberFilters, now: Date, systemEmail: strin
 
   if (f.plan === "none") and.push({ plan: null, compPlan: null });
   else if (f.plan) and.push({ OR: [{ plan: f.plan }, { compPlan: f.plan }] });
+
+  if (f.tag) and.push({ tags: { has: f.tag } });
+  if (f.owner === "none") and.push({ crmOwnerId: null });
+  else if (f.owner) and.push({ crmOwnerId: f.owner });
 
   switch (f.status) {
     case "active":

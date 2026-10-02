@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { Partner } from "@prisma/client";
+import { ImageUpload } from "@/components/forms/ImageUpload";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/studio/SubmitButton";
 import { Empty, Field, Notice, PageHeader, Section, Stat, Tag, TextLink, dateOnly, fieldClass, NoAccess } from "@/components/studio/ui";
 import { premiumBusiness } from "@/config/subscriptions";
 import { foundingPartnerPlacesLeft } from "@/lib/founding";
-import { PARTNER_CATEGORIES, partnerTierLabel, sortPartners } from "@/lib/partners";
+import { PARTNER_CATEGORIES, partnerLogoSrc, partnerTierLabel, sortPartners } from "@/lib/partners";
 import { studioPage } from "../_lib/guard";
 import { savePartnerAction } from "./actions";
 
@@ -26,8 +27,8 @@ export default async function StudioPartnersPage({
   const sp = await searchParams;
 
   const [partners, editing, foundingLeft, applications] = await Promise.all([
-    prisma.partner.findMany({ orderBy: { name: "asc" } }),
-    sp.edit ? prisma.partner.findUnique({ where: { id: sp.edit } }) : null,
+    prisma.partner.findMany({ orderBy: { name: "asc" }, include: { organisation: { select: { id: true } } } }),
+    sp.edit ? prisma.partner.findUnique({ where: { id: sp.edit }, include: { organisation: { select: { id: true } } } }) : null,
     foundingPartnerPlacesLeft(),
     prisma.draft.count({ where: { agent: "website", kind: "partner_enquiry", status: "draft" } }),
   ]);
@@ -100,6 +101,11 @@ export default async function StudioPartnersPage({
                     <Tag tone="warn">Not published</Tag>
                   )}
                   {p.ownerEmail && <Tag>Brand manages</Tag>}
+                  {p.organisation && (
+                    <Button asChild size="xs" variant="ghost">
+                      <Link href={`/studio/crm/${p.organisation.id}`}>Record</Link>
+                    </Button>
+                  )}
                   {p.published && (
                     <Button asChild size="xs" variant="ghost">
                       <Link href={`/partners/${p.slug}`} target="_blank">
@@ -125,7 +131,7 @@ export default async function StudioPartnersPage({
   );
 }
 
-function PartnerForm({ partner }: { partner: Partner | null }) {
+function PartnerForm({ partner }: { partner: (Partner & { organisation: { id: string } | null }) | null }) {
   const categories: string[] = [...PARTNER_CATEGORIES];
   if (partner && !categories.includes(partner.category)) categories.unshift(partner.category);
 
@@ -133,9 +139,14 @@ function PartnerForm({ partner }: { partner: Partner | null }) {
     <form action={savePartnerAction} className="space-y-5 rounded-3xl border border-rule bg-card p-5 sm:p-8">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-ink">{partner ? `Edit ${partner.name}` : "New partner"}</h2>
-        <Link href="/studio/partners" className="text-sm text-ink-2 underline underline-offset-4">
-          Cancel
-        </Link>
+        <div className="flex items-center gap-4">
+          {partner?.organisation && (
+            <TextLink href={`/studio/crm/${partner.organisation.id}`}>Open the business record</TextLink>
+          )}
+          <Link href="/studio/partners" className="text-sm text-ink-2 underline underline-offset-4">
+            Cancel
+          </Link>
+        </div>
       </div>
       {partner && <input type="hidden" name="id" value={partner.id} />}
 
@@ -170,8 +181,20 @@ function PartnerForm({ partner }: { partner: Partner | null }) {
         <textarea name="blurb" defaultValue={partner?.blurb} required rows={4} className={fieldClass} />
       </Field>
 
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-ink">Logo</p>
+        <ImageUpload
+          name="logoFile"
+          currentUrl={partnerLogoSrc(partner?.logoUrl)}
+          shape="wide"
+          label={partner?.logoUrl ? "Upload a new logo" : "Upload a logo"}
+          hint="A PNG, JPG or WebP up to 5MB, ideally on a transparent background. It is resized and stored for you. Logos the brand uploads appear here by themselves."
+          removeName="removeLogo"
+        />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Logo address" hint="A full link to a PNG or SVG, ideally on a transparent background. Logos the brand uploads appear here by themselves.">
+        <Field label="Logo address (instead of uploading)" hint="Only if the logo lives elsewhere: a full link to a PNG or SVG. An upload above takes priority.">
           <input type="text" name="logoUrl" defaultValue={partner?.logoUrl ?? ""} placeholder="https://…" className={fieldClass} />
         </Field>
         <Field label="Website">
