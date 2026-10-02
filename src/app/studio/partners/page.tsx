@@ -101,7 +101,14 @@ export default async function StudioPartnersPage({
                 <div className="flex items-center gap-2">
                   {p.isFounding && <Tag tone="ink">Founding</Tag>}
                   {p.perk ? <Tag>Perk</Tag> : <Tag tone="warn">No perk</Tag>}
-                  {p.published ? <Tag tone="positive">Published</Tag> : <Tag tone="warn">Not published</Tag>}
+                  {p.hidden ? (
+                    <Tag tone="warn">Paused</Tag>
+                  ) : p.published ? (
+                    <Tag tone="positive">Published</Tag>
+                  ) : (
+                    <Tag tone="warn">Not published</Tag>
+                  )}
+                  {p.ownerEmail && <Tag>Brand manages</Tag>}
                   {p.published && (
                     <Button asChild size="xs" variant="ghost">
                       <Link href={`/partners/${p.slug}`} target="_blank">
@@ -173,8 +180,8 @@ function PartnerForm({ partner }: { partner: Partner | null }) {
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Logo address" hint="A full link to a PNG or SVG, ideally on a transparent background.">
-          <input type="url" name="logoUrl" defaultValue={partner?.logoUrl ?? ""} placeholder="https://…" className={fieldClass} />
+        <Field label="Logo address" hint="A full link to a PNG or SVG, ideally on a transparent background. Logos the brand uploads appear here by themselves.">
+          <input type="text" name="logoUrl" defaultValue={partner?.logoUrl ?? ""} placeholder="https://…" className={fieldClass} />
         </Field>
         <Field label="Website">
           <input name="website" defaultValue={partner?.website ?? ""} placeholder="https://…" className={fieldClass} />
@@ -193,6 +200,24 @@ function PartnerForm({ partner }: { partner: Partner | null }) {
           <input type="date" name="featuredUntil" defaultValue={dateInput(partner?.featuredUntil)} className={fieldClass} />
         </Field>
       </div>
+
+      <Field
+        label="Managed by"
+        hint="The email the brand signs in with. They can then edit this page, upload a logo and give five of their team Professional from Your business in the member area. Premium partners managed this way also get Professional themselves."
+      >
+        <input type="email" name="ownerEmail" defaultValue={partner?.ownerEmail ?? ""} className={fieldClass} />
+      </Field>
+
+      <label className="flex items-start gap-3 rounded-2xl border border-rule p-4 text-sm">
+        <input type="checkbox" name="hidden" defaultChecked={partner?.hidden ?? false} className="mt-0.5 h-4 w-4 accent-ink" />
+        <span>
+          <span className="font-medium text-ink">Paused</span>
+          <span className="block text-muted-foreground">
+            Takes the page down and stops the brand republishing it from their portal, for example if a payment stops or
+            something breaks the guidelines.
+          </span>
+        </span>
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex items-start gap-3 rounded-2xl border border-rule p-4 text-sm">

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { images, img } from "@/content/images";
 import { premiumBusiness } from "@/config/subscriptions";
 import { foundingPartnerPlacesLeft } from "@/lib/founding";
-import { partnerTierLabel, publishedPartners, safeHttpUrl } from "@/lib/partners";
+import { partnerTierLabel, publishedPartners, partnerLogoSrc } from "@/lib/partners";
 import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -116,7 +116,7 @@ export default async function PartnersPage() {
           {partners.length ? (
             <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {partners.map((p) => {
-                const logo = safeHttpUrl(p.logoUrl);
+                const logo = partnerLogoSrc(p.logoUrl);
                 return (
                   <li key={p.id}>
                     <Link

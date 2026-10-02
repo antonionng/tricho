@@ -36,7 +36,9 @@ export default async function BillingPage() {
         <h2 className="display mt-4 text-4xl">{active ? (tier?.name ?? "Membership") : "Not a member yet"}</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
           {active
-            ? end
+            ? ctx.membership.via
+              ? `Your Professional membership is provided by ${ctx.membership.via}.`
+              : end
               ? `Your membership renews or ends on ${longDate(end)}.`
               : "Your membership is active."
             : `Membership starts at £${Math.min(...subscriptionTiers.map((t) => t.price))} a month. Founding members keep their price for life.`}

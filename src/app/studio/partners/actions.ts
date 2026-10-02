@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { partnerCapError } from "@/lib/partners";
+import { partnerCapError, partnerLogoSrc } from "@/lib/partners";
 import { studioAction } from "../_lib/guard";
 
 function s(form: FormData, key: string, max = 4000) {
@@ -68,11 +68,15 @@ export async function savePartnerAction(form: FormData) {
   if (!name || !category || blurb.length < 20) {
     fail("Please add a name, a category and a blurb of at least a sentence.");
   }
-  const logoUrl = cleanUrl(logoRaw);
+  // A logo the brand uploaded is served by us; keep that path as it is.
+  const logoUrl = logoRaw.startsWith("/api/partners/") ? partnerLogoSrc(logoRaw) : cleanUrl(logoRaw);
   if (logoRaw && !logoUrl) fail("Please check the logo address. It needs to be a full web address.");
   const website = cleanUrl(websiteRaw);
   if (websiteRaw && !website) fail("Please check the website address.");
   if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) fail("Please check the contact email.");
+  const ownerEmail = s(form, "ownerEmail", 160).toLowerCase();
+  if (ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) fail("Please check the Managed by email.");
+  const hidden = form.get("hidden") === "on";
   let featuredUntil: Date | null = null;
   if (featuredRaw) {
     featuredUntil = /^\d{4}-\d{2}-\d{2}$/.test(featuredRaw) ? new Date(`${featuredRaw}T23:59:59Z`) : null;
@@ -90,7 +94,9 @@ export async function savePartnerAction(form: FormData) {
     contactEmail: contactEmail || null,
     // Founding places only exist for Premium Business.
     isFounding: tier === "premium" && form.get("isFounding") === "on",
-    published: form.get("published") === "on",
+    published: form.get("published") === "on" && !hidden,
+    hidden,
+    ownerEmail: ownerEmail || null,
     featuredUntil,
   };
 
@@ -114,6 +120,9 @@ export async function savePartnerAction(form: FormData) {
     );
   } catch (e) {
     console.error("[STUDIO_PARTNER_SAVE]", e);
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return fail("That Managed by email already manages another partner page.");
+    }
     result = { error: "Something went wrong saving this partner, possibly because someone else saved at the same moment. Please try again." };
   }
   if ("error" in result) return fail(result.error);

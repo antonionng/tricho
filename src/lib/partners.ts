@@ -65,6 +65,16 @@ export function safeHttpUrl(value: string | null | undefined) {
   }
 }
 
+/** A partner's logo: one uploaded in the brand portal (served by us), or an http(s) link set in the Studio. */
+export function partnerLogoSrc(value: string | null | undefined) {
+  if (value && /^\/api\/partners\/[a-z0-9-]+\/logo(\?v=\d+)?$/.test(value)) return value;
+  return safeHttpUrl(value);
+}
+
+/** Logo uploads: raster images only (an SVG served from our own origin could carry script). */
+export const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+export const LOGO_MAX_BYTES = 1024 * 1024;
+
 /** A readable host for a website link, e.g. "example.com". */
 export function displayHost(value: string | null | undefined) {
   const safe = safeHttpUrl(value);

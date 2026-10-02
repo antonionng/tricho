@@ -5,7 +5,7 @@ import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { getMemberContext } from "@/lib/member";
-import { partnerTierLabel, publishedPartners, safeHttpUrl } from "@/lib/partners";
+import { partnerTierLabel, publishedPartners, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
 
 export const metadata = { title: "Member perks" };
 
@@ -39,7 +39,7 @@ export default async function PerksPage() {
       ) : (
         <ul className="grid gap-4 md:grid-cols-2">
           {partners.map((p) => {
-            const logo = safeHttpUrl(p.logoUrl);
+            const logo = partnerLogoSrc(p.logoUrl);
             const website = safeHttpUrl(p.website);
             return (
               <li key={p.id} className="flex flex-col gap-4 rounded-2xl border border-rule bg-card p-5 sm:p-6">
