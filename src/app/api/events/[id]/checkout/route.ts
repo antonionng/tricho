@@ -170,6 +170,8 @@ export async function POST(req: Request, { params }: Params) {
             price_data: {
               currency: "gbp",
               unit_amount: price.amountPence,
+              // Event prices include VAT, like the membership prices.
+              tax_behavior: "inclusive",
               product_data: {
                 name: ticketLineName(event),
                 description: price.priceType === "member" ? "Member ticket" : "Guest ticket",
