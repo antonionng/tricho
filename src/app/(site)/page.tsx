@@ -26,7 +26,7 @@ import { ProductPreview } from "@/components/site/ProductPreview";
 import { FaqList } from "@/components/site/FaqList";
 import { DirectorySearch } from "@/components/site/DirectorySearch";
 import { images, img } from "@/content/images";
-import { editions } from "@/content/gazette";
+import { getEditions } from "@/content/gazette/loader";
 import { Cover } from "@/components/gazette/Cover";
 import { PartnerStrip } from "@/components/site/PartnerStrip";
 import { ParallaxImage } from "@/components/gazette/Parallax";
@@ -59,7 +59,7 @@ const pillars = [
 ];
 
 export default async function HomePage() {
-  const stats = await getPublicStats();
+  const [stats, editions] = await Promise.all([getPublicStats(), getEditions()]);
   const freeOffer = freeListingOfferLive();
   const proof = [
     stats.members >= STAT_THRESHOLDS.members && { value: stats.members, label: "members" },

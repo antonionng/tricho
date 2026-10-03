@@ -103,6 +103,33 @@ export default function TermsPage() {
       ),
     },
     {
+      id: "referral-rewards",
+      heading: "Referral rewards",
+      body: (
+        <>
+          <p>
+            Every account has a personal invitation code. A colleague who joins with your code pays half
+            price for their first month, and once their first payment has cleared you receive one month
+            of your own membership free, at the monthly price you pay.
+          </p>
+          <p>
+            Rewards are given as credit on your {site.name} bill and are never paid out as cash. If you
+            are not yet a paying member, your reward is kept for you and applied automatically when you
+            start paying.
+          </p>
+          <p>
+            You cannot refer yourself, another account of your own or anyone using your payment details.
+            Each new paying member earns one reward, for the person whose code they used when they first
+            joined.
+          </p>
+          <p>
+            We may withdraw a reward, including credit already applied, if a membership is refunded or
+            if we reasonably believe a code has been misused.
+          </p>
+        </>
+      ),
+    },
+    {
       id: "founding-listing",
       heading: "The free founding listing",
       body: (

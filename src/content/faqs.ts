@@ -46,7 +46,7 @@ export const pricingFaqs: Faq[] = [
   },
   {
     q: "How does verification work?",
-    a: "Professional members can upload proof of training or registration. We check it by hand and add a verified badge to your directory profile, so the public can see you have been checked. Trichology is not statutorily regulated in Ireland or the UK, so we look for recognised training and membership of a professional body.",
+    a: "Professional and Business members, and practitioners with a free directory listing, can upload proof of training, registration or membership of a professional body from their profile. The team checks each document by hand and adds a verified badge to your directory profile, so clients can see you have been checked. Your documents stay private and are never shown publicly. Trichology is not statutorily regulated in Ireland or the UK, so we look for recognised training and membership of a professional body.",
   },
   {
     q: "Is there a contract?",

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Check } from "lucide-react";
 import { sendEnquiry, type EnquiryState } from "@/lib/actions/enquiry-public";
 import { Button } from "@/components/ui/button";
+import { shortName } from "@/lib/names";
 
 export function EnquiryForm({ listingId, name }: { listingId: string; name: string }) {
   const [state, action, pending] = useActionState<EnquiryState, FormData>(sendEnquiry, null);
@@ -30,7 +31,7 @@ export function EnquiryForm({ listingId, name }: { listingId: string; name: stri
         <input name="email" type="email" required autoComplete="email" className={`${field} h-11`} />
       </label>
       <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">How can {name.split(" ")[0]} help?</span>
+        <span className="text-sm font-medium">How can {shortName(name, "they")} help?</span>
         <textarea
           name="message"
           required

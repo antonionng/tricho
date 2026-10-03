@@ -2,15 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { EventKind, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { getAgent } from "@/agents";
 import { publishDraft, payloadOf } from "@/agents/publish";
 import { releaseDraftRef, runAgent } from "@/agents/runtime";
-import { studioAction } from "./_lib/guard";
+import { announceEpisode, episodeIdFromRef, PODCAST_AGENT } from "@/agents/podcast";
+import { audit, requirePermission } from "@/lib/staff";
+import { canApproveDraft } from "@/config/staff";
 import { deliver } from "@/lib/mail/send";
-import { listingApprovedEmail, listingNotApprovedEmail, studioAccessEmail } from "@/lib/mail/templates/directory";
+import { listingApprovedEmail, listingNotApprovedEmail } from "@/lib/mail/templates/directory";
+import { validateEventInput } from "@/lib/event-input";
 
 function s(form: FormData, key: string, max = 20000) {
   return String(form.get(key) ?? "").trim().slice(0, max);
@@ -24,7 +27,7 @@ function withParams(path: string, params: Record<string, string | undefined>) {
 
 /** Keep the inbox filters when moving around. */
 function inboxUrl(form: FormData, params: Record<string, string | undefined>) {
-  return withParams("/studio", {
+  return withParams("/studio/inbox", {
     status: s(form, "f_status", 20) || undefined,
     agent: s(form, "f_agent", 40) || undefined,
     ...params,
@@ -35,11 +38,20 @@ function inboxUrl(form: FormData, params: Record<string, string | undefined>) {
 /* Inbox                                                                */
 /* ------------------------------------------------------------------ */
 
+/** Anyone with the inbox can read drafts; deciding on one depends on its kind. */
+async function requireDraftDecision(id: string) {
+  const staff = await requirePermission("inbox.view");
+  const draft = await prisma.draft.findUnique({ where: { id }, select: { kind: true, payload: true, title: true } });
+  if (draft && !canApproveDraft(staff.role, draft.kind, draft.payload)) {
+    throw new Error("Your role does not include approving this kind of draft.");
+  }
+  return { staff, draft };
+}
+
 export async function approveDraftAction(form: FormData) {
-  await studioAction();
   const id = s(form, "id", 64);
   const nextId = s(form, "nextId", 64) || undefined;
-  const draft = await prisma.draft.findUnique({ where: { id }, select: { kind: true } });
+  const { staff, draft } = await requireDraftDecision(id);
   if (!draft) redirect(inboxUrl(form, { notice: "That draft no longer exists." }));
 
   if ((draft.kind === "newsletter" || draft.kind === "announcement") && s(form, "confirm", 8) !== "yes") {
@@ -54,14 +66,21 @@ export async function approveDraftAction(form: FormData) {
     failed = true;
     message = `Couldn't publish: ${error instanceof Error ? error.message : String(error)}`;
   }
+  await audit(staff, {
+    action: failed ? "draft.publish_failed" : "draft.publish",
+    targetType: "draft",
+    targetId: id,
+    summary: `${failed ? "Tried to publish" : "Approved"} "${draft.title}". ${message}`,
+    after: { kind: draft.kind },
+  });
   revalidatePath("/studio", "layout");
   revalidatePath("/members", "layout");
   redirect(inboxUrl(form, { id: failed ? id : nextId ?? id, notice: message, tone: failed ? "danger" : undefined }));
 }
 
 export async function saveDraftAction(form: FormData) {
-  await studioAction();
   const id = s(form, "id", 64);
+  const { staff } = await requireDraftDecision(id);
   const title = s(form, "title", 200);
   const body = s(form, "body");
   if (!title || !body) redirect(inboxUrl(form, { id, notice: "Title and text can't be empty.", tone: "danger" }));
@@ -83,35 +102,54 @@ export async function saveDraftAction(form: FormData) {
     where: { id },
     data: { title, body, payload: next as Prisma.InputJsonObject },
   });
-  revalidatePath("/studio");
+  await audit(staff, {
+    action: "draft.edit",
+    targetType: "draft",
+    targetId: id,
+    summary: `Edited the wording of "${title}".`,
+    before: { title: draft.title, body: draft.body },
+    after: { title, body },
+  });
+  revalidatePath("/studio/inbox");
   redirect(inboxUrl(form, { id, notice: "Saved your changes." }));
 }
 
 export async function rejectDraftAction(form: FormData) {
-  await studioAction();
   const id = s(form, "id", 64);
+  const { staff, draft: existing } = await requireDraftDecision(id);
   const note = s(form, "note", 2000);
   const nextId = s(form, "nextId", 64) || undefined;
   await prisma.draft.update({
     where: { id },
     data: { status: "rejected", reviewerNote: note || null, reviewedAt: new Date() },
   });
+  await audit(staff, {
+    action: "draft.reject",
+    targetType: "draft",
+    targetId: id,
+    summary: `Rejected "${existing?.title ?? id}"${note ? ` with the note: ${note}` : "."}`,
+  });
   revalidatePath("/studio", "layout");
   redirect(inboxUrl(form, { id: nextId ?? id, notice: "Rejected. The agent won't draft that one again." }));
 }
 
 export async function regenerateDraftAction(form: FormData) {
-  await studioAction();
   const id = s(form, "id", 64);
+  const { staff } = await requireDraftDecision(id);
   const draft = await prisma.draft.findUnique({ where: { id } });
-  if (!draft || !getAgent(draft.agent)) redirect(inboxUrl(form, { id, notice: "This one can't be regenerated.", tone: "danger" }));
+  // Podcast drafts aren't from a scheduled agent: they are drafted again from their episode.
+  const episodeId = draft?.agent === PODCAST_AGENT ? episodeIdFromRef(payloadOf(draft).ref) : null;
+  if (!draft || (!getAgent(draft.agent) && !episodeId)) redirect(inboxUrl(form, { id, notice: "This one can't be regenerated.", tone: "danger" }));
 
   await prisma.draft.update({
     where: { id },
     data: { status: "rejected", reviewerNote: draft.reviewerNote || "Replaced with a fresh draft.", reviewedAt: new Date() },
   });
   const ref = await releaseDraftRef(id);
-  const outcome = await runAgent(draft.agent, "regenerate");
+  const outcome = episodeId
+    ? await announceEpisode(episodeId).then(() => ({ status: "succeeded" as const, summary: "", error: undefined }))
+    : await runAgent(draft.agent, "regenerate");
+  await audit(staff, { action: "draft.regenerate", targetType: "draft", targetId: id, summary: `Asked for a fresh version of "${draft.title}".` });
   const fresh =
     ref
       ? await prisma.draft.findFirst({
@@ -142,9 +180,10 @@ export async function regenerateDraftAction(form: FormData) {
 /* ------------------------------------------------------------------ */
 
 export async function runAgentNowAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("agents.manage");
   const id = s(form, "agent", 40);
   const outcome = await runAgent(id, "manual");
+  await audit(staff, { action: "agent.run", targetType: "agent", targetId: id, summary: `Ran the ${id} agent by hand.` });
   revalidatePath("/studio", "layout");
   redirect(
     withParams("/studio/agents", {
@@ -155,16 +194,22 @@ export async function runAgentNowAction(form: FormData) {
 }
 
 export async function setAgentEnabledAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("agents.manage");
   const agent = s(form, "agent", 40);
   if (!getAgent(agent)) return;
   const enabled = s(form, "enabled", 8) === "true";
   await prisma.agentSetting.upsert({ where: { agent }, update: { enabled }, create: { agent, enabled } });
+  await audit(staff, {
+    action: enabled ? "agent.enable" : "agent.disable",
+    targetType: "agent",
+    targetId: agent,
+    summary: `${enabled ? "Switched on" : "Switched off"} the ${agent} agent.`,
+  });
   revalidatePath("/studio/agents");
 }
 
 export async function setAgentAutonomyAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("agents.manage");
   const agent = getAgent(s(form, "agent", 40));
   if (!agent) return;
   const wanted = s(form, "autonomy", 8) === "auto" ? "auto" : "ask";
@@ -175,26 +220,14 @@ export async function setAgentAutonomyAction(form: FormData) {
     update: { autonomy },
     create: { agent: agent.id, autonomy },
   });
+  await audit(staff, {
+    action: "agent.autonomy",
+    targetType: "agent",
+    targetId: agent.id,
+    summary: autonomy === "auto" ? `Let the ${agent.id} agent publish on its own.` : `The ${agent.id} agent now asks before publishing.`,
+    after: { autonomy },
+  });
   revalidatePath("/studio/agents");
-}
-
-/* ------------------------------------------------------------------ */
-/* Members                                                              */
-/* ------------------------------------------------------------------ */
-
-export async function makeAdminAction(form: FormData) {
-  await studioAction();
-  const id = s(form, "id", 64);
-  const q = s(form, "q", 100) || undefined;
-  if (s(form, "confirm", 8) !== "yes") redirect(withParams("/studio/members", { q, confirm: id }));
-  const before = await prisma.user.findUnique({ where: { id }, select: { role: true } });
-  const user = await prisma.user.update({ where: { id }, data: { role: "admin" }, select: { name: true, email: true } });
-  if (before && before.role !== "admin" && user.email) {
-    const { subject, content } = studioAccessEmail(user);
-    await deliver(user.email, subject, content, { tag: "studio-access" });
-  }
-  revalidatePath("/studio/members");
-  redirect(withParams("/studio/members", { q, notice: `${user.name ?? user.email} now has Studio access.` }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -203,7 +236,7 @@ export async function makeAdminAction(form: FormData) {
 
 /** The old admin review queue, ported: approving starts the free listing period. */
 export async function reviewListingAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("listings.review");
   const id = s(form, "id", 64);
   const decision = s(form, "decision", 16);
   if (!id || (decision !== "approve" && decision !== "reject")) return;
@@ -227,16 +260,30 @@ export async function reviewListingAction(form: FormData) {
           : null;
     if (email) await deliver(listing.email, email.subject, email.content, { tag: `listing-${decision}` });
   }
+  await audit(staff, {
+    action: `listing.${decision}`,
+    targetType: "listing",
+    targetId: id,
+    summary: `${decision === "approve" ? "Approved" : "Turned down"} the listing for ${listing.name}.`,
+    before: { status: before?.status },
+    after: { status: listing.status },
+  });
   revalidatePath("/studio/listings");
   revalidatePath("/directory", "layout");
 }
 
 export async function toggleVerifiedAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("listings.review");
   const id = s(form, "id", 64);
-  const listing = await prisma.directoryListing.findUnique({ where: { id }, select: { isVerified: true } });
+  const listing = await prisma.directoryListing.findUnique({ where: { id }, select: { isVerified: true, name: true } });
   if (!listing) return;
   await prisma.directoryListing.update({ where: { id }, data: { isVerified: !listing.isVerified } });
+  await audit(staff, {
+    action: listing.isVerified ? "listing.unverify" : "listing.verify",
+    targetType: "listing",
+    targetId: id,
+    summary: `${listing.isVerified ? "Removed the verified mark from" : "Verified"} ${listing.name}.`,
+  });
   revalidatePath("/studio/listings");
   revalidatePath("/directory", "layout");
 }
@@ -246,28 +293,49 @@ export async function toggleVerifiedAction(form: FormData) {
 /* ------------------------------------------------------------------ */
 
 export async function resolveReportAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("community.moderate");
   const id = s(form, "id", 64);
-  await prisma.report.update({ where: { id }, data: { resolvedAt: new Date() } });
+  await prisma.report.update({
+    where: { id },
+    data: { resolvedAt: new Date(), resolution: "dismissed", resolvedById: staff.userId },
+  });
+  await audit(staff, { action: "report.dismiss", targetType: "report", targetId: id, summary: "Dismissed a report." });
   revalidatePath("/studio/community");
 }
 
 export async function deletePostAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("community.moderate");
   const postId = s(form, "postId", 64);
   if (s(form, "confirm", 8) !== "yes") redirect(withParams("/studio/community", { confirmDelete: postId }));
-  await prisma.communityPost.delete({ where: { id: postId } }).catch(() => null);
+  const removed = await prisma.communityPost
+    .delete({ where: { id: postId }, select: { title: true, content: true, authorId: true } })
+    .catch(() => null);
+  if (removed) {
+    await audit(staff, {
+      action: "post.remove",
+      targetType: "post",
+      targetId: postId,
+      summary: `Removed the post "${removed.title ?? removed.content.slice(0, 60)}".`,
+      before: removed,
+    });
+  }
   revalidatePath("/studio/community");
   revalidatePath("/members", "layout");
   redirect(withParams("/studio/community", { notice: "Post removed." }));
 }
 
 export async function togglePinAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("community.moderate");
   const postId = s(form, "postId", 64);
-  const post = await prisma.communityPost.findUnique({ where: { id: postId }, select: { pinned: true } });
+  const post = await prisma.communityPost.findUnique({ where: { id: postId }, select: { pinned: true, title: true } });
   if (!post) return;
   await prisma.communityPost.update({ where: { id: postId }, data: { pinned: !post.pinned } });
+  await audit(staff, {
+    action: post.pinned ? "post.unpin" : "post.pin",
+    targetType: "post",
+    targetId: postId,
+    summary: `${post.pinned ? "Unpinned" : "Pinned"} "${post.title ?? "a post"}".`,
+  });
   revalidatePath("/studio/community");
   revalidatePath("/members", "layout");
 }
@@ -275,8 +343,6 @@ export async function togglePinAction(form: FormData) {
 /* ------------------------------------------------------------------ */
 /* Events                                                               */
 /* ------------------------------------------------------------------ */
-
-const EVENT_KINDS: EventKind[] = ["gathering", "masterclass", "case_round", "chapter_meetup", "welcome"];
 
 function slugify(value: string) {
   return value
@@ -299,73 +365,47 @@ async function uniqueEventSlug(title: string) {
   return `${base}-${Date.now().toString(36)}`;
 }
 
-/** datetime-local values are London wall-clock time. */
-function londonToDate(value: string): Date | null {
-  if (!value) return null;
-  const guess = new Date(`${value}:00Z`);
-  if (Number.isNaN(guess.getTime())) return null;
-  const inLondon = new Date(guess.toLocaleString("en-US", { timeZone: "Europe/London" }));
-  const inUtc = new Date(guess.toLocaleString("en-US", { timeZone: "UTC" }));
-  return new Date(guess.getTime() - (inLondon.getTime() - inUtc.getTime()));
-}
-
-function cleanUrl(value: string) {
-  if (!value) return null;
-  const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`;
-  try {
-    return new URL(withScheme).toString();
-  } catch {
-    return null;
-  }
-}
-
-function pounds(value: string) {
-  const n = Math.round(Number(value || 0));
-  return Number.isFinite(n) && n >= 0 ? n : 0;
-}
+const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "priceGBP", "memberPriceGBP", "capacity", "ticketUrl", "published", "sellTickets"] as const;
 
 export async function saveEventAction(form: FormData) {
-  await studioAction();
+  const staff = await requirePermission("events.edit");
   const id = s(form, "id", 64) || undefined;
-  const title = s(form, "title", 160);
-  const kind = s(form, "kind", 32) as EventKind;
-  const summary = s(form, "summary", 400);
-  const startsAt = londonToDate(s(form, "startsAt", 32));
-  const endsAt = londonToDate(s(form, "endsAt", 32));
-  const back = id ? { edit: id } : { new: "1" };
+  const prefillId = s(form, "prefillId", 64) || undefined;
+  const back = id ? { edit: id, prefill: prefillId } : { new: "1", prefill: prefillId };
 
-  if (!title || !summary || !startsAt || !EVENT_KINDS.includes(kind)) {
+  const raw: Record<string, string | undefined> = {};
+  for (const key of EVENT_FIELDS) {
+    const v = form.get(key);
+    raw[key] = typeof v === "string" ? v : undefined;
+  }
+  const checked = validateEventInput(raw);
+  if (!checked.ok) {
     redirect(withParams("/studio/events", { ...back, notice: "Please add a title, a type, a short summary and a start time.", tone: "danger" }));
   }
-
-  const online = form.get("online") === "on";
-  const capacityRaw = s(form, "capacity", 8);
-  const data = {
-    title,
-    kind,
-    summary,
-    body: s(form, "body") || null,
-    startsAt,
-    endsAt,
-    online,
-    city: online ? null : s(form, "city", 80) || null,
-    venue: online ? null : s(form, "venue", 160) || null,
-    priceGBP: pounds(s(form, "priceGBP", 8)),
-    memberPriceGBP: pounds(s(form, "memberPriceGBP", 8)),
-    capacity: capacityRaw ? Math.max(0, Math.round(Number(capacityRaw))) || null : null,
-    ticketUrl: cleanUrl(s(form, "ticketUrl", 500)),
-    published: form.get("published") === "on",
-  };
+  const data = checked.data;
+  const title = data.title;
 
   let eventId: string;
   let newlyPublished = data.published;
   if (id) {
-    const before = await prisma.event.findUnique({ where: { id }, select: { published: true } });
+    const before = await prisma.event.findUnique({ where: { id } });
     newlyPublished = data.published && !before?.published;
     // The slug stays as it was, so links already shared keep working.
     eventId = (await prisma.event.update({ where: { id }, data, select: { id: true } })).id;
+    await audit(staff, { action: "event.edit", targetType: "event", targetId: eventId, summary: `Updated the event "${title}".`, before, after: data });
   } else {
     eventId = (await prisma.event.create({ data: { ...data, slug: await uniqueEventSlug(title) }, select: { id: true } })).id;
+    await audit(staff, { action: "event.create", targetType: "event", targetId: eventId, summary: `Created the event "${title}".`, after: data });
+  }
+
+  // The event was drafted from a description: that prefill has now done its job.
+  if (prefillId) {
+    await prisma.draft
+      .updateMany({
+        where: { id: prefillId, kind: "event_prefill", status: "draft" },
+        data: { status: "approved", reviewedAt: new Date() },
+      })
+      .catch(() => null);
   }
 
   // A newly published event gets its announcement drafted straight away, for Karley to approve in the inbox.

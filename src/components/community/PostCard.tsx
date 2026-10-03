@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { MessageCircle, Pin } from "lucide-react";
-import { professionById, roomById } from "@/config/rooms";
+import { professionById } from "@/config/rooms";
 import type { FeedPost } from "@/lib/community";
 import { Avatar } from "@/components/members/Avatar";
 import { timeAgo } from "@/components/members/format";
 import { UsefulButton } from "./UsefulButton";
 
 export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace?: boolean }) {
-  const room = roomById(post.space);
   const discipline = post.author.profession ? professionById(post.author.profession)?.label : null;
   const href = `/members/community/${post.id}`;
 
@@ -25,7 +24,7 @@ export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace
             {post.author.isFounding && <span className="text-[11px] text-muted-foreground">Founding member</span>}
           </p>
           <p className="mt-1 truncate text-[13px] text-muted-foreground">
-            {[discipline, showSpace && room?.label, post.chapter?.city, timeAgo(post.createdAt)].filter(Boolean).join(" · ")}
+            {[discipline, showSpace && post.spaceLabel, post.chapter?.city, timeAgo(post.createdAt)].filter(Boolean).join(" · ")}
           </p>
         </div>
         {post.pinned && (

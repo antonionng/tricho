@@ -65,7 +65,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
         <div className="flex min-w-0 flex-col gap-4">
-          {isMine && <Composer rooms={postableRooms(ctx)} chapter={{ city: chapter.city }} chapterDefault collapsed />}
+          {isMine && <Composer rooms={await postableRooms(ctx)} chapter={{ city: chapter.city }} chapterDefault collapsed />}
           <SectionLabel className="mt-2">From {chapter.city}</SectionLabel>
           {posts.length === 0 ? (
             <EmptyState

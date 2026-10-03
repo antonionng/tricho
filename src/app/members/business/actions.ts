@@ -7,18 +7,38 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/directory";
 import { BUSINESS_SEATS, isBusinessAccount } from "@/lib/subscription";
-import { LOGO_MAX_BYTES, LOGO_TYPES, PARTNER_CATEGORIES, partnerCapError } from "@/lib/partners";
+import { PARTNER_CATEGORIES, partnerCapError } from "@/lib/partners";
+import { isOrganisationKind, ORGANISATION_SIZES } from "@/lib/crm-intake";
+import { isSetupStep, readyToPublish, SOCIAL_NETWORKS, socialUrl, stepAfter, type SetupStepId } from "@/lib/business-profile";
+import { applyLogoFromForm, ensureOrganisation } from "./_data";
 import { deliver } from "@/lib/mail/send";
 import { seatInviteEmail } from "@/lib/mail/templates/members";
 
 const PAGE = "/members/business";
+const SETUP = "/members/business/setup";
 
 function s(form: FormData, key: string, max = 4000) {
   return String(form.get(key) ?? "").trim().slice(0, max);
 }
 
-function back(params: Record<string, string>): never {
-  redirect(`${PAGE}?${new URLSearchParams(params)}`);
+function back(params: Record<string, string>, path: string = PAGE): never {
+  redirect(`${path}?${new URLSearchParams(params)}`);
+}
+
+function setupBack(step: SetupStepId, params: Record<string, string> = {}): never {
+  back({ step, ...params }, SETUP);
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE = /^[+()\d\s.-]{6,40}$/;
+
+/** The email and phone shown on the public partner page. Both optional; an error key when one is malformed. */
+function publicContact(form: FormData): { error: string } | { publicEmail: string | null; publicPhone: string | null } {
+  const publicEmail = s(form, "publicEmail", 160).toLowerCase();
+  const publicPhone = s(form, "publicPhone", 40);
+  if (publicEmail && !EMAIL.test(publicEmail)) return { error: "public-email" };
+  if (publicPhone && !PHONE.test(publicPhone)) return { error: "public-phone" };
+  return { publicEmail: publicEmail || null, publicPhone: publicPhone || null };
 }
 
 /** Only http(s) links are stored, so nothing else can reach an href. */
@@ -33,16 +53,6 @@ function cleanUrl(value: string) {
   }
 }
 
-/** Checks the file really is the image type it claims, from its first bytes. */
-function sniffImage(bytes: Uint8Array): (typeof LOGO_TYPES)[number] | null {
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
-  const riff = String.fromCharCode(...bytes.slice(0, 4));
-  const webp = String.fromCharCode(...bytes.slice(8, 12));
-  if (riff === "RIFF" && webp === "WEBP") return "image/webp";
-  return null;
-}
-
 /** The signed-in business account holder, or a redirect. */
 async function requireBusiness() {
   const session = await auth();
@@ -50,7 +60,7 @@ async function requireBusiness() {
   if (!email) redirect(`/login?next=${PAGE}`);
   const page = await prisma.partner.findUnique({ where: { ownerEmail: email } });
   if (!page && !(await isBusinessAccount(email))) back({ error: "plan" });
-  return { email, page, name: session?.user?.name ?? null };
+  return { email, page, name: session?.user?.name ?? null, userId: session?.user?.id ?? null };
 }
 
 async function uniqueSlug(tx: Prisma.TransactionClient, name: string) {
@@ -64,7 +74,7 @@ async function uniqueSlug(tx: Prisma.TransactionClient, name: string) {
 
 /** Saves the business page. It goes live as soon as it is saved, unless the Studio has taken it down. */
 export async function saveBusinessPage(form: FormData) {
-  const { email, page } = await requireBusiness();
+  const { email, page, userId } = await requireBusiness();
 
   const name = s(form, "name", 120);
   const category = s(form, "category", 60);
@@ -80,17 +90,8 @@ export async function saveBusinessPage(form: FormData) {
   const website = cleanUrl(websiteRaw);
   if (websiteRaw && !website) back({ error: "website" });
   if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) back({ error: "contact" });
-
-  let logo: { data: Uint8Array<ArrayBuffer>; contentType: string } | null = null;
-  const file = form.get("logo");
-  if (file instanceof File && file.size > 0) {
-    if (file.size > LOGO_MAX_BYTES) back({ error: "logo-size" });
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const contentType = sniffImage(bytes);
-    if (!contentType) back({ error: "logo-type" });
-    logo = { data: bytes, contentType };
-  }
-  const removeLogo = form.get("removeLogo") === "on";
+  const pub = publicContact(form);
+  if ("error" in pub) back({ error: pub.error });
 
   const data = {
     name,
@@ -98,8 +99,12 @@ export async function saveBusinessPage(form: FormData) {
     blurb,
     website,
     contactEmail: contactEmail || null,
+    publicEmail: pub.publicEmail,
+    publicPhone: pub.publicPhone,
     perk,
-    published: show && !page?.hidden,
+    // A page goes live only while the plan is active (or it is already live), so a page taken
+    // down when a subscription ended can't simply be republished.
+    published: show && !page?.hidden && (!!page?.published || (await isBusinessAccount(email))),
   };
 
   let result: { error: string } | { slug: string };
@@ -118,20 +123,6 @@ export async function saveBusinessPage(form: FormData) {
               select: { id: true, slug: true },
             });
 
-        if (logo) {
-          await tx.partnerLogo.upsert({
-            where: { partnerId: saved.id },
-            create: { partnerId: saved.id, ...logo },
-            update: logo,
-          });
-          await tx.partner.update({
-            where: { id: saved.id },
-            data: { logoUrl: `/api/partners/${saved.slug}/logo?v=${Date.now()}` },
-          });
-        } else if (removeLogo) {
-          await tx.partnerLogo.deleteMany({ where: { partnerId: saved.id } });
-          await tx.partner.update({ where: { id: saved.id }, data: { logoUrl: null } });
-        }
         return { slug: saved.slug };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
@@ -142,6 +133,16 @@ export async function saveBusinessPage(form: FormData) {
   }
   if ("error" in result) back({ error: "cap", message: result.error });
 
+  // The logo and the CRM record are updated once the page itself is safely saved.
+  const saved = await prisma.partner.findUniqueOrThrow({ where: { ownerEmail: email } });
+  const org = await ensureOrganisation(saved, email);
+  await prisma.organisation.update({
+    where: { id: org.id },
+    data: { name, category, website, description: blurb, ...(contactEmail ? { email: contactEmail } : {}) },
+  });
+  const logo = await applyLogoFromForm(form, saved, org.id, userId);
+  if (!logo.ok) back({ error: "logo", message: logo.message });
+
   revalidatePath(PAGE);
   revalidatePath("/partners", "layout");
   revalidatePath(`/partners/${result.slug}`);
@@ -151,26 +152,36 @@ export async function saveBusinessPage(form: FormData) {
 }
 
 /** Gives a team member one of the business's Professional seats and emails them. */
+/** Seat forms appear on the portal page and in setup; they return to wherever they were sent from. */
+function seatReturn(form: FormData) {
+  return form.get("returnTo") === "setup" ? `${SETUP}` : PAGE;
+}
+function seatBack(form: FormData, params: Record<string, string>): never {
+  const path = seatReturn(form);
+  back(path === SETUP ? { step: "team", ...params } : params, path);
+}
+
 export async function addSeat(form: FormData) {
   const { email: ownerEmail, page } = await requireBusiness();
   const email = s(form, "email", 160).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back({ error: "seat-email" });
-  if (email === ownerEmail) back({ error: "seat-self" });
+  if (!EMAIL.test(email)) seatBack(form, { error: "seat-email" });
+  if (email === ownerEmail) seatBack(form, { error: "seat-self" });
 
   const used = await prisma.businessSeat.count({ where: { ownerEmail } });
-  if (used >= BUSINESS_SEATS) back({ error: "seat-full" });
+  if (used >= BUSINESS_SEATS) seatBack(form, { error: "seat-full" });
 
   try {
     await prisma.businessSeat.create({ data: { ownerEmail, email } });
   } catch {
-    back({ error: "seat-exists" });
+    seatBack(form, { error: "seat-exists" });
   }
 
   const invite = seatInviteEmail({ businessName: page?.name ?? ownerEmail, email });
   await deliver(email, invite.subject, invite.content, { tag: "business-seat" });
 
   revalidatePath(PAGE);
-  back({ saved: "seat" });
+  revalidatePath(SETUP);
+  seatBack(form, { saved: "seat" });
 }
 
 export async function removeSeat(form: FormData) {
@@ -178,5 +189,146 @@ export async function removeSeat(form: FormData) {
   const id = s(form, "id", 64);
   await prisma.businessSeat.deleteMany({ where: { id, ownerEmail } });
   revalidatePath(PAGE);
-  back({ saved: "seat-removed" });
+  revalidatePath(SETUP);
+  seatBack(form, { saved: "seat-removed" });
+}
+
+function revalidateBusiness(slug?: string) {
+  revalidatePath(PAGE);
+  revalidatePath(SETUP);
+  revalidatePath("/partners", "layout");
+  if (slug) revalidatePath(`/partners/${slug}`);
+  revalidatePath("/members/perks");
+  revalidatePath("/studio/partners");
+}
+
+/**
+ * Saves one step of the guided setup to the partner page and the CRM record, then moves on to the
+ * next step. Nothing is published here; the last step does that.
+ */
+export async function saveSetupStep(form: FormData) {
+  const { email, page, userId } = await requireBusiness();
+  const stepRaw = s(form, "step", 20);
+  if (!isSetupStep(stepRaw)) setupBack("details");
+  const step: SetupStepId = stepRaw;
+  const fail = (error: string, message?: string): never => setupBack(step, message ? { error, message } : { error });
+  const done = (): never => {
+    revalidateBusiness(page?.slug);
+    setupBack(stepAfter(step), { saved: step });
+  };
+
+  if (step === "details") {
+    const name = s(form, "name", 120);
+    const kindRaw = s(form, "kind", 20);
+    const category = s(form, "category", 60);
+    const blurb = s(form, "blurb", 4000);
+    const websiteRaw = s(form, "website", 500);
+    if (name.length < 2) fail("name");
+    if (!(PARTNER_CATEGORIES as readonly string[]).includes(category)) fail("category");
+    if (blurb.length < 20) fail("blurb");
+    const website = cleanUrl(websiteRaw);
+    if (websiteRaw && !website) fail("website");
+    const kind = isOrganisationKind(kindRaw) ? kindRaw : "brand";
+
+    let saved = page;
+    try {
+      saved = page
+        ? await prisma.partner.update({ where: { id: page.id }, data: { name, category, blurb, website } })
+        : await prisma.$transaction(async (tx) =>
+            tx.partner.create({
+              data: { name, category, blurb, website, tier: "business", published: false, ownerEmail: email, contactEmail: email, slug: await uniqueSlug(tx, name) },
+            })
+          );
+    } catch (e) {
+      console.error("[BUSINESS_SETUP_DETAILS]", e);
+      fail("save");
+    }
+    const org = await ensureOrganisation(saved!, email);
+    await prisma.organisation.update({ where: { id: org.id }, data: { name, kind, category, website, description: blurb } });
+    revalidateBusiness(saved!.slug);
+    setupBack(stepAfter(step), { saved: step });
+  }
+
+  // Every other step builds on a page that already exists.
+  if (!page) setupBack("details", { error: "details-first" });
+  const org = await ensureOrganisation(page, email);
+
+  if (step === "logo") {
+    const logo = await applyLogoFromForm(form, page, org.id, userId);
+    if (!logo.ok) fail("logo", logo.message);
+    done();
+  }
+
+  if (step === "contact") {
+    const contactEmail = s(form, "contactEmail", 160).toLowerCase();
+    const phone = s(form, "phone", 40);
+    if (contactEmail && !EMAIL.test(contactEmail)) fail("contact");
+    if (phone && !PHONE.test(phone)) fail("phone");
+    const pub = publicContact(form);
+    if ("error" in pub) return fail(pub.error);
+    const socials: Record<string, string> = {};
+    for (const n of SOCIAL_NETWORKS) {
+      const raw = s(form, n.id, 300);
+      if (!raw) continue;
+      const url = socialUrl(n.id, raw);
+      if (!url) fail("social", `Please check your ${n.label} link, or leave it empty.`);
+      socials[n.id] = url!;
+    }
+    await prisma.partner.update({
+      where: { id: page.id },
+      data: { contactEmail: contactEmail || null, publicEmail: pub.publicEmail, publicPhone: pub.publicPhone },
+    });
+    await prisma.organisation.update({
+      where: { id: org.id },
+      data: { email: contactEmail || org.email, phone: phone || null, socials },
+    });
+    done();
+  }
+
+  if (step === "address") {
+    const size = s(form, "size", 10);
+    const vatNumber = s(form, "vatNumber", 20).toUpperCase().replace(/\s+/g, "");
+    const companyNumber = s(form, "companyNumber", 20).toUpperCase().replace(/\s+/g, "");
+    if (vatNumber && !/^[A-Z0-9]{5,16}$/.test(vatNumber)) fail("vat");
+    if (companyNumber && !/^[A-Z0-9]{4,12}$/.test(companyNumber)) fail("company-number");
+    await prisma.organisation.update({
+      where: { id: org.id },
+      data: {
+        addressLine1: s(form, "addressLine1", 200) || null,
+        addressLine2: s(form, "addressLine2", 200) || null,
+        city: s(form, "city", 120) || null,
+        region: s(form, "region", 120) || null,
+        postcode: s(form, "postcode", 20).toUpperCase() || null,
+        country: s(form, "country", 80) || null,
+        companyNumber: companyNumber || null,
+        vatNumber: vatNumber || null,
+        size: (ORGANISATION_SIZES as readonly string[]).includes(size) ? size : null,
+      },
+    });
+    done();
+  }
+
+  if (step === "perk") {
+    await prisma.partner.update({ where: { id: page.id }, data: { perk: s(form, "perk", 2000) || null } });
+    done();
+  }
+
+  // Team seats are added one at a time with addSeat, so Continue simply moves on.
+  done();
+}
+
+/** The last setup step: the page goes live, unless the Studio has paused it. */
+export async function publishBusinessPage() {
+  const { email, page } = await requireBusiness();
+  if (!page) setupBack("details", { error: "details-first" });
+  if (!readyToPublish(page)) setupBack("details", { error: "not-ready" });
+  if (page.hidden) setupBack("publish", { error: "paused" });
+  if (!page.published && !(await isBusinessAccount(email))) setupBack("publish", { error: "plan" });
+  await prisma.partner.update({ where: { id: page.id }, data: { published: true } });
+  const org = await ensureOrganisation(page, email);
+  if (org.stage !== "customer" && org.stage !== "lost") {
+    await prisma.organisation.update({ where: { id: org.id }, data: { stage: "customer" } });
+  }
+  revalidateBusiness(page.slug);
+  back({ saved: "live" });
 }

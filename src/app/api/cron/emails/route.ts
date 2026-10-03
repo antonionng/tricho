@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
 import { deliverOnce, ownerEmails } from "@/lib/mail/send";
 import { eventReminderEmail } from "@/lib/mail/templates/members";
+import { ticketReminderEmail } from "@/lib/mail/templates/tickets";
 import { digestIsEmpty, ownerDigestEmail, type DigestLead, type OwnerDigest } from "@/lib/mail/templates/owners";
 
 export const runtime = "nodejs";
@@ -13,18 +14,42 @@ const HOUR = 60 * 60 * 1000;
 
 const PLAN_LABEL: Record<string, string> = { community: "Community", professional: "Professional", business: "Business" };
 
-/** Everyone who RSVP'd to an event starting in 24 to 48 hours gets one reminder. */
+/** Everyone who RSVP'd to, or holds a paid ticket for, an event starting in 24 to 48 hours gets one reminder. */
 async function sendEventReminders(now: Date) {
   const events = await prisma.event.findMany({
     where: { published: true, startsAt: { gte: new Date(now.getTime() + 24 * HOUR), lt: new Date(now.getTime() + 48 * HOUR) } },
-    include: { rsvps: { select: { userId: true, user: { select: { name: true, email: true } } } } },
+    include: {
+      rsvps: { select: { userId: true, user: { select: { name: true, email: true } } } },
+      tickets: { where: { status: "paid" }, select: { userId: true, email: true, name: true, quantity: true } },
+    },
   });
   let sent = 0;
   for (const event of events) {
+    // Members who paid for a ticket also have an RSVP: they get the ticket reminder under the same ref.
+    const ticketsByUser = new Map<string, number>();
+    for (const t of event.tickets) if (t.userId) ticketsByUser.set(t.userId, (ticketsByUser.get(t.userId) ?? 0) + t.quantity);
+    const reminded = new Set<string>();
     for (const r of event.rsvps) {
       if (!r.user.email) continue;
-      const email = eventReminderEmail({ name: r.user.name, event });
+      reminded.add(r.user.email.toLowerCase());
+      const quantity = ticketsByUser.get(r.userId);
+      const email = quantity ? ticketReminderEmail({ name: r.user.name, event, quantity }) : eventReminderEmail({ name: r.user.name, event });
       if (await deliverOnce(`event-reminder:${event.id}:${r.userId}`, r.user.email, email.subject, email.content, { tag: "event-reminder" })) {
+        sent++;
+      }
+    }
+    // Guests who bought tickets without an account, once per email address however many orders they placed.
+    const guests = new Map<string, { name: string | null; quantity: number }>();
+    for (const t of event.tickets) {
+      if (t.userId) continue;
+      const to = t.email.toLowerCase();
+      if (reminded.has(to)) continue;
+      const g = guests.get(to);
+      guests.set(to, { name: g?.name ?? t.name, quantity: (g?.quantity ?? 0) + t.quantity });
+    }
+    for (const [to, g] of guests) {
+      const email = ticketReminderEmail({ name: g.name, event, quantity: g.quantity });
+      if (await deliverOnce(`event-reminder:${event.id}:guest:${to}`, to, email.subject, email.content, { tag: "event-reminder" })) {
         sent++;
       }
     }

@@ -29,6 +29,47 @@ export function Monogram({ name, className }: { name: string; className?: string
   );
 }
 
+/** Hosts next/image is configured to optimise (next.config.ts). Anything else is shown as it is. */
+export function canOptimise(url: string) {
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === "https:" &&
+      (u.hostname === "images.unsplash.com" ||
+        (u.hostname.endsWith(".supabase.co") && u.pathname.startsWith("/storage/v1/object/public/")))
+    );
+  } catch {
+    return false; // relative paths such as /api/files/{id}
+  }
+}
+
+/** A listing photo filling its (relative) parent. Works for uploads, Supabase and any https host. */
+export function ListingPhoto({
+  src,
+  alt,
+  sizes,
+  priority,
+  className,
+}: {
+  src: string;
+  alt: string;
+  sizes: string;
+  priority?: boolean;
+  className?: string;
+}) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      priority={priority}
+      unoptimized={!canOptimise(src)}
+      className={cn("object-cover", className)}
+    />
+  );
+}
+
 export function ListingCard({ listing }: { listing: PublicListing }) {
   const claimed = hasFullProfile(listing);
   const discipline = DISCIPLINES.find((d) => d.id === listing.profession);
@@ -38,12 +79,11 @@ export function ListingCard({ listing }: { listing: PublicListing }) {
     <>
       <div className="relative aspect-[4/5] overflow-hidden rounded-2xl">
         {claimed && listing.photoUrl ? (
-          <Image
+          <ListingPhoto
             src={listing.photoUrl}
             alt={`Portrait of ${listing.name}`}
-            fill
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+            className="transition-transform duration-700 group-hover:scale-[1.03]"
           />
         ) : (
           <Monogram name={listing.name} className="absolute inset-0 text-5xl" />

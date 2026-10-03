@@ -1,22 +1,15 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { requireAdmin } from "@/lib/member";
+import type { Permission } from "@/config/staff";
+import { requirePermission, requirePermissionPage } from "@/lib/staff";
 
 /**
- * For Studio pages. Signed out: off to the login page. Signed in but not on
- * the team: returns null, and the layout shows the "team only" message.
+ * For Studio pages. Signed out: off to the login page. Signed in but without
+ * this permission: returns null, and the page shows the "not in your role" note.
  */
-export async function studioPage(next = "/studio") {
-  const admin = await requireAdmin();
-  if (admin) return admin;
-  const session = await auth();
-  if (!session?.user) redirect(`/login?next=${encodeURIComponent(next)}`);
-  return null;
+export async function studioPage(next = "/studio", perm: Permission = "overview.view") {
+  return requirePermissionPage(perm, next);
 }
 
-/** For Studio server actions and route handlers. Throws for anyone not on the team. */
-export async function studioAction() {
-  const admin = await requireAdmin();
-  if (!admin) throw new Error("Studio is for the Trichollective team.");
-  return admin;
+/** For Studio server actions and route handlers. Throws for anyone whose role doesn't include this. */
+export async function studioAction(perm: Permission = "overview.view") {
+  return requirePermission(perm);
 }

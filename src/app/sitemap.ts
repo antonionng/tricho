@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/seo";
 import { guides } from "@/content/guides";
-import { allEditions } from "@/content/gazette";
+import { getAllEditions } from "@/content/gazette/loader";
 import { glossary } from "@/content/glossary";
 import { courses } from "@/content/courses";
 import { CHAPTERS } from "@/content/chapters";
@@ -12,6 +12,16 @@ import { publicListingWhere } from "@/lib/stats";
 
 export const revalidate = 3600;
 
+/** A database list for the sitemap, or nothing if the database can't be read. A sitemap must never fail a build. */
+async function safely<T>(label: string, load: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await load();
+  } catch (error) {
+    console.error(`[sitemap] couldn't load ${label}`, error);
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const staticPaths = [
@@ -20,14 +30,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/directory/list", "/find", "/guides", "/glossary", "/contact", "/privacy", "/terms",
   ];
 
-  const [listings, pairs, events] = await Promise.all([
-    prisma.directoryListing.findMany({
-      where: { AND: [publicListingWhere(), { slug: { not: null } }] },
-      select: { slug: true, updatedAt: true },
-    }),
-    listingCityPairs(),
-    prisma.event.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
+  const [listings, pairs, events, episodes] = await Promise.all([
+    safely("listings", () =>
+      prisma.directoryListing.findMany({
+        where: { AND: [publicListingWhere(), { slug: { not: null } }] },
+        select: { slug: true, updatedAt: true },
+      })
+    ),
+    safely("directory cities", () => listingCityPairs()),
+    safely("events", () => prisma.event.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } })),
+    safely("podcast episodes", () =>
+      prisma.podcastEpisode.findMany({ where: { status: "published" }, select: { slug: true, updatedAt: true } })
+    ),
   ]);
+  const allEditions = await getAllEditions();
 
   return [
     ...staticPaths.map((p) => ({ url: absoluteUrl(p), lastModified: now, changeFrequency: "weekly" as const, priority: p === "/" ? 1 : 0.7 })),
@@ -40,5 +56,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...pairs.map((p) => ({ url: absoluteUrl(`/directory/${p.discipline}/${cityKey(p.city)}`), priority: 0.7 })),
     ...listings.map((l) => ({ url: absoluteUrl(`/directory/p/${l.slug}`), lastModified: l.updatedAt, priority: 0.6 })),
     ...events.map((e) => ({ url: absoluteUrl(`/events/${e.slug}`), lastModified: e.updatedAt, priority: 0.6 })),
+    ...episodes.map((e) => ({ url: absoluteUrl(`/podcast/${e.slug}`), lastModified: e.updatedAt, priority: 0.6 })),
   ];
 }

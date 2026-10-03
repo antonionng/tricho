@@ -10,6 +10,9 @@ import { foundingMemberPlacesLeft, foundingPartnerPlacesLeft } from "@/lib/found
 import { breadcrumbLd, faqLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
 import { PricingTable } from "./PricingTable";
+import { cookies } from "next/headers";
+import { REFERRAL_COOKIE, findReferrer } from "@/lib/referrals";
+import { firstNameOf } from "@/lib/mail/templates/directory";
 
 export const metadata = pageMetadata({
   title: `Membership and pricing`,
@@ -119,9 +122,11 @@ function CellValue({ value }: { value: Cell }) {
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cancelled?: string }>;
+  searchParams: Promise<{ cancelled?: string; ref?: string }>;
 }) {
-  const { cancelled } = await searchParams;
+  const { cancelled, ref } = await searchParams;
+  // Arrived from a colleague's share link: say who invited them.
+  const referrer = await findReferrer(ref || (await cookies()).get(REFERRAL_COOKIE)?.value).catch(() => null);
   const [foundingLeft, partnerLeft] = await Promise.all([
     foundingMemberPlacesLeft().catch(() => 0),
     foundingPartnerPlacesLeft(),
@@ -149,6 +154,15 @@ export default async function PricingPage({
     <>
       <Section className="pb-12 md:pb-16">
         <Container>
+          {referrer && (
+            <div
+              role="status"
+              className="mx-auto mb-12 max-w-2xl rounded-2xl border border-rule bg-card px-6 py-5 text-[15px] leading-relaxed text-ink-2"
+            >
+              {firstNameOf(referrer.name, "A colleague")} has invited you to {site.name}, so your first month of Community,
+              Professional or Business membership is half price when you join below.
+            </div>
+          )}
           {cancelled === "1" && (
             <div
               role="status"

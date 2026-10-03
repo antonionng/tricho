@@ -23,6 +23,7 @@ export const publicEventSelect = {
   memberPriceGBP: true,
   capacity: true,
   ticketUrl: true,
+  sellTickets: true,
   chapter: { select: { slug: true, city: true } },
 } as const;
 

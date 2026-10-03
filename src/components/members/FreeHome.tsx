@@ -3,7 +3,7 @@ import { ArrowRight, Check, Clock, ListChecks } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { CheckoutButton } from "@/components/site/CheckoutButton";
 import { Cover } from "@/components/gazette/Cover";
-import { editions } from "@/content/gazette";
+import { getEditions } from "@/content/gazette/loader";
 import { FREE_LISTING_DAYS, tierById } from "@/config/subscriptions";
 import { Card, MemberPage, SectionLabel } from "./MemberPage";
 import { firstName } from "@/lib/community";
@@ -13,7 +13,7 @@ const longDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", mo
 
 /** Home for signed-in people without a paid plan: their listing, what's free, and a clear way up. */
 export async function FreeHome({ userId, email }: { userId: string; email: string }) {
-  const [user, listing] = await Promise.all([
+  const [user, listing, editions] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
     email
       ? prisma.directoryListing.findFirst({
@@ -22,6 +22,7 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
           select: { status: true, slug: true, freeUntil: true, kind: true, _count: { select: { enquiries: { where: { status: "new" } } } } },
         })
       : null,
+    getEditions(),
   ]);
   const community = tierById("community")!;
   const pro = tierById("professional")!;

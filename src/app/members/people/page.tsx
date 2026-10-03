@@ -34,6 +34,10 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
           { chapter: { city: { contains: q, mode: "insensitive" } } },
           { profile: { location: { contains: q, mode: "insensitive" } } },
           { profile: { specialization: { contains: q, mode: "insensitive" } } },
+          { profile: { practiceName: { contains: q, mode: "insensitive" } } },
+          { profile: { city: { contains: q, mode: "insensitive" } } },
+          { profile: { headline: { contains: q, mode: "insensitive" } } },
+          { profile: { specialisms: { has: q } } },
           ...(professionMatches.length ? [{ profile: { profession: { in: professionMatches } } }] : []),
         ],
       }
@@ -47,9 +51,10 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
       select: {
         id: true,
         name: true,
+        image: true,
         isFounding: true,
         chapter: { select: { city: true } },
-        profile: { select: { profession: true, specialization: true, location: true } },
+        profile: { select: { profession: true, specialization: true, location: true, city: true, practiceName: true, isVerified: true } },
       },
     }),
     prisma.follow.findMany({ where: { followerId: me }, select: { followeeId: true } }),
@@ -61,7 +66,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
       <PageHeader
         label="People"
         title="Members"
-        lede="Find colleagues by name, city or discipline. Follow people to see them more often, or send a message to say hello."
+        lede="Find colleagues by name, city, practice, specialism or discipline. Follow people to see them more often, or send a message to say hello."
       />
 
       <form action="/members/people" role="search" className="mb-6">
@@ -71,7 +76,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
           <input
             name="q"
             defaultValue={q}
-            placeholder="Try Dublin, trichologist or a name"
+            placeholder="Try Dublin, trichologist, a clinic or a name"
             className="w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           />
         </label>
@@ -99,15 +104,15 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
         <ul className="grid gap-3 sm:grid-cols-2">
           {people.map((p) => {
             const discipline = p.profile?.profession ? professionById(p.profile.profession)?.label : null;
-            const place = p.chapter?.city || p.profile?.location;
+            const place = p.profile?.city || p.chapter?.city || p.profile?.location;
             return (
               <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-rule bg-card p-4">
                 <Link href={`/members/people/${p.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                  <Avatar name={p.name} />
+                  <Avatar name={p.name} src={p.image} />
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{p.name || "Member"}</span>
                     <span className="block truncate text-[13px] text-muted-foreground">
-                      {[discipline, p.profile?.specialization, place].filter(Boolean).join(" · ") || "Member"}
+                      {[discipline, p.profile?.practiceName || p.profile?.specialization, place].filter(Boolean).join(" · ") || "Member"}
                     </span>
                   </span>
                 </Link>

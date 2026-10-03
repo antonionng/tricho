@@ -1,21 +1,21 @@
-import { requireAdmin } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
+import { csvCell as cell } from "@/lib/csv";
+import { audit, getStaff } from "@/lib/staff";
 
 export const dynamic = "force-dynamic";
 
-function cell(value: string | null | undefined) {
-  let v = value ?? "";
-  // Stop spreadsheet apps treating a value as a formula.
-  if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
-  return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-}
-
 export async function GET() {
-  if (!(await requireAdmin())) {
-    return new Response("Studio is for the Trichollective team.", { status: 403 });
+  const staff = await getStaff();
+  if (!staff?.perms.has("subscribers.export")) {
+    return new Response("Your role does not include exporting subscribers.", { status: 403 });
   }
 
   const rows = await prisma.subscriber.findMany({ orderBy: { createdAt: "asc" } });
+  await audit(staff, {
+    action: "subscribers.export",
+    targetType: "subscriber",
+    summary: `Downloaded ${rows.length} subscribers as a spreadsheet.`,
+  });
   const lines = [
     ["email", "source", "utm_source", "utm_campaign", "signed_up", "unsubscribed"].join(","),
     ...rows.map((s) =>

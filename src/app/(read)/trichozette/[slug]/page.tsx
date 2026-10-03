@@ -2,26 +2,21 @@ import { notFound } from "next/navigation";
 import { EditionView } from "@/components/gazette/EditionView";
 import { coverLinesFor } from "@/components/gazette/Cover";
 import { coverImage } from "@/components/gazette/art";
-import {
-  editionBySlug,
-  editionLabel,
-  editions,
-  archive,
-  allEditions,
-  pageKicker,
-  pageTitle,
-  PUBLIC_PREVIEW_PAGES,
-} from "@/content/gazette";
+import { editionLabel, allEditions, pageKicker, pageTitle, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { getArchive, getEditionBySlug, getEditions } from "@/content/gazette/loader";
 import { getMemberContext } from "@/lib/member";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
+
+/** Built-in editions are prerendered. Editions published from Studio render on request. */
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return allEditions.map((e) => ({ slug: e.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const e = editionBySlug((await params).slug);
+  const e = await getEditionBySlug((await params).slug);
   if (!e) return {};
   return pageMetadata({
     title: `${e.title}: Trichozette, ${editionLabel(e)}`,
@@ -34,10 +29,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function EditionPage({ params }: { params: Promise<{ slug: string }> }) {
-  const edition = editionBySlug((await params).slug);
+  const edition = await getEditionBySlug((await params).slug);
   if (!edition) notFound();
 
-  const ctx = await getMemberContext();
+  const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
   const full = ctx.allowed;
 
   // Members-only pages never leave the server for non-members: only their titles do.
