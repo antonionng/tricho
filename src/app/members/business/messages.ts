@@ -24,6 +24,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   website: "Please check your website address.",
   contact: "Please check the contact email.",
   phone: "Please check the phone number, or leave it empty.",
+  "public-email": "Please check the public email address, or leave it empty.",
+  "public-phone": "Please check the public phone number, or leave it empty.",
   vat: "Please check the VAT number. It is usually a country code followed by numbers, such as GB123456789.",
   "company-number": "Please check the company number. A UK company number has eight characters, such as 01234567.",
   save: "Something went wrong saving your details. Please try again.",

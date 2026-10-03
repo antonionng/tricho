@@ -9,6 +9,8 @@ import {
   type BillingInterval,
 } from "@/config/subscriptions";
 import { site } from "@/config/site";
+import { cookies } from "next/headers";
+import { REFERRAL_COOKIE, referralForCheckout } from "@/lib/referrals";
 import { foundingMemberPlacesLeft, foundingPartnerPlacesLeft } from "@/lib/founding";
 import { brandMetadata, businessCheckoutDetails, premiumCheckoutFields, type BrandAnswers } from "@/lib/partners";
 
@@ -28,6 +30,8 @@ export async function POST(req: Request) {
       founding?: boolean;
       source?: string | null;
       currency?: "gbp" | "eur";
+      /** A colleague's invitation code, from ?ref= on the page. The tc_ref cookie is the fallback. */
+      ref?: unknown;
       brandName?: unknown;
       category?: unknown;
       website?: unknown;
@@ -64,6 +68,7 @@ export async function POST(req: Request) {
     const session = await auth();
     let customer: string | undefined;
     let userId: string | undefined;
+    let buyer: { id: string; email: string | null; stripeCustomerId: string | null; hasPaidBefore: boolean } | null = null;
 
     if (session?.user?.email) {
       const user = await prisma.user.findUnique({
@@ -71,6 +76,12 @@ export async function POST(req: Request) {
       });
       if (user) {
         userId = user.id;
+        buyer = {
+          id: user.id,
+          email: user.email,
+          stripeCustomerId: user.stripeCustomerId,
+          hasPaidBefore: !!(user.stripeSubscriptionId || user.stripeCurrentPeriodEnd),
+        };
         customer = user.stripeCustomerId ?? undefined;
         if (!customer) {
           const created = await stripe.customers.create({
@@ -86,11 +97,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // Invited by a colleague: half of one month off the first invoice. Never blocks the checkout.
+    const referral = await referralForCheckout({
+      code: typeof body.ref === "string" && body.ref ? body.ref : (await cookies()).get(REFERRAL_COOKIE)?.value,
+      plan: planId,
+      founding,
+      currency: body.currency === "eur" && !premium ? "eur" : "gbp",
+      buyer,
+    }).catch((error) => {
+      console.error("[CHECKOUT_REFERRAL]", error);
+      return null;
+    });
+
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       ...(customer ? { customer } : {}),
-      allow_promotion_codes: true,
+      // Stripe allows either a discount or promotion codes on a session, not both.
+      ...(referral ? { discounts: [{ coupon: referral.coupon }] } : { allow_promotion_codes: true }),
       // Prices carry EUR currency options; charge in the currency the visitor chose on /pricing.
       ...(body.currency === "eur" && !premium ? { currency: "eur" } : {}),
       ...(askBrand ? { custom_fields: premiumCheckoutFields() } : {}),
@@ -104,6 +128,7 @@ export async function POST(req: Request) {
         ...(body.source ? { source: String(body.source).toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) } : {}),
         ...(userId ? { userId } : {}),
         ...(brand ? brandMetadata(brand) : {}),
+        ...(referral ? referral.metadata : {}),
       },
     });
 

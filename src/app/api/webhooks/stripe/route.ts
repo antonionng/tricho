@@ -26,6 +26,8 @@ import {
   welcomeEmail,
 } from "@/lib/mail/templates/billing";
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
+import { handleTicketWebhook } from "@/lib/tickets";
+import { onReferralCheckout, onReferralInvoicePaid, referralPriorStateSafe } from "@/lib/referrals";
 
 /** Period end moved onto subscription items in newer Stripe API versions. */
 function getPeriodEnd(subscription: Stripe.Subscription): Date | null {
@@ -72,6 +74,14 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook Error: ${message}`, { status: 400 });
   }
 
+  // Event tickets (one-off payments) are handled in their own module, before the membership logic.
+  try {
+    if (await handleTicketWebhook(event)) return new NextResponse(null, { status: 200 });
+  } catch (error) {
+    console.error("[STRIPE_WEBHOOK_TICKETS]", error);
+    return new NextResponse("Ticket handler failed", { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -88,6 +98,9 @@ export async function POST(req: Request) {
           session.customer_email ||
           ""
         ).toLowerCase();
+
+        // Read before the account is updated, so a returning member is not counted as a new referral.
+        const referralPrior = await referralPriorStateSafe(session);
 
         const data = {
           stripeSubscriptionId: subscription.id,
@@ -117,6 +130,9 @@ export async function POST(req: Request) {
             data: { role: tier.grantsRole },
           });
         }
+
+        // Invite colleagues: record a code used at checkout, and credit any rewards the payer had banked. Never throws.
+        await onReferralCheckout(session, referralPrior);
 
         // First-touch attribution: keep the first source we saw.
         if (session.metadata?.source && email) {
@@ -264,6 +280,8 @@ export async function POST(req: Request) {
           data: {
             stripePriceId: priceId,
             stripeCurrentPeriodEnd: getPeriodEnd(subscription),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            ...(event.type === "invoice.payment_succeeded" ? { lastPaymentFailedAt: null } : {}),
             ...(tier ? { plan: tier.id } : {}),
           },
         });
@@ -272,6 +290,10 @@ export async function POST(req: Request) {
             where: { stripeSubscriptionId: subscription.id, ...NOT_ADMIN },
             data: { role: tier.grantsRole },
           });
+        }
+        // Invite colleagues: a first payment earns the referrer's reward; any payment credits banked rewards. Never throws.
+        if (event.type === "invoice.payment_succeeded") {
+          await onReferralInvoicePaid(event.data.object as Stripe.Invoice);
         }
         break;
       }
@@ -284,7 +306,7 @@ export async function POST(req: Request) {
         });
         await prisma.user.updateMany({
           where: { stripeSubscriptionId: subscription.id },
-          data: { stripeCurrentPeriodEnd: getPeriodEnd(subscription), plan: null },
+          data: { stripeCurrentPeriodEnd: getPeriodEnd(subscription), plan: null, cancelAtPeriodEnd: false },
         });
         await prisma.user.updateMany({
           where: { stripeSubscriptionId: subscription.id, ...NOT_ADMIN },
@@ -347,8 +369,9 @@ export async function POST(req: Request) {
               ...(typeof invoice.customer === "string" ? [{ stripeCustomerId: invoice.customer }] : []),
             ],
           },
-          select: { email: true, name: true, plan: true, stripePriceId: true },
+          select: { id: true, email: true, name: true, plan: true, stripePriceId: true },
         });
+        if (member) await prisma.user.update({ where: { id: member.id }, data: { lastPaymentFailedAt: new Date() } });
         const to = (member?.email || invoice.customer_email || "").toLowerCase();
         if (!to) break;
         const name = member?.name || invoice.customer_name || null;

@@ -19,6 +19,7 @@ import {
   chunkTranscript,
   cleanMoments,
   episodeHeading,
+  episodeIdFromRef,
   fallbackPlan,
   planEpisode,
   transcribeEpisode,
@@ -260,5 +261,18 @@ describe("announceEpisode", () => {
   it("writes the title as one sentence", () => {
     expect(episodeHeading({ title: "Why the scalp is skin,", fade: "And what it means." })).toBe("Why the scalp is skin, and what it means.");
     expect(episodeHeading({ title: "A title", fade: "" })).toBe("A title.");
+  });
+});
+
+describe("episodeIdFromRef", () => {
+  it("finds the episode behind announcement and community drafts", () => {
+    expect(episodeIdFromRef("podcast:ep_1:announcement")).toBe("ep_1");
+    expect(episodeIdFromRef("podcast:ep_1:community")).toBe("ep_1");
+  });
+
+  it("ignores replaced refs and anything else", () => {
+    expect(episodeIdFromRef("podcast:ep_1:announcement#replaced-d1")).toBeNull();
+    expect(episodeIdFromRef("onboarding-nudge:u1")).toBeNull();
+    expect(episodeIdFromRef(undefined)).toBeNull();
   });
 });

@@ -30,6 +30,16 @@ function setupBack(step: SetupStepId, params: Record<string, string> = {}): neve
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE = /^[+()\d\s.-]{6,40}$/;
+
+/** The email and phone shown on the public partner page. Both optional; an error key when one is malformed. */
+function publicContact(form: FormData): { error: string } | { publicEmail: string | null; publicPhone: string | null } {
+  const publicEmail = s(form, "publicEmail", 160).toLowerCase();
+  const publicPhone = s(form, "publicPhone", 40);
+  if (publicEmail && !EMAIL.test(publicEmail)) return { error: "public-email" };
+  if (publicPhone && !PHONE.test(publicPhone)) return { error: "public-phone" };
+  return { publicEmail: publicEmail || null, publicPhone: publicPhone || null };
+}
 
 /** Only http(s) links are stored, so nothing else can reach an href. */
 function cleanUrl(value: string) {
@@ -80,6 +90,8 @@ export async function saveBusinessPage(form: FormData) {
   const website = cleanUrl(websiteRaw);
   if (websiteRaw && !website) back({ error: "website" });
   if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) back({ error: "contact" });
+  const pub = publicContact(form);
+  if ("error" in pub) back({ error: pub.error });
 
   const data = {
     name,
@@ -87,6 +99,8 @@ export async function saveBusinessPage(form: FormData) {
     blurb,
     website,
     contactEmail: contactEmail || null,
+    publicEmail: pub.publicEmail,
+    publicPhone: pub.publicPhone,
     perk,
     // A page goes live only while the plan is active (or it is already live), so a page taken
     // down when a subscription ended can't simply be republished.
@@ -249,7 +263,9 @@ export async function saveSetupStep(form: FormData) {
     const contactEmail = s(form, "contactEmail", 160).toLowerCase();
     const phone = s(form, "phone", 40);
     if (contactEmail && !EMAIL.test(contactEmail)) fail("contact");
-    if (phone && !/^[+()\d\s.-]{6,40}$/.test(phone)) fail("phone");
+    if (phone && !PHONE.test(phone)) fail("phone");
+    const pub = publicContact(form);
+    if ("error" in pub) return fail(pub.error);
     const socials: Record<string, string> = {};
     for (const n of SOCIAL_NETWORKS) {
       const raw = s(form, n.id, 300);
@@ -258,7 +274,10 @@ export async function saveSetupStep(form: FormData) {
       if (!url) fail("social", `Please check your ${n.label} link, or leave it empty.`);
       socials[n.id] = url!;
     }
-    await prisma.partner.update({ where: { id: page.id }, data: { contactEmail: contactEmail || null } });
+    await prisma.partner.update({
+      where: { id: page.id },
+      data: { contactEmail: contactEmail || null, publicEmail: pub.publicEmail, publicPhone: pub.publicPhone },
+    });
     await prisma.organisation.update({
       where: { id: org.id },
       data: { email: contactEmail || org.email, phone: phone || null, socials },

@@ -6,6 +6,7 @@ import { isBusinessAccount } from "@/lib/subscription";
 import { site } from "@/config/site";
 import { longDate } from "@/components/members/format";
 import { signOutAction } from "./profile/actions";
+import { unreadReferrals } from "./referrals/_data";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -18,7 +19,7 @@ export default async function MembersLayout({ children }: { children: React.Reac
   }
 
   const email = ctx.session.user.email?.toLowerCase();
-  const [unread, business] = await Promise.all([
+  const [unread, business, referrals] = await Promise.all([
     prisma.notification.count({ where: { userId: ctx.session.user.id, readAt: null } }),
     email
       ? prisma.partner
@@ -26,10 +27,11 @@ export default async function MembersLayout({ children }: { children: React.Reac
           .then((page) => !!page || isBusinessAccount(email))
           .catch(() => false)
       : false,
+    unreadReferrals(ctx.session.user.id),
   ]);
 
   return (
-    <MemberShell name={ctx.session.user.name} unread={unread} isAdmin={ctx.isAdmin || ctx.unlocked} business={business}>
+    <MemberShell name={ctx.session.user.name} unread={unread} referrals={referrals} isAdmin={ctx.isAdmin || ctx.unlocked} business={business}>
       {children}
     </MemberShell>
   );

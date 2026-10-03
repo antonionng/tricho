@@ -5,6 +5,8 @@ import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { RsvpButton } from "@/components/members/RsvpButton";
+import { BuyTicket, TicketReturnBanner } from "@/components/events/BuyTicket";
+import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { eventDay, timeOfDay } from "@/components/members/format";
 import { EVENT_KIND_LABEL, formatPrice } from "@/components/editorial/events";
 import { getMemberContext } from "@/lib/member";
@@ -13,11 +15,13 @@ import { site } from "@/config/site";
 
 export const metadata = { title: "Events" };
 
-export default async function EventsPage() {
+export default async function EventsPage({ searchParams }: { searchParams: Promise<{ ticket?: string }> }) {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/events");
   if (!ctx.allowed) return <Paywall title="Events" body="Gatherings, masterclasses and chapter meetups are part of membership." />;
   const userId = ctx.session.user.id;
+  const { ticket } = await searchParams;
+  const cutoff = holdCutoff();
 
   // Keep an event visible for a few hours after it starts.
   const since = new Date();
@@ -37,15 +41,20 @@ export default async function EventsPage() {
       venue: true,
       city: true,
       online: true,
+      priceGBP: true,
       memberPriceGBP: true,
       capacity: true,
       ticketUrl: true,
+      sellTickets: true,
       chapterId: true,
-      _count: { select: { rsvps: true } },
-      rsvps: { where: { userId }, select: { userId: true } },
+      rsvps: { select: { userId: true } },
+      tickets: {
+        where: { OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: cutoff } }] },
+        select: { quantity: true, userId: true, status: true },
+      },
     },
   });
-  const going = events.filter((e) => e.rsvps.length > 0).length;
+  const going = events.filter((e) => e.rsvps.some((r) => r.userId === userId)).length;
 
   return (
     <MemberPage>
@@ -59,6 +68,12 @@ export default async function EventsPage() {
         }
       />
 
+      {ticket && (
+        <div className="mb-4">
+          <TicketReturnBanner status={ticket} />
+        </div>
+      )}
+
       {events.length === 0 ? (
         <EmptyState
           title="Nothing scheduled just now"
@@ -68,8 +83,12 @@ export default async function EventsPage() {
         <ul className="flex flex-col gap-3">
           {events.map((e) => {
             const d = eventDay(e.startsAt);
-            const isGoing = e.rsvps.length > 0;
-            const full = e.capacity != null && e._count.rsvps >= e.capacity;
+            const isGoing = e.rsvps.some((r) => r.userId === userId);
+            const hasTicket = e.tickets.some((t) => t.userId === userId && t.status === "paid");
+            // Paid tickets are sold on Trichollective unless the event is free for members, who then RSVP.
+            const paidForMembers = e.sellTickets && e.memberPriceGBP > 0;
+            const left = e.sellTickets ? seatsLeft(e, e.tickets, e.rsvps) : null;
+            const full = e.sellTickets ? left === 0 : e.capacity != null && e.rsvps.length >= e.capacity;
             const local = !!ctx.chapterId && e.chapterId === ctx.chapterId;
             return (
               <li key={e.id} className="flex gap-4 rounded-2xl border border-rule bg-card p-4 sm:gap-5 sm:p-5">
@@ -84,7 +103,7 @@ export default async function EventsPage() {
                   <div className="flex flex-wrap gap-1.5">
                     <Pill>{EVENT_KIND_LABEL[e.kind]}</Pill>
                     {local && <Pill tone="ink">Your chapter</Pill>}
-                    {isGoing && <Pill tone="positive">You&apos;re going</Pill>}
+                    {hasTicket ? <Pill tone="positive">You have a ticket</Pill> : isGoing && <Pill tone="positive">You&apos;re going</Pill>}
                   </div>
                   <h2 className="mt-2 text-lg font-semibold leading-snug tracking-[-0.01em]">{e.title}</h2>
                   <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[13px] text-muted-foreground">
@@ -94,11 +113,23 @@ export default async function EventsPage() {
                       {e.online ? "Online" : [e.venue, e.city].filter(Boolean).join(", ") || "Venue to be confirmed"}
                     </span>
                     <span>{e.memberPriceGBP > 0 ? `${formatPrice(e.memberPriceGBP)} for members` : "Free for members"}</span>
+                    {e.sellTickets && e.priceGBP > 0 && <span>{formatPrice(e.priceGBP)} for guests</span>}
+                    {left != null && left > 0 && <span>{left} {left === 1 ? "place" : "places"} left</span>}
                   </p>
                   <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-2">{e.summary}</p>
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <RsvpButton eventId={e.id} going={isGoing} full={full} />
-                    {e.ticketUrl && (
+                    {paidForMembers ? (
+                      hasTicket ? null : full ? (
+                        <span className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm text-muted-foreground">
+                          Sold out
+                        </span>
+                      ) : (
+                        <BuyTicket eventId={e.id} slug={e.slug} memberPriceGBP={e.memberPriceGBP} returnTo="members" compact />
+                      )
+                    ) : hasTicket ? null : (
+                      <RsvpButton eventId={e.id} going={isGoing} full={full} />
+                    )}
+                    {!e.sellTickets && e.ticketUrl && (
                       <a
                         href={e.ticketUrl}
                         target="_blank"

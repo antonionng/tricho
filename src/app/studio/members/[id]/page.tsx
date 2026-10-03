@@ -238,7 +238,7 @@ export default async function MemberDetailPage({
         )}
       </Section>
 
-      <Section title="Businesses and enquiries" intro="The businesses they are a contact for, and the clients who have written to them.">
+      <Section title="Businesses and enquiries" intro="The businesses they are a contact for, the clients who have written to them, and the referrals they have made.">
         {organisations.length === 0 ? (
           <Empty>They are not a contact for any business in the CRM.</Empty>
         ) : (
@@ -277,7 +277,14 @@ export default async function MemberDetailPage({
             ))}
           </Card>
         )}
-        {can("enquiries.view") && enquiries.length > 0 && <TextLink href="/studio/enquiries">See every enquiry</TextLink>}
+        <p className="text-sm text-ink-2">
+          {user._count.referralsSent + user._count.referralsIn === 0
+            ? "They have not sent or received any client referrals."
+            : `They have sent ${user._count.referralsSent} client ${user._count.referralsSent === 1 ? "referral" : "referrals"} and received ${user._count.referralsIn}.`}
+        </p>
+        {can("enquiries.view") && (enquiries.length > 0 || user._count.referralsSent + user._count.referralsIn > 0) && (
+          <TextLink href="/studio/enquiries">See every enquiry and referral</TextLink>
+        )}
       </Section>
 
       <Section title="Membership" intro="What they pay for, and anything the team has given them.">

@@ -25,14 +25,16 @@ export default async function EventsPage({
   const sp = await searchParams;
   const now = new Date();
 
-  const [events, editing] = await Promise.all([
+  const [events, editing, sales] = await Promise.all([
     prisma.event.findMany({
       orderBy: { startsAt: "desc" },
       take: 60,
       include: { _count: { select: { rsvps: true } } },
     }),
     sp.edit ? prisma.event.findUnique({ where: { id: sp.edit } }) : null,
+    prisma.eventTicket.groupBy({ by: ["eventId"], where: { status: "paid" }, _sum: { quantity: true, amount: true } }),
   ]);
+  const salesByEvent = new Map(sales.map((r) => [r.eventId, { sold: r._sum.quantity ?? 0, revenue: r._sum.amount ?? 0 }]));
   const prefillDraft =
     sp.prefill && canEdit
       ? await prisma.draft.findFirst({ where: { id: sp.prefill, kind: "event_prefill", status: "draft" }, select: { id: true, payload: true } })
@@ -75,18 +77,24 @@ export default async function EventsPage({
       {showForm && <EventForm event={editing} prefill={prefill} />}
 
       <Section title="Coming up">
-        <EventList events={upcoming} empty="Nothing coming up. Add an event so members have something to look forward to." />
+        <EventList events={upcoming} sales={salesByEvent} empty="Nothing coming up. Add an event so members have something to look forward to." />
       </Section>
       {past.length > 0 && (
         <Section title="Past events">
-          <EventList events={past} empty="" />
+          <EventList events={past} sales={salesByEvent} empty="" />
         </Section>
       )}
     </div>
   );
 }
 
-function EventList({ events, empty }: { events: (Event & { _count: { rsvps: number } })[]; empty: string }) {
+type Sales = Map<string, { sold: number; revenue: number }>;
+
+function money(pence: number) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+}
+
+function EventList({ events, sales, empty }: { events: (Event & { _count: { rsvps: number } })[]; sales: Sales; empty: string }) {
   if (!events.length) return <Empty>{empty}</Empty>;
   return (
     <ul className="divide-y divide-rule rounded-2xl border border-rule bg-card">
@@ -108,11 +116,20 @@ function EventList({ events, empty }: { events: (Event & { _count: { rsvps: numb
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {e.sellTickets ? (
+              <Tag>
+                {sales.get(e.id)?.sold ?? 0} {(sales.get(e.id)?.sold ?? 0) === 1 ? "ticket" : "tickets"} sold
+                {e.capacity ? ` of ${e.capacity}` : ""}, {money(sales.get(e.id)?.revenue ?? 0)}
+              </Tag>
+            ) : null}
             <Tag>
-              {e._count.rsvps} going{e.capacity ? ` of ${e.capacity}` : ""}
+              {e._count.rsvps} going{e.capacity && !e.sellTickets ? ` of ${e.capacity}` : ""}
             </Tag>
             {e.published ? <Tag tone="positive">Published</Tag> : <Tag tone="warn">Not published</Tag>}
+            <Button asChild size="xs" variant="outline">
+              <Link href={`/studio/events/${e.id}/attendees`}>Attendees</Link>
+            </Button>
             <Button asChild size="xs" variant="outline">
               <Link href={`/studio/events?edit=${e.id}`}>Edit</Link>
             </Button>
@@ -217,6 +234,18 @@ function EventForm({ event, prefill }: { event: Event | null; prefill: Prefill }
       <Field label="Ticket link" hint="Optional. For example an Eventbrite page. Shown on the event and in Trichozette and newsletter.">
         <input type="url" name="ticketUrl" defaultValue={v ? v.ticketUrl : (event?.ticketUrl ?? "")} placeholder="https://www.eventbrite.co.uk/e/…" className={fieldClass} />
       </Field>
+
+      <label className="flex items-start gap-3 rounded-2xl border border-rule p-4 text-sm">
+        <input type="checkbox" name="sellTickets" defaultChecked={v ? v.sellTickets : (event?.sellTickets ?? false)} className="mt-0.5 h-4 w-4 accent-ink" />
+        <span>
+          <span className="font-medium text-ink">Sell tickets on Trichollective</span>
+          <span className="block text-muted-foreground">
+            People pay by card through Stripe on the event page. Signed-in members pay the member price and everyone else pays the guest price, with
+            up to four tickets per guest order. Places below caps the number sold. When this is ticked, the ticket link above is not used. Members
+            save a free place instead of buying a ticket when the member price is 0.
+          </span>
+        </span>
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Guest price (£)">

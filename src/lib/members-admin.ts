@@ -102,7 +102,7 @@ export async function memberDetail(id: string) {
     include: {
       profile: true,
       listings: { orderBy: { createdAt: "desc" }, select: { id: true, name: true, slug: true, status: true, city: true, createdAt: true } },
-      _count: { select: { posts: true, comments: true } },
+      _count: { select: { posts: true, comments: true, referralsSent: true, referralsIn: true } },
     },
   });
   if (!user || user.email === SYSTEM_USER_EMAIL) return null;

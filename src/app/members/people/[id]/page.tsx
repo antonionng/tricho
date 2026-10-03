@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowUpRight, BadgeCheck, Globe, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Globe, HeartHandshake, MapPin, MessageCircle, Phone } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { Avatar } from "@/components/members/Avatar";
@@ -15,6 +15,8 @@ import { professionById } from "@/config/rooms";
 import { urlForFile } from "@/lib/storage";
 import { SOCIAL_KEYS, SOCIAL_NETWORKS, membershipLabel, readQualifications, readSocials } from "@/lib/profile";
 import { startConversation } from "../actions";
+import { referralBlocker } from "@/lib/client-referrals";
+import { loadRecipient } from "../../referrals/_data";
 import { shortName } from "@/lib/names";
 
 export const metadata = { title: "People" };
@@ -71,11 +73,13 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   });
   if (!person) notFound();
 
-  const [isFollowing, posts, uploadedPhoto] = await Promise.all([
+  const [isFollowing, posts, uploadedPhoto, recipient] = await Promise.all([
     prisma.follow.findUnique({ where: { followerId_followeeId: { followerId: me, followeeId: id } } }),
     getPosts({ userId: me, professional: ctx.professional, authorId: id, take: 10 }),
     urlForFile(person.profile?.photoFileId),
+    ctx.professional && me !== id ? loadRecipient(id) : null,
   ]);
+  const canRefer = !!recipient && !referralBlocker({ id: me, professional: ctx.professional }, recipient);
   const listing = person.listings[0];
   const discipline = person.profile?.profession ? professionById(person.profile.profession) : null;
   const isMe = me === id;
@@ -194,6 +198,14 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
                   <MessageCircle className="h-4 w-4" /> Message
                 </SubmitButton>
               </form>
+              {canRefer && (
+                <Link
+                  href={`/members/referrals/new?to=${person.id}`}
+                  className="inline-flex h-12 items-center gap-2 rounded-full border border-rule px-5 text-[15px] font-medium text-ink hover:border-ink/40"
+                >
+                  <HeartHandshake className="h-4 w-4" /> Refer a client
+                </Link>
+              )}
             </>
           )}
           {listing?.slug && (

@@ -13,6 +13,7 @@ const AREAS: { id: string; label: string }[] = [
   { id: "", label: "Everything" },
   { id: "staff.", label: "Team" },
   { id: "member.", label: "Members" },
+  { id: "referral.", label: "Referrals" },
   { id: "post.", label: "Community posts" },
   { id: "report.", label: "Reports" },
   { id: "room.", label: "Rooms" },

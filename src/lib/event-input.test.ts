@@ -121,6 +121,15 @@ describe("validateEventInput", () => {
     expect(r.data.title).toBeUndefined();
   });
 
+  it("sells tickets on Trichollective only when ticked, and then drops the external ticket link", () => {
+    const off = validateEventInput(complete);
+    expect(off.ok && off.data.sellTickets).toBe(false);
+    const on = validateEventInput({ ...complete, sellTickets: "on" });
+    expect(on.ok && on.data.sellTickets).toBe(true);
+    expect(on.ok && on.data.ticketUrl).toBeNull();
+    expect(formValuesFromPayload({ sellTickets: true })?.sellTickets).toBe(true);
+  });
+
   it("caps the summary at 400 characters and treats a blank capacity as no limit", () => {
     const r = validateEventInput({ ...complete, summary: "a".repeat(500), capacity: "" });
     expect(r.ok && r.data.summary.length).toBe(400);

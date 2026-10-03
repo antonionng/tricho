@@ -43,6 +43,9 @@ export const PERMISSIONS = [
   "crm.edit",
   "verification.review",
   "enquiries.view",
+  "referrals.view",
+  "referrals.manage",
+  "retention.view",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -81,6 +84,8 @@ export const ROLE_PERMISSIONS: Record<StaffRoleId, readonly Permission[]> = {
     "verification.review",
     "enquiries.view",
     "crm.view",
+    "retention.view",
+    "referrals.view",
   ],
   support: VIEW_ONLY,
 };
@@ -191,7 +196,9 @@ export type NavIcon =
   | "agents"
   | "crm"
   | "verification"
-  | "enquiries";
+  | "enquiries"
+  | "referrals"
+  | "retention";
 
 export type NavItem = {
   href: string;
@@ -216,6 +223,8 @@ export const NAV: NavItem[] = [
   { href: "/studio/members", label: "Members", icon: "members", perm: "members.view", group: "people" },
   { href: "/studio/verification", label: "Verification", icon: "verification", perm: "verification.review", group: "people" },
   { href: "/studio/enquiries", label: "Enquiries", icon: "enquiries", perm: "enquiries.view", group: "people" },
+  { href: "/studio/retention", label: "Retention", icon: "retention", perm: "retention.view", group: "people" },
+  { href: "/studio/referrals", label: "Referrals", icon: "referrals", perm: "referrals.view", group: "people" },
   { href: "/studio/community", label: "Community", icon: "community", perm: "community.view", group: "people" },
   { href: "/studio/listings", label: "Listings", icon: "listings", perm: "listings.view", group: "people" },
   { href: "/studio/partners", label: "Partners", icon: "partners", perm: "partners.view", group: "people" },

@@ -9,6 +9,7 @@ import { Empty, Field, Notice, PageHeader, Section, Stat, Tag, TextLink, dateOnl
 import { premiumBusiness } from "@/config/subscriptions";
 import { foundingPartnerPlacesLeft } from "@/lib/founding";
 import { PARTNER_CATEGORIES, partnerLogoSrc, partnerTierLabel, sortPartners } from "@/lib/partners";
+import { partnerStatsTotals, plural } from "@/lib/partner-stats";
 import { studioPage } from "../_lib/guard";
 import { savePartnerAction } from "./actions";
 
@@ -34,6 +35,7 @@ export default async function StudioPartnersPage({
   ]);
   const showForm = !!editing || sp.new === "1";
   const sorted = sortPartners(partners);
+  const stats = await partnerStatsTotals(partners.map((p) => p.id), 30);
 
 
   return (
@@ -88,6 +90,14 @@ export default async function StudioPartnersPage({
                     {partnerTierLabel(p.tier)} · {p.category} · /partners/{p.slug}
                     {p.featuredUntil && ` · Featured until ${dateOnly(p.featuredUntil)}`}
                     {p.contactEmail && ` · ${p.contactEmail}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {(() => {
+                      const t = stats.get(p.id);
+                      return t
+                        ? `Last 30 days: ${plural(t.views, "view", "views")}, ${plural(t.websiteClicks, "website click", "website clicks")}, ${plural(t.perkClaims, "perk claim", "perk claims")}.`
+                        : "No views, website clicks or perk claims in the last 30 days.";
+                    })()}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -212,6 +222,15 @@ function PartnerForm({ partner }: { partner: (Partner & { organisation: { id: st
         </Field>
         <Field label="Featured until" hint="Optional. Featured partners are listed first within their tier.">
           <input type="date" name="featuredUntil" defaultValue={dateInput(partner?.featuredUntil)} className={fieldClass} />
+        </Field>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Public email" hint="Optional. Shown on the public partner page so professionals can contact the brand directly.">
+          <input type="email" name="publicEmail" defaultValue={partner?.publicEmail ?? ""} className={fieldClass} />
+        </Field>
+        <Field label="Public phone" hint="Optional. Shown on the public partner page, so check the brand is happy for anyone to call it.">
+          <input type="tel" name="publicPhone" defaultValue={partner?.publicPhone ?? ""} className={fieldClass} />
         </Field>
       </div>
 

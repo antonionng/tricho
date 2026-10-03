@@ -4,6 +4,7 @@ import type { DraftStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AGENTS, agentLabel, getAgent } from "@/agents";
 import { announcementRecipients, newsletterRecipients, payloadOf } from "@/agents/publish";
+import { episodeIdFromRef, PODCAST_AGENT } from "@/agents/podcast";
 import { renderEmail } from "@/lib/mail/layout";
 import { draftEmailContent } from "@/lib/mail/templates/members";
 import { announcementEmail, newsletterEmail } from "@/lib/mail/templates/releases";
@@ -213,7 +214,8 @@ async function DraftDetail({
   const payload = payloadOf(draft);
   const mayDecide = canApproveDraft(role, draft.kind, payload);
   const open = draft.status === "draft" && mayDecide;
-  const canRegenerate = !!getAgent(draft.agent) && draft.status !== "published";
+  const canRegenerate =
+    (!!getAgent(draft.agent) || (draft.agent === PODCAST_AGENT && !!episodeIdFromRef(payload.ref))) && draft.status !== "published";
   const recipients = !confirm
     ? null
     : draft.kind === "newsletter"

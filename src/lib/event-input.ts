@@ -63,6 +63,8 @@ export type EventInput = {
   capacity: number | null;
   ticketUrl: string | null;
   published: boolean;
+  /** Sell tickets on Trichollective through Stripe. When on, any external ticket link is cleared. */
+  sellTickets: boolean;
 };
 
 export type RequiredEventField = "title" | "kind" | "summary" | "startsAt";
@@ -98,6 +100,7 @@ export function validateEventInput(raw: Raw): EventValidation {
   const endsAt = londonToDate(text(raw, "endsAt", 32));
   const online = flag(raw, "online");
   const capacityRaw = text(raw, "capacity", 8);
+  const sellTickets = flag(raw, "sellTickets");
 
   const rest = {
     body: text(raw, "body") || null,
@@ -108,8 +111,9 @@ export function validateEventInput(raw: Raw): EventValidation {
     priceGBP: pounds(text(raw, "priceGBP", 8)),
     memberPriceGBP: pounds(text(raw, "memberPriceGBP", 8)),
     capacity: capacityRaw ? Math.max(0, Math.round(Number(capacityRaw))) || null : null,
-    ticketUrl: cleanUrl(text(raw, "ticketUrl", 500)),
+    ticketUrl: sellTickets ? null : cleanUrl(text(raw, "ticketUrl", 500)),
     published: flag(raw, "published"),
+    sellTickets,
   };
 
   const missing: RequiredEventField[] = [];
@@ -150,6 +154,7 @@ export type EventFormValues = {
   capacity: string;
   ticketUrl: string;
   published: boolean;
+  sellTickets: boolean;
 };
 
 /** Read stored prefill fields back into form values, ignoring anything unexpected. */
@@ -173,6 +178,7 @@ export function formValuesFromPayload(payload: unknown): EventFormValues | null 
     capacity: str("capacity"),
     ticketUrl: str("ticketUrl"),
     published: p.published === true,
+    sellTickets: p.sellTickets === true,
   };
 }
 

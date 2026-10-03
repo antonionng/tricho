@@ -46,10 +46,15 @@ export async function getMemberContext() {
         accessReason: true,
         accessUntil: true,
         mutedUntil: true,
+        lastSeenAt: true,
         profile: { select: { profession: true } },
       },
     }),
   ]);
+  // Last seen, at most once an hour, without holding up the page.
+  if (user && (!user.lastSeenAt || Date.now() - user.lastSeenAt.getTime() > 60 * 60 * 1000)) {
+    prisma.user.update({ where: { id: session.user.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
+  }
   const unlocked = devMembershipUnlock();
   const role = user?.role ?? session.user.role ?? null;
   const staffRole = (user?.staffRole ?? null) as StaffRoleId | null;

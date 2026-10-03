@@ -12,6 +12,7 @@ import {
   Newspaper,
   Search,
   Sparkles,
+  UserPlus,
 } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Avatar } from "@/components/members/Avatar";
@@ -163,6 +164,7 @@ export default async function ProfilePage({
     { href: "/members/people", label: "People", icon: Search },
     { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
     { href: "/members/assistant", label: "Assistant", icon: Sparkles },
+    { href: "/members/refer", label: "Invite colleagues", icon: UserPlus },
     ...(business ? [{ href: "/members/business", label: "Your business", icon: Building2 }] : []),
     ...(ctx.isAdmin || ctx.unlocked ? [{ href: "/studio", label: "Studio", icon: LayoutDashboard }] : []),
   ];

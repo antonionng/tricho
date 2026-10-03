@@ -91,6 +91,10 @@ export async function savePartnerAction(form: FormData) {
   const website = cleanUrl(websiteRaw);
   if (websiteRaw && !website) fail("Please check the website address.");
   if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) fail("Please check the contact email.");
+  const publicEmail = s(form, "publicEmail", 160).toLowerCase();
+  if (publicEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(publicEmail)) fail("Please check the public email.");
+  const publicPhone = s(form, "publicPhone", 40);
+  if (publicPhone && !/^[+()\d\s.-]{6,40}$/.test(publicPhone)) fail("Please check the public phone number.");
   const ownerEmail = s(form, "ownerEmail", 160).toLowerCase();
   if (ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) fail("Please check the Managed by email.");
   const hidden = form.get("hidden") === "on";
@@ -110,6 +114,8 @@ export async function savePartnerAction(form: FormData) {
     website,
     perk: s(form, "perk", 2000) || null,
     contactEmail: contactEmail || null,
+    publicEmail: publicEmail || null,
+    publicPhone: publicPhone || null,
     // Founding places only exist for Premium Business.
     isFounding: tier === "premium" && form.get("isFounding") === "on",
     published: form.get("published") === "on" && !hidden,

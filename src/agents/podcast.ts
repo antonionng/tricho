@@ -505,3 +505,10 @@ export async function announceEpisode(id: string) {
     return { announcement: null, post: null };
   }
 }
+
+/** The episode behind a podcast draft, from refs like podcast:{id}:announcement. Null for anything else. */
+export function episodeIdFromRef(ref: unknown) {
+  if (typeof ref !== "string") return null;
+  const match = /^podcast:([^:#]+):(announcement|community)$/.exec(ref);
+  return match ? match[1] : null;
+}

@@ -550,3 +550,77 @@ samples.push(
     ...notVerified,
   }
 );
+
+/* ------------------------------------------------------------------ */
+/* Client referrals                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Referral emails never carry the clinical summary: it stays inside the member
+ * area, behind sign-in, and the email only says that a referral is waiting.
+ */
+export function referralReceivedEmail(p: { recipientName: string | null; senderName: string; referralId: string }): Email {
+  return {
+    subject: `${p.senderName} has referred a client to you`,
+    content: {
+      preheader: `${p.senderName} thinks you are the right person to help one of their clients.`,
+      eyebrow: "Referrals",
+      heading: `${p.senderName} has referred a client to you on Trichollective.`,
+      body: [
+        `Hello ${firstNameOf(p.recipientName)},`,
+        `${p.senderName} thinks you are the right person to help one of their clients, and has sent you a short summary of the concern.`,
+        "For the client's privacy, the summary is only shown in the member area. Read it there and let your colleague know whether you can take the referral.",
+      ].join("\n\n"),
+      cta: { label: "Read the referral", href: `/members/referrals/${p.referralId}` },
+      signoff: null,
+      reason: ACTIVITY_REASON,
+    },
+  };
+}
+
+export function referralAnsweredEmail(p: {
+  recipientName: string | null;
+  responderName: string;
+  accepted: boolean;
+  referralId: string;
+}): Email {
+  return {
+    subject: p.accepted ? `${p.responderName} accepted your referral` : `${p.responderName} replied to your referral`,
+    content: {
+      preheader: p.accepted
+        ? `${p.responderName} can help the client you referred.`
+        : `${p.responderName} is not able to take the client you referred.`,
+      eyebrow: "Referrals",
+      heading: p.accepted
+        ? `${p.responderName} has accepted the client you referred.`
+        : `${p.responderName} is not able to take the client you referred.`,
+      body: [
+        `Hello ${firstNameOf(p.recipientName)},`,
+        p.accepted
+          ? `${p.responderName} has accepted your referral, so you can now introduce your client to them directly.`
+          : `${p.responderName} has declined your referral. You may want to refer your client to another colleague in the directory.`,
+        "Any note they left is shown with the referral in the member area, where you can also send them a message.",
+      ].join("\n\n"),
+      cta: { label: "See the referral", href: `/members/referrals/${p.referralId}` },
+      signoff: null,
+      reason: ACTIVITY_REASON,
+    },
+  };
+}
+
+samples.push(
+  {
+    id: "referral-received",
+    name: "Client referral received",
+    trigger: "Sent when a Professional member refers a client to another member, unless they have switched off activity emails.",
+    audience: "members",
+    ...referralReceivedEmail({ recipientName: "Niamh Byrne", senderName: "Ciara Walsh", referralId: "sample" }),
+  },
+  {
+    id: "referral-answered",
+    name: "Referral accepted or declined",
+    trigger: "Sent to the member who made a referral when their colleague accepts or declines it.",
+    audience: "members",
+    ...referralAnsweredEmail({ recipientName: "Ciara Walsh", responderName: "Niamh Byrne", accepted: true, referralId: "sample" }),
+  }
+);

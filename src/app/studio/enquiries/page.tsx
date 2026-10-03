@@ -47,8 +47,10 @@ export default async function EnquiriesPage({
       select: {
         id: true,
         summary: true,
+        reason: true,
         status: true,
         createdAt: true,
+        respondedAt: true,
         from: { select: { id: true, name: true, email: true } },
         to: { select: { id: true, name: true, email: true } },
       },
@@ -163,7 +165,10 @@ export default async function EnquiriesPage({
         )}
       </Section>
 
-      <Section title="Referrals" intro="Clients one member has passed on to another, newest first.">
+      <Section
+        title="Referrals"
+        intro="Clients one member has referred to another, newest first. The summary is clinical, so it stays folded away and should only be opened for a safety or moderation concern."
+      >
         {referrals.length === 0 ? (
           <Empty>
             No referrals have been made yet. When members start referring clients to each other, each referral will appear here with who
@@ -178,8 +183,17 @@ export default async function EnquiriesPage({
                     <TextLink href={`/studio/members/${r.from.id}`}>{r.from.name ?? r.from.email}</TextLink> referred a client to{" "}
                     <TextLink href={`/studio/members/${r.to.id}`}>{r.to.name ?? r.to.email}</TextLink>.
                   </p>
-                  <p className="text-xs text-ink-2">{r.summary.length > 200 ? `${r.summary.slice(0, 200)}…` : r.summary}</p>
-                  <p className="text-xs text-muted-foreground">{dateTime(r.createdAt)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sent {dateTime(r.createdAt)}
+                    {r.respondedAt && `, ${r.status === "accepted" ? "accepted" : "declined"} ${dateTime(r.respondedAt)}`}
+                  </p>
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-ink-2">Show the clinical summary</summary>
+                    <div className="mt-2 space-y-1.5 text-ink">
+                      {r.reason && <p>Reason: {r.reason}</p>}
+                      <p className="whitespace-pre-line">{r.summary}</p>
+                    </div>
+                  </details>
                 </div>
                 <Tag tone={r.status === "accepted" ? "positive" : r.status === "declined" ? "danger" : "default"}>
                   {REFERRAL_LABEL[r.status] ?? r.status}

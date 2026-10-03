@@ -103,7 +103,7 @@ export async function getMembershipByEmail(
   return viaBusiness ?? (own.isActive ? own : comp ?? own);
 }
 
-/** True when this email holds an active Business plan or manages a Premium partner page. */
+/** True when this email holds an active Business plan (paid or complimentary) or manages a Premium partner page. */
 export async function isBusinessAccount(email: string) {
   try {
     return await checkBusinessAccount(email);
@@ -117,12 +117,15 @@ async function checkBusinessAccount(email: string) {
   const [user, premium] = await Promise.all([
     prisma.user.findUnique({
       where: { email },
-      select: { plan: true, stripePriceId: true, stripeCurrentPeriodEnd: true },
+      select: { plan: true, stripePriceId: true, stripeCurrentPeriodEnd: true, compPlan: true, compUntil: true },
     }),
     prisma.partner.findFirst({ where: { ownerEmail: email, tier: "premium", hidden: false }, select: { id: true } }),
   ]);
   if (premium) return true;
-  return !!user && user.plan === "business" && resolveMembership(user).isActive;
+  if (!user) return false;
+  // A complimentary Business plan counts exactly like a paid one, seats included.
+  if (resolveComp(user)?.tierId === "business") return true;
+  return user.plan === "business" && resolveMembership(user).isActive;
 }
 
 /**

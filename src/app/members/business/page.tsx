@@ -15,6 +15,7 @@ import { saveBusinessPage } from "./actions";
 import { loadBusiness } from "./_data";
 import { errorText as describeError, SAVED_MESSAGES } from "./messages";
 import { TeamSeats } from "./TeamSeats";
+import { Results } from "./Results";
 
 export const metadata = { title: "Your business" };
 
@@ -139,6 +140,8 @@ export default async function BusinessPage({
         </Card>
       </section>
 
+      {page && <Results partnerId={page.id} />}
+
       <section id="page" className="scroll-mt-20">
         <SectionLabel>Your page</SectionLabel>
         <Card className="p-5 sm:p-6">
@@ -179,6 +182,12 @@ export default async function BusinessPage({
             </Field>
             <Field label="Contact email" hint="Private. We use it to reach you, and it is never shown on the website.">
               <input type="email" name="contactEmail" maxLength={160} defaultValue={page?.contactEmail ?? ""} className={cn(fieldClass, "h-12")} />
+            </Field>
+            <Field label="Public email" hint="Optional. This is shown on your partner page so professionals can contact you directly.">
+              <input type="email" name="publicEmail" maxLength={160} defaultValue={page?.publicEmail ?? ""} placeholder="hello@yourbrand.com" className={cn(fieldClass, "h-12")} />
+            </Field>
+            <Field label="Public phone" hint="Optional. This is shown on your partner page, so use a number you are happy for anyone to call.">
+              <input type="tel" name="publicPhone" maxLength={40} defaultValue={page?.publicPhone ?? ""} className={cn(fieldClass, "h-12")} />
             </Field>
             <Field label="Member perk" hint="An offer for Trichollective members, such as 15% off with a code. It appears in Member perks.">
               <textarea name="perk" rows={3} maxLength={2000} defaultValue={page?.perk ?? ""} className={cn(fieldClass, "py-3")} />

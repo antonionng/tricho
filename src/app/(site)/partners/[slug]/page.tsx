@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Gift, Info } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Gift, Info, Mail, Phone } from "lucide-react";
 import { Container, Pill, Section } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
@@ -9,6 +9,7 @@ import { displayHost, partnerTierLabel, partnerLogoSrc, safeHttpUrl } from "@/li
 import { socialLinks } from "@/lib/business-profile";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
+import { CountView } from "@/components/partners/CountView";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +41,14 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
   const host = displayHost(partner.website);
   const premium = partner.tier === "premium";
   const socials = socialLinks(partner.organisation?.socials);
+  // Contact details the brand chose to show publicly. The private contact email is never shown.
+  const publicEmail = partner.publicEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partner.publicEmail) ? partner.publicEmail : null;
+  const publicPhone = partner.publicPhone?.trim() || null;
+  const telHref = publicPhone ? `tel:${publicPhone.replace(/[^\d+]/g, "")}` : null;
 
   return (
     <>
+      <CountView url={`/api/partners/${partner.slug}/view`} />
       <Section className="pb-12 md:pb-16">
         <Container size="narrow">
           <Link href="/partners" className="inline-flex items-center gap-1.5 text-sm text-ink-2 hover:text-ink">
@@ -80,7 +86,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
                 {website && (
                   <Button asChild size="lg" variant="outline">
-                    <a href={website} target="_blank" rel="noopener noreferrer sponsored">
+                    <a href={`/go/${partner.slug}`} target="_blank" rel="noopener nofollow sponsored">
                       Visit {host ?? "their website"} <ArrowUpRight />
                     </a>
                   </Button>
@@ -96,6 +102,22 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
                     {s.label}
                   </a>
                 ))}
+              </div>
+            )}
+
+            {(publicEmail || publicPhone) && (
+              <div className="flex flex-col gap-2 text-[15px]">
+                <p className="label text-muted-foreground">Contact {partner.name}</p>
+                {publicEmail && (
+                  <a href={`mailto:${publicEmail}`} className="inline-flex items-center gap-2 text-ink underline underline-offset-4">
+                    <Mail className="h-4 w-4 shrink-0" aria-hidden /> {publicEmail}
+                  </a>
+                )}
+                {publicPhone && telHref && (
+                  <a href={telHref} className="inline-flex items-center gap-2 text-ink underline underline-offset-4">
+                    <Phone className="h-4 w-4 shrink-0" aria-hidden /> {publicPhone}
+                  </a>
+                )}
               </div>
             )}
 
@@ -141,6 +163,8 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
             ...(website ? { url: website } : {}),
             ...(logo ? { logo: new URL(logo, site.url).toString() } : {}),
             ...(socials.length ? { sameAs: socials.map((s) => s.url) } : {}),
+            ...(publicEmail ? { email: publicEmail } : {}),
+            ...(publicPhone ? { telephone: publicPhone } : {}),
             description: partner.blurb,
           },
           breadcrumbLd([

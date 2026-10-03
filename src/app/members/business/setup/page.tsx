@@ -39,7 +39,7 @@ const INTRO: Record<SetupStepId, { title: string; lede: string }> = {
   },
   contact: {
     title: "Add your contact details.",
-    lede: "Your website and social links appear on your page. Your email and phone number stay private and are only used by our team to reach you.",
+    lede: "Your social links appear on your page, along with a public email and phone number if you add them. Your private email and phone number are only used by our team to reach you.",
   },
   address: {
     title: "Add your business address and records.",
@@ -231,6 +231,18 @@ export default async function BusinessSetupPage({
               <Field label="Phone" hint="Private, and optional.">
                 <input type="tel" name="phone" maxLength={40} defaultValue={org?.phone ?? ""} className={cn(fieldClass, "h-12")} />
               </Field>
+              <p className="pt-2 text-sm font-medium">Public contact details, shown on your page</p>
+              <p className="-mt-2 text-sm text-muted-foreground">
+                These are optional and shown to anyone who visits your partner page, so professionals can contact you directly.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Public email">
+                  <input type="email" name="publicEmail" maxLength={160} defaultValue={page?.publicEmail ?? ""} placeholder="hello@yourbrand.com" className={cn(fieldClass, "h-12")} />
+                </Field>
+                <Field label="Public phone">
+                  <input type="tel" name="publicPhone" maxLength={40} defaultValue={page?.publicPhone ?? ""} className={cn(fieldClass, "h-12")} />
+                </Field>
+              </div>
               <p className="pt-2 text-sm font-medium">Social profiles, shown on your page</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {SOCIAL_NETWORKS.map((n) => (

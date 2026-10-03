@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import { ArrowRight, CalendarDays, Clock, MapPin, Ticket, Users, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLink, Container, Pill, Section } from "@/components/site/primitives";
@@ -17,7 +17,9 @@ import {
   formatPrice,
   publicEventSelect,
 } from "@/components/editorial/events";
+import { BuyTicket, TicketReturnNotice } from "@/components/events/BuyTicket";
 import { images, img } from "@/content/images";
+import { seatUsage, seatsLeft } from "@/lib/tickets";
 import { prisma } from "@/lib/prisma";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
@@ -80,6 +82,13 @@ export default async function EventPage({ params }: { params: Promise<Params> })
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
+  // Seats left for tickets sold here. The page refreshes when a ticket is paid; checkout checks again.
+  const left =
+    event.sellTickets && !isPast
+      ? await seatUsage(event.id)
+          .then((u) => seatsLeft(event, u.tickets, u.rsvps))
+          .catch(() => null)
+      : null;
   const ticketMail = `mailto:${site.contactEmail}?subject=${encodeURIComponent(`Tickets: ${event.title}`)}`;
 
   return (
@@ -143,6 +152,9 @@ export default async function EventPage({ params }: { params: Promise<Params> })
 
             <aside className="lg:col-span-5">
               <div className="flex flex-col gap-6 rounded-3xl border border-rule bg-card p-7 sm:p-9 lg:sticky lg:top-24">
+                <Suspense fallback={null}>
+                  <TicketReturnNotice />
+                </Suspense>
                 <dl className="flex flex-col gap-4 text-[15px]">
                   <div className="flex gap-3">
                     <dt className="sr-only">Date</dt>
@@ -179,7 +191,24 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                   )}
                 </dl>
 
-                {!isPast && event.ticketUrl && (
+                {!isPast && event.sellTickets && (
+                  <div className="flex flex-col gap-4 border-t border-rule pt-6">
+                    <div className="flex flex-col gap-1">
+                      <p className="label text-muted-foreground">Tickets</p>
+                      <p className="display mt-2 text-5xl">{formatPrice(event.memberPriceGBP)}</p>
+                      <p className="text-[15px] text-ink-2">
+                        for members, and {event.priceGBP === 0 ? "free" : formatPrice(event.priceGBP)} for guests.
+                      </p>
+                      {left != null && (
+                        <p className="text-[15px] text-ink-2">
+                          {left === 0 ? "Every place has now been taken." : `${left} ${left === 1 ? "place is" : "places are"} left.`}
+                        </p>
+                      )}
+                    </div>
+                    <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} />
+                  </div>
+                )}
+                {!isPast && !event.sellTickets && event.ticketUrl && (
                   <div className="flex flex-col gap-4 border-t border-rule pt-6">
                     <p className="label text-muted-foreground">Tickets</p>
                     <Button asChild size="lg" className="w-full">
@@ -195,7 +224,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                     </Link>
                   </div>
                 )}
-                {!isPast && !event.ticketUrl && (
+                {!isPast && !event.sellTickets && !event.ticketUrl && (
                   <>
                     <div className="flex flex-col gap-1 border-t border-rule pt-6">
                       <p className="label text-muted-foreground">Tickets</p>

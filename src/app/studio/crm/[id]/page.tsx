@@ -8,6 +8,7 @@ import { Card, Empty, Field, NoAccess, Notice, PageHeader, Section, Tag, TextLin
 import { urlForFile } from "@/lib/storage";
 import { BUSINESS_SEATS, getMembershipByEmail } from "@/lib/subscription";
 import { PARTNER_CATEGORIES, partnerTierLabel, safeHttpUrl } from "@/lib/partners";
+import { partnerStatsSummary, plural } from "@/lib/partner-stats";
 import {
   KIND_LABEL,
   NOTE_KINDS,
@@ -84,7 +85,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
   const accountEmail = org.accountEmail ?? org.partner?.ownerEmail ?? null;
 
   const authorIds = [...new Set(org.notes.map((n) => n.authorId).filter((x): x is string => !!x))];
-  const [team, logoUrl, audits, authors, membership, seats, account] = await Promise.all([
+  const [team, logoUrl, audits, authors, membership, seats, account, stats] = await Promise.all([
     teamMembers(),
     urlForFile(org.logoFileId),
     prisma.auditLog.findMany({
@@ -99,6 +100,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
     accountEmail
       ? prisma.user.findFirst({ where: { email: { equals: accountEmail, mode: "insensitive" } }, select: { id: true, name: true } })
       : null,
+    org.partner ? partnerStatsSummary(org.partner.id, 30) : null,
   ]);
   const authorName = new Map(authors.map((a) => [a.id, a.name ?? a.email]));
   const ownerName = org.ownerStaffId ? (team.find((t) => t.id === org.ownerStaffId)?.name ?? "A former team member") : null;
@@ -398,6 +400,13 @@ export default async function BusinessPage({ params, searchParams }: { params: P
                 </Row>
               )}
               {accountEmail && <Row label="Team seats in use">{seats} of {BUSINESS_SEATS}</Row>}
+              {stats && (
+                <Row label="Last 30 days">
+                  {plural(stats.totals.views, "page view", "page views")}, {plural(stats.totals.websiteClicks, "website visit", "website visits")},{" "}
+                  {plural(stats.totals.perkViews, "perk view", "perk views")} and {plural(stats.totals.perkClaims, "perk claim", "perk claims")}. The
+                  brand sees the same figures in its portal.
+                </Row>
+              )}
               {website && (
                 <Row label="Website">
                   <a href={website} target="_blank" rel="noreferrer" className="underline underline-offset-4">

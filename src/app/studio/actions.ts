@@ -8,6 +8,7 @@ import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { getAgent } from "@/agents";
 import { publishDraft, payloadOf } from "@/agents/publish";
 import { releaseDraftRef, runAgent } from "@/agents/runtime";
+import { announceEpisode, episodeIdFromRef, PODCAST_AGENT } from "@/agents/podcast";
 import { audit, requirePermission } from "@/lib/staff";
 import { canApproveDraft } from "@/config/staff";
 import { deliver } from "@/lib/mail/send";
@@ -136,14 +137,18 @@ export async function regenerateDraftAction(form: FormData) {
   const id = s(form, "id", 64);
   const { staff } = await requireDraftDecision(id);
   const draft = await prisma.draft.findUnique({ where: { id } });
-  if (!draft || !getAgent(draft.agent)) redirect(inboxUrl(form, { id, notice: "This one can't be regenerated.", tone: "danger" }));
+  // Podcast drafts aren't from a scheduled agent: they are drafted again from their episode.
+  const episodeId = draft?.agent === PODCAST_AGENT ? episodeIdFromRef(payloadOf(draft).ref) : null;
+  if (!draft || (!getAgent(draft.agent) && !episodeId)) redirect(inboxUrl(form, { id, notice: "This one can't be regenerated.", tone: "danger" }));
 
   await prisma.draft.update({
     where: { id },
     data: { status: "rejected", reviewerNote: draft.reviewerNote || "Replaced with a fresh draft.", reviewedAt: new Date() },
   });
   const ref = await releaseDraftRef(id);
-  const outcome = await runAgent(draft.agent, "regenerate");
+  const outcome = episodeId
+    ? await announceEpisode(episodeId).then(() => ({ status: "succeeded" as const, summary: "", error: undefined }))
+    : await runAgent(draft.agent, "regenerate");
   await audit(staff, { action: "draft.regenerate", targetType: "draft", targetId: id, summary: `Asked for a fresh version of "${draft.title}".` });
   const fresh =
     ref
@@ -360,7 +365,7 @@ async function uniqueEventSlug(title: string) {
   return `${base}-${Date.now().toString(36)}`;
 }
 
-const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "priceGBP", "memberPriceGBP", "capacity", "ticketUrl", "published"] as const;
+const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "priceGBP", "memberPriceGBP", "capacity", "ticketUrl", "published", "sellTickets"] as const;
 
 export async function saveEventAction(form: FormData) {
   const staff = await requirePermission("events.edit");

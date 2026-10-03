@@ -15,6 +15,7 @@ export function getAgent(id: string) {
 export function agentLabel(id: string) {
   if (id === "website") return "Website";
   if (id === "podcast") return "Podcast";
+  if (id === "retention") return "Retention";
   return getAgent(id)?.name ?? id;
 }
 

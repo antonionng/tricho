@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getOverview } from "@/lib/overview";
+import { countNeedingAttention } from "@/lib/retention-data";
 import { kindLabel } from "@/components/studio/labels";
 import { Card, Empty, NoAccess, PageHeader, Section, Stat, Tag, dateTime } from "@/components/studio/ui";
 import { STAFF_ROLE_PHRASE } from "@/config/staff";
@@ -15,8 +16,8 @@ function greeting(now = new Date()) {
 export default async function OverviewPage() {
   const staff = await studioPage("/studio", "overview.view");
   if (!staff) return <NoAccess what="the overview" />;
-  const o = await getOverview();
   const has = (p: Parameters<typeof staff.perms.has>[0]) => staff.perms.has(p);
+  const [o, attention] = await Promise.all([getOverview(), has("retention.view") ? countNeedingAttention() : 0]);
   const waiting = o.drafts.reduce((n, d) => n + d.count, 0);
   const first = (staff.name ?? staff.email).split(/[ @]/)[0];
 
@@ -28,12 +29,17 @@ export default async function OverviewPage() {
       />
 
       {has("members.view") && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <Stat label="Active members" value={o.members.active} note={`${o.members.accounts} accounts in total`} />
           <Stat label="Joined" value={o.members.joined30} note="Last 30 days" />
           <Stat label="Lapsed" value={o.members.lapsed30} note="Memberships that ended in the last 30 days and weren't renewed" />
           {staff.role === "owner" && <Stat label="Monthly income" value={`£${o.members.mrr.toLocaleString("en-GB")}`} />}
           {has("subscribers.view") && <Stat label="Newsletter readers" value={o.subscribers} note={`${o.subscribers30} new in 30 days`} />}
+          {has("retention.view") && (
+            <Link href="/studio/retention">
+              <Stat label="Members needing attention" value={attention} note="These members are cancelling, have a failed payment, have lapsed, have not set up or have gone quiet." />
+            </Link>
+          )}
         </div>
       )}
 
