@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
-import { Empty, PageHeader, Section, Stat, Tag, dateOnly } from "@/components/studio/ui";
+import { Empty, PageHeader, Section, Stat, Tag, dateOnly, NoAccess } from "@/components/studio/ui";
 import { studioPage } from "../_lib/guard";
 
 export const dynamic = "force-dynamic";
 
 export default async function SubscribersPage() {
-  if (!(await studioPage("/studio/subscribers"))) return null;
+  if (!(await studioPage("/studio/subscribers", "subscribers.view"))) return <NoAccess what="subscribers" />;
 
   const [subscribers, bySource, total, unsubscribed] = await Promise.all([
     prisma.subscriber.findMany({ orderBy: { createdAt: "desc" }, take: 300 }),

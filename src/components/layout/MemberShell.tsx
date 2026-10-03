@@ -16,6 +16,8 @@ import {
   Sparkles,
   UserRound,
   Gift,
+  HeartHandshake,
+  UserPlus,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,8 @@ const primary = [
   { href: "/members/people", label: "People", icon: Search },
   { href: "/members/assistant", label: "Assistant", icon: Sparkles },
   { href: "/members/perks", label: "Member perks", icon: Gift },
+  { href: "/members/referrals", label: "Referrals", icon: HeartHandshake },
+  { href: "/members/refer", label: "Invite colleagues", icon: UserPlus },
 ];
 
 const mobileTabs = [
@@ -44,12 +48,15 @@ export function MemberShell({
   children,
   name,
   unread = 0,
+  referrals = 0,
   isAdmin = false,
   business = false,
 }: {
   children: React.ReactNode;
   name?: string | null;
   unread?: number;
+  /** New client referrals waiting for an answer. */
+  referrals?: number;
   isAdmin?: boolean;
   /** Business and Premium Business accounts get a link to their business portal. */
   business?: boolean;
@@ -81,6 +88,11 @@ export function MemberShell({
                 >
                   <Icon className="h-[18px] w-[18px] stroke-[1.6]" />
                   {label}
+                  {href === "/members/referrals" && referrals > 0 && (
+                    <span className="ml-auto rounded-full bg-ink px-1.5 text-[11px] font-semibold text-paper" aria-label={`${referrals} new`}>
+                      {referrals > 9 ? "9+" : referrals}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}

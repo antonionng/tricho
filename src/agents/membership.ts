@@ -171,7 +171,7 @@ export const membershipAgent: AgentDefinition = {
         onboardedAt: null,
         createdAt: { lte: new Date(now.getTime() - 3 * DAY), gte: new Date(now.getTime() - 30 * DAY) },
         email: { not: null },
-        NOT: [{ email: SYSTEM_USER_EMAIL }, { role: "admin" }],
+        NOT: [{ email: SYSTEM_USER_EMAIL }, { role: "admin" }, { staffRole: { not: null } }],
       },
       select: { id: true, name: true, email: true },
       take: 50,

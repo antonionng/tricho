@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Flag } from "lucide-react";
-import { reportPost, type FormState } from "@/app/members/community/actions";
+import { reportComment, reportPost, type FormState } from "@/app/members/community/actions";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/components/members/MemberPage";
@@ -16,9 +16,10 @@ const REASONS = [
   { id: "other", label: "Something else" },
 ];
 
-export function ReportButton({ postId }: { postId: string }) {
+/** Reports a post, or a single reply when `commentId` is given. */
+export function ReportButton({ postId, commentId }: { postId?: string; commentId?: string }) {
   const [open, setOpen] = useState(false);
-  const [state, action] = useActionState<FormState, FormData>(reportPost, null);
+  const [state, action] = useActionState<FormState, FormData>(commentId ? reportComment : reportPost, null);
 
   if (state?.ok) {
     return (
@@ -42,9 +43,9 @@ export function ReportButton({ postId }: { postId: string }) {
 
   return (
     <form action={action} className="w-full rounded-2xl border border-rule bg-paper-2 p-4">
-      <input type="hidden" name="postId" value={postId} />
+      {commentId ? <input type="hidden" name="commentId" value={commentId} /> : <input type="hidden" name="postId" value={postId} />}
       <fieldset>
-        <legend className="text-sm font-medium">What is the problem with this post?</legend>
+        <legend className="text-sm font-medium">What is the problem with this {commentId ? "reply" : "post"}?</legend>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {REASONS.map((r) => (
             <label key={r.id} className="flex items-center gap-2.5 rounded-xl border border-rule bg-card px-3 py-2.5 text-sm">

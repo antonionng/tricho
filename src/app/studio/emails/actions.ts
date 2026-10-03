@@ -9,7 +9,7 @@ export type TestSendState = { ok: boolean; message: string } | null;
 
 /** Sends one sample to the signed-in team member, so they can see it in a real inbox. */
 export async function sendTestEmailAction(_prev: TestSendState, formData: FormData): Promise<TestSendState> {
-  await studioAction();
+  await studioAction("emails.test");
   const session = await auth();
   const to = session?.user?.email;
   const sample = sampleById(String(formData.get("id") ?? ""));

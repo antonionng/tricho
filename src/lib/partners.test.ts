@@ -8,8 +8,20 @@ process.env.STRIPE_PRICE_ID_PREMIUM_FOUNDING = "price_premium_founding";
 const { isPremiumPriceId, premiumBusiness, premiumPriceIdFor, subscriptionTiers, tierById, tierByPriceId } = await import(
   "@/config/subscriptions"
 );
-const { categoryKey, PARTNER_CATEGORIES, partnerCapError, premiumCheckoutAnswers, premiumCheckoutFields, safeHttpUrl, sortPartners } =
-  await import("./partners");
+const {
+  brandMetadata,
+  businessCheckoutDetails,
+  categoryKey,
+  checkoutAddress,
+  checkoutBrandAnswers,
+  PARTNER_CATEGORIES,
+  partnerCapError,
+  partnerLogoSrc,
+  premiumCheckoutAnswers,
+  premiumCheckoutFields,
+  safeHttpUrl,
+  sortPartners,
+} = await import("./partners");
 
 describe("Premium Business is sold online", () => {
   it("charges the founding price while founding places remain, then the standard price", () => {
@@ -110,5 +122,57 @@ describe("partner helpers", () => {
       { name: "Aspen", tier: "premium", featuredUntil: null },
     ];
     expect(sortPartners(rows, now).map((r) => r.name)).toEqual(["Aspen", "Cedar", "Birch", "Alder"]);
+  });
+});
+
+describe("the short form before the Business checkout", () => {
+  it("accepts a name, a known category and an optional website", () => {
+    expect(businessCheckoutDetails({ brandName: "  Follicle   Labs ", category: "Haircare", website: "folliclelabs.com" })).toEqual({
+      ok: true,
+      value: { name: "Follicle Labs", category: "Haircare", website: "https://folliclelabs.com/" },
+    });
+    expect(businessCheckoutDetails({ brandName: "Follicle Labs", category: "Haircare", website: "" })).toMatchObject({
+      ok: true,
+      value: { website: null },
+    });
+  });
+
+  it("refuses a missing name, an unknown category or an unsafe website", () => {
+    expect(businessCheckoutDetails({ brandName: "F", category: "Haircare" }).ok).toBe(false);
+    expect(businessCheckoutDetails({ brandName: "Follicle Labs", category: "Rockets" }).ok).toBe(false);
+    expect(businessCheckoutDetails({ brandName: "Follicle Labs", category: "Haircare", website: "javascript:alert(1)" }).ok).toBe(false);
+    expect(businessCheckoutDetails({ brandName: 42, category: "Haircare" }).ok).toBe(false);
+  });
+
+  it("round-trips through checkout metadata", () => {
+    const answers = { name: "Follicle Labs", category: "Haircare", website: "https://folliclelabs.com/" };
+    expect(checkoutBrandAnswers(brandMetadata(answers), null)).toEqual(answers);
+    expect(brandMetadata({ ...answers, website: null })).not.toHaveProperty("website");
+  });
+
+  it("falls back to the answers Stripe asked for, and to nothing", () => {
+    const fields = [
+      { key: "brand", text: { value: "Scalp Co" } },
+      { key: "category", dropdown: { value: categoryKey("Scalp care") } },
+    ] as never;
+    expect(checkoutBrandAnswers({ plan: "business" }, fields)).toEqual({ name: "Scalp Co", category: "Scalp care", website: null });
+    expect(checkoutBrandAnswers({ plan: "business" }, null)).toBeNull();
+  });
+
+  it("maps the billing address onto the CRM record", () => {
+    expect(
+      checkoutAddress({ line1: "1 High St", line2: null, city: "Leeds", state: "West Yorkshire", postal_code: "LS1 1AA", country: "GB" })
+    ).toEqual({ line1: "1 High St", line2: null, city: "Leeds", region: "West Yorkshire", postcode: "LS1 1AA", country: "GB" });
+    expect(checkoutAddress(null)).toBeNull();
+  });
+});
+
+describe("partnerLogoSrc", () => {
+  it("allows stored uploads, older portal uploads and http links only", () => {
+    expect(partnerLogoSrc("/api/files/clx123abc")).toBe("/api/files/clx123abc");
+    expect(partnerLogoSrc("/api/partners/scalp-co/logo?v=123")).toBe("/api/partners/scalp-co/logo?v=123");
+    expect(partnerLogoSrc("https://cdn.example.com/logo.webp")).toBe("https://cdn.example.com/logo.webp");
+    expect(partnerLogoSrc("/api/files/../secret")).toBeNull();
+    expect(partnerLogoSrc("javascript:alert(1)")).toBeNull();
   });
 });

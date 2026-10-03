@@ -313,6 +313,72 @@ export function seatInviteEmail(p: { businessName: string; email: string }): Ema
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Account access                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Sent when the team pauses someone's account. Calm and factual: what it means, how long, and who to talk to. */
+export function accountSuspendedEmail(p: { name: string | null; until: Date | null; reason?: string | null }): Email {
+  const when = p.until ? `until ${eventDate(p.until)}` : "until the team lifts it";
+  return {
+    subject: "Your Trichollective account has been paused",
+    content: {
+      preheader: p.until
+        ? `You can sign in again from ${eventDate(p.until)}.`
+        : "You can sign in again once the team lifts the pause.",
+      eyebrow: "Your account",
+      heading: "Your Trichollective account has been paused.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        `The Trichollective team has paused your account ${when}. While it is paused you cannot open the member area, post in the community or send messages.`,
+        ...(p.reason ? [`The reason the team gave is: ${p.reason.trim().replace(/([^.!?])$/, "$1.")}`] : []),
+        "Your membership and billing are not changed by this, and nothing you have shared has been deleted.",
+        `If you think this is a mistake, or you would like to talk it through, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      reason: "This email is about access to your Trichollective account.",
+    },
+  };
+}
+
+/** Sent when the team closes someone's account. Billing is a separate matter, so the email says so plainly. */
+export function accountClosedEmail(p: { name: string | null; reason?: string | null }): Email {
+  return {
+    subject: "Your Trichollective account has been closed",
+    content: {
+      preheader: "You can no longer sign in to Trichollective.",
+      eyebrow: "Your account",
+      heading: "Your Trichollective account has been closed.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "The Trichollective team has closed your account, so you can no longer sign in, open the member area or take part in the community.",
+        ...(p.reason ? [`The reason the team gave is: ${p.reason.trim().replace(/([^.!?])$/, "$1.")}`] : []),
+        "Closing an account does not cancel a membership subscription. If you have one, the team will be in touch about it separately.",
+        `If you would like to ask about this decision, write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      reason: "This email is about access to your Trichollective account.",
+    },
+  };
+}
+
+/** Sent when the team lifts a pause or reopens an account. */
+export function accountRestoredEmail(p: { name: string | null }): Email {
+  return {
+    subject: "Your Trichollective account is open again",
+    content: {
+      preheader: "You can sign in and take part in the community again.",
+      eyebrow: "Your account",
+      heading: "Your Trichollective account is open again.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "The Trichollective team has restored your account, so you can sign in, read the community and post again.",
+        `If anything does not work as it should, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      cta: { label: "Sign in to Trichollective", href: "/login?next=/members" },
+      reason: "This email is about access to your Trichollective account.",
+    },
+  };
+}
+
 const rsvp = rsvpConfirmedEmail({ name: "Niamh Byrne", event: sampleEvent });
 const reminder = eventReminderEmail({ name: "Niamh Byrne", event: sampleEvent });
 const reply = commentReplyEmail({
@@ -335,9 +401,37 @@ const reminderEmail = draftEmailContent(
   { subject: "Your full Trichollective profile: 29 days of your trial to go", ref: "listing-reminder:sample:30" }
 );
 
+const suspended = accountSuspendedEmail({
+  name: "Niamh Byrne",
+  until: new Date("2026-11-01T12:00:00Z"),
+  reason: "Repeated posts promoting products in the Case Room after a reminder.",
+});
+const closed = accountClosedEmail({ name: "Niamh Byrne", reason: "Sharing photographs that identified a client." });
+const restored = accountRestoredEmail({ name: "Niamh Byrne" });
 const seat = seatInviteEmail({ businessName: "Scalp Science Ltd", email: "ciara@example.com" });
 
 export const samples: EmailSample[] = [
+  {
+    id: "account-suspended",
+    name: "Account paused",
+    trigger: "Sent when someone on the team suspends a member in Studio, with the end date if there is one.",
+    audience: "members",
+    ...suspended,
+  },
+  {
+    id: "account-closed",
+    name: "Account closed",
+    trigger: "Sent when an owner bans a member in Studio. It says plainly that billing is handled separately.",
+    audience: "members",
+    ...closed,
+  },
+  {
+    id: "account-restored",
+    name: "Account open again",
+    trigger: "Sent when someone on the team lifts a suspension or ban in Studio.",
+    audience: "members",
+    ...restored,
+  },
   {
     id: "business-seat",
     name: "Team member given Professional",
@@ -388,3 +482,145 @@ export const samples: EmailSample[] = [
     ...inviteEmail,
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/* Verification                                                         */
+/* ------------------------------------------------------------------ */
+
+/** Sent when the team approves a member's evidence and turns on the verified badge. */
+export function verificationApprovedEmail(p: { name: string | null }): Email {
+  return {
+    subject: "You are now verified on Trichollective",
+    content: {
+      preheader: "The verified badge now shows on your directory profile.",
+      eyebrow: "Verification",
+      heading: "The team has checked your evidence and you are now verified.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "Thank you for sending your documents. The verified badge now shows on your directory profile, in directory search results and on your chapter page, so clients and colleagues can see that the Trichollective team has checked your training.",
+        "Your documents stay private. Only you and the members of the team who review verification can open them.",
+        `If any of your details change, or you have a question, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      cta: { label: "See your verification", href: "/members/profile/verification" },
+      reason: "This email is about the verified badge on your Trichollective profile.",
+    },
+  };
+}
+
+/** Sent when the team cannot verify a member from what they sent, with the reason and how to try again. */
+export function verificationRejectedEmail(p: { name: string | null; reason: string }): Email {
+  return {
+    subject: "We could not verify your document yet",
+    content: {
+      preheader: "The team has explained why, and you can send another document at any time.",
+      eyebrow: "Verification",
+      heading: "The team could not verify you from the document you sent.",
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        "Thank you for sending evidence of your training. The team has looked at it carefully but could not add the verified badge from this document.",
+        `The reason the team gave is: ${p.reason.trim().replace(/([^.!?])$/, "$1.")}`,
+        "You are welcome to send another document from your verification page, such as a clearer copy, a certificate that shows your name, or proof of membership of a professional body.",
+        `If you would like to talk it through, reply to this email or write to ${site.contactEmail}.`,
+      ].join("\n\n"),
+      cta: { label: "Send another document", href: "/members/profile/verification" },
+      reason: "This email is about the verified badge on your Trichollective profile.",
+    },
+  };
+}
+
+const verified = verificationApprovedEmail({ name: "Niamh Byrne" });
+const notVerified = verificationRejectedEmail({
+  name: "Niamh Byrne",
+  reason: "The certificate is cropped, so we cannot see the awarding body or the date you qualified",
+});
+
+samples.push(
+  {
+    id: "verification-approved",
+    name: "Verified badge added",
+    trigger: "Sent when someone on the team approves a member's evidence in Studio, Verification.",
+    audience: "members",
+    ...verified,
+  },
+  {
+    id: "verification-rejected",
+    name: "Verification not approved",
+    trigger: "Sent when someone on the team rejects a member's evidence in Studio, Verification, with the reason they gave.",
+    audience: "members",
+    ...notVerified,
+  }
+);
+
+/* ------------------------------------------------------------------ */
+/* Client referrals                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Referral emails never carry the clinical summary: it stays inside the member
+ * area, behind sign-in, and the email only says that a referral is waiting.
+ */
+export function referralReceivedEmail(p: { recipientName: string | null; senderName: string; referralId: string }): Email {
+  return {
+    subject: `${p.senderName} has referred a client to you`,
+    content: {
+      preheader: `${p.senderName} thinks you are the right person to help one of their clients.`,
+      eyebrow: "Referrals",
+      heading: `${p.senderName} has referred a client to you on Trichollective.`,
+      body: [
+        `Hello ${firstNameOf(p.recipientName)},`,
+        `${p.senderName} thinks you are the right person to help one of their clients, and has sent you a short summary of the concern.`,
+        "For the client's privacy, the summary is only shown in the member area. Read it there and let your colleague know whether you can take the referral.",
+      ].join("\n\n"),
+      cta: { label: "Read the referral", href: `/members/referrals/${p.referralId}` },
+      signoff: null,
+      reason: ACTIVITY_REASON,
+    },
+  };
+}
+
+export function referralAnsweredEmail(p: {
+  recipientName: string | null;
+  responderName: string;
+  accepted: boolean;
+  referralId: string;
+}): Email {
+  return {
+    subject: p.accepted ? `${p.responderName} accepted your referral` : `${p.responderName} replied to your referral`,
+    content: {
+      preheader: p.accepted
+        ? `${p.responderName} can help the client you referred.`
+        : `${p.responderName} is not able to take the client you referred.`,
+      eyebrow: "Referrals",
+      heading: p.accepted
+        ? `${p.responderName} has accepted the client you referred.`
+        : `${p.responderName} is not able to take the client you referred.`,
+      body: [
+        `Hello ${firstNameOf(p.recipientName)},`,
+        p.accepted
+          ? `${p.responderName} has accepted your referral, so you can now introduce your client to them directly.`
+          : `${p.responderName} has declined your referral. You may want to refer your client to another colleague in the directory.`,
+        "Any note they left is shown with the referral in the member area, where you can also send them a message.",
+      ].join("\n\n"),
+      cta: { label: "See the referral", href: `/members/referrals/${p.referralId}` },
+      signoff: null,
+      reason: ACTIVITY_REASON,
+    },
+  };
+}
+
+samples.push(
+  {
+    id: "referral-received",
+    name: "Client referral received",
+    trigger: "Sent when a Professional member refers a client to another member, unless they have switched off activity emails.",
+    audience: "members",
+    ...referralReceivedEmail({ recipientName: "Niamh Byrne", senderName: "Ciara Walsh", referralId: "sample" }),
+  },
+  {
+    id: "referral-answered",
+    name: "Referral accepted or declined",
+    trigger: "Sent to the member who made a referral when their colleague accepts or declines it.",
+    audience: "members",
+    ...referralAnsweredEmail({ recipientName: "Ciara Walsh", responderName: "Niamh Byrne", accepted: true, referralId: "sample" }),
+  }
+);

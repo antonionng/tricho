@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const DAY = 24 * 60 * 60 * 1000;
 
-type User = { email: string; plan: string | null; stripePriceId: string | null; stripeCurrentPeriodEnd: Date | null };
+type User = {
+  email: string;
+  plan: string | null;
+  stripePriceId: string | null;
+  stripeCurrentPeriodEnd: Date | null;
+  compPlan?: string | null;
+  compUntil?: Date | null;
+};
 type Partner = { name: string; ownerEmail: string; tier: string; hidden: boolean };
 const db = { users: [] as User[], partners: [] as Partner[], seats: [] as { ownerEmail: string; email: string }[] };
 
@@ -48,6 +55,24 @@ describe("business seats", () => {
 
     expect((await getMembershipByEmail("ciara@clinic.ie")).isActive).toBe(false);
     expect(await isBusinessAccount("owner@clinic.ie")).toBe(false);
+  });
+
+  it("gives seats through a complimentary Business plan while it lasts", async () => {
+    db.users.push({ email: "owner@clinic.ie", plan: null, stripePriceId: null, stripeCurrentPeriodEnd: null, compPlan: "business", compUntil: null });
+    db.partners.push({ name: "Scalp Clinic", ownerEmail: "owner@clinic.ie", tier: "business", hidden: false });
+    db.seats.push({ ownerEmail: "owner@clinic.ie", email: "ciara@clinic.ie" });
+
+    expect(await isBusinessAccount("owner@clinic.ie")).toBe(true);
+    expect(await getMembershipByEmail("ciara@clinic.ie")).toMatchObject({ isActive: true, tierId: "professional", via: "Scalp Clinic" });
+
+    db.users[0].compUntil = new Date(Date.now() - DAY);
+    expect(await isBusinessAccount("owner@clinic.ie")).toBe(false);
+    expect((await getMembershipByEmail("ciara@clinic.ie")).isActive).toBe(false);
+  });
+
+  it("does not treat a complimentary Professional plan as a Business account", async () => {
+    db.users.push({ email: "solo@clinic.ie", plan: null, stripePriceId: null, stripeCurrentPeriodEnd: null, compPlan: "professional" });
+    expect(await isBusinessAccount("solo@clinic.ie")).toBe(false);
   });
 
   it("treats the owner of a Premium page as Professional, unless the page is paused", async () => {

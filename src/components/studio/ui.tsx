@@ -48,12 +48,18 @@ export function Section({
   );
 }
 
+/**
+ * A figure with its label. The label sits on one line and the figure always
+ * lines up across a row, however long the note underneath is.
+ */
 export function Stat({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
   return (
-    <div className="rounded-2xl border border-rule bg-card p-5">
-      <p className="label text-muted-foreground">{label}</p>
-      <p className="display mt-3 text-4xl tabular-nums">{value}</p>
-      {note && <p className="mt-2 text-xs text-muted-foreground">{note}</p>}
+    <div className="flex h-full min-w-0 flex-col rounded-2xl border border-rule bg-card p-4 sm:p-5">
+      <p className="truncate text-[13px] font-medium text-muted-foreground" title={label}>
+        {label}
+      </p>
+      <p className="display mt-2 text-3xl leading-none tabular-nums sm:text-[2.5rem]">{value}</p>
+      {note && <p className="mt-3 line-clamp-3 text-xs leading-snug text-muted-foreground">{note}</p>}
     </div>
   );
 }
@@ -155,4 +161,20 @@ export function dateTime(d: Date | null | undefined) {
 export function dateOnly(d: Date | null | undefined) {
   if (!d) return "";
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" });
+}
+
+/** Shown when someone on the team opens a part of Studio their role doesn't cover. */
+export function NoAccess({ what = "this part of Studio" }: { what?: string }) {
+  return (
+    <div className="mx-auto max-w-xl space-y-4 py-16 text-center">
+      <h1 className="display text-4xl">Your role doesn&apos;t include {what}.</h1>
+      <p className="text-[15px] leading-relaxed text-ink-2">
+        Each person on the team sees the parts of Studio they look after. If you need access to this, ask an owner to change your
+        role on the Team page.
+      </p>
+      <Link href="/studio" className="inline-block text-sm text-ink underline underline-offset-4">
+        Back to the overview
+      </Link>
+    </div>
+  );
 }

@@ -5,7 +5,7 @@ import { AGENTS } from "@/agents";
 import { occurrencesInMonth } from "@/agents/cron";
 import { Button } from "@/components/ui/button";
 import { EVENT_KIND_LABEL } from "@/components/studio/labels";
-import { Card, PageHeader, Section, Stat } from "@/components/studio/ui";
+import { Card, PageHeader, Section, Stat, NoAccess } from "@/components/studio/ui";
 import { cn } from "@/lib/utils";
 import { studioPage } from "../_lib/guard";
 
@@ -26,7 +26,7 @@ function key(y: number, m: number) {
 }
 
 export default async function MonthPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  if (!(await studioPage("/studio/month"))) return null;
+  if (!(await studioPage("/studio/month", "inbox.view"))) return <NoAccess what="the monthly plan" />;
   const { m } = await searchParams;
   const { year, month } = parseMonth(m);
   const start = new Date(year, month, 1);
@@ -47,7 +47,7 @@ export default async function MonthPage({ searchParams }: { searchParams: Promis
       orderBy: { startsAt: "asc" },
       select: { id: true, title: true, kind: true, startsAt: true, published: true },
     }),
-    prisma.draft.count({ where: { status: "draft" } }),
+    prisma.draft.count({ where: { status: "draft", kind: { not: "event_prefill" } } }),
   ]);
 
   type DayInfo = { runs: string[]; created: number; published: number; events: typeof events };
@@ -67,13 +67,13 @@ export default async function MonthPage({ searchParams }: { searchParams: Promis
       done: published.some((d) => d.kind === "gazette_article"),
       label: "Trichozette edition is published",
       help: "Approve this month's Trichozette pieces in the inbox.",
-      href: "/studio?agent=gazette",
+      href: "/studio/inbox?agent=gazette",
     },
     {
       done: published.some((d) => d.kind === "newsletter"),
       label: "The newsletter has gone out",
       help: "The newsletter is drafted on the 25th. Approve it in the inbox to send it.",
-      href: "/studio?agent=newsletter",
+      href: "/studio/inbox?agent=newsletter",
     },
     {
       done: publishedEvents.length > 0,

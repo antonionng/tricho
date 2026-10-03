@@ -9,14 +9,18 @@ import {
   type BillingInterval,
 } from "@/config/subscriptions";
 import { site } from "@/config/site";
+import { cookies } from "next/headers";
+import { REFERRAL_COOKIE, referralForCheckout } from "@/lib/referrals";
 import { foundingMemberPlacesLeft, foundingPartnerPlacesLeft } from "@/lib/founding";
-import { premiumCheckoutFields } from "@/lib/partners";
+import { brandMetadata, businessCheckoutDetails, premiumCheckoutFields, type BrandAnswers } from "@/lib/partners";
 
 /**
  * Start a subscription checkout. Signing in first is optional: people can pay
  * straight away and the webhook creates their account from the checkout email.
  * Premium Business is yearly, in pounds, and asks for the brand's details so the
- * webhook can put their partner page live.
+ * webhook can put their partner page live. The Business plan sends the brand's name,
+ * category and website from a short form on /for-business, checked here and passed to
+ * Stripe as metadata; when it is bought from elsewhere (pricing, founding), Stripe asks.
  */
 export async function POST(req: Request) {
   try {
@@ -26,12 +30,26 @@ export async function POST(req: Request) {
       founding?: boolean;
       source?: string | null;
       currency?: "gbp" | "eur";
+      /** A colleague's invitation code, from ?ref= on the page. The tc_ref cookie is the fallback. */
+      ref?: unknown;
+      brandName?: unknown;
+      category?: unknown;
+      website?: unknown;
     };
     const premium = body.plan === "premium";
     const tier = tierById(premium ? "business" : body.plan);
     if (!tier) {
       return NextResponse.json({ error: "Unknown plan" }, { status: 400 });
     }
+    // The Business short form: checked by us, never put in a URL.
+    let brand: BrandAnswers | null = null;
+    if (body.plan === "business" && body.brandName !== undefined) {
+      const details = businessCheckoutDetails(body);
+      if (!details.ok) return NextResponse.json({ error: details.error }, { status: 400 });
+      brand = details.value;
+    }
+    const askBrand = premium || (body.plan === "business" && !brand);
+
     const interval: BillingInterval = premium || body.interval === "year" ? "year" : "month";
     // The founding price is only offered while founding places genuinely remain.
     const founding = premium
@@ -50,6 +68,7 @@ export async function POST(req: Request) {
     const session = await auth();
     let customer: string | undefined;
     let userId: string | undefined;
+    let buyer: { id: string; email: string | null; stripeCustomerId: string | null; hasPaidBefore: boolean } | null = null;
 
     if (session?.user?.email) {
       const user = await prisma.user.findUnique({
@@ -57,6 +76,12 @@ export async function POST(req: Request) {
       });
       if (user) {
         userId = user.id;
+        buyer = {
+          id: user.id,
+          email: user.email,
+          stripeCustomerId: user.stripeCustomerId,
+          hasPaidBefore: !!(user.stripeSubscriptionId || user.stripeCurrentPeriodEnd),
+        };
         customer = user.stripeCustomerId ?? undefined;
         if (!customer) {
           const created = await stripe.customers.create({
@@ -72,22 +97,38 @@ export async function POST(req: Request) {
       }
     }
 
+    // Invited by a colleague: half of one month off the first invoice. Never blocks the checkout.
+    const referral = await referralForCheckout({
+      code: typeof body.ref === "string" && body.ref ? body.ref : (await cookies()).get(REFERRAL_COOKIE)?.value,
+      plan: planId,
+      founding,
+      currency: body.currency === "eur" && !premium ? "eur" : "gbp",
+      buyer,
+    }).catch((error) => {
+      console.error("[CHECKOUT_REFERRAL]", error);
+      return null;
+    });
+
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       ...(customer ? { customer } : {}),
-      allow_promotion_codes: true,
+      // Stripe allows either a discount or promotion codes on a session, not both.
+      ...(referral ? { discounts: [{ coupon: referral.coupon }] } : { allow_promotion_codes: true }),
       // Prices carry EUR currency options; charge in the currency the visitor chose on /pricing.
       ...(body.currency === "eur" && !premium ? { currency: "eur" } : {}),
-      ...(premium ? { custom_fields: premiumCheckoutFields() } : {}),
-      billing_address_collection: premium ? "required" : "auto",
+      ...(askBrand ? { custom_fields: premiumCheckoutFields() } : {}),
+      // Businesses need an address on their invoices.
+      billing_address_collection: premium || body.plan === "business" ? "required" : "auto",
       success_url: `${site.url}/welcome?plan=${planId}`,
-      cancel_url: premium ? `${site.url}/for-business?cancelled=1` : `${site.url}/pricing?cancelled=1`,
+      cancel_url: premium || brand ? `${site.url}/for-business?cancelled=1` : `${site.url}/pricing?cancelled=1`,
       metadata: {
         plan: planId,
         founding: founding ? "1" : "0",
         ...(body.source ? { source: String(body.source).toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) } : {}),
         ...(userId ? { userId } : {}),
+        ...(brand ? brandMetadata(brand) : {}),
+        ...(referral ? referral.metadata : {}),
       },
     });
 

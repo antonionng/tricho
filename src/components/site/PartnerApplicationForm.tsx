@@ -72,6 +72,18 @@ export function PartnerApplicationForm({
           <Input id="pa-email" name="email" type="email" required autoComplete="email" defaultValue={values.email} className="bg-paper" />
         </div>
         <div className="flex flex-col gap-2">
+          <Label htmlFor="pa-role">
+            Job title <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Input id="pa-role" name="role" autoComplete="organization-title" placeholder="For example, Head of Education" defaultValue={values.role} className="bg-paper" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="pa-phone">
+            Phone <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Input id="pa-phone" name="phone" type="tel" autoComplete="tel" defaultValue={values.phone} className="bg-paper" />
+        </div>
+        <div className="flex flex-col gap-2">
           <Label htmlFor="pa-category">Product category</Label>
           <select id="pa-category" name="category" required defaultValue={values.category || ""} className={`${controlClass} h-11`}>
             <option value="" disabled>

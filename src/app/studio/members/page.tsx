@@ -4,11 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { subscriptionTiers } from "@/config/subscriptions";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
 import { Button } from "@/components/ui/button";
-import { SubmitButton } from "@/components/studio/SubmitButton";
-import { Empty, Notice, PageHeader, Section, Stat, Tag, dateOnly, fieldClass } from "@/components/studio/ui";
+import { Empty, NoAccess, Notice, PageHeader, Section, Stat, Tag, dateOnly, fieldClass } from "@/components/studio/ui";
+import { searchMembers, parseMemberFilters, memberFilterQuery, accessState, ACCESS_LABEL, memberTags, studioTeam } from "@/lib/members-admin";
+import type { MemberFilters } from "@/lib/members-filter";
 import { cn } from "@/lib/utils";
 import { studioPage } from "../_lib/guard";
-import { makeAdminAction } from "../actions";
+import { STAFF_ROLE_LABEL, type StaffRoleId } from "@/config/staff";
 
 export const dynamic = "force-dynamic";
 
@@ -17,20 +18,23 @@ const DAY = 24 * 60 * 60 * 1000;
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; confirm?: string; notice?: string }>;
+  searchParams: Promise<{ q?: string; plan?: string; status?: string; tag?: string; owner?: string; cursor?: string; notice?: string; tone?: string }>;
 }) {
-  if (!(await studioPage("/studio/members"))) return null;
-  const { q = "", confirm, notice } = await searchParams;
+  const staff = await studioPage("/studio/members", "members.view");
+  if (!staff) return <NoAccess what="members" />;
+  const sp = await searchParams;
+  const { notice } = sp;
+  const filters = parseMemberFilters(sp);
+  const cursor = typeof sp.cursor === "string" ? sp.cursor.slice(0, 64) : undefined;
   const now = new Date();
   const notSystem: Prisma.UserWhereInput = { NOT: { email: SYSTEM_USER_EMAIL } };
 
-  const [users, recentJoins, confirmUser, listingSources, subscriberSources] = await Promise.all([
+  const [users, recentJoins, listingSources, subscriberSources] = await Promise.all([
     prisma.user.findMany({
       where: notSystem,
       select: { plan: true, isFounding: true, stripeCurrentPeriodEnd: true, signupSource: true },
     }),
     prisma.user.count({ where: { ...notSystem, createdAt: { gte: new Date(now.getTime() - 30 * DAY) } } }),
-    confirm ? prisma.user.findUnique({ where: { id: confirm }, select: { id: true, name: true, email: true } }) : null,
     prisma.directoryListing.groupBy({ by: ["source"], where: { isSample: false }, _count: { _all: true } }),
     prisma.subscriber.groupBy({ by: ["utmSource"], _count: { _all: true } }),
   ]);
@@ -63,63 +67,23 @@ export default async function MembersPage({
   const noPlan = users.filter((u) => !u.plan).length;
   const mrr = byPlan.reduce((sum, p) => sum + p.mrr, 0);
 
-  const query = q.trim();
-  const members = await prisma.user.findMany({
-    where: {
-      ...notSystem,
-      ...(query
-        ? {
-            OR: [
-              { name: { contains: query, mode: "insensitive" } },
-              { email: { contains: query, mode: "insensitive" } },
-              { profile: { location: { contains: query, mode: "insensitive" } } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      plan: true,
-      isFounding: true,
-      stripeCurrentPeriodEnd: true,
-      onboardedAt: true,
-      createdAt: true,
-      profile: { select: { location: true, profession: true } },
-    },
-  });
-
+  const [results, tags, team] = await Promise.all([searchMembers({ ...filters, cursor }), memberTags(), studioTeam()]);
+  const members = results.rows;
+  const filtered = !!(filters.q || filters.plan || filters.status || filters.tag || filters.owner);
+  const ownerName = new Map(team.map((t) => [t.id, t.name]));
+  const ownerChips = [
+    { value: "", label: "Anyone" },
+    { value: staff.userId, label: "Looked after by me" },
+    ...team.filter((t) => t.id !== staff.userId).map((t) => ({ value: t.id, label: t.name })),
+    { value: "none", label: "Nobody yet" },
+  ];
+  const tagChips = [{ value: "", label: "Any tag" }, ...tags.slice(0, 30).map((t) => ({ value: t, label: t }))];
   return (
     <div className="space-y-10">
       <PageHeader title="Members" intro="Who has joined, which plan they're on, and roughly what that brings in each month." />
 
-      {notice && <Notice>{notice}</Notice>}
+      {notice && <Notice tone={sp.tone === "danger" ? "danger" : "default"}>{notice}</Notice>}
 
-      {confirmUser && (
-        <div className="space-y-3 rounded-2xl border-2 border-ink bg-card p-5">
-          <p className="font-medium text-ink">
-            Give {confirmUser.name ?? confirmUser.email} full Studio access?
-          </p>
-          <p className="text-sm text-ink-2">
-            They&apos;ll be able to approve and publish everything here, send the newsletter, and make other people admins too.
-          </p>
-          <div className="flex gap-2">
-            <form action={makeAdminAction}>
-              <input type="hidden" name="id" value={confirmUser.id} />
-              <input type="hidden" name="confirm" value="yes" />
-              <input type="hidden" name="q" value={query} />
-              <SubmitButton>Yes, make them an admin</SubmitButton>
-            </form>
-            <Button asChild variant="outline">
-              <Link href={query ? `/studio/members?q=${encodeURIComponent(query)}` : "/studio/members"}>Cancel</Link>
-            </Button>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Active members" value={active.length} note={`${users.length} accounts in total`} />
@@ -195,21 +159,49 @@ export default async function MembersPage({
 
       <Section
         title="Everyone"
-        intro={query ? `${members.length} matching "${query}".` : "Newest first."}
+        intro={
+          filtered
+            ? `${results.total} ${results.total === 1 ? "member matches" : "members match"} these filters.`
+            : `${results.total} accounts, newest first.`
+        }
         actions={
-          <form action="/studio/members" className="flex gap-2" role="search">
-            <label htmlFor="member-search" className="sr-only">
-              Search members
-            </label>
-            <input id="member-search" name="q" defaultValue={query} placeholder="Name, email or city" className={cn(fieldClass, "w-56 py-2")} />
-            <Button type="submit" size="sm" variant="outline" className="h-auto">
-              Search
-            </Button>
-          </form>
+          <div className="flex flex-wrap gap-2">
+            <form action="/studio/members" className="flex gap-2" role="search">
+              {filters.plan && <input type="hidden" name="plan" value={filters.plan} />}
+              {filters.status && <input type="hidden" name="status" value={filters.status} />}
+              {filters.tag && <input type="hidden" name="tag" value={filters.tag} />}
+              {filters.owner && <input type="hidden" name="owner" value={filters.owner} />}
+              <label htmlFor="member-search" className="sr-only">
+                Search members
+              </label>
+              <input
+                id="member-search"
+                name="q"
+                defaultValue={filters.q}
+                placeholder="Name, email or city"
+                className={cn(fieldClass, "w-56 py-2")}
+              />
+              <Button type="submit" size="sm" variant="outline" className="h-auto">
+                Search
+              </Button>
+            </form>
+            {staff.perms.has("members.export") && (
+              <Button asChild size="sm" variant="outline" className="h-auto">
+                <a href={`/studio/members/export${memberFilterQuery(filters)}`}>Download as a spreadsheet</a>
+              </Button>
+            )}
+          </div>
         }
       >
+        <div className="space-y-2">
+          <Chips label="Plan" filters={filters} name="plan" options={PLAN_CHIPS} />
+          <Chips label="Status" filters={filters} name="status" options={STATUS_CHIPS} />
+          <Chips label="Owner" filters={filters} name="owner" options={ownerChips} />
+          {tags.length > 0 && <Chips label="Tag" filters={filters} name="tag" options={tagChips} />}
+        </div>
+
         {members.length === 0 ? (
-          <Empty>No one matches that search.</Empty>
+          <Empty>No one matches these filters. Try a shorter search or clear a filter.</Empty>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
             <table className="w-full min-w-[820px] text-sm">
@@ -220,48 +212,127 @@ export default async function MembersPage({
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">City</th>
                   <th className="px-4 py-3 font-medium">Joined</th>
-                  <th className="px-4 py-3 font-medium">Access</th>
+                  <th className="px-4 py-3 font-medium">Team</th>
                 </tr>
               </thead>
               <tbody>
-                {members.map((u) => (
-                  <tr key={u.id} className="border-b border-rule last:border-0 align-top">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-ink">{u.name ?? "No name yet"}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="capitalize">{u.plan ?? "–"}</span>
-                      {u.isFounding && <Tag className="ml-2">Founding</Tag>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {isActive(u) ? <Tag tone="positive">Active</Tag> : <Tag>Not paying</Tag>}
-                        {!u.onboardedAt && <Tag tone="warn">Not set up</Tag>}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-ink-2">{u.profile?.location ?? "–"}</td>
-                    <td className="px-4 py-3 text-ink-2">{dateOnly(u.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      {u.role === "admin" ? (
-                        <Tag tone="ink">Admin</Tag>
-                      ) : (
-                        <form action={makeAdminAction}>
-                          <input type="hidden" name="id" value={u.id} />
-                          <input type="hidden" name="q" value={query} />
-                          <Button type="submit" size="xs" variant="outline">
-                            Make admin…
-                          </Button>
-                        </form>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {members.map((u) => {
+                  const comp = !!u.compPlan && (!u.compUntil || u.compUntil > now);
+                  const access = accessState(u, now);
+                  return (
+                    <tr key={u.id} className="border-b border-rule last:border-0 align-top">
+                      <td className="px-4 py-3">
+                        <Link href={`/studio/members/${u.id}`} className="font-medium text-ink hover:underline">
+                          {u.name ?? "No name yet"}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">{u.email}</p>
+                        {(u.tags.length > 0 || u.crmOwnerId) && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {u.tags.map((t) => (
+                              <Tag key={t}>{t}</Tag>
+                            ))}
+                            {u.crmOwnerId && (
+                              <span className="text-[11px] text-muted-foreground">
+                                Looked after by {ownerName.get(u.crmOwnerId) ?? "a former team member"}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="capitalize">{(comp ? u.compPlan : u.plan) ?? "–"}</span>
+                          {comp && <Tag tone="ink">Complimentary</Tag>}
+                          {u.isFounding && <Tag>Founding</Tag>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {isActive(u) || comp ? <Tag tone="positive">Active</Tag> : <Tag>Not paying</Tag>}
+                          {access !== "active" && <Tag tone={access === "muted" ? "warn" : "danger"}>{ACCESS_LABEL[access]}</Tag>}
+                          {!u.onboardedAt && <Tag tone="warn">Not set up</Tag>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-ink-2">{u.profile?.city ?? u.profile?.location ?? "–"}</td>
+                      <td className="px-4 py-3 text-ink-2">{dateOnly(u.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        {u.staffRole ? <Tag tone="ink">{STAFF_ROLE_LABEL[u.staffRole as StaffRoleId]}</Tag> : <span className="text-muted-foreground">–</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
+
+        {(cursor || results.nextCursor) && (
+          <div className="flex gap-3 text-sm">
+            {cursor && (
+              <Link href={`/studio/members${memberFilterQuery(filters)}`} className="underline underline-offset-4">
+                Back to the newest
+              </Link>
+            )}
+            {results.nextCursor && (
+              <Link
+                href={`/studio/members${memberFilterQuery(filters, { cursor: results.nextCursor })}`}
+                className="underline underline-offset-4"
+              >
+                Show the next 50
+              </Link>
+            )}
+          </div>
+        )}
       </Section>
+    </div>
+  );
+}
+
+const PLAN_CHIPS: { value: string; label: string }[] = [
+  { value: "", label: "Any plan" },
+  ...subscriptionTiers.map((t) => ({ value: t.id, label: t.name })),
+  { value: "none", label: "No plan" },
+];
+
+const STATUS_CHIPS: { value: string; label: string }[] = [
+  { value: "", label: "Anyone" },
+  { value: "active", label: "Active" },
+  { value: "lapsed", label: "Lapsed" },
+  { value: "suspended", label: "Suspended" },
+  { value: "banned", label: "Banned" },
+  { value: "staff", label: "Team" },
+];
+
+function Chips({
+  label,
+  name,
+  filters,
+  options,
+}: {
+  label: string;
+  name: "plan" | "status" | "tag" | "owner";
+  filters: MemberFilters;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="no-scrollbar -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="group" aria-label={label}>
+      <span className="mr-1 w-14 text-xs text-muted-foreground">{label}</span>
+      {options.map((o) => {
+        const on = (filters[name] ?? "") === o.value;
+        return (
+          <Link
+            key={o.value || "any"}
+            href={`/studio/members${memberFilterQuery({ ...filters, [name]: o.value })}`}
+            aria-current={on ? "true" : undefined}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors",
+              on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink"
+            )}
+          >
+            {o.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }

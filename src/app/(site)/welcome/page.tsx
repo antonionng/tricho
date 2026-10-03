@@ -25,27 +25,40 @@ export default async function WelcomePage({
   const { plan } = await searchParams;
   const premium = plan === premiumBusiness.id;
   const tier = tierById(premium ? "business" : plan);
+  // Business customers go straight to the guided setup for their partner page.
+  const businessCustomer = premium || plan === "business";
+  const signIn = businessCustomer ? "/login?next=/members/business/setup" : SIGN_IN;
 
   const steps = [
     {
       t: "Sign in with the email you paid with",
       d: "Your account was created from the email address you used at checkout. Enter that address on the sign-in page and we'll email you a sign-in link, or continue with Google if it is a Google address. There is no password to remember.",
     },
-    ...(premium
+    ...(businessCustomer
       ? [
           {
             t: "Make your partner page your own",
-            d: "Your partner page is already live. Open Your business in the member area to add your logo, describe what you offer and give five of your team Professional membership.",
+            d: premium
+              ? "Your partner page is already live. After you sign in, a short guided setup helps you add your logo, describe what you offer and give five of your team Professional membership."
+              : "Your partner page is ready for you to finish. After you sign in, a short guided setup helps you add your logo, describe what you offer, give five of your team Professional membership and publish your page.",
           },
         ]
       : []),
     {
       t: "Set up your profile",
-      d: `Onboarding takes a few minutes. Tell us your discipline and what you work on${
-        tier?.id === "professional" || tier?.id === "business"
-          ? ", claim your directory listing, and upload proof of training or registration if you'd like the verified badge"
-          : ""
-      }.`,
+      d:
+        tier?.id === "professional" || tier?.id === "business" ? (
+          <>
+            Onboarding takes a few minutes. Tell us your discipline and what you work on, and claim your directory listing. If
+            you would like the verified badge, send proof of training or registration from{" "}
+            <Link href="/members/profile/verification" className="underline underline-offset-4">
+              your verification page
+            </Link>{" "}
+            and the team will check it by hand.
+          </>
+        ) : (
+          "Onboarding takes a few minutes. Tell us your discipline and what you work on."
+        ),
     },
     {
       t: "Choose your chapter",
@@ -86,8 +99,8 @@ export default async function WelcomePage({
               </p>
               <div>
                 <Button asChild size="xl">
-                  <Link href={SIGN_IN}>
-                    Sign in to get started <ArrowRight />
+                  <Link href={signIn}>
+                    {businessCustomer ? "Sign in to set up your business" : "Sign in to get started"} <ArrowRight />
                   </Link>
                 </Button>
               </div>

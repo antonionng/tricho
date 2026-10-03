@@ -6,7 +6,7 @@ import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberP
 import { longDate, monthYear } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
-import { editions as library, archive } from "@/content/gazette";
+import { getArchive, getEditions } from "@/content/gazette/loader";
 import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
 import { Cover } from "@/components/gazette/Cover";
 
@@ -17,6 +17,7 @@ export default async function GazettePage() {
   if (!ctx.session?.user?.id) redirect("/login?next=/members/trichozette");
   if (!ctx.allowed) return <Paywall title="Trichozette" body="The monthly Trichozette is written for members." />;
 
+  const [library, archive] = await Promise.all([getEditions(), getArchive()]);
   const articles = await prisma.draft.findMany({
     where: { kind: "gazette_article", status: "published" },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],

@@ -19,6 +19,36 @@ export function postReportedAlert(p: { reason: string; postTitle: string; report
   };
 }
 
+export function reportEscalatedAlert(p: { reason: string; content: string; escalatedBy: string; note?: string | null }): OwnerAlert {
+  return {
+    subject: "A community report needs an owner",
+    heading: "A moderator has escalated a community report because it needs an owner's decision.",
+    body: "The content is still visible unless it was hidden separately. Please review it in Studio and decide what should happen next.",
+    facts: [
+      ["Reason", p.reason],
+      ["Content", clip(p.content, 140)],
+      ["Escalated by", p.escalatedBy],
+      ...(p.note ? ([["Note", clip(p.note, 300)]] as [string, string][]) : []),
+    ],
+    cta: { label: "Review reports", href: "/studio/community" },
+  };
+}
+
+export function verificationSubmittedAlert(p: { name: string | null; email: string; title: string }): OwnerAlert {
+  return {
+    subject: "A member has sent evidence for verification",
+    heading: "A member has sent evidence of their training and is waiting for the verified badge.",
+    body: "The document is private. Open it from the verification queue in Studio, then approve it or explain what is missing.",
+    facts: [
+      ["Member", p.name || "No name given"],
+      ["Email", p.email],
+      ["Document", clip(p.title, 140)],
+    ],
+    cta: { label: "Review verification", href: "/studio/verification" },
+    replyTo: p.email,
+  };
+}
+
 export type DigestLead = { name: string | null; email: string; source: string };
 
 export type OwnerDigest = {
@@ -135,6 +165,12 @@ const digest = ownerDigestEmail({
   ],
 });
 
+const verificationSubmitted = verificationSubmittedAlert({
+  name: "Niamh Byrne",
+  email: "niamh@example.com",
+  title: "IAT Diploma in Trichology, 2019",
+});
+
 export const samples: EmailSample[] = [
   {
     id: "owner-digest",
@@ -150,5 +186,13 @@ export const samples: EmailSample[] = [
     audience: "owners",
     subject: `[Trichollective] ${report.subject}`,
     content: ownerAlertContent(report),
+  },
+  {
+    id: "owner-verification-submitted",
+    name: "Evidence sent for verification",
+    trigger: "Sent to the owners when a member sends a document for the verified badge.",
+    audience: "owners",
+    subject: `[Trichollective] ${verificationSubmitted.subject}`,
+    content: ownerAlertContent(verificationSubmitted),
   },
 ];

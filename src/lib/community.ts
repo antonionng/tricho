@@ -1,36 +1,45 @@
+import { shortName } from "@/lib/names";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   canPostInRoom,
   canReadRoom,
+  LEGACY_SPACES,
   normalizeSpace,
-  ROOMS,
+  roomById,
   type ProfessionId,
+  type Room,
   type RoomId,
+  type KnownRoomId,
 } from "@/config/rooms";
-
-/** Older builds stored these space names. They still resolve through normalizeSpace. */
-const LEGACY_SPACES = ["everyone", "consultation", "cosmetic", "clinical", "medical"];
+import { getAllRooms, getRooms } from "@/lib/rooms";
 
 /** Every raw `space` value that resolves to one of these rooms. */
-export function rawSpacesFor(rooms: RoomId[]) {
-  const wanted = new Set<string>(rooms);
-  return [...rooms, ...LEGACY_SPACES.filter((s) => wanted.has(normalizeSpace(s)))];
+export function rawSpacesFor(roomIds: RoomId[]) {
+  const wanted = new Set<string>(roomIds);
+  return [...roomIds, ...Object.keys(LEGACY_SPACES).filter((s) => wanted.has(LEGACY_SPACES[s]))];
 }
 
 /** Rooms this member can read, in display order. */
-export function readableRooms(professional: boolean) {
-  return ROOMS.filter((r) => canReadRoom(r.id, professional));
+export function readableRooms(professional: boolean, rooms: Room[]) {
+  return rooms.filter((r) => canReadRoom(r.id, professional, rooms));
 }
 
-/** Raw space values a member may NOT read (so unknown spaces still land in the Lounge). */
-export function hiddenRawSpaces(professional: boolean) {
-  const hidden = ROOMS.filter((r) => !canReadRoom(r.id, professional)).map((r) => r.id);
+/**
+ * Raw space values a member may NOT read (so unknown spaces still land in the Lounge).
+ * Pass every room, archived ones included, so retired professional rooms stay private.
+ */
+export function hiddenRawSpaces(professional: boolean, allRooms: Room[]) {
+  const hidden = allRooms.filter((r) => !canReadRoom(r.id, professional, allRooms)).map((r) => r.id);
   return hidden.length ? rawSpacesFor(hidden) : [];
 }
 
+/** Content the team has hidden stays out of every member-facing list. */
+export const visiblePost = { hiddenAt: null } satisfies Prisma.CommunityPostWhereInput;
+export const visibleComment = { hiddenAt: null } satisfies Prisma.CommentWhereInput;
+
 /** The spaces a discipline is most likely to care about, for light personalisation. */
-export const DISCIPLINE_SPACES: Record<ProfessionId, RoomId[]> = {
+export const DISCIPLINE_SPACES: Record<ProfessionId, KnownRoomId[]> = {
   cosmetic: ["head-spa", "devices", "business"],
   clinical: ["hair-loss", "case-room"],
   medical: ["case-room", "hair-loss"],
@@ -48,7 +57,7 @@ const postInclude = (userId?: string) =>
       },
     },
     chapter: { select: { slug: true, city: true } },
-    _count: { select: { comments: true, reactions: true } },
+    _count: { select: { comments: { where: { hiddenAt: null } }, reactions: true } },
     reactions: userId ? { where: { userId }, select: { id: true } } : false,
   }) satisfies Prisma.CommunityPostInclude;
 
@@ -59,6 +68,8 @@ export type FeedPost = {
   title: string | null;
   content: string;
   space: RoomId;
+  /** The room's name, resolved on the server so cards need no room list. */
+  spaceLabel: string | null;
   pinned: boolean;
   createdAt: Date;
   author: {
@@ -74,12 +85,14 @@ export type FeedPost = {
   reacted: boolean;
 };
 
-function toFeedPost(p: RawPost): FeedPost {
+function toFeedPost(p: RawPost, allRooms: Room[]): FeedPost {
+  const space = normalizeSpace(p.space, allRooms);
   return {
     id: p.id,
     title: p.title,
     content: p.content,
-    space: normalizeSpace(p.space),
+    space,
+    spaceLabel: roomById(space, allRooms)?.label ?? null,
     pinned: p.pinned,
     createdAt: p.createdAt,
     author: {
@@ -111,12 +124,13 @@ export async function getPosts({
   authorId?: string;
   take?: number;
 }) {
-  const where: Prisma.CommunityPostWhereInput = {};
+  const allRooms = await getAllRooms();
+  const where: Prisma.CommunityPostWhereInput = { ...visiblePost };
   if (space) {
-    if (!canReadRoom(space, professional)) return [];
+    if (!canReadRoom(space, professional, allRooms)) return [];
     where.space = { in: rawSpacesFor([space]) };
   } else {
-    const hidden = hiddenRawSpaces(professional);
+    const hidden = hiddenRawSpaces(professional, allRooms);
     if (hidden.length) where.space = { notIn: hidden };
   }
   if (chapterId) where.chapterId = chapterId;
@@ -128,7 +142,7 @@ export async function getPosts({
     take,
     include: postInclude(userId),
   });
-  return posts.map(toFeedPost);
+  return posts.map((p) => toFeedPost(p, allRooms));
 }
 
 /**
@@ -174,7 +188,7 @@ export function memberDirectoryWhere(): Prisma.UserWhereInput {
 }
 
 export function firstName(name?: string | null) {
-  return (name || "").trim().split(/\s+/)[0] || "";
+  return shortName(name);
 }
 
 /** Creates a notification. Never throws: a failed notification must not break the action. */
@@ -192,12 +206,13 @@ export async function notify(data: {
 }
 
 /** Rooms a member may post in, shaped for the Composer. */
-export function postableRooms(ctx: {
+export async function postableRooms(ctx: {
   professional: boolean;
   profession: ProfessionId | null;
   unlocked: boolean;
 }) {
-  return ROOMS.filter((r) => canReadRoom(r.id, ctx.professional) && canPostInRoom(r.id, ctx)).map((r) => ({
+  const rooms = await getRooms();
+  return rooms.filter((r) => canReadRoom(r.id, ctx.professional, rooms) && canPostInRoom(r.id, ctx, rooms)).map((r) => ({
     id: r.id,
     label: r.label,
     prompt: r.prompt,

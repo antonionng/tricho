@@ -10,7 +10,8 @@ import { SpaceNav } from "@/components/community/SpaceNav";
 import { getMemberContext } from "@/lib/member";
 import { getPosts, postableRooms } from "@/lib/community";
 import { prisma } from "@/lib/prisma";
-import { canReadRoom, normalizeSpace, roomById, ROOMS } from "@/config/rooms";
+import { canReadRoom, roomById } from "@/config/rooms";
+import { getRooms } from "@/lib/rooms";
 
 export const metadata = { title: "Community" };
 
@@ -20,15 +21,16 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
   if (!ctx.allowed) return <Paywall title="The community" body="Every space, your chapter and direct messages are part of membership." />;
 
   const { space: requested } = await searchParams;
-  const space = requested && ROOMS.some((r) => r.id === requested) ? normalizeSpace(requested) : undefined;
-  const room = space ? roomById(space) : undefined;
-  const locked = space ? !canReadRoom(space, ctx.professional) : false;
+  const allRooms = await getRooms();
+  const space = requested && allRooms.some((r) => r.id === requested) ? requested : undefined;
+  const room = space ? roomById(space, allRooms) : undefined;
+  const locked = space ? !canReadRoom(space, ctx.professional, allRooms) : false;
 
-  const [posts, chapter] = await Promise.all([
+  const [posts, chapter, rooms] = await Promise.all([
     locked ? Promise.resolve([]) : getPosts({ userId: ctx.session.user.id, professional: ctx.professional, space }),
     ctx.chapterId ? prisma.chapter.findUnique({ where: { id: ctx.chapterId }, select: { city: true } }) : null,
+    postableRooms(ctx),
   ]);
-  const rooms = postableRooms(ctx);
 
   return (
     <MemberPage>
@@ -40,7 +42,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
 
       <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
         <aside className="lg:sticky lg:top-20 lg:self-start">
-          <SpaceNav active={space} professional={ctx.professional} />
+          <SpaceNav active={space} professional={ctx.professional} rooms={allRooms} />
         </aside>
 
         <div className="flex min-w-0 flex-col gap-4">
@@ -49,10 +51,13 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
               <span className="grid h-11 w-11 place-items-center rounded-full bg-paper-2">
                 <Lock className="h-5 w-5 stroke-[1.6]" />
               </span>
-              <h2 className="display mt-5 text-3xl">The Case Room is for Professional members</h2>
+              <h2 className="display mt-5 text-3xl">
+                {room?.id === "case-room" ? "The Case Room" : room?.label ?? "This space"} is for Professional members
+              </h2>
               <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-2">
-                Qualified practitioners bring anonymised cases here and hear how colleagues from other disciplines would
-                approach them. It is kept small and careful on purpose.
+                {room?.id === "case-room"
+                  ? "Qualified practitioners bring anonymised cases here and hear how colleagues from other disciplines would approach them. It is kept small and careful on purpose."
+                  : "Professional membership opens this space so you can learn alongside qualified colleagues from every discipline."}
               </p>
               <Button asChild size="lg" className="mt-6">
                 <Link href="/pricing#professional">See Professional</Link>

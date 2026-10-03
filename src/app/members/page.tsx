@@ -145,7 +145,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
             </Card>
           )}
 
-          <Composer rooms={postableRooms(ctx)} defaultSpace="lounge" chapter={user.chapter} collapsed name={name || null} />
+          <Composer rooms={await postableRooms(ctx)} defaultSpace="lounge" chapter={user.chapter} collapsed name={name || null} />
 
           <SectionLabel className="mt-4" action={<Link href="/members/community" className="text-sm text-ink-2 hover:underline">All spaces</Link>}>
             Latest from the collective

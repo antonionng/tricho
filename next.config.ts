@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   },
   // Brand portal logo uploads are up to 1MB, sent with the rest of the page form.
   experimental: {
-    serverActions: { bodySizeLimit: "2mb" },
+    serverActions: { bodySizeLimit: "10mb" },
   },
   images: {
     remotePatterns: [
@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      // Logos and photos uploaded to Supabase Storage.
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
     ],
   },
 };

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
 import { news } from "@/content/news";
 import { normalizeSpace, roomById } from "@/config/rooms";
+import { getAllRooms } from "@/lib/rooms";
 import { generate } from "./ai";
 import { SYSTEM_USER_EMAIL } from "./publish";
 import type { AgentDefinition } from "./types";
@@ -37,15 +38,16 @@ const EVENT_KIND_LABEL: Record<string, string> = {
 
 export async function readMonth(now: Date) {
   const since = new Date(now.getTime() - 31 * DAY);
+  const rooms = await getAllRooms();
   const posts = await prisma.communityPost.findMany({
-    where: { createdAt: { gte: since }, author: { email: { not: SYSTEM_USER_EMAIL } } },
+    where: { createdAt: { gte: since }, hiddenAt: null, author: { email: { not: SYSTEM_USER_EMAIL } } },
     select: {
       id: true,
       title: true,
       content: true,
       space: true,
-      comments: { select: { content: true }, take: 8 },
-      _count: { select: { comments: true, reactions: true } },
+      comments: { where: { hiddenAt: null }, select: { content: true }, take: 8 },
+      _count: { select: { comments: { where: { hiddenAt: null } }, reactions: true } },
     },
     take: 300,
   });
@@ -54,7 +56,7 @@ export async function readMonth(now: Date) {
       id: p.id,
       title: p.title,
       content: p.content,
-      space: normalizeSpace(p.space),
+      space: normalizeSpace(p.space, rooms),
       score: p._count.comments * 2 + p._count.reactions,
       comments: p.comments.map((c) => c.content),
     }))
@@ -72,7 +74,7 @@ export async function readMonth(now: Date) {
     .filter(([space]) => space !== "introductions")
     .sort((a, b) => b[1].score - a[1].score);
   const keywords = topKeywords(ranked.map((p) => `${p.title ?? ""} ${p.content}`), 8);
-  return { ranked, spaces, keywords };
+  return { ranked, spaces, keywords, rooms };
 }
 
 export const gazetteAgent: AgentDefinition = {
@@ -87,7 +89,7 @@ export const gazetteAgent: AgentDefinition = {
     const { now } = ctx;
     const edition = monthKey(now);
     const editionLabel = monthLabel(now);
-    const { ranked, spaces, keywords } = await readMonth(now);
+    const { ranked, spaces, keywords, rooms } = await readMonth(now);
     let made = 0;
 
     const add = async (slot: string, title: string, summary: string, body: string) => {
@@ -103,7 +105,7 @@ export const gazetteAgent: AgentDefinition = {
     };
 
     const topSpaceId = spaces[0]?.[0] ?? "lounge";
-    const topRoom = roomById(topSpaceId);
+    const topRoom = roomById(topSpaceId, rooms);
     const topPosts = spaces[0]?.[1].posts.slice(0, 6) ?? [];
     const themeWords = keywords.slice(0, 4);
 
@@ -176,13 +178,13 @@ export const gazetteAgent: AgentDefinition = {
     /* 3. Questions from the community, paraphrased and anonymous. */
     {
       const questions = ranked
-        .filter((p) => normalizeSpace(p.space) !== "case-room")
+        .filter((p) => p.space !== "case-room" && !roomById(p.space, rooms)?.professionalOnly)
         .filter((p) => /\?/.test(`${p.title ?? ""} ${p.content}`))
         .slice(0, 6);
       const ai = await generate(
         "Write a 'Questions from the community' roundup for Trichozette. For each question below, write a '## ' subheading that paraphrases the question (never copy it word for word), then one short paragraph summarising the kinds of answers members shared, or noting that it is still open. Never name or describe anyone in a way that could identify them. No clinical advice.",
         questions
-          .map((q) => `Space: ${roomById(q.space)?.label ?? q.space}\nQuestion: ${q.title ?? ""} ${excerpt(q.content, 400)}\nReplies: ${q.comments.map((c) => excerpt(c, 200)).join(" | ") || "none yet"}`)
+          .map((q) => `Space: ${roomById(q.space, rooms)?.label ?? q.space}\nQuestion: ${q.title ?? ""} ${excerpt(q.content, 400)}\nReplies: ${q.comments.map((c) => excerpt(c, 200)).join(" | ") || "none yet"}`)
           .join("\n\n") || "No questions this month."
       );
       const body =
@@ -191,7 +193,7 @@ export const gazetteAgent: AgentDefinition = {
           ? [
               "A few of the questions members asked each other this month, gathered here so nobody misses them. Names are left out; the threads are in the community if you'd like to join in.",
               ...questions.flatMap((q) => [
-                `## ${roomById(q.space)?.label ?? "Community"}: ${stripQuestion(q.title ?? excerpt(q.content, 70))}`,
+                `## ${roomById(q.space, rooms)?.label ?? "Community"}: ${stripQuestion(q.title ?? excerpt(q.content, 70))}`,
                 q.comments.length
                   ? `A member asked about ${lowerFirst(stripQuestion(q.title ?? "this"))}. ${q.comments.length} ${q.comments.length === 1 ? "person has" : "people have"} replied so far. ${site.founder}: summarise the replies here in a sentence or two.`
                   : `A member asked about ${lowerFirst(stripQuestion(q.title ?? "this"))}. It's still waiting for an answer, so if you have experience here, please add it.`,

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { requireAdmin } from "@/lib/member";
+import { getStaff } from "@/lib/staff";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
 import { BrandMark } from "@/components/brand/BrandMark";
@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 };
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
-  const admin = await requireAdmin();
-  if (!admin) {
+  const staff = await getStaff();
+  if (!staff) {
     const session = await auth();
     if (!session?.user) redirect("/login?next=/studio");
     return (
@@ -36,11 +36,15 @@ export default async function StudioLayout({ children }: { children: React.React
     );
   }
 
-  const inboxCount = await prisma.draft.count({ where: { status: "draft" } });
+  const inboxCount = staff.perms.has("inbox.view") ? await prisma.draft.count({ where: { status: "draft", kind: { not: "event_prefill" } } }) : 0;
 
   return (
     <div className="min-h-screen bg-paper">
-      <StudioRail inboxCount={inboxCount} />
+      <StudioRail
+        inboxCount={inboxCount}
+        perms={[...staff.perms]}
+        who={{ name: staff.name ?? staff.email, role: staff.role }}
+      />
       <div className="lg:ml-60">
         <main className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:px-10 lg:py-10">{children}</main>
       </div>

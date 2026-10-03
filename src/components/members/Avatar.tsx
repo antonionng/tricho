@@ -12,7 +12,8 @@ export function Avatar({
   className,
 }: {
   name?: string | null;
-  src?: string | null;
+  /** A photo URL, or several in order of preference: profile photo, listing photo, account image. */
+  src?: string | null | (string | null | undefined)[];
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
@@ -22,10 +23,11 @@ export function Avatar({
     lg: "h-14 w-14 text-base",
     xl: "h-20 w-20 text-xl",
   }[size];
-  if (src) {
+  const photo = (Array.isArray(src) ? src : [src]).find((s): s is string => !!s);
+  if (photo) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" className={cn("shrink-0 rounded-full object-cover", box, className)} />
+      <img src={photo} alt="" className={cn("shrink-0 rounded-full object-cover", box, className)} />
     );
   }
   return (

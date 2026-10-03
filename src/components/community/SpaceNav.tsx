@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
-import { ROOMS, canReadRoom, type RoomId } from "@/config/rooms";
+import { canReadRoom, type Room, type RoomId } from "@/config/rooms";
 import { cn } from "@/lib/utils";
 
 /** Chips that scroll sideways on mobile, a quiet list on desktop. */
-export function SpaceNav({ active, professional }: { active?: RoomId; professional: boolean }) {
-  const items = [{ id: undefined, label: "All spaces" }, ...ROOMS];
+export function SpaceNav({ active, professional, rooms }: { active?: RoomId; professional: boolean; rooms: Room[] }) {
+  const items = [{ id: undefined, label: "All spaces" }, ...rooms];
   return (
     <nav aria-label="Spaces">
       <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
         {items.map((r) => {
-          const locked = r.id ? !canReadRoom(r.id, professional) : false;
+          const locked = r.id ? !canReadRoom(r.id, professional, rooms) : false;
           const isActive = active === r.id;
           return (
             <li key={r.id ?? "all"} className="shrink-0">

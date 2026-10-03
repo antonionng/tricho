@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { professionById } from "@/config/rooms";
 import { SubmitButton } from "@/components/studio/SubmitButton";
-import { Card, Empty, PageHeader, Section, Tag, dateOnly } from "@/components/studio/ui";
+import { Card, Empty, PageHeader, Section, Tag, dateOnly, NoAccess } from "@/components/studio/ui";
 import { studioPage } from "../_lib/guard";
 import { reviewListingAction, toggleVerifiedAction } from "../actions";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 const DAY = 24 * 60 * 60 * 1000;
 
 export default async function ListingsPage() {
-  if (!(await studioPage("/studio/listings"))) return null;
+  if (!(await studioPage("/studio/listings", "listings.view"))) return <NoAccess what="listings" />;
   const now = new Date();
 
   const [pending, expiring, listed] = await Promise.all([

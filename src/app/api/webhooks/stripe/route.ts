@@ -5,7 +5,16 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { isPremiumPriceId, premiumBusiness, tierById, tierByPriceId } from "@/config/subscriptions";
-import { activatePremiumPartner, endPremiumPartner, premiumCheckoutAnswers } from "@/lib/partners";
+import {
+  activatePremiumPartner,
+  checkoutAddress,
+  checkoutBrandAnswers,
+  endBusinessPartner,
+  endPremiumPartner,
+  ensureBusinessPartner,
+  premiumCheckoutAnswers,
+} from "@/lib/partners";
+import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import {
   formatMoney,
@@ -17,6 +26,8 @@ import {
   welcomeEmail,
 } from "@/lib/mail/templates/billing";
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
+import { handleTicketWebhook } from "@/lib/tickets";
+import { onReferralCheckout, onReferralInvoicePaid, referralPriorStateSafe } from "@/lib/referrals";
 
 /** Period end moved onto subscription items in newer Stripe API versions. */
 function getPeriodEnd(subscription: Stripe.Subscription): Date | null {
@@ -63,6 +74,14 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook Error: ${message}`, { status: 400 });
   }
 
+  // Event tickets (one-off payments) are handled in their own module, before the membership logic.
+  try {
+    if (await handleTicketWebhook(event)) return new NextResponse(null, { status: 200 });
+  } catch (error) {
+    console.error("[STRIPE_WEBHOOK_TICKETS]", error);
+    return new NextResponse("Ticket handler failed", { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -79,6 +98,9 @@ export async function POST(req: Request) {
           session.customer_email ||
           ""
         ).toLowerCase();
+
+        // Read before the account is updated, so a returning member is not counted as a new referral.
+        const referralPrior = await referralPriorStateSafe(session);
 
         const data = {
           stripeSubscriptionId: subscription.id,
@@ -108,6 +130,9 @@ export async function POST(req: Request) {
             data: { role: tier.grantsRole },
           });
         }
+
+        // Invite colleagues: record a code used at checkout, and credit any rewards the payer had banked. Never throws.
+        await onReferralCheckout(session, referralPrior);
 
         // First-touch attribution: keep the first source we saw.
         if (session.metadata?.source && email) {
@@ -164,10 +189,49 @@ export async function POST(req: Request) {
         const planName = premium ? premiumBusiness.name : tier?.name;
 
         // Premium Business: the partner page goes live as soon as it is paid.
-        if (premium && to) {
-          await activatePremiumPartner({ ownerEmail: to, isFounding: founding, ...premiumCheckoutAnswers(session.custom_fields) });
+        // Business: the page is prepared from the short form and published by the brand after setup.
+        const businessPlan = !premium && tier?.id === "business";
+        if ((premium || businessPlan) && to) {
+          const answers = checkoutBrandAnswers(session.metadata, session.custom_fields) ?? premiumCheckoutAnswers(session.custom_fields);
+          const partner = premium
+            ? await activatePremiumPartner({ ownerEmail: to, isFounding: founding, ...answers })
+            : await ensureBusinessPartner({ ownerEmail: to, ...answers });
           revalidatePath("/partners");
           revalidatePath("/for-business");
+          revalidatePath("/members/business");
+
+          // The CRM record. Safe to repeat on a retried event; the timeline note is added once.
+          try {
+            const firstTime = await claimOnce(`stripe:${event.id}:crm`);
+            await upsertOrganisationFromIntake({
+              name: partner.name,
+              category: partner.category,
+              website: partner.website ?? answers.website,
+              email: to,
+              contactName: name,
+              phone: session.customer_details?.phone ?? null,
+              address: checkoutAddress(session.customer_details?.address),
+              source: premium ? "premium-checkout" : "business-checkout",
+              interest: premium ? "premium" : "business",
+              stage: "customer",
+              accountEmail: to,
+              partnerId: partner.id,
+              intake: {
+                plan: premium ? "premium" : "business",
+                brand: answers.name,
+                category: answers.category,
+                website: answers.website,
+                founding,
+                interval: subscription.items.data[0]?.price.recurring?.interval ?? null,
+                checkoutSessionId: session.id,
+              },
+              note: firstTime
+                ? `Paid for ${planName ?? "a business plan"}${founding ? " at the founding price" : ""}, ${formatMoney(session.amount_total, session.currency)}.`
+                : null,
+            });
+          } catch (error) {
+            console.error("[STRIPE_WEBHOOK_CRM]", error);
+          }
         }
 
         if (to && planName) {
@@ -216,6 +280,8 @@ export async function POST(req: Request) {
           data: {
             stripePriceId: priceId,
             stripeCurrentPeriodEnd: getPeriodEnd(subscription),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            ...(event.type === "invoice.payment_succeeded" ? { lastPaymentFailedAt: null } : {}),
             ...(tier ? { plan: tier.id } : {}),
           },
         });
@@ -224,6 +290,10 @@ export async function POST(req: Request) {
             where: { stripeSubscriptionId: subscription.id, ...NOT_ADMIN },
             data: { role: tier.grantsRole },
           });
+        }
+        // Invite colleagues: a first payment earns the referrer's reward; any payment credits banked rewards. Never throws.
+        if (event.type === "invoice.payment_succeeded") {
+          await onReferralInvoicePaid(event.data.object as Stripe.Invoice);
         }
         break;
       }
@@ -236,7 +306,7 @@ export async function POST(req: Request) {
         });
         await prisma.user.updateMany({
           where: { stripeSubscriptionId: subscription.id },
-          data: { stripeCurrentPeriodEnd: getPeriodEnd(subscription), plan: null },
+          data: { stripeCurrentPeriodEnd: getPeriodEnd(subscription), plan: null, cancelAtPeriodEnd: false },
         });
         await prisma.user.updateMany({
           where: { stripeSubscriptionId: subscription.id, ...NOT_ADMIN },
@@ -244,14 +314,35 @@ export async function POST(req: Request) {
         });
 
         const endedPriceId = subscription.items?.data?.[0]?.price.id;
-        if (member?.email && isPremiumPriceId(endedPriceId)) {
-          await endPremiumPartner(member.email.toLowerCase());
-          revalidatePath("/partners");
+        const endedPremium = isPremiumPriceId(endedPriceId);
+        const endedBusiness = !endedPremium && tierByPriceId(endedPriceId)?.id === "business";
+        if (member?.email && (endedPremium || endedBusiness)) {
+          const ownerEmail = member.email.toLowerCase();
+          if (endedPremium) await endPremiumPartner(ownerEmail);
+          else await endBusinessPartner(ownerEmail);
+          revalidatePath("/partners", "layout");
           revalidatePath("/for-business");
+          revalidatePath("/members/perks");
+
+          // The CRM record becomes churned, unless the business still has a Premium page the team invoices.
+          const stillPremium = endedBusiness
+            ? await prisma.partner.findFirst({ where: { ownerEmail, tier: "premium", hidden: false }, select: { id: true } })
+            : null;
+          if (!stillPremium) {
+            await prisma.organisation
+              .updateMany({
+                where: {
+                  OR: [{ accountEmail: { equals: ownerEmail, mode: "insensitive" } }, { partner: { ownerEmail } }],
+                  stage: { notIn: ["lost", "churned"] },
+                },
+                data: { stage: "churned" },
+              })
+              .catch((error) => console.error("[STRIPE_WEBHOOK_CRM]", error));
+          }
         }
 
         if (member?.email) {
-          const plan = isPremiumPriceId(endedPriceId)
+          const plan = endedPremium
             ? premiumBusiness.name
             : tierByPriceId(endedPriceId)?.name ?? tierById(member.plan)?.name ?? "Trichollective";
           const ended = membershipEndedEmail({ name: member.name, plan });
@@ -278,8 +369,9 @@ export async function POST(req: Request) {
               ...(typeof invoice.customer === "string" ? [{ stripeCustomerId: invoice.customer }] : []),
             ],
           },
-          select: { email: true, name: true, plan: true, stripePriceId: true },
+          select: { id: true, email: true, name: true, plan: true, stripePriceId: true },
         });
+        if (member) await prisma.user.update({ where: { id: member.id }, data: { lastPaymentFailedAt: new Date() } });
         const to = (member?.email || invoice.customer_email || "").toLowerCase();
         if (!to) break;
         const name = member?.name || invoice.customer_name || null;

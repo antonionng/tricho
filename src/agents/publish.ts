@@ -1,6 +1,7 @@
 import type { Draft, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeSpace } from "@/config/rooms";
+import { getRooms } from "@/lib/rooms";
 import { deliver, wantsList, type EmailList } from "@/lib/mail/send";
 import type { EmailContent } from "@/lib/mail/layout";
 import { draftEmailContent } from "@/lib/mail/templates/members";
@@ -118,7 +119,7 @@ export async function publishDraft(id: string): Promise<PublishResult> {
           title: str(payload.title) || draft.title,
           content: draft.body,
           category: "discussion",
-          space: normalizeSpace(str(payload.space) || "lounge"),
+          space: normalizeSpace(str(payload.space) || "lounge", await getRooms()),
           ...(payload.pin === true ? { pinned: true } : {}),
           // Agent posts go out as the team account so they read as the collective, not as one person.
           authorId: system.id,

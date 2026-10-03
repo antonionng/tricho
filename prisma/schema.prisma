@@ -60,6 +60,71 @@ enum ReferralStatus {
   seen
 }
 
+/// Staff roles in Studio. Separate from UserRole, which billing writes.
+enum StaffRole {
+  owner
+  editor
+  events
+  moderator
+  support
+}
+
+enum AccessStatus {
+  active
+  suspended
+  banned
+}
+
+enum EditionStatus {
+  generating
+  draft
+  scheduled
+  published
+  withdrawn
+}
+
+enum EpisodeStatus {
+  planning
+  draft
+  published
+  withdrawn
+}
+
+/// Where a business sits with us, from first contact to customer.
+enum OrgStage {
+  lead
+  contacted
+  proposal
+  won
+  customer
+  lost
+  churned
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum RewardStatus {
+  /// Signed up with the code; waiting for their first payment to clear.
+  pending
+  /// Earned, but the referrer has no paid membership to credit yet.
+  banked
+  /// Taken off the referrer's next bill through Stripe.
+  credited
+  /// Cancelled by the team, e.g. a refund or a self-referral.
+  void
+}
+
+enum TicketStatus {
+  pending
+  paid
+  refunded
+  cancelled
+}
+
 enum EventKind {
   gathering
   masterclass
@@ -69,14 +134,39 @@ enum EventKind {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(individual)
-  accounts      Account[]
-  sessions      Session[]
+  id                  String       @id @default(cuid())
+  name                String?
+  email               String?      @unique
+  emailVerified       DateTime?
+  image               String?
+  role                UserRole     @default(individual)
+  /// Set for the Trichollective team. Decides what they can do in Studio.
+  staffRole           StaffRole?
+  accessStatus        AccessStatus @default(active)
+  accessReason        String?
+  /// When a suspension ends. Empty with "suspended" means until it is lifted.
+  accessUntil         DateTime?
+  /// Can read the community but not post or comment until this time.
+  mutedUntil          DateTime?
+  /// A plan given by the team without Stripe, e.g. for a speaker or partner.
+  compPlan            Plan?
+  compUntil           DateTime?
+  /// Team labels, e.g. "speaker", "ambassador", "dublin-2026".
+  tags                String[]     @default([])
+  /// The person on the team who looks after this member.
+  crmOwnerId          String?
+  /// Their personal code for inviting colleagues, e.g. "AOIFE-7K2".
+  referralCode        String?      @unique
+  /// Who referred them, if they joined with a code.
+  referredById        String?
+  referredByCode      String?
+  /// Set from Stripe when they have cancelled but are still inside the paid period.
+  cancelAtPeriodEnd   Boolean      @default(false)
+  lastPaymentFailedAt DateTime?
+  /// Updated at most once an hour when they use the member area.
+  lastSeenAt          DateTime?
+  accounts            Account[]
+  sessions            Session[]
 
   stripeCustomerId       String?   @unique
   stripeSubscriptionId   String?   @unique
@@ -101,15 +191,24 @@ model User {
   reactions Reaction[]
   listings  DirectoryListing[]
 
-  following     Follow[]             @relation("follower")
-  followers     Follow[]             @relation("followee")
-  conversations ConversationMember[]
-  messages      Message[]
-  notifications Notification[]
-  reports       Report[]
-  referralsSent Referral[]           @relation("referralFrom")
-  referralsIn   Referral[]           @relation("referralTo")
-  rsvps         EventRsvp[]
+  following      Follow[]              @relation("follower")
+  followers      Follow[]              @relation("followee")
+  conversations  ConversationMember[]
+  messages       Message[]
+  notifications  Notification[]
+  reports        Report[]
+  referralsSent  Referral[]            @relation("referralFrom")
+  referralsIn    Referral[]            @relation("referralTo")
+  rsvps          EventRsvp[]
+  rewardsEarned  ReferralReward[]      @relation("rewardReferrer")
+  rewardsFrom    ReferralReward[]      @relation("rewardReferred")
+  tickets        EventTicket[]
+  auditLogs      AuditLog[]            @relation("auditActor")
+  memberNotes    MemberNote[]          @relation("noteSubject")
+  notesWritten   MemberNote[]          @relation("noteAuthor")
+  files          StoredFile[]
+  verifications  VerificationRequest[] @relation("verificationSubject")
+  orgMemberships OrganisationContact[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -127,6 +226,30 @@ model TrichologistProfile {
   profession     Profession?
   listingStatus  ListingStatus @default(draft)
   isVerified     Boolean       @default(false)
+
+  /// The member's own profile is the source of truth; the directory listing is kept in step with it.
+  photoFileId     String?
+  headline        String?
+  practiceName    String?
+  city            String?
+  country         String?
+  specialisms     String[] @default([])
+  services        String[] @default([])
+  /// { title, body?, year? }[]: training, qualifications and registrations.
+  qualifications  Json?
+  /// Professional bodies, e.g. "IAT", "WTS".
+  memberships     String[] @default([])
+  yearsInPractice Int?
+  /// { instagram?, tiktok?, linkedin?, facebook?, youtube? }
+  socials         Json?
+  addressLine1    String?
+  addressLine2    String?
+  postcode        String?
+  showPhone       Boolean  @default(false)
+  showAddress     Boolean  @default(false)
+  /// What they want from the community, e.g. "referrals", "learning", "business".
+  goals           String[] @default([])
+  interests       String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -176,19 +299,21 @@ model DirectoryListing {
 }
 
 model CommunityPost {
-  id        String     @id @default(cuid())
-  title     String?
-  content   String     @db.Text
-  category  String
-  space     String     @default("everyone")
-  pinned    Boolean    @default(false)
-  chapterId String?
-  chapter   Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  authorId  String
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments  Comment[]
-  reactions Reaction[]
-  reports   Report[]
+  id           String     @id @default(cuid())
+  title        String?
+  content      String     @db.Text
+  category     String
+  space        String     @default("everyone")
+  pinned       Boolean    @default(false)
+  chapterId    String?
+  chapter      Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+  reactions    Reaction[]
+  reports      Report[]
+  hiddenAt     DateTime?
+  hiddenReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,12 +323,15 @@ model CommunityPost {
 }
 
 model Comment {
-  id       String        @id @default(cuid())
-  content  String        @db.Text
-  postId   String
-  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  authorId String
-  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid())
+  content      String        @db.Text
+  postId       String
+  post         CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reports      Report[]
+  hiddenAt     DateTime?
+  hiddenReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -362,18 +490,26 @@ model Notification {
 }
 
 model Report {
-  id         String        @id @default(cuid())
-  postId     String
-  post       CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporterId String?
-  reporter   User?         @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  id           String        @id @default(cuid())
+  postId       String
+  post         CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId   String?
+  reporter     User?         @relation(fields: [reporterId], references: [id], onDelete: SetNull)
   /// "member" or the agent name that flagged it.
-  source     String        @default("member")
-  reason     String
-  resolvedAt DateTime?
-  createdAt  DateTime      @default(now())
+  source       String        @default("member")
+  reason       String
+  /// Set when the report is about a comment rather than the post itself.
+  commentId    String?
+  comment      Comment?      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  /// The moderation assistant's view: { severity, category, rationale, suggestedAction }.
+  aiVerdict    Json?
+  /// "dismissed" | "hidden" | "removed" | "muted" | "escalated"
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
 
-  @@unique([postId, reporterId])
+  @@index([postId, reporterId])
   @@index([resolvedAt, createdAt])
 }
 
@@ -386,46 +522,57 @@ model Enquiry {
   email     String
   message   String           @db.Text
   status    EnquiryStatus    @default(new)
+  /// Team note, e.g. why it was closed.
+  teamNote  String?
   createdAt DateTime         @default(now())
 
   @@index([listingId, createdAt])
 }
 
 model Referral {
-  id        String         @id @default(cuid())
-  fromId    String
-  from      User           @relation("referralFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  toId      String
-  to        User           @relation("referralTo", fields: [toId], references: [id], onDelete: Cascade)
-  summary   String         @db.Text
-  status    ReferralStatus @default(sent)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id            String         @id @default(cuid())
+  fromId        String
+  from          User           @relation("referralFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId          String
+  to            User           @relation("referralTo", fields: [toId], references: [id], onDelete: Cascade)
+  summary       String         @db.Text
+  status        ReferralStatus @default(sent)
+  /// Why this colleague, e.g. "Needs a trichologist's assessment for diffuse shedding".
+  reason        String?
+  /// Non-identifying context only, e.g. "Woman in her 40s".
+  clientContext String?
+  responseNote  String?
+  respondedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([toId, status])
 }
 
 model Event {
-  id             String      @id @default(cuid())
-  slug           String      @unique
+  id             String        @id @default(cuid())
+  slug           String        @unique
   title          String
   kind           EventKind
   summary        String
-  body           String?     @db.Text
+  body           String?       @db.Text
   startsAt       DateTime
   endsAt         DateTime?
   venue          String?
   city           String?
-  online         Boolean     @default(false)
-  priceGBP       Int         @default(0)
-  memberPriceGBP Int         @default(0)
+  online         Boolean       @default(false)
+  priceGBP       Int           @default(0)
+  memberPriceGBP Int           @default(0)
   capacity       Int?
   /// External ticketing (e.g. Eventbrite) until native ticketing ships.
   ticketUrl      String?
-  published      Boolean     @default(false)
+  published      Boolean       @default(false)
+  /// Sell tickets on Trichollective through Stripe instead of an external link.
+  sellTickets    Boolean       @default(false)
   chapterId      String?
-  chapter        Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  chapter        Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   rsvps          EventRsvp[]
+  tickets        EventTicket[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -500,29 +647,35 @@ model AgentSetting {
 
 /// Business and Premium Business partners shown on /partners. Only real, published partners appear.
 model Partner {
-  id            String    @id @default(cuid())
-  slug          String    @unique
+  id            String        @id @default(cuid())
+  slug          String        @unique
   name          String
   /// "premium" or "business"
-  tier          String    @default("premium")
+  tier          String        @default("premium")
   /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
   category      String
   logoUrl       String?
-  blurb         String    @db.Text
+  blurb         String        @db.Text
   website       String?
   /// The member perk, shown in the member area.
-  perk          String?   @db.Text
+  perk          String?       @db.Text
   contactEmail  String?
-  isFounding    Boolean   @default(false)
-  published     Boolean   @default(false)
+  /// Shown on the public partner page when set.
+  publicEmail   String?
+  publicPhone   String?
+  isFounding    Boolean       @default(false)
+  published     Boolean       @default(false)
   featuredUntil DateTime?
   /// The sign-in email of the person who manages this page from the member area.
-  ownerEmail    String?   @unique
+  ownerEmail    String?       @unique
   /// Taken down by the Studio: hidden, and the owner can't republish it.
-  hidden        Boolean   @default(false)
+  hidden        Boolean       @default(false)
   logo          PartnerLogo?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  logoFileId    String?
+  organisation  Organisation?
+  stats         PartnerStat[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([published, tier])
 }
@@ -538,11 +691,11 @@ model PartnerLogo {
 
 /// A team member given Professional membership through a business plan (five per business).
 model BusinessSeat {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   /// The business account holder's sign-in email.
   ownerEmail String
   email      String
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime @default(now())
 
   @@unique([ownerEmail, email])
   @@index([email])
@@ -556,4 +709,334 @@ model EmailLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// Every change made in Studio, for owners to look back on.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("auditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail String
+  /// e.g. "member.suspend", "staff.assign", "gazette.publish"
+  action     String
+  /// "user" | "post" | "event" | "edition" | "room" | "draft" | "episode" ...
+  targetType String
+  targetId   String?
+  summary    String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+/// Private notes the team keeps about a member.
+model MemberNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("noteSubject", fields: [userId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("noteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// Community rooms the team can create and edit. Seeded from DEFAULT_ROOMS.
+model CommunityRoom {
+  /// The slug, e.g. "case-room".
+  id               String    @id
+  label            String
+  blurb            String
+  prompt           String
+  professionalOnly Boolean   @default(false)
+  noBrands         Boolean   @default(false)
+  aiModeration     Boolean   @default(false)
+  position         Int       @default(0)
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+/// A Trichozette edition written in Studio. Built-in editions stay in src/content/gazette.
+model GazetteEdition {
+  id            String            @id @default(cuid())
+  slug          String            @unique
+  number        Int               @default(0)
+  /// "current" | "archive"
+  series        String            @default("current")
+  status        EditionStatus     @default(draft)
+  title         String
+  fade          String            @default("")
+  theme         String            @default("")
+  standfirst    String            @default("") @db.Text
+  coverImageKey String?
+  coverTone     String            @default("light")
+  audience      String[]
+  period        String?
+  focus         String?
+  /// Page[] from src/content/gazette/types.ts, validated by schema.ts.
+  pages         Json              @default("[]")
+  /// { label, url }[]
+  sources       Json?
+  newsTopics    String[]
+  brief         String?           @db.Text
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  createdById   String?
+  updatedById   String?
+  revisions     GazetteRevision[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model GazetteRevision {
+  id        String         @id @default(cuid())
+  editionId String
+  edition   GazetteEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  authorId  String?
+  note      String?
+  createdAt DateTime       @default(now())
+
+  @@index([editionId, createdAt])
+}
+
+/// A podcast episode. Audio lives with the podcast host; we keep the notes and transcript.
+model PodcastEpisode {
+  id               String        @id @default(cuid())
+  slug             String        @unique
+  number           Int?
+  season           Int?
+  status           EpisodeStatus @default(planning)
+  title            String
+  fade             String        @default("")
+  summary          String        @default("") @db.Text
+  showNotes        String        @default("") @db.Text
+  /// { t: seconds, label }[]
+  keyMoments       Json?
+  quotes           String[]
+  guestName        String?
+  guestRole        String?
+  guestBio         String?       @db.Text
+  guestUserId      String?
+  topic            String?
+  /// The host's direct MP3 file.
+  audioUrl         String?
+  embedUrl         String?
+  /// The host's GUID, used to match episodes when syncing the feed.
+  externalId       String?       @unique
+  durationSec      Int?
+  coverImageKey    String?
+  transcript       String?       @db.Text
+  /// "none" | "transcribing" | "ready" | "failed"
+  transcriptStatus String        @default("none")
+  /// Interview questions and running order.
+  plan             Json?
+  /// Transcript readable by members only.
+  membersOnly      Boolean       @default(true)
+  publishedAt      DateTime?
+  createdById      String?
+  updatedById      String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+/// An uploaded file. Stored in Supabase Storage when it is configured, otherwise in the database.
+model StoredFile {
+  id          String   @id @default(cuid())
+  /// "logo" | "avatar" | "document"
+  kind        String
+  /// "supabase" | "db"
+  driver      String
+  bucket      String
+  path        String
+  contentType String
+  size        Int
+  width       Int?
+  height      Int?
+  /// Original file name, for documents.
+  name        String?
+  /// Public files can be shown to anyone; private ones only to their owner and the team.
+  isPublic    Boolean  @default(true)
+  data        Bytes?
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([ownerId, kind])
+}
+
+/// A business we work with or want to: a brand, clinic, salon, supplier or school.
+model Organisation {
+  id            String                @id @default(cuid())
+  name          String
+  /// "brand" | "clinic" | "salon" | "supplier" | "education" | "other"
+  kind          String                @default("brand")
+  category      String?
+  website       String?
+  email         String?
+  phone         String?
+  addressLine1  String?
+  addressLine2  String?
+  city          String?
+  region        String?
+  postcode      String?
+  country       String?
+  companyNumber String?
+  vatNumber     String?
+  /// "1" | "2-10" | "11-50" | "51-200" | "200+"
+  size          String?
+  description   String?               @db.Text
+  logoFileId    String?
+  /// { instagram?, tiktok?, linkedin?, facebook?, youtube? }
+  socials       Json?
+  tags          String[]              @default([])
+  stage         OrgStage              @default(lead)
+  /// Where they came from, e.g. "application", "premium-checkout", "business-checkout", "studio".
+  source        String?
+  /// What they asked for or bought, e.g. "premium", "business", "advertising".
+  interest      String?
+  /// Rough annual value in pounds, for the pipeline.
+  valueGBP      Int?
+  followUpAt    DateTime?
+  /// The person on the team who looks after them.
+  ownerStaffId  String?
+  /// The sign-in email of the account that manages them on the platform.
+  accountEmail  String?
+  partnerId     String?               @unique
+  partner       Partner?              @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  /// The original application or enquiry, as submitted.
+  intake        Json?
+  contacts      OrganisationContact[]
+  notes         OrganisationNote[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([stage, updatedAt])
+  @@index([accountEmail])
+}
+
+model OrganisationContact {
+  id             String       @id @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name           String
+  email          String?
+  phone          String?
+  title          String?
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId])
+  @@index([email])
+}
+
+model OrganisationNote {
+  id             String       @id @default(cuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  authorId       String?
+  /// "note" | "call" | "email" | "meeting"
+  kind           String       @default("note")
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId, createdAt])
+}
+
+/// Proof of training, registration or insurance sent by a member for the verified badge.
+model VerificationRequest {
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation("verificationSubject", fields: [userId], references: [id], onDelete: Cascade)
+  /// "training" | "registration" | "membership" | "insurance" | "other"
+  kind         String
+  /// What the document is, e.g. "IAT Diploma in Trichology, 2019".
+  title        String
+  fileId       String?
+  note         String?            @db.Text
+  status       VerificationStatus @default(pending)
+  reviewedById String?
+  reviewNote   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime           @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+/// One referral reward: a member invited a colleague with their code.
+model ReferralReward {
+  id                 String       @id @default(cuid())
+  referrerId         String
+  referrer           User         @relation("rewardReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId         String?
+  referred           User?        @relation("rewardReferred", fields: [referredId], references: [id], onDelete: SetNull)
+  referredEmail      String
+  code               String
+  status             RewardStatus @default(pending)
+  /// The reward in the smallest unit (pence or cents).
+  amount             Int          @default(0)
+  currency           String       @default("gbp")
+  /// The plan the new member joined, e.g. "professional".
+  plan               String?
+  checkoutSessionId  String?      @unique
+  stripeBalanceTxnId String?
+  note               String?
+  earnedAt           DateTime?
+  creditedAt         DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([referrerId, status])
+  @@index([referredEmail])
+}
+
+/// Daily figures for a partner page, so brands can see what their page brings them.
+model PartnerStat {
+  id            String   @id @default(cuid())
+  partnerId     String
+  partner       Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  day           DateTime @db.Date
+  views         Int      @default(0)
+  websiteClicks Int      @default(0)
+  perkViews     Int      @default(0)
+  perkClaims    Int      @default(0)
+
+  @@unique([partnerId, day])
+}
+
+/// A ticket bought on Trichollective for a paid event.
+model EventTicket {
+  id                    String       @id @default(cuid())
+  eventId               String
+  event                 Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId                String?
+  user                  User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email                 String
+  name                  String?
+  quantity              Int          @default(1)
+  /// Total paid, in the smallest unit.
+  amount                Int          @default(0)
+  currency              String       @default("gbp")
+  /// "member" or "guest" price.
+  priceType             String       @default("guest")
+  status                TicketStatus @default(pending)
+  stripeSessionId       String?      @unique
+  stripePaymentIntentId String?
+  paidAt                DateTime?
+  createdAt             DateTime     @default(now())
+
+  @@index([eventId, status])
+  @@index([email])
 }

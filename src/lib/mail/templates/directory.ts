@@ -143,7 +143,7 @@ export function listingNotApprovedEmail(l: { name: string }): Email {
   };
 }
 
-export function studioAccessEmail(u: { name: string | null }): Email {
+export function studioAccessEmail(u: { name: string | null; roleLabel?: string; roleDescription?: string }): Email {
   return {
     subject: "You now have access to the Trichollective Studio",
     content: {
@@ -153,6 +153,7 @@ export function studioAccessEmail(u: { name: string | null }): Email {
       body: [
         `Hello ${firstNameOf(u.name)},`,
         "You have been added to the Trichollective team. The Studio is where we review new directory listings, approve the emails and posts the agents draft, look after members and keep the community safe.",
+        ...(u.roleLabel ? [`Your role is ${u.roleLabel}. ${u.roleDescription ?? ""}`.trim()] : []),
         "Sign in with this email address and you will find the Studio in your menu, or use the button below.",
       ].join("\n\n"),
       cta: { label: "Open the Studio", href: "/studio" },

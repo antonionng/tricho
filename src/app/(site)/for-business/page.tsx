@@ -208,7 +208,7 @@ export default async function ForBusinessPage() {
                 and we will set up the right number for your team.
               </p>
               <div className="mt-auto pt-2">
-                <BusinessCheckout showNote={false} />
+                <BusinessCheckout categories={PARTNER_CATEGORIES} showNote={false} />
               </div>
             </article>
 

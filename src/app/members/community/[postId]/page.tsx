@@ -8,9 +8,10 @@ import { timeAgo } from "@/components/members/format";
 import { UsefulButton } from "@/components/community/UsefulButton";
 import { ReportButton } from "@/components/community/ReportButton";
 import { CommentForm } from "@/components/community/CommentForm";
-import { getMemberContext, memberCanPost } from "@/lib/member";
+import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
-import { canReadRoom, normalizeSpace, professionById, roomById } from "@/config/rooms";
+import { canPostInRoom, canReadRoom, normalizeSpace, professionById, roomById } from "@/config/rooms";
+import { getAllRooms } from "@/lib/rooms";
 
 export const metadata = { title: "Community" };
 
@@ -27,6 +28,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
       author: { select: { id: true, name: true, isFounding: true, profile: { select: { profession: true } } } },
       chapter: { select: { slug: true, city: true } },
       comments: {
+        where: { hiddenAt: null },
         orderBy: { createdAt: "asc" },
         include: { author: { select: { id: true, name: true, profile: { select: { profession: true } } } } },
       },
@@ -34,14 +36,19 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
       reactions: { where: { userId }, select: { id: true } },
     },
   });
-  if (!post) notFound();
+  if (!post || post.hiddenAt) notFound();
 
-  const space = normalizeSpace(post.space);
-  const room = roomById(space);
-  if (!canReadRoom(space, ctx.professional)) {
-    return <Paywall title="The Case Room" body="Anonymised case discussion is part of Professional membership." href="/pricing#professional" cta="See Professional" />;
+  const allRooms = await getAllRooms();
+  const space = normalizeSpace(post.space, allRooms);
+  const room = roomById(space, allRooms);
+  if (!canReadRoom(space, ctx.professional, allRooms)) {
+    return space === "case-room" ? (
+      <Paywall title="The Case Room" body="Anonymised case discussion is part of Professional membership." href="/pricing#professional" cta="See Professional" />
+    ) : (
+      <Paywall title={room?.label ?? "This space"} body="This space is part of Professional membership." href="/pricing#professional" cta="See Professional" />
+    );
   }
-  const canReply = memberCanPost(space, ctx);
+  const canReply = canPostInRoom(space, ctx, allRooms);
   const discipline = post.author.profile?.profession ? professionById(post.author.profile.profession)?.label : null;
 
   return (
@@ -93,6 +100,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
                   <span className="text-muted-foreground"> · {timeAgo(c.createdAt)}</span>
                 </p>
                 <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{c.content}</p>
+                {c.author.id !== userId && (
+                  <div className="-ml-3 mt-1">
+                    <ReportButton commentId={c.id} />
+                  </div>
+                )}
               </div>
             </li>
           ))}
@@ -104,7 +116,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
           <CommentForm postId={post.id} />
         ) : (
           <p className="rounded-2xl border border-rule bg-paper-2 p-4 text-sm leading-relaxed text-ink-2">
-            You can read this thread. Replies in {room?.label ?? "this space"} are open to Professional members.
+            {room?.archived
+              ? `You can read this thread. ${room.label} has been archived, so it no longer takes new replies.`
+              : `You can read this thread. Replies in ${room?.label ?? "this space"} are open to Professional members.`}
           </p>
         )}
       </div>
