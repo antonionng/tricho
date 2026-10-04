@@ -49,7 +49,7 @@ export default async function GazettePage() {
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {library.map((e) => (
             <li key={e.slug}>
-              <Link href={`/trichozette/${e.slug}`} className="group block">
+              <Link href={`/trichozette/${e.slug}`} prefetch={false} className="group block">
                 <div className="transition-transform duration-500 group-hover:-translate-y-1">
                   <Cover edition={e} className="shadow-[0_24px_50px_-30px_rgba(0,0,0,0.5)]" />
                 </div>

@@ -100,7 +100,7 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
           <ul className="mt-12 grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-3 lg:grid-cols-4">
             {shown.map((e) => (
               <li key={e.slug}>
-                <Link href={`/trichozette/${e.slug}`} className="group block">
+                <Link href={`/trichozette/${e.slug}`} prefetch={false} className="group block">
                   <div className="transition-transform duration-500 group-hover:-translate-y-1.5">
                     <Cover edition={e} className="shadow-[0_30px_60px_-35px_rgba(0,0,0,0.5)] transition-shadow group-hover:shadow-[0_40px_70px_-35px_rgba(0,0,0,0.6)]" />
                   </div>
