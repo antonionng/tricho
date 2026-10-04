@@ -25,13 +25,14 @@ export function StickyJoin({
 
   return (
     <div
+      data-sticky-join
       className={cn(
-        "xl:hidden fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-paper/95 backdrop-blur-xl px-4 pt-3 pb-safe transition-transform duration-300",
+        "xl:hidden fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-paper/95 backdrop-blur-xl px-4 pt-3 pb-safe-3 transition-transform duration-300",
         show ? "translate-y-0" : "translate-y-full"
       )}
     >
-      <div className="flex items-center justify-between gap-4 pb-3">
-        <p className="text-[13px] leading-tight text-ink-2">{note}</p>
+      <div className="flex items-center justify-between gap-4">
+        <p className="min-w-0 text-[13px] leading-tight text-ink-2">{note}</p>
         <Link
           href={href}
           className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-ink px-5 text-sm font-medium text-paper"

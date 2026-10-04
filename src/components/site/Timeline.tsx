@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-/** The real Trichollective story so far: past conferences, the Dublin launch, what's next. */
+/** The real Trichollective story so far: past conferences, the launch in Ireland, what's next. */
 export function Timeline({ tone = "paper" }: { tone?: "paper" | "ink" }) {
   const past = [...site.pastGatherings].reverse();
   const items = [

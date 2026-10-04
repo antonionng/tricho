@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Search } from "lucide-react";
+import { MessageCircle, Search } from "lucide-react";
 import type { Prisma, Profession } from "@prisma/client";
 import { Paywall } from "@/components/members/Paywall";
 import { Avatar } from "@/components/members/Avatar";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { FollowButton } from "@/components/members/FollowButton";
+import { SubmitButton } from "@/components/members/SubmitButton";
+import { startConversation } from "./actions";
 import { getMemberContext } from "@/lib/member";
 import { memberDirectoryWhere } from "@/lib/community";
 import { prisma } from "@/lib/prisma";
@@ -13,13 +15,16 @@ import { PROFESSIONS, professionById } from "@/config/rooms";
 
 export const metadata = { title: "People" };
 
-export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+const PAGE_SIZE = 24;
+
+export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/people");
   if (!ctx.allowed) return <Paywall title="People" body="The member directory, following and messages are part of membership." />;
   const me = ctx.session.user.id;
 
-  const { q: rawQ } = await searchParams;
+  const { q: rawQ, page: rawPage } = await searchParams;
+  const page = Math.max(1, Math.min(500, Number.parseInt(rawPage ?? "1", 10) || 1));
   const q = (rawQ ?? "").trim().slice(0, 80);
   const professionMatches = q
     ? PROFESSIONS.filter(
@@ -43,11 +48,14 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
       }
     : undefined;
 
-  const [people, following] = await Promise.all([
+  const where: Prisma.UserWhereInput = { AND: [memberDirectoryWhere(), ...(search ? [search] : [])] };
+  const [people, total, following] = await Promise.all([
     prisma.user.findMany({
-      where: { AND: [memberDirectoryWhere(), ...(search ? [search] : [])] },
-      orderBy: [{ name: "asc" }],
-      take: 60,
+      where,
+      // Newest members first, so people met at a gathering are easy to find.
+      orderBy: [{ onboardedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       select: {
         id: true,
         name: true,
@@ -57,8 +65,17 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
         profile: { select: { profession: true, specialization: true, location: true, city: true, practiceName: true, isVerified: true } },
       },
     }),
+    prisma.user.count({ where }),
     prisma.follow.findMany({ where: { followerId: me }, select: { followeeId: true } }),
   ]);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (n: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (n > 1) params.set("page", String(n));
+    const qs = params.toString();
+    return qs ? `/members/people?${qs}` : "/members/people";
+  };
   const followingSet = new Set(following.map((f) => f.followeeId));
 
   return (
@@ -76,7 +93,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
           <input
             name="q"
             defaultValue={q}
-            placeholder="Try Dublin, trichologist, a clinic or a name"
+            placeholder="Try a town, trichologist, a clinic or a name"
             className="w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           />
         </label>
@@ -84,9 +101,9 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
 
       {q && (
         <p className="mb-4 text-sm text-muted-foreground">
-          {people.length === 0 ? "No members match" : `${people.length} ${people.length === 1 ? "member matches" : "members match"}`} “{q}”.{" "}
+          {total === 0 ? "No members match" : `${total} ${total === 1 ? "member matches" : "members match"}`} “{q}”.{" "}
           <Link href="/members/people" className="underline underline-offset-4">
-            Clear
+            Clear the search
           </Link>
         </p>
       )}
@@ -106,8 +123,8 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
             const discipline = p.profile?.profession ? professionById(p.profile.profession)?.label : null;
             const place = p.profile?.city || p.chapter?.city || p.profile?.location;
             return (
-              <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-rule bg-card p-4">
-                <Link href={`/members/people/${p.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+              <li key={p.id} className="flex flex-col gap-3 rounded-2xl border border-rule bg-card p-4">
+                <Link href={`/members/people/${p.id}`} className="flex min-w-0 items-center gap-3 rounded-xl">
                   <Avatar name={p.name} src={p.image} />
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{p.name || "Member"}</span>
@@ -117,14 +134,44 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                   </span>
                 </Link>
                 {p.id !== me ? (
-                  <FollowButton userId={p.id} following={followingSet.has(p.id)} />
+                  <div className="flex flex-wrap gap-2">
+                    <FollowButton userId={p.id} following={followingSet.has(p.id)} />
+                    <form action={startConversation}>
+                      <input type="hidden" name="userId" value={p.id} />
+                      <SubmitButton variant="outline" size="default" pending="Opening…" className="h-10 rounded-full text-[13px]">
+                        <MessageCircle className="h-4 w-4" /> Message
+                      </SubmitButton>
+                    </form>
+                  </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground">You</span>
+                  <p className="text-xs text-muted-foreground">This is you.</p>
                 )}
               </li>
             );
           })}
         </ul>
+      )}
+
+      {pages > 1 && (
+        <nav aria-label="Pages" className="mt-8 flex items-center justify-between gap-3">
+          {page > 1 ? (
+            <Link href={pageHref(page - 1)} className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm font-medium hover:border-ink/40">
+              Newer members
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {pages}
+          </span>
+          {page < pages ? (
+            <Link href={pageHref(page + 1)} className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm font-medium hover:border-ink/40">
+              Earlier members
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
       )}
     </MemberPage>
   );

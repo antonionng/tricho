@@ -330,5 +330,5 @@ export async function publishBusinessPage() {
     await prisma.organisation.update({ where: { id: org.id }, data: { stage: "customer" } });
   }
   revalidateBusiness(page.slug);
-  back({ saved: "live" });
+  back({ saved: "published" });
 }

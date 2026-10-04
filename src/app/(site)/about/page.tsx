@@ -150,7 +150,7 @@ export default function AboutPage() {
       {/* Timeline */}
       <Section>
         <Container>
-          <SectionHeader eyebrow="So far" title="The conferences at Whittlebury now continue" fade="online all year, from the Dublin launch onwards." />
+          <SectionHeader eyebrow="So far" title="The conferences at Whittlebury now continue" fade="online all year, from the launch in Ireland onwards." />
           <div className="mt-14">
             <Timeline />
           </div>

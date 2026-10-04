@@ -3,6 +3,7 @@ import { BUSINESS_SEATS } from "@/lib/subscription";
 /** What the portal and the setup say after a save, keyed by the ?saved= value. */
 export const SAVED_MESSAGES: Record<string, string> = {
   live: "Your page is saved and live in the partner directory.",
+  published: "Your page is now live in the partner directory.",
   draft: "Your page is saved. It stays hidden until you tick Show my page.",
   hidden: "Your changes are saved. The Trichollective team has paused your page, so it isn't showing yet. Reply to any of our emails and we'll help.",
   seat: "Your team member is added, and we've emailed them to say their Professional membership is ready.",

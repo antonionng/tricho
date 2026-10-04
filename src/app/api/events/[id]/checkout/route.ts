@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { site } from "@/config/site";
+import { checkoutTermsText } from "@/lib/legal";
 import { getMembershipByEmail } from "@/lib/subscription";
 import {
   CHECKOUT_EXPIRES_MINUTES,
@@ -181,6 +182,7 @@ export async function POST(req: Request, { params }: Params) {
         ],
         customer_email: email,
         locale: "en-GB",
+        custom_text: checkoutTermsText("ticket"),
         expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_MINUTES * 60,
         metadata,
         payment_intent_data: { metadata, description: ticketLineName(event) },

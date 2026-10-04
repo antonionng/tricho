@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { subscriptionTiers } from "@/config/subscriptions";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
+import { foundingMemberPlacesLeft } from "@/lib/founding";
+import { sourceKey, sourceLabel, startOfToday } from "@/lib/members-filter";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -26,6 +28,49 @@ export function membershipFigures(users: BillingRow[], now = new Date()) {
     lapsed30: lapsed.length,
     mrr,
   };
+}
+
+type SignupRow = { plan: string | null; signupSource: string | null };
+
+/**
+ * Today's sign-ups, paid and free, with where they came from. Pure, so it can
+ * be tested. "dublin" and "ireland" are the same launch event and share a row.
+ */
+export function signupsBySource(rows: SignupRow[]) {
+  const map = new Map<string, { label: string; paid: number; free: number }>();
+  for (const r of rows) {
+    const key = sourceKey(r.signupSource);
+    const entry = map.get(key) ?? { label: sourceLabel(r.signupSource), paid: 0, free: 0 };
+    if (r.plan) entry.paid++;
+    else entry.free++;
+    map.set(key, entry);
+  }
+  const sources = [...map.entries()]
+    .map(([key, v]) => ({ key, ...v, total: v.paid + v.free }))
+    .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
+  return { total: rows.length, paid: rows.filter((r) => r.plan).length, free: rows.filter((r) => !r.plan).length, sources };
+}
+
+/** The figures at the top of the Overview: what has happened today. */
+export async function getToday(now = new Date()) {
+  const notSystem = { NOT: { email: SYSTEM_USER_EMAIL } };
+  const [today, placesLeft, irelandTotal] = await Promise.all([
+    prisma.user.findMany({
+      where: { ...notSystem, createdAt: { gte: startOfToday(now) } },
+      select: { plan: true, signupSource: true },
+    }),
+    foundingMemberPlacesLeft(),
+    prisma.user.count({
+      where: {
+        ...notSystem,
+        OR: [
+          { signupSource: { equals: "ireland", mode: "insensitive" } },
+          { signupSource: { equals: "dublin", mode: "insensitive" } },
+        ],
+      },
+    }),
+  ]);
+  return { signups: signupsBySource(today), foundingPlacesLeft: placesLeft, irelandTotal };
 }
 
 /** Everything the Overview shows. Each figure is one small query. */

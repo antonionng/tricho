@@ -3,10 +3,11 @@ import { LegalPage } from "@/components/editorial/LegalPage";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
+import { LEGAL_UPDATED } from "@/lib/legal";
 
 export const metadata = pageMetadata({
   title: "Privacy notice",
-  description: `How ${site.name} collects, uses and protects personal data for members, directory listings, newsletter subscribers and visitors, and the rights you have under GDPR.`,
+  description: `How ${site.name} collects, uses and protects personal data for members, businesses, directory listings, event guests, newsletter subscribers and visitors, and the rights you have under the GDPR and UK GDPR.`,
   path: "/privacy",
 });
 
@@ -14,8 +15,6 @@ const crumbs = [
   { name: "Home", path: "/" },
   { name: "Privacy", path: "/privacy" },
 ];
-
-const UPDATED = "30 September 2026";
 
 export default function PrivacyPage() {
   const email = site.contactEmail;
@@ -33,9 +32,8 @@ export default function PrivacyPage() {
             &ldquo;us&rdquo; and &ldquo;our&rdquo; mean {site.name}.
           </p>
           <p>
-            We are the data controller for the personal data described here. [Legal entity name,
-            company number and registered address to be added.] You can contact us about anything in
-            this notice at {mail}.
+            Trichollective Ltd is the data controller for the personal data described here. You can
+            contact us about anything in this notice, including your rights, at {mail}.
           </p>
         </>
       ),
@@ -48,39 +46,59 @@ export default function PrivacyPage() {
           <p>We only collect what we need to run the service. Depending on how you use it, this may include:</p>
           <ul>
             <li>
-              <strong>Account details:</strong> your name, email address, password (stored only in
-              hashed form) and your chosen local chapter.
+              <strong>Account details:</strong> your name, email address, local chapter and, if you sign
+              in with Google, the basic profile details Google shares with us.
             </li>
             <li>
-              <strong>Directory listings:</strong> the professional details you choose to publish, such
-              as your name, discipline, city, services, website, phone number, photograph and a short
-              biography.
+              <strong>Directory listings and profiles:</strong> the professional details you choose to
+              publish, such as your name, discipline, city, services, website, phone number, photograph
+              and a short biography.
             </li>
             <li>
-              <strong>Membership and payments:</strong> your plan, billing history and the status of
-              your subscription. Card details are handled by Stripe and never reach our servers.
+              <strong>Verification documents:</strong> certificates, diplomas or membership documents you
+              send so we can check your qualifications. These are private and only seen by the team
+              members who review them.
             </li>
             <li>
-              <strong>Community activity:</strong> posts, comments, messages, event bookings and course
-              progress, including any certificates you earn.
+              <strong>Payments:</strong> your plan, billing address, billing history and the status of
+              your subscription or tickets. Card details are handled by Stripe and never reach our
+              servers.
             </li>
             <li>
-              <strong>Newsletter sign-ups:</strong> your email address, where you signed up and, if
-              present, the campaign that brought you to the site.
+              <strong>Business details:</strong> for business plans and partner pages, the business
+              name, category, website, logo, contact details and the results of offers you run.
+            </li>
+            <li>
+              <strong>Community activity:</strong> posts, comments, messages, client referrals, event
+              bookings, course progress and any certificates you earn.
+            </li>
+            <li>
+              <strong>Assistant questions:</strong> the questions you ask the Assistant, which are used
+              only to answer them.
+            </li>
+            <li>
+              <strong>Event guests:</strong> the name and email address of people who buy a ticket
+              without an account.
+            </li>
+            <li>
+              <strong>Newsletter sign-ups and invitations:</strong> your email address, where you signed
+              up, the campaign that brought you to the site and, if a colleague invited you, whose code
+              you used.
             </li>
             <li>
               <strong>Enquiries:</strong> messages sent to professionals through the directory, and any
               email you send us.
             </li>
             <li>
-              <strong>Technical data:</strong> basic information needed to keep the site secure and
-              working, such as your IP address, browser type and the pages you request.
+              <strong>Technical data:</strong> information needed to keep the site secure and working,
+              such as your IP address, browser type and the pages you request.
             </li>
           </ul>
           <p>
-            Please don&apos;t share health information about yourself or your clients in the community
-            or in directory enquiries. Case discussions must always be anonymised (see our{" "}
-            <Link href="/terms#community-standards">community standards</Link>).
+            Please don&apos;t share health information about yourself or your clients in the community,
+            in referrals, in the Assistant or in directory enquiries. Case discussions must always be
+            anonymised (see our <Link href="/terms#community-standards">community standards</Link>). We
+            don&apos;t intend to collect special category data, and we delete it if we find it.
           </p>
         </>
       ),
@@ -93,27 +111,42 @@ export default function PrivacyPage() {
           <p>Under the GDPR and the UK GDPR, we must have a lawful basis for each use of your data.</p>
           <ul>
             <li>
-              <strong>To provide your membership</strong>, publish your listing, run courses, issue
-              certificates and take payment. Basis: performance of our contract with you.
+              <strong>To provide your account and membership</strong>, publish your listing or partner
+              page, run courses and events, issue certificates and take payment. Basis: performance of
+              our contract with you.
+            </li>
+            <li>
+              <strong>To verify qualifications</strong> and show a verified badge. Basis: our legitimate
+              interest, shared with the public, in a directory people can trust.
             </li>
             <li>
               <strong>To send the newsletter</strong> and news of events and courses. Basis: your
-              consent, which you can withdraw at any time using the link in every email.
+              consent, which you can withdraw at any time using the link in every email. Where you are
+              already a member, we may send news of similar services under our legitimate interests, and
+              you can opt out at any time.
             </li>
             <li>
-              <strong>To send service messages</strong>, such as receipts, renewal reminders and
-              notice that a free listing is about to lapse. Basis: performance of our contract, and our
-              legitimate interest in running the service well.
+              <strong>To send service messages</strong>, such as sign-in links, receipts, renewal
+              reminders and notice that a free listing is about to lapse. Basis: performance of our
+              contract, and our legitimate interest in running the service well.
             </li>
             <li>
-              <strong>To keep the community safe</strong>, review listings before they go live,
-              prevent fraud and enforce our terms. Basis: our legitimate interests.
+              <strong>To understand what brings people to the site</strong>, such as which event or
+              campaign led to a sign-up, and to give referral rewards. Basis: our legitimate interests.
             </li>
             <li>
-              <strong>To meet our legal obligations</strong>, such as keeping financial records. Basis:
-              legal obligation.
+              <strong>To keep the community safe</strong>, review listings and posts before or after they
+              go live, prevent fraud and enforce our terms. Basis: our legitimate interests.
+            </li>
+            <li>
+              <strong>To meet our legal obligations</strong>, such as keeping tax and financial records.
+              Basis: legal obligation.
             </li>
           </ul>
+          <p>
+            Where we rely on legitimate interests, we have weighed them against your rights, and you can
+            object at any time.
+          </p>
         </>
       ),
     },
@@ -142,11 +175,16 @@ export default function PrivacyPage() {
         <>
           <p>
             We use AI tools to help draft editorial content such as Trichozette, guides and course
-            material. A person reviews and approves everything before it is published.
+            material, to transcribe podcast episodes, and to help moderate community posts. A person
+            reviews and approves editorial content before it is published.
+          </p>
+          <p>
+            When you use the Assistant, your questions are sent to our AI provider to generate an
+            answer. Our providers don&apos;t use this data to train their models.
           </p>
           <p>
             We do not use AI to make decisions about you that have legal or similarly significant
-            effects, and we do not sell your data or use it to train third-party AI models.
+            effects, and we never sell your data.
           </p>
         </>
       ),
@@ -162,22 +200,36 @@ export default function PrivacyPage() {
           </p>
           <ul>
             <li>
-              <strong>Stripe</strong>, for payments and subscription billing.
+              <strong>Stripe</strong>, for payments, subscriptions and invoices.
             </li>
             <li>
-              <strong>Our hosting and database providers</strong>, which store and serve the site.
+              <strong>Vercel</strong>, which hosts the website and routes requests to our AI providers.
             </li>
             <li>
-              <strong>Our email provider</strong>, which delivers account emails and the newsletter.
+              <strong>Supabase</strong>, which hosts our database and stores uploaded files.
             </li>
             <li>
-              <strong>AI service providers</strong>, which process content we send them to help with
-              drafting. We avoid sending them personal data wherever we can.
+              <strong>Resend</strong>, which delivers sign-in emails, service messages and the
+              newsletter.
+            </li>
+            <li>
+              <strong>Google</strong>, if you choose to sign in with your Google account.
+            </li>
+            <li>
+              <strong>Anthropic</strong> and other AI providers, for the Assistant, moderation and
+              drafting.
+            </li>
+            <li>
+              <strong>AssemblyAI</strong>, which transcribes podcast recordings.
+            </li>
+            <li>
+              <strong>Eventbrite</strong>, for tickets to some events sold through them.
             </li>
           </ul>
           <p>
-            [A full list of processors and their locations to be added.] We may also disclose data
-            where the law requires it.
+            Other members see what you share in the community and your member profile. Partners see
+            aggregated results of their offers, and only see your details if you contact them. We may
+            also disclose data to our professional advisers, or where the law requires it.
           </p>
         </>
       ),
@@ -187,9 +239,11 @@ export default function PrivacyPage() {
       heading: "International transfers",
       body: (
         <p>
-          Some of our providers may process data outside Ireland, the European Economic Area or the
-          United Kingdom. When that happens, we rely on an adequacy decision or on standard contractual
-          clauses, with additional safeguards where needed.
+          Some of our providers process data outside Ireland, the European Economic Area or the United
+          Kingdom, mainly in the United States. When that happens, we rely on an adequacy decision, such
+          as the EU-US Data Privacy Framework and the UK extension to it, or on standard contractual
+          clauses, with additional safeguards where needed. You can ask us for a copy of the safeguards
+          that apply.
         </p>
       ),
     },
@@ -198,9 +252,17 @@ export default function PrivacyPage() {
       heading: "How long we keep it",
       body: (
         <ul>
-          <li>Account and membership data: for as long as you are a member, then up to two years.</li>
+          <li>Account and membership data: for as long as you have an account, then up to two years.</li>
           <li>Payment and invoice records: for as long as tax law requires, normally six years.</li>
+          <li>
+            Verification documents: until they have been reviewed and for as long as your badge is
+            shown, unless you withdraw them sooner.
+          </li>
           <li>Newsletter data: until you unsubscribe.</li>
+          <li>
+            Assistant conversations: we don&apos;t save them. They are sent to our AI provider to produce an
+            answer and are gone when you leave the page.
+          </li>
           <li>
             Certificates: we keep a record of each certificate so it can still be verified, unless you
             ask us to withdraw it.
@@ -214,22 +276,45 @@ export default function PrivacyPage() {
       heading: "Your rights",
       body: (
         <>
-          <p>You have the right to:</p>
+          <p>Under the GDPR and the UK GDPR, you have the right to:</p>
           <ul>
             <li>ask for a copy of the personal data we hold about you;</li>
-            <li>ask us to correct anything that is wrong;</li>
+            <li>ask us to correct anything that is wrong or incomplete;</li>
             <li>ask us to delete your data;</li>
-            <li>object to, or ask us to restrict, how we use it;</li>
-            <li>receive your data in a portable format;</li>
+            <li>ask us to restrict how we use it;</li>
+            <li>
+              object to how we use it where we rely on legitimate interests, and to direct marketing at
+              any time;
+            </li>
+            <li>receive the data you gave us in a portable format;</li>
             <li>withdraw your consent at any time, where we rely on it.</li>
           </ul>
           <p>
-            To use any of these rights, email {mail}. We&apos;ll reply within one month. If you are
-            unhappy with how we have handled your data, you can complain to the Data Protection
-            Commission in Ireland or, in the UK, to the Information Commissioner&apos;s Office. We&apos;d
-            be grateful for the chance to put things right first.
+            To use any of these rights, email {mail}. There is no charge, and we&apos;ll reply within one
+            month. We may need to confirm your identity first.
+          </p>
+          <p>
+            If you are unhappy with how we have handled your data, you can complain to the{" "}
+            <a href="https://www.dataprotection.ie" target="_blank" rel="noopener">
+              Data Protection Commission
+            </a>{" "}
+            in Ireland or, in the UK, to the{" "}
+            <a href="https://ico.org.uk" target="_blank" rel="noopener">
+              Information Commissioner&apos;s Office
+            </a>
+            . We&apos;d be grateful for the chance to put things right first.
           </p>
         </>
+      ),
+    },
+    {
+      id: "children",
+      heading: "Children",
+      body: (
+        <p>
+          {site.name} is for adults working in the hair and scalp professions. We don&apos;t knowingly
+          collect data from anyone under 18, and we will delete it if we find we have.
+        </p>
       ),
     },
     {
@@ -237,9 +322,9 @@ export default function PrivacyPage() {
       heading: "Cookies",
       body: (
         <p>
-          We use a small number of essential cookies to keep you signed in and to keep the site secure.
-          We don&apos;t use advertising cookies. If we ever add analytics that need your consent, we
-          will ask first and update this notice.
+          We use a small number of first-party cookies to keep you signed in, remember an invitation and
+          keep the site secure. We don&apos;t use advertising or third-party tracking cookies. Our{" "}
+          <Link href="/cookies">cookie policy</Link> lists each one.
         </p>
       ),
     },
@@ -248,9 +333,9 @@ export default function PrivacyPage() {
       heading: "Keeping your data safe",
       body: (
         <p>
-          We use encryption in transit, restrict access to the people who need it, and review our
-          providers&apos; security. No system is perfectly secure, so if something does go wrong we
-          will tell you and the relevant authority as the law requires.
+          We use encryption in transit, restrict access to the people who need it, keep verification
+          documents private, and review our providers&apos; security. No system is perfectly secure, so
+          if something does go wrong we will tell you and the relevant authority as the law requires.
         </p>
       ),
     },
@@ -277,7 +362,7 @@ export default function PrivacyPage() {
             and the choices you have. We have tried to write it plainly.
           </p>
         }
-        updated={UPDATED}
+        updated={LEGAL_UPDATED}
         crumbs={crumbs}
         sections={sections}
       />

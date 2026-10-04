@@ -21,7 +21,7 @@ export const revalidate = 300;
 
 export const metadata = pageMetadata({
   title: "Events: gatherings, masterclasses and case rounds",
-  description: `Meet the colleagues you refer to at conferences in England, Dublin and Los Angeles, and learn at monthly live masterclasses and case rounds, recorded for members.`,
+  description: `Meet the colleagues you refer to at conferences in England, Ireland and Los Angeles, and learn at monthly live masterclasses and case rounds, recorded for members.`,
   path: "/events",
     og: { title: "Meet the colleagues you refer to,", sub: "and learn from a specialist every month.", eyebrow: "Events", img: images.ed27.src, variant: "photo" },
 });
@@ -122,7 +122,7 @@ export default async function EventsPage() {
             <h2 className="display text-4xl sm:text-5xl">
               The conferences began at Whittlebury
               <br />
-              <span className="opacity-60">and now reach Dublin and beyond.</span>
+              <span className="opacity-60">and now reach Ireland and beyond.</span>
             </h2>
           </div>
           <div className="mt-14">

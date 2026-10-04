@@ -25,12 +25,12 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
   const post = await prisma.communityPost.findUnique({
     where: { id: postId },
     include: {
-      author: { select: { id: true, name: true, isFounding: true, profile: { select: { profession: true } } } },
+      author: { select: { id: true, name: true, image: true, isFounding: true, profile: { select: { profession: true } } } },
       chapter: { select: { slug: true, city: true } },
       comments: {
         where: { hiddenAt: null },
         orderBy: { createdAt: "asc" },
-        include: { author: { select: { id: true, name: true, profile: { select: { profession: true } } } } },
+        include: { author: { select: { id: true, name: true, image: true, profile: { select: { profession: true } } } } },
       },
       _count: { select: { reactions: true } },
       reactions: { where: { userId }, select: { id: true } },
@@ -63,7 +63,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
       <article className="mt-3 rounded-3xl border border-rule bg-card p-5 sm:p-7">
         <header className="flex items-center gap-3">
           <Link href={`/members/people/${post.author.id}`}>
-            <Avatar name={post.author.name} />
+            <Avatar name={post.author.name} src={post.author.image} />
           </Link>
           <div className="min-w-0">
             <Link href={`/members/people/${post.author.id}`} className="font-medium hover:underline">
@@ -90,7 +90,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
           {post.comments.map((c) => (
             <li key={c.id} className="flex gap-3 rounded-2xl border border-rule bg-card p-4">
               <Link href={`/members/people/${c.author.id}`} className="shrink-0">
-                <Avatar name={c.author.name} size="sm" />
+                <Avatar name={c.author.name} src={c.author.image} size="sm" />
               </Link>
               <div className="min-w-0 flex-1">
                 <p className="text-sm">

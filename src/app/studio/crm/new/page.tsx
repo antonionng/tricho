@@ -26,7 +26,7 @@ export default async function NewBusinessPage({ searchParams }: { searchParams: 
       />
       {sp.notice && <Notice tone={sp.tone === "danger" ? "danger" : "default"}>{sp.notice}</Notice>}
 
-      <Card className="max-w-2xl">
+      <Card className="max-w-4xl">
         <form action={createOrganisationAction} className="grid gap-4 sm:grid-cols-2">
           <Field label="Business name" className="sm:col-span-2">
             <input name="name" required minLength={2} maxLength={160} className={fieldClass} />

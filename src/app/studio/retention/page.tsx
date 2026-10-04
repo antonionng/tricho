@@ -76,7 +76,7 @@ export default async function RetentionPage({
         </p>
 
         {members.length === 0 ? (
-          <Empty>Nobody is in this list at the moment.</Empty>
+          <Empty>Nobody is in this list at the moment, so no one here needs attention.</Empty>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
             <table className="w-full min-w-[760px] text-sm">

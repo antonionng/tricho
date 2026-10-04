@@ -43,7 +43,7 @@ export default async function SubscribersPage() {
 
       <Section title="Where they came from">
         {bySource.length === 0 ? (
-          <Empty>No sign-ups yet.</Empty>
+          <Empty>Nobody has signed up to the newsletter yet, and new sign-ups will be counted here.</Empty>
         ) : (
           <div className="flex flex-wrap gap-2">
             {bySource.map((s) => (
@@ -59,7 +59,7 @@ export default async function SubscribersPage() {
       <Section title="Everyone" intro={total > subscribers.length ? `Showing the newest ${subscribers.length}. The CSV has everyone.` : undefined}>
         {subscribers.length === 0 ? (
           <Empty>
-            No subscribers yet. They&apos;ll appear here when people sign up on the{" "}
+            There are no subscribers yet, and they will appear here when people sign up on the{" "}
             <Link href="/" className="underline underline-offset-4">
               website
             </Link>

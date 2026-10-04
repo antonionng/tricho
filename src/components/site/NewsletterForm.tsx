@@ -57,7 +57,7 @@ export function NewsletterForm({
           required
           autoComplete="email"
           placeholder="Your email address"
-          className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-current placeholder:opacity-50"
+          className="w-0 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-current placeholder:opacity-50"
         />
         <button
           type="submit"

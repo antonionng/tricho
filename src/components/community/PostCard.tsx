@@ -14,7 +14,7 @@ export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace
     <article className="relative rounded-2xl border border-rule bg-card p-4 transition-colors hover:border-ink/25 sm:p-5">
       <header className="flex items-start gap-3">
         <Link href={`/members/people/${post.author.id}`} className="relative z-10 shrink-0">
-          <Avatar name={post.author.name} size="md" />
+          <Avatar name={post.author.name} src={post.author.image} size="md" />
         </Link>
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-x-2 text-[15px] leading-tight">
@@ -45,7 +45,7 @@ export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace
         <UsefulButton postId={post.id} count={post.useful} reacted={post.reacted} />
         <Link
           href={`${href}#reply`}
-          className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] text-ink-2 hover:bg-paper-2"
+          className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] text-ink-2 hover:bg-paper-2"
         >
           <MessageCircle className="h-4 w-4 stroke-[1.6]" />
           {post.comments === 0 ? "Reply" : `${post.comments} ${post.comments === 1 ? "reply" : "replies"}`}

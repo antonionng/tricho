@@ -73,7 +73,7 @@ export default async function PerksPage() {
                         Get this offer <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
                       </a>
                     )}
-                    <Link href={`/partners/${p.slug}`} className="text-ink underline underline-offset-4">
+                    <Link href={`/partners/${p.slug}`} className="inline-flex min-h-10 items-center text-ink underline underline-offset-4">
                       About {p.name}
                     </Link>
                     <span className="text-muted-foreground">Sponsored</span>

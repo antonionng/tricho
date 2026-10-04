@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import type { Profession } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getMemberContext } from "@/lib/member";
@@ -16,6 +17,9 @@ import {
 } from "@/lib/profile";
 import { PROGRESS_COOKIE, readProgress } from "./progress";
 import { shortName } from "@/lib/names";
+import { canPostInRoom } from "@/config/rooms";
+import { getRooms } from "@/lib/rooms";
+import { moderateNewContent } from "@/agents/moderation";
 
 async function requireUser() {
   const ctx = await getMemberContext();
@@ -109,20 +113,24 @@ export async function finishOnboarding(formData: FormData) {
   });
 
   // Only members can post; free accounts skip the introduction.
-  if (ctx.allowed && intro.length >= 2) {
-    await prisma.communityPost.create({
+  const rooms = ctx.allowed ? await getRooms() : [];
+  if (ctx.allowed && intro.length >= 2 && ctx.restricted?.status !== "muted" && canPostInRoom("introductions", ctx, rooms)) {
+    const title = `Hello from ${shortName(user.name, "a new member")}`;
+    const post = await prisma.communityPost.create({
       data: {
-        title: `Hello from ${shortName(user.name, "a new member")}`,
+        title,
         content: intro,
         category: "discussion",
         space: "introductions",
         chapterId: user.chapterId ?? ctx.chapterId,
         authorId: userId,
       },
+      select: { id: true },
     });
+    after(() => moderateNewContent({ postId: post.id, text: `${title}\n\n${intro}`, roomId: "introductions" }));
   }
   await markReached(userId, ONBOARDING_STEPS.length);
 
   revalidatePath("/members", "layout");
-  redirect("/members?welcome=1");
+  redirect(ctx.allowed ? "/members/community?space=introductions&welcome=1" : "/members?welcome=1");
 }

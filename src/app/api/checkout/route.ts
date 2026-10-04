@@ -9,6 +9,8 @@ import {
   type BillingInterval,
 } from "@/config/subscriptions";
 import { site } from "@/config/site";
+import { cleanSource } from "@/lib/source";
+import { checkoutTermsText } from "@/lib/legal";
 import { cookies } from "next/headers";
 import { REFERRAL_COOKIE, referralForCheckout } from "@/lib/referrals";
 import { foundingMemberPlacesLeft, foundingPartnerPlacesLeft } from "@/lib/founding";
@@ -109,6 +111,10 @@ export async function POST(req: Request) {
       return null;
     });
 
+    const source = body.source ? cleanSource(String(body.source)) : null;
+    // People who scanned the event QR code go back to the event page if they change their mind.
+    const eventSource = source === "ireland" || source === "dublin";
+
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
@@ -120,12 +126,20 @@ export async function POST(req: Request) {
       ...(askBrand ? { custom_fields: premiumCheckoutFields() } : {}),
       // Businesses need an address on their invoices.
       billing_address_collection: premium || body.plan === "business" ? "required" : "auto",
-      success_url: `${site.url}/welcome?plan=${planId}`,
-      cancel_url: premium || brand ? `${site.url}/for-business?cancelled=1` : `${site.url}/pricing?cancelled=1`,
+      // Buyers agree to the terms, and to membership starting at once, before they pay.
+      custom_text: checkoutTermsText("membership"),
+      // Stripe fills in the session id, so /welcome can read the email paid with (never put in a URL).
+      success_url: `${site.url}/welcome?plan=${planId}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:
+        premium || brand
+          ? `${site.url}/for-business?cancelled=1`
+          : eventSource
+            ? `${site.url}/ireland?cancelled=1`
+            : `${site.url}/pricing?cancelled=1`,
       metadata: {
         plan: planId,
         founding: founding ? "1" : "0",
-        ...(body.source ? { source: String(body.source).toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) } : {}),
+        ...(source ? { source } : {}),
         ...(userId ? { userId } : {}),
         ...(brand ? brandMetadata(brand) : {}),
         ...(referral ? referral.metadata : {}),

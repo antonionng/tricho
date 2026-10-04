@@ -1,7 +1,9 @@
 import { cn } from "@/lib/utils";
 
 function initials(name?: string | null) {
-  const parts = (name || "Member").trim().split(/\s+/).filter(Boolean);
+  // Letters only, so names such as "Sample (clinic)" give "SC" rather than "S(".
+  const parts = (name || "Member").trim().split(/\s+/).map((w) => w.replace(/[^\p{L}]/gu, "")).filter(Boolean);
+  if (parts.length === 0) return "M";
   return ((parts[0]?.[0] ?? "M") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
 }
 

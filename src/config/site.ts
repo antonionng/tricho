@@ -19,8 +19,8 @@ export const site = {
   originPlace: "Whittlebury Hall in England",
   /** The gathering where the online platform launches. */
   launch: {
-    title: "Trichollective Dublin",
-    city: "Dublin",
+    title: "Trichollective Ireland",
+    city: "Ireland",
     venue: "Killashee Hotel, Kilcullen Road, Naas",
     startsAt: "2026-10-05T09:30:00+01:00",
     endsAt: "2026-10-05T18:00:00+01:00",

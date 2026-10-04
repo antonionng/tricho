@@ -22,10 +22,10 @@ export function SiteFooter() {
             {footerNav.map((col) => (
               <div key={col.title}>
                 <p className="label text-muted-foreground mb-5">{col.title}</p>
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-3 pointer-coarse:gap-0">
                   {col.items.map((item) => (
                     <li key={item.href}>
-                      <Link href={item.href} className="text-[15px] text-ink-2 hover:text-ink">
+                      <Link href={item.href} className="text-[15px] text-ink-2 hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center">
                         {item.label}
                       </Link>
                     </li>
@@ -38,10 +38,10 @@ export function SiteFooter() {
 
         <div className="mt-16 border-t border-rule pt-8">
           <p className="label text-muted-foreground mb-4">Chapters</p>
-          <ul className="flex flex-wrap gap-x-6 gap-y-2">
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 pointer-coarse:gap-y-0">
             {CHAPTERS.map((c) => (
               <li key={c.slug}>
-                <Link href={`/chapters/${c.slug}`} className="text-[15px] text-ink-2 hover:text-ink">
+                <Link href={`/chapters/${c.slug}`} className="text-[15px] text-ink-2 hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center">
                   {c.city}
                 </Link>
               </li>
@@ -75,10 +75,11 @@ export function SiteFooter() {
               />
             </a>
           </div>
-          <ul className="flex gap-5">
-            <li><Link href="/privacy" className="hover:text-ink">Privacy</Link></li>
-            <li><Link href="/terms" className="hover:text-ink">Terms</Link></li>
-            <li><Link href="/contact" className="hover:text-ink">Contact</Link></li>
+          <ul className="flex flex-wrap gap-x-5">
+            <li><Link href="/privacy" className="hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center">Privacy</Link></li>
+            <li><Link href="/terms" className="hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center">Terms</Link></li>
+            <li><Link href="/cookies" className="hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center">Cookies</Link></li>
+            <li><Link href="/contact" className="hover:text-ink pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center">Contact</Link></li>
           </ul>
         </div>
       </Container>

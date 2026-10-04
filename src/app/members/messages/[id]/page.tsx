@@ -25,7 +25,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
     where: { id, members: { some: { userId: me } } },
     select: {
       id: true,
-      members: { select: { userId: true, user: { select: { id: true, name: true } } } },
+      members: { select: { userId: true, user: { select: { id: true, name: true, image: true } } } },
       messages: { orderBy: { createdAt: "asc" }, take: 200, select: { id: true, body: true, createdAt: true, senderId: true } },
     },
   });
@@ -53,7 +53,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         </Link>
         {other ? (
           <Link href={`/members/people/${other.id}`} className="flex min-w-0 items-center gap-3">
-            <Avatar name={other.name} size="sm" />
+            <Avatar name={other.name} src={other.image} size="sm" />
             <span className="truncate font-medium">{others.map((o) => o.name || "Member").join(", ")}</span>
           </Link>
         ) : (
@@ -86,7 +86,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         })}
       </ol>
 
-      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] bg-paper pb-2 pt-2 lg:bottom-0 lg:pb-6">
+      <div className="sticky bottom-tabbar bg-paper pb-2 pt-2 lg:bottom-0 lg:pb-6">
         <MessageComposer conversationId={convo.id} />
       </div>
     </MemberPage>

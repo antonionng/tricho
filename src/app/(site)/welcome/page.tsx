@@ -7,6 +7,8 @@ import { images, img } from "@/content/images";
 import { premiumBusiness, tierById } from "@/config/subscriptions";
 import { pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
+import { paidCheckout } from "@/lib/signin-email";
+import { continueToSignIn } from "./actions";
 
 export const metadata = pageMetadata({
   title: "Welcome, and thank you",
@@ -20,9 +22,12 @@ const SIGN_IN = "/login?next=/members/onboarding";
 export default async function WelcomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; session_id?: string }>;
 }) {
-  const { plan } = await searchParams;
+  const { plan: planParam, session_id } = await searchParams;
+  // Stripe sends people back with the session id, so we can read the email they paid with.
+  const paid = session_id ? await paidCheckout(session_id) : null;
+  const plan = paid?.plan ?? planParam;
   const premium = plan === premiumBusiness.id;
   const tier = tierById(premium ? "business" : plan);
   // Business customers go straight to the guided setup for their partner page.
@@ -85,28 +90,35 @@ export default async function WelcomePage({
           <div className="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-paper to-transparent" />
         </div>
         <Container className="relative">
-          <div className="grid py-20 md:py-28 lg:grid-cols-12">
-            <div className="flex flex-col gap-8 animate-rise lg:col-span-7">
+          <div className="grid py-12 md:py-28 lg:grid-cols-12">
+            <div className="flex flex-col gap-6 animate-rise md:gap-8 lg:col-span-7">
               <Eyebrow rule>{premium ? premiumBusiness.name : tier ? `${tier.name} membership` : "Membership"}</Eyebrow>
-              <h1 className="display text-5xl sm:text-6xl lg:text-7xl">
+              <h1 className="display text-[2.6rem] leading-[0.98] sm:text-6xl lg:text-7xl">
                 Thank you, your membership
                 <br />
                 <span className="text-fade">is being set up now.</span>
               </h1>
               <p className="lede max-w-xl">
-                Your payment went through. Your account uses the
-                email address you paid with, so please sign in with that same address to get started.
+                Your payment went through, and your account is ready for you to sign in with the email address you paid
+                with.
               </p>
-              <div>
-                <Button asChild size="xl">
-                  <Link href={signIn}>
-                    {businessCustomer ? "Sign in to set up your business" : "Sign in to get started"} <ArrowRight />
-                  </Link>
+              <form action={continueToSignIn.bind(null, paid ? session_id ?? null : null, signIn)} className="flex flex-col gap-4">
+                <Button type="submit" size="xl" className="h-14 w-full text-base sm:w-auto sm:self-start">
+                  {businessCustomer ? "Sign in to set up your business" : "Sign in to set up your profile"} <ArrowRight />
                 </Button>
+              </form>
+              <div className="flex max-w-xl flex-col gap-3 rounded-2xl border border-rule bg-card p-5 text-[15px] leading-relaxed text-ink-2">
+                {paid?.email ? (
+                  <p>
+                    You paid with <strong className="font-semibold text-ink">{paid.email}</strong>, and we will fill it in for
+                    you on the next page.
+                  </p>
+                ) : (
+                  <p>Use the same email address you paid with, which is also the address your Stripe receipt was sent to.</p>
+                )}
+                <p>We will email you a sign-in link. The link opens your account, so there is no password to set up.</p>
+                <p>If the email has not arrived within a couple of minutes, please check your spam or junk folder.</p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                A receipt from Stripe is on its way to your inbox.
-              </p>
             </div>
           </div>
         </Container>

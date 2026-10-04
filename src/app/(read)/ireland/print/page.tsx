@@ -4,13 +4,13 @@ import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { images, img } from "@/content/images";
 import { PrintButton } from "./PrintButton";
 
-export const metadata = { title: "Dublin print sheets", robots: { index: false, follow: false } };
+export const metadata = { title: "Trichollective Ireland print sheets", robots: { index: false, follow: false } };
 
 const qr = (path: string, src: string) => `/qr?path=${encodeURIComponent(path)}&src=${src}`;
 
 /** Print at 100% on A4. Page 1 is the poster, page 2 holds two A5 table cards. */
-export default function DublinPrint() {
-  const shortUrl = new URL("/dublin", site.url).host + "/dublin";
+export default function IrelandPrint() {
+  const shortUrl = new URL(site.url).host.replace(/^www\./, "") + "/ireland";
   return (
     <div className="bg-neutral-300 print:bg-white">
       <style>{`@page { size: A4; margin: 0 } @media print { .no-print { display: none } }`}</style>
@@ -26,24 +26,23 @@ export default function DublinPrint() {
         <div className="absolute right-[58%] top-0 h-[62%] w-[20%] bg-gradient-to-r from-paper to-transparent" style={{ right: "42%" }} />
         <div className="relative flex h-full flex-col px-[14mm] pt-[16mm]">
           <BrandMark size="md" sub />
-          <h1 className="display mt-[26mm] text-[21mm] leading-[0.92]">
-            Join early.
-            <br />
-            <span className="text-fade">Be in the founding directory.</span>
+          <p className="label mt-[18mm] text-[3.4mm] text-ink">{site.launch.title}</p>
+          <h1 className="display mt-[5mm] max-w-[120mm] text-[17mm] leading-[0.92]">
+            Join today <span className="text-fade">and keep the founding price for as long as you stay.</span>
           </h1>
           <p className="mt-[8mm] max-w-[100mm] text-[5mm] leading-snug text-ink-2">
-            For cosmetic, clinical and medical hair and scalp professionals.
+            Trichollective is the year-round community for cosmetic, clinical and medical hair and scalp professionals.
           </p>
           <div className="mt-auto mb-[16mm] flex items-end justify-between gap-[10mm] border-t border-ink/20 pt-[8mm]">
             <div className="flex flex-col gap-[3mm]">
-              <p className="label text-[3.4mm] text-ink">Scan to join today</p>
+              <p className="label text-[3.4mm] text-ink">Scan the code to join from your phone</p>
               <p className="max-w-[95mm] text-[4.2mm] leading-snug text-ink-2">
-                Add your free listing, with your full profile and enquiries free for {FREE_LISTING_DAYS} days, become a founding member, and read Trichozette.
+                Become a founding member for the Case Room, the referral network and a directory listing, or add a free listing with your full profile free for {FREE_LISTING_DAYS} days.
               </p>
               <p className="label mt-[2mm] text-[3mm] text-muted-foreground">{shortUrl}</p>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qr("/dublin", "dublin")} alt="QR code to trichollective Dublin page" className="h-[46mm] w-[46mm]" />
+            <img src={qr("/ireland", "ireland")} alt="QR code to the Trichollective Ireland page" className="h-[46mm] w-[46mm]" />
           </div>
         </div>
       </section>
@@ -65,7 +64,7 @@ export default function DublinPrint() {
               </p>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qr("/dublin", "dublin")} alt="QR code to the Dublin page" className="h-[52mm] w-[52mm]" />
+            <img src={qr("/ireland", "ireland")} alt="QR code to the Trichollective Ireland page" className="h-[52mm] w-[52mm]" />
           </div>
         ))}
       </section>

@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/join", destination: "/pricing", permanent: true },
+      // The launch event is Trichollective Ireland. Next.js keeps the query string (utm_source) on redirects.
+      { source: "/dublin", destination: "/ireland", permanent: true },
+      { source: "/dublin/print", destination: "/ireland/print", permanent: true },
       { source: "/gazette", destination: "/trichozette", permanent: true },
       { source: "/gazette/:slug", destination: "/trichozette/:slug", permanent: true },
       { source: "/members/gazette/:path*", destination: "/members/trichozette/:path*", permanent: true },

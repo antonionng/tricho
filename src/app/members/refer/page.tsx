@@ -16,7 +16,7 @@ import {
   sumByCurrency,
 } from "@/lib/referrals";
 
-export const metadata = { title: "Invite colleagues" };
+export const metadata = { title: "Invite a colleague" };
 export const dynamic = "force-dynamic";
 
 export default async function ReferPage() {
@@ -58,8 +58,8 @@ export default async function ReferPage() {
   return (
     <MemberPage size="narrow">
       <PageHeader
-        label="Invite colleagues"
-        title="Invite colleagues, and get a month free for each one who joins."
+        label="Invite a colleague"
+        title="Invite a colleague, and get a month free for each one who joins."
         lede="When a colleague joins Trichollective with your link, they pay half price for their first month and you get a month of your own membership free."
       />
 

@@ -10,7 +10,7 @@ export function EventMini({
 }) {
   const d = eventDay(event.startsAt);
   return (
-    <Link href="/members/events" className="flex items-center gap-3 rounded-xl p-2 -mx-2 transition-colors hover:bg-paper-2">
+    <Link href={`/members/events/${event.slug}`} className="flex items-center gap-3 rounded-xl p-2 -mx-2 transition-colors hover:bg-paper-2">
       <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-rule bg-paper text-center leading-none">
         <span>
           <span className="block text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{d.month}</span>

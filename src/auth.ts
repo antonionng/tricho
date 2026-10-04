@@ -10,6 +10,20 @@ import { sendEmail } from "@/lib/email";
 import { renderEmail } from "@/lib/mail/layout";
 import { alertOwners, deliver } from "@/lib/mail/send";
 import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib/mail/templates/leads";
+import { cookies } from "next/headers";
+import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
+
+/** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
+async function recordSignupSource(userId: string | undefined) {
+  if (!userId) return;
+  try {
+    const source = cleanSource((await cookies()).get(SOURCE_COOKIE)?.value);
+    if (!source) return;
+    await prisma.user.updateMany({ where: { id: userId, signupSource: null }, data: { signupSource: source } });
+  } catch {
+    // Events can run outside a request, where there are no cookies. Attribution is a nice-to-have.
+  }
+}
 
 const providers: NextAuthConfig["providers"] = [];
 
@@ -91,6 +105,7 @@ export const {
     // Google). Paid sign-ups created by the Stripe webhook and dev logins are
     // written directly with Prisma, so they don't get this free-account welcome.
     async createUser({ user }) {
+      await recordSignupSource(user.id);
       if (!user.email) return;
       const { subject, content } = welcomeFreeAccountEmail({ name: user.name });
       await Promise.all([

@@ -1,6 +1,6 @@
 # Going live
 
-Target: live and tested by **Saturday 3 October**, ready for Trichollective Dublin on **Monday 5 October**.
+Target: live and tested by **Saturday 3 October**, ready for Trichollective Ireland on **Monday 5 October**.
 
 ## 1. What we need from you
 
@@ -49,7 +49,7 @@ The change is **additive only**: new tables, new columns and new indexes. A read
 - [ ] Buy a Community plan in Stripe test mode and confirm the account appears in Studio → Members with the right plan.
 - [ ] Pay with the email on a free listing and confirm the listing becomes a full profile.
 - [ ] Add a free listing from `/directory/list`, approve it in Studio → Listings, and check it appears in the directory.
-- [ ] Open `/dublin` on a phone from the printed QR code and complete a sign-up.
+- [ ] Open `/ireland` on a phone from the printed QR code and complete a sign-up.
 - [ ] Run each agent once from Studio → Agents and check the drafts in the inbox.
 - [ ] Share a Trichozette link in WhatsApp or Slack and check the preview image.
 - [ ] Submit `https://<domain>/sitemap.xml` in Google Search Console.

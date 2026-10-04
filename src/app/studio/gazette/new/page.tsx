@@ -29,7 +29,7 @@ export default async function NewEditionPage({ searchParams }: { searchParams: P
   const ai = aiAvailable();
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="max-w-4xl space-y-8">
       <PageHeader
         title="New edition"
         intro={

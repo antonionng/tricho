@@ -19,19 +19,43 @@ export default async function MembersLayout({ children }: { children: React.Reac
   }
 
   const email = ctx.session.user.email?.toLowerCase();
-  const [unread, business, referrals] = await Promise.all([
-    prisma.notification.count({ where: { userId: ctx.session.user.id, readAt: null } }),
+  const me = ctx.session.user.id;
+  const [unread, business, referrals, threads, account] = await Promise.all([
+    prisma.notification.count({ where: { userId: me, readAt: null } }),
     email
       ? prisma.partner
           .findUnique({ where: { ownerEmail: email }, select: { id: true } })
           .then((page) => !!page || isBusinessAccount(email))
           .catch(() => false)
       : false,
-    unreadReferrals(ctx.session.user.id),
+    unreadReferrals(me),
+    // The latest message from someone else in each conversation, to compare with when the member last read it.
+    prisma.conversationMember
+      .findMany({
+        where: { userId: me },
+        orderBy: { conversation: { updatedAt: "desc" } },
+        take: 50,
+        select: {
+          lastReadAt: true,
+          conversation: {
+            select: { messages: { where: { senderId: { not: me } }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } } },
+          },
+        },
+      })
+      .catch(() => []),
+    prisma.user.findUnique({ where: { id: me }, select: { image: true } }).catch(() => null),
   ]);
+  const unreadMessages = threads.filter((t) => {
+    const last = t.conversation.messages[0];
+    return !!last && (!t.lastReadAt || last.createdAt > t.lastReadAt);
+  }).length;
 
   return (
-    <MemberShell name={ctx.session.user.name} unread={unread} referrals={referrals} isAdmin={ctx.isAdmin || ctx.unlocked} business={business}>
+    <MemberShell
+      name={ctx.session.user.name}
+      image={account?.image}
+      unread={unread}
+      messages={unreadMessages} referrals={referrals} isAdmin={ctx.isAdmin || ctx.unlocked} business={business}>
       {children}
     </MemberShell>
   );

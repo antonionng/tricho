@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   NAV,
+  NAV_GROUPS,
   PERMISSIONS,
   ROLE_PERMISSIONS,
   STAFF_ROLES,
@@ -92,5 +93,12 @@ describe("navigation", () => {
     expect(events).toContain("/studio/events");
     expect(events).not.toContain("/studio/team");
     expect(events).not.toContain("/studio/members");
+  });
+
+  it("puts every page in one of the five groups, in order", () => {
+    for (const item of NAV) expect(NAV_GROUPS).toContain(item.group);
+    const order = NAV.map((n) => NAV_GROUPS.indexOf(n.group));
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(NAV.filter((n) => n.group === "today").map((n) => n.label)).toEqual(["Overview", "Inbox", "This month"]);
   });
 });

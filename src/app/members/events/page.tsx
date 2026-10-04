@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, MapPin, Video } from "lucide-react";
+import { ArrowRight, MapPin, Video } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
-import { RsvpButton } from "@/components/members/RsvpButton";
-import { BuyTicket, TicketReturnBanner } from "@/components/events/BuyTicket";
+import { EventActions } from "@/components/members/EventActions";
+import { TicketReturnBanner } from "@/components/events/BuyTicket";
 import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { eventDay, timeOfDay } from "@/components/members/format";
 import { EVENT_KIND_LABEL, formatPrice } from "@/components/editorial/events";
@@ -22,6 +22,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
   const userId = ctx.session.user.id;
   const { ticket } = await searchParams;
   const cutoff = holdCutoff();
+  const now = new Date();
 
   // Keep an event visible for a few hours after it starts.
   const since = new Date();
@@ -85,8 +86,6 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             const d = eventDay(e.startsAt);
             const isGoing = e.rsvps.some((r) => r.userId === userId);
             const hasTicket = e.tickets.some((t) => t.userId === userId && t.status === "paid");
-            // Paid tickets are sold on Trichollective unless the event is free for members, who then RSVP.
-            const paidForMembers = e.sellTickets && e.memberPriceGBP > 0;
             const left = e.sellTickets ? seatsLeft(e, e.tickets, e.rsvps) : null;
             const full = e.sellTickets ? left === 0 : e.capacity != null && e.rsvps.length >= e.capacity;
             const local = !!ctx.chapterId && e.chapterId === ctx.chapterId;
@@ -117,33 +116,19 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                     {left != null && left > 0 && <span>{left} {left === 1 ? "place" : "places"} left</span>}
                   </p>
                   <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-2">{e.summary}</p>
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    {paidForMembers ? (
-                      hasTicket ? null : full ? (
-                        <span className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm text-muted-foreground">
-                          Sold out
-                        </span>
-                      ) : (
-                        <BuyTicket eventId={e.id} slug={e.slug} memberPriceGBP={e.memberPriceGBP} returnTo="members" compact />
-                      )
-                    ) : hasTicket ? null : (
-                      <RsvpButton eventId={e.id} going={isGoing} full={full} />
-                    )}
-                    {!e.sellTickets && e.ticketUrl && (
-                      <a
-                        href={e.ticketUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex h-11 items-center gap-1 rounded-full border border-rule px-4 text-sm font-medium hover:border-ink/40"
-                      >
-                        Get tickets on Eventbrite <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    )}
+                  <div className="mt-4 flex flex-wrap items-start gap-2">
+                    <EventActions
+                      event={e}
+                      going={isGoing}
+                      hasTicket={hasTicket}
+                      full={full}
+                      started={e.startsAt < now}
+                    />
                     <Link
-                      href={`/events/${e.slug}`}
+                      href={`/members/events/${e.slug}`}
                       className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-sm text-ink-2 hover:bg-paper-2"
                     >
-                      Details <ArrowUpRight className="h-4 w-4" />
+                      See details <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>

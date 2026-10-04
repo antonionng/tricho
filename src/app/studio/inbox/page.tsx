@@ -35,6 +35,7 @@ type Search = {
   id?: string;
   status?: string;
   agent?: string;
+  kind?: string;
   notice?: string;
   tone?: string;
   confirm?: string;
@@ -48,25 +49,42 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const agent = sp.agent || "";
 
   // Event prefills are working copies of the event form, not drafts to review.
-  const where: Prisma.DraftWhereInput = {
+  const base: Prisma.DraftWhereInput = {
     kind: { not: "event_prefill" },
     ...(status !== "all" ? { status: status as DraftStatus } : {}),
     ...(agent ? { agent } : {}),
   };
-  const [drafts, agentsInUse] = await Promise.all([
+  // Kind chips: only the kinds this role can decide on, counting the drafts it can decide on.
+  // Some kinds depend on what the draft is about (an event announcement goes to the events team).
+  const forChips = await prisma.draft.findMany({ where: base, select: { kind: true, payload: true }, take: 2000 });
+  const decidable = new Map<string, number>();
+  for (const d of forChips) {
+    if (canApproveDraft(staff.role, d.kind, d.payload)) decidable.set(d.kind, (decidable.get(d.kind) ?? 0) + 1);
+  }
+  const kindChips = [...decidable.entries()]
+    .map(([kind, count]) => ({ kind, count }))
+    .sort((a, b) => b.count - a.count || kindLabel(a.kind).localeCompare(kindLabel(b.kind)));
+  const totalCount = forChips.length;
+  const kind = sp.kind && kindChips.some((k) => k.kind === sp.kind) ? sp.kind : "";
+  const where: Prisma.DraftWhereInput = kind ? { ...base, kind } : base;
+
+  const [found, agentsInUse] = await Promise.all([
     prisma.draft.findMany({
       where,
       orderBy: { createdAt: status === "draft" ? "asc" : "desc" },
       take: 150,
-      select: { id: true, title: true, kind: true, agent: true, status: true, createdAt: true, summary: true },
+      select: { id: true, title: true, kind: true, agent: true, status: true, createdAt: true, summary: true, payload: true },
     }),
     prisma.draft.findMany({ where: { kind: { not: "event_prefill" } }, distinct: ["agent"], select: { agent: true } }),
   ]);
+  // A kind chip lists only the drafts of that kind this role can decide on, matching its count.
+  const drafts = kind ? found.filter((d) => canApproveDraft(staff.role, d.kind, d.payload)) : found;
 
   const filterParams = (extra: Record<string, string | undefined> = {}) => {
     const p = new URLSearchParams();
     if (status !== "draft") p.set("status", status);
     if (agent) p.set("agent", agent);
+    if (kind) p.set("kind", kind);
     for (const [k, v] of Object.entries(extra)) if (v) p.set(k, v);
     const q = p.toString();
     return q ? `/studio/inbox?${q}` : "/studio/inbox";
@@ -95,6 +113,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             const p = new URLSearchParams();
             if (f.id !== "draft") p.set("status", f.id);
             if (agent) p.set("agent", agent);
+            if (kind) p.set("kind", kind);
             const href = p.toString() ? `/studio/inbox?${p}` : "/studio/inbox";
             return (
               <Link
@@ -113,10 +132,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         </nav>
         <form action="/studio/inbox" className="flex items-center gap-2">
           {status !== "draft" && <input type="hidden" name="status" value={status} />}
+          {kind && <input type="hidden" name="kind" value={kind} />}
           <label className="text-sm text-muted-foreground" htmlFor="agent-filter">
             From
           </label>
-          <select id="agent-filter" name="agent" defaultValue={agent} className={cn(fieldClass, "w-auto py-1.5")}>
+          <select id="agent-filter" name="agent" defaultValue={agent} className={cn(fieldClass, "w-auto py-2")}>
             <option value="">Every agent</option>
             {agentOptions.map((a) => (
               <option key={a} value={a}>
@@ -124,11 +144,37 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               </option>
             ))}
           </select>
-          <Button type="submit" size="sm" variant="outline">
+          <Button type="submit" size="sm" variant="outline" className="h-auto py-2">
             Show
           </Button>
         </form>
       </div>
+
+      {kindChips.length > 0 && (
+        <nav className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Filter by kind">
+          {[{ kind: "", count: totalCount }, ...kindChips].map((k) => {
+            const p = new URLSearchParams();
+            if (status !== "draft") p.set("status", status);
+            if (agent) p.set("agent", agent);
+            if (k.kind) p.set("kind", k.kind);
+            const on = kind === k.kind;
+            return (
+              <Link
+                key={k.kind || "all"}
+                href={p.toString() ? `/studio/inbox?${p}` : "/studio/inbox"}
+                aria-current={on ? "true" : undefined}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors",
+                  on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink"
+                )}
+              >
+                {k.kind ? kindLabel(k.kind) : "Everything"}
+                <span className={cn("tabular-nums", on ? "text-paper/70" : "text-muted-foreground")}>{k.count}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       <InboxShortcuts hrefs={hrefs} currentIndex={index} />
 
@@ -136,7 +182,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         {/* List */}
         <div className={cn("space-y-2", selected && "hidden lg:block")}>
           {drafts.length === 0 && (
-            <Empty>{status === "draft" ? "All clear. Nothing is waiting for you." : "Nothing here with these filters."}</Empty>
+            <Empty>
+              {status === "draft" && !kind && !agent
+                ? "Nothing is waiting for a decision, and new drafts from the agents will appear here."
+                : "Nothing matches these filters, so try another status, kind or agent."}
+            </Empty>
           )}
           <ul className="flex flex-col gap-1.5 lg:max-h-[calc(100vh-16rem)] lg:overflow-y-auto lg:pr-1">
             {drafts.map((d) => {
@@ -183,7 +233,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               draft={selected}
               nextId={nextId}
               backHref={filterParams()}
-              filters={{ status: status !== "draft" ? status : "", agent }}
+              filters={{ status: status !== "draft" ? status : "", agent, kind }}
               confirm={sp.confirm === "1"}
               role={staff.role}
             />
@@ -207,7 +257,7 @@ async function DraftDetail({
   draft: SelectedDraft;
   nextId?: string;
   backHref: string;
-  filters: { status: string; agent: string };
+  filters: { status: string; agent: string; kind: string };
   confirm: boolean;
   role: StaffRoleId;
 }) {
@@ -239,6 +289,7 @@ async function DraftDetail({
       <input type="hidden" name="id" value={draft.id} />
       <input type="hidden" name="f_status" value={filters.status} />
       <input type="hidden" name="f_agent" value={filters.agent} />
+      <input type="hidden" name="f_kind" value={filters.kind} />
     </>
   );
 
@@ -328,7 +379,7 @@ async function DraftDetail({
 
       {/* Newsletter and announcement confirm step */}
       {open && (draft.kind === "newsletter" || draft.kind === "announcement") && recipients && (
-        <div className="space-y-3 rounded-2xl border-2 border-ink p-5">
+        <div className="space-y-3 rounded-2xl border-2 border-ink bg-card p-5">
           <p className="font-medium text-ink">
             Send this {draft.kind === "newsletter" ? "newsletter" : "announcement"} to {recipients.length}{" "}
             {recipients.length === 1 ? "person" : "people"}?
@@ -347,7 +398,7 @@ async function DraftDetail({
               <SubmitButton pendingLabel="Sending…">Yes, send it now</SubmitButton>
             </form>
             <Button asChild variant="outline">
-              <Link href={`${backHref}${backHref.includes("?") ? "&" : "?"}id=${draft.id}`}>Not yet</Link>
+              <Link href={`${backHref}${backHref.includes("?") ? "&" : "?"}id=${draft.id}`}>Cancel</Link>
             </Button>
           </div>
         </div>

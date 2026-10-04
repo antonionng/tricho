@@ -149,7 +149,7 @@ export const archive2026: Edition[] = [
           },
           {
             type: "p",
-            text: "For Trichollective, 2026 is also the year the community began. It started with a conference at Whittlebury Hall on 19 January, met again at Whittlebury Park on 15 June, and launches in Dublin on 5 October. The months around those meetings were busy ones for all three of the fields we bring together.",
+            text: "For Trichollective, 2026 is also the year the community began. It started with a conference at Whittlebury Hall on 19 January, met again at Whittlebury Park on 15 June, and launches at Trichollective Ireland on 5 October. The months around those meetings were busy ones for all three of the fields we bring together.",
           },
           {
             type: "p",

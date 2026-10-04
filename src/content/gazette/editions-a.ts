@@ -383,7 +383,7 @@ export const editionsA: Edition[] = [
           },
           {
             type: "p",
-            text: "On Monday 5 October 2026, the online platform launches at Trichollective Dublin, at the Killashee Hotel in Naas, County Kildare. It gives members somewhere to continue the conversation between gatherings: a community, a directory, learning and this magazine. The next conference after Dublin is planned for Los Angeles, with the date to be confirmed.",
+            text: "On Monday 5 October 2026, the online platform launches at Trichollective Ireland, at the Killashee Hotel in Naas, County Kildare. It gives members somewhere to continue the conversation between gatherings: a community, a directory, learning and this magazine. The next conference after Dublin is planned for Los Angeles, with the date to be confirmed.",
           },
           {
             type: "callout",
@@ -413,7 +413,7 @@ export const editionsA: Edition[] = [
           { label: "30 September 2026", value: "Trichozette's founding library is published." },
           {
             label: "5 October 2026",
-            value: "The online platform launches at Trichollective Dublin, Killashee Hotel, Naas.",
+            value: "The online platform launches at Trichollective Ireland, Killashee Hotel, Naas.",
           },
           { label: "Next", value: "Los Angeles, date to be confirmed." },
         ],

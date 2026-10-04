@@ -129,6 +129,56 @@ async function main() {
       profile: { create: { profession: "brand", location: "London" } },
     },
   });
+  // Brand pages and CRM records for the two business test accounts.
+  async function samplePartner(o: { ownerEmail: string; slug: string; name: string; tier: "business" | "premium"; category: string; blurb: string; perk: string; website: string }) {
+    const partner = await prisma.partner.upsert({
+      where: { slug: o.slug },
+      update: { ownerEmail: o.ownerEmail, tier: o.tier, published: true, hidden: false },
+      create: { ...o, published: true, isFounding: o.tier === "premium", contactEmail: o.ownerEmail },
+    });
+    await prisma.organisation.upsert({
+      where: { partnerId: partner.id },
+      update: { stage: "customer", accountEmail: o.ownerEmail },
+      create: {
+        name: o.name, kind: "brand", category: o.category, website: o.website, description: o.blurb, stage: "customer",
+        source: "seed", interest: o.tier, accountEmail: o.ownerEmail, partnerId: partner.id,
+        contacts: { create: { name: o.name, email: o.ownerEmail, isPrimary: true } },
+      },
+    });
+  }
+  await samplePartner({
+    ownerEmail: "business.sample@example.test", slug: "sample-scalp-clinic", name: "Sample Scalp Clinic", tier: "business",
+    category: "Clinics", website: "https://example.com/clinic", blurb: "A sample London scalp clinic, used to test the Business plan and its brand portal.",
+    perk: "Members receive 10% off their first consultation.",
+  });
+
+  // Premium Business: owns a Premium partner page (activated by the Premium checkout in real life).
+  await prisma.user.upsert({
+    where: { email: "premium.sample@example.test" },
+    update: { plan: "business", role: "business", stripeCurrentPeriodEnd: periodEnd },
+    create: {
+      email: "premium.sample@example.test", name: "Premium Sample (brand)", role: "business", plan: "business",
+      stripeCurrentPeriodEnd: periodEnd, onboardedAt: new Date(), chapterId: england?.id,
+      profile: { create: { profession: "brand", location: "Manchester" } },
+    },
+  });
+  await samplePartner({
+    ownerEmail: "premium.sample@example.test", slug: "premium-sample-devices", name: "Premium Sample Devices", tier: "premium",
+    category: "Devices and diagnostics", website: "https://example.com/devices", blurb: "A sample device maker, used to test the Premium Business partnership, brand results and the featured partner page.",
+    perk: "Members receive a free trichoscope training session with every device.",
+  });
+
+  // Owner: full Studio access, separate from the real owners named in OWNER_EMAILS.
+  await prisma.user.upsert({
+    where: { email: "owner.sample@example.test" },
+    update: { staffRole: "owner" },
+    create: {
+      email: "owner.sample@example.test", name: "Owner Sample", staffRole: "owner", plan: "professional",
+      stripeCurrentPeriodEnd: periodEnd, onboardedAt: new Date(), chapterId: dublin.id,
+      profile: { create: { profession: "clinical", location: "Dublin" } },
+    },
+  });
+
   // Free account, listing inside its 90-day full-profile trial
   const freeUser = await prisma.user.upsert({
     where: { email: "free.sample@example.test" },
@@ -184,14 +234,14 @@ async function main() {
 
   // Events
   const events = [
-    { slug: "trichollective-dublin", title: "Trichollective Dublin", kind: "gathering" as const, summary: "A day connecting cosmetic, clinical and medical professionals to better serve clients, and the launch of Trichollective Online and the founding directory.", startsAt: new Date("2026-10-05T09:30:00+01:00"), endsAt: new Date("2026-10-05T18:00:00+01:00"), city: "Dublin", venue: "Killashee Hotel, Kilcullen Road, Naas", ticketUrl: "https://www.eventbrite.co.uk/e/trichollective-dublin-tickets-1992021489900", chapterId: dublin.id },
+    { slug: "trichollective-dublin", title: "Trichollective Ireland", kind: "gathering" as const, summary: "A day connecting cosmetic, clinical and medical professionals to better serve clients, and the launch of Trichollective Online and the founding directory.", startsAt: new Date("2026-10-05T09:30:00+01:00"), endsAt: new Date("2026-10-05T18:00:00+01:00"), city: "Dublin", venue: "Killashee Hotel, Kilcullen Road, Naas", ticketUrl: "https://www.eventbrite.co.uk/e/trichollective-dublin-tickets-1992021489900", chapterId: dublin.id },
     { slug: "masterclass-scalp-consultation", title: "Masterclass: the five-minute scalp check", kind: "masterclass" as const, summary: "A live, practical session for stylists and head spa therapists, with time for questions.", startsAt: new Date(Date.now() + 21 * day), online: true, priceGBP: 20, memberPriceGBP: 0 },
   ];
   for (const e of events) {
     await prisma.event.upsert({ where: { slug: e.slug }, update: { chapterId: e.chapterId ?? null }, create: { ...e, published: true } });
   }
 
-  console.log(`Seeded. Sign in locally with the dev login as ${admin.email} (admin) or any *@example.test member.`);
+  console.log("Seeded. Test accounts are listed in docs/TEST-ACCOUNTS.md.");
 }
 
 main().finally(() => prisma.$disconnect());

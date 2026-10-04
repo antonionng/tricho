@@ -20,7 +20,7 @@ export const CHAPTERS: ChapterInfo[] = [
     country: "Ireland and Northern Ireland",
     countries: ["Ireland", "Northern Ireland"],
     blurb:
-      "The chapter for members across the whole island of Ireland, and the home of Trichollective Dublin, where the online collective launches on 5 October.",
+      "The chapter for members across the whole island of Ireland, and the home of Trichollective Ireland, where the online collective launches on 5 October.",
     imageKey: "ed02",
   },
   {

@@ -1285,12 +1285,12 @@ export const editionsB: Edition[] = [
   },
 
   /* ------------------------------------------------------------------ */
-  /* 8. Dublin                                                           */
+  /* 8. Ireland                                                          */
   /* ------------------------------------------------------------------ */
   {
     number: 8,
     slug: "dublin",
-    title: "Dublin",
+    title: "Ireland",
     fade: "Where Trichollective goes online.",
     theme: "Launch",
     standfirst:
@@ -1314,7 +1314,7 @@ export const editionsB: Edition[] = [
           },
           {
             type: "p",
-            text: "It opens at Trichollective Dublin on Monday 5 October 2026, at the Killashee Hotel in Naas. It seems right that the platform should begin in a room full of people, since that is where the community itself began.",
+            text: "It opens at Trichollective Ireland on Monday 5 October 2026, at the Killashee Hotel in Naas. It seems right that the platform should begin in a room full of people, since that is where the community itself began.",
           },
           {
             type: "p",
@@ -1326,14 +1326,14 @@ export const editionsB: Edition[] = [
       {
         kind: "article",
         kicker: "The event",
-        title: "What Trichollective Dublin is",
+        title: "What Trichollective Ireland is",
         standfirst:
           "A day for hair and scalp professionals across Ireland and the UK, and the moment the platform opens its doors.",
         imageKey: "dublin",
         blocks: [
           {
             type: "p",
-            text: "Trichollective Dublin takes place on Monday 5 October 2026, from 9.30am to 6pm, at the Killashee Hotel on Kilcullen Road, Naas, in County Kildare. It is the third Trichollective conference, following the two days at Whittlebury earlier this year, and the first to be held in Ireland.",
+            text: "Trichollective Ireland takes place on Monday 5 October 2026, from 9.30am to 6pm, at the Killashee Hotel on Kilcullen Road, Naas, in County Kildare. It is the third Trichollective conference, following the two days at Whittlebury earlier this year, and the first to be held in Ireland.",
           },
           {
             type: "p",
@@ -1368,7 +1368,7 @@ export const editionsB: Edition[] = [
             type: "p",
             text: "We are not publishing speakers or session details in this edition. The full programme will be shared by the team directly, and members will hear first. If you have a question about the day in the meantime, the Introductions space on the platform, and the Dublin chapter once you join it, are good places to ask.",
           },
-          { type: "h", text: "After Dublin" },
+          { type: "h", text: "After the day in Ireland" },
           {
             type: "p",
             text: "The next conference will be in Los Angeles, with the date to be confirmed. Between events, the platform is where the community carries on: in the spaces, the local chapters, the monthly live masterclasses and the courses.",
@@ -1385,7 +1385,7 @@ export const editionsB: Edition[] = [
         kicker: "Three perspectives",
         title: "Who you call next",
         intro:
-          "The Dublin day and the new platform exist to make one thing easier: knowing who to call when a client needs more than you can offer. Here is what that looks like from each discipline.",
+          "The day in Ireland and the new platform exist to make one thing easier: knowing who to call when a client needs more than you can offer. Here is what that looks like from each discipline.",
         views: [
           {
             discipline: "cosmetic",
@@ -1397,7 +1397,7 @@ export const editionsB: Edition[] = [
               },
               {
                 type: "p",
-                text: "The directory and the Dublin day are chances to meet trichologists and medical colleagues nearby, and to understand what they offer and how clients can reach them. Cosmetic professionals still never diagnose, and a referral should always be framed as a suggestion the client chooses to take, with their consent before any details are shared.",
+                text: "The directory and the day in Ireland are chances to meet trichologists and medical colleagues nearby, and to understand what they offer and how clients can reach them. Cosmetic professionals still never diagnose, and a referral should always be framed as a suggestion the client chooses to take, with their consent before any details are shared.",
               },
               {
                 type: "reveal",
@@ -1464,7 +1464,7 @@ export const editionsB: Edition[] = [
         kind: "image",
         imageKey: "dublin",
         caption:
-          "The Ha'penny Bridge over the Liffey. Trichollective Dublin takes place a short way south-west of the city, at the Killashee Hotel in Naas.",
+          "The Ha'penny Bridge over the Liffey. Trichollective Ireland takes place a short way south-west of the city, at the Killashee Hotel in Naas.",
       },
       {
         kind: "article",
@@ -1521,13 +1521,13 @@ export const editionsB: Edition[] = [
       {
         kind: "interactive",
         kicker: "Tools",
-        title: "Your Dublin checklist",
+        title: "Your checklist for Trichollective Ireland",
         intro:
           "Work through the checklist before, during and after the day. Then try a short quiz on getting started with the platform.",
         blocks: [
           {
             type: "checklist",
-            title: "Before, during and after Trichollective Dublin",
+            title: "Before, during and after Trichollective Ireland",
             items: [
               "Ticket booked on Eventbrite.",
               "Travel to the Killashee Hotel, Naas, planned with time to spare.",
@@ -1703,7 +1703,7 @@ export const editionsB: Edition[] = [
           { label: "19 January 2026", value: "Conference at Whittlebury Hall, Northamptonshire." },
           { label: "15 June 2026", value: "Conference at Whittlebury Park Hotel & Spa." },
           { label: "30 September 2026", value: "Trichozette founding library is published." },
-          { label: "5 October 2026", value: "Trichollective Dublin, 9.30am to 6pm, Killashee Hotel, Kilcullen Road, Naas. The platform launches." },
+          { label: "5 October 2026", value: "Trichollective Ireland, 9.30am to 6pm, Killashee Hotel, Kilcullen Road, Naas. The platform launches." },
           { label: "Tickets", value: "On Eventbrite." },
           { label: "Programme", value: "To be shared by the Trichollective team." },
           { label: "Founding listings", value: "Free for 90 days from sign-up, then claim with the Professional plan." },

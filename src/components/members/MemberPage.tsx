@@ -100,4 +100,4 @@ export function EmptyState({
 }
 
 export const fieldClass =
-  "w-full rounded-xl border border-input bg-paper px-3.5 text-[15px] outline-none transition-colors placeholder:text-muted-foreground focus:border-ink";
+  "w-full rounded-xl border border-input bg-paper px-3.5 text-[15px] outline-none transition-colors placeholder:text-muted-foreground focus:border-ink focus-visible:ring-2 focus-visible:ring-ink/15";

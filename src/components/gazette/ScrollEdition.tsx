@@ -22,7 +22,7 @@ function Body({ blocks, drop = true, wide = false }: { blocks: Block[]; drop?: b
     <div className="mag-body mag-web">
       {blocks.map((b, i) =>
         b.type === "pull" ? (
-          <Rise key={i} className={cn("my-14", wide ? "" : "md:-mx-24 lg:-mx-40")}>
+          <Rise key={i} className={cn("my-14", wide ? "" : "lg:-mx-24 xl:-mx-40")}>
             <blockquote className="text-center">
               <span className="mag-didone block text-[72px] leading-[0.4]">&ldquo;</span>
               <p className="mag-didone mt-4 text-[34px] italic leading-[1.08] tracking-[-0.01em] sm:text-[46px]">{b.text}</p>
