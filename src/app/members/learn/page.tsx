@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Newspaper, Sparkles } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
@@ -43,6 +43,33 @@ export default async function LearnPage() {
         title="Learn"
         lede="Short, careful pieces you can use this week, and courses written with practitioners from each discipline."
       />
+
+      <div className="mb-10 grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/members/trichozette"
+          className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
+        >
+          <Newspaper className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.6]" />
+          <span className="min-w-0">
+            <span className="block font-semibold">Trichozette</span>
+            <span className="mt-1 block text-sm leading-relaxed text-ink-2">
+              Read the monthly edition on research, practice and news from across the collective.
+            </span>
+          </span>
+        </Link>
+        <Link
+          href="/members/assistant"
+          className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
+        >
+          <Sparkles className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.6]" />
+          <span className="min-w-0">
+            <span className="block font-semibold">Assistant</span>
+            <span className="mt-1 block text-sm leading-relaxed text-ink-2">
+              Ask a question about hair and scalp practice and get a careful, considered answer straight away.
+            </span>
+          </span>
+        </Link>
+      </div>
 
       <section className="mb-12">
         <SectionLabel>Courses</SectionLabel>

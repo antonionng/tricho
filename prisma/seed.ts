@@ -234,7 +234,7 @@ async function main() {
 
   // Events
   const events = [
-    { slug: "trichollective-dublin", title: "Trichollective Dublin", kind: "gathering" as const, summary: "A day connecting cosmetic, clinical and medical professionals to better serve clients, and the launch of Trichollective Online and the founding directory.", startsAt: new Date("2026-10-05T09:30:00+01:00"), endsAt: new Date("2026-10-05T18:00:00+01:00"), city: "Dublin", venue: "Killashee Hotel, Kilcullen Road, Naas", ticketUrl: "https://www.eventbrite.co.uk/e/trichollective-dublin-tickets-1992021489900", chapterId: dublin.id },
+    { slug: "trichollective-dublin", title: "Trichollective Ireland", kind: "gathering" as const, summary: "A day connecting cosmetic, clinical and medical professionals to better serve clients, and the launch of Trichollective Online and the founding directory.", startsAt: new Date("2026-10-05T09:30:00+01:00"), endsAt: new Date("2026-10-05T18:00:00+01:00"), city: "Dublin", venue: "Killashee Hotel, Kilcullen Road, Naas", ticketUrl: "https://www.eventbrite.co.uk/e/trichollective-dublin-tickets-1992021489900", chapterId: dublin.id },
     { slug: "masterclass-scalp-consultation", title: "Masterclass: the five-minute scalp check", kind: "masterclass" as const, summary: "A live, practical session for stylists and head spa therapists, with time for questions.", startsAt: new Date(Date.now() + 21 * day), online: true, priceGBP: 20, memberPriceGBP: 0 },
   ];
   for (const e of events) {

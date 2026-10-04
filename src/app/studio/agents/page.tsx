@@ -116,7 +116,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
               <div className="space-y-2">
                 <h3 className="label text-muted-foreground">Last 10 runs</h3>
                 {runs[i].length === 0 ? (
-                  <Empty>It hasn&apos;t run yet.</Empty>
+                  <Empty>This agent has not run yet, and each run will be listed here.</Empty>
                 ) : (
                   <ul className="divide-y divide-rule rounded-2xl border border-rule">
                     {runs[i].map((run) => (

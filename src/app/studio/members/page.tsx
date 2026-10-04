@@ -5,7 +5,17 @@ import { subscriptionTiers } from "@/config/subscriptions";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
 import { Button } from "@/components/ui/button";
 import { Empty, NoAccess, Notice, PageHeader, Section, Stat, Tag, dateOnly, fieldClass } from "@/components/studio/ui";
-import { searchMembers, parseMemberFilters, memberFilterQuery, accessState, ACCESS_LABEL, memberTags, studioTeam } from "@/lib/members-admin";
+import {
+  searchMembers,
+  parseMemberFilters,
+  memberFilterQuery,
+  accessState,
+  ACCESS_LABEL,
+  memberTags,
+  studioTeam,
+  sourceKey,
+  sourceLabel,
+} from "@/lib/members-admin";
 import type { MemberFilters } from "@/lib/members-filter";
 import { cn } from "@/lib/utils";
 import { studioPage } from "../_lib/guard";
@@ -18,7 +28,17 @@ const DAY = 24 * 60 * 60 * 1000;
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; plan?: string; status?: string; tag?: string; owner?: string; cursor?: string; notice?: string; tone?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    plan?: string;
+    status?: string;
+    tag?: string;
+    owner?: string;
+    joined?: string;
+    cursor?: string;
+    notice?: string;
+    tone?: string;
+  }>;
 }) {
   const staff = await studioPage("/studio/members", "members.view");
   if (!staff) return <NoAccess what="members" />;
@@ -39,18 +59,24 @@ export default async function MembersPage({
     prisma.subscriber.groupBy({ by: ["utmSource"], _count: { _all: true } }),
   ]);
 
-  // Where people came from: paid members, free listings and email sign-ups, side by side.
+  // Where people came from: paid members, free accounts, free listings and email sign-ups, side by side.
+  // "dublin" and "ireland" are the same launch event, so they share one row.
   const sourceRows = (() => {
-    const map = new Map<string, { members: number; listings: number; emails: number }>();
+    type Counts = { members: number; free: number; listings: number; emails: number };
+    const map = new Map<string, Counts>();
     const row = (k: string | null) => {
-      const key = k || "direct";
-      if (!map.has(key)) map.set(key, { members: 0, listings: 0, emails: 0 });
+      const key = sourceKey(k);
+      if (!map.has(key)) map.set(key, { members: 0, free: 0, listings: 0, emails: 0 });
       return map.get(key)!;
     };
-    for (const u of users) if (u.plan) row(u.signupSource).members++;
+    for (const u of users) {
+      if (u.plan) row(u.signupSource).members++;
+      else row(u.signupSource).free++;
+    }
     for (const l of listingSources) row(l.source).listings += l._count._all;
     for (const s of subscriberSources) row(s.utmSource).emails += s._count._all;
-    return [...map.entries()].sort((a, b) => b[1].members + b[1].listings + b[1].emails - (a[1].members + a[1].listings + a[1].emails));
+    const total = (c: Counts) => c.members + c.free + c.listings + c.emails;
+    return [...map.entries()].sort((a, b) => total(b[1]) - total(a[1]));
   })();
 
   const isActive = (u: { stripeCurrentPeriodEnd: Date | null }) => !!u.stripeCurrentPeriodEnd && u.stripeCurrentPeriodEnd > now;
@@ -69,7 +95,7 @@ export default async function MembersPage({
 
   const [results, tags, team] = await Promise.all([searchMembers({ ...filters, cursor }), memberTags(), studioTeam()]);
   const members = results.rows;
-  const filtered = !!(filters.q || filters.plan || filters.status || filters.tag || filters.owner);
+  const filtered = !!(filters.q || filters.plan || filters.status || filters.tag || filters.owner || filters.joined);
   const ownerName = new Map(team.map((t) => [t.id, t.name]));
   const ownerChips = [
     { value: "", label: "Anyone" },
@@ -98,11 +124,12 @@ export default async function MembersPage({
 
       <Section title="Where people came from">
         <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="border-b border-rule text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Source</th>
                 <th className="px-4 py-3 font-medium">Paying members</th>
+                <th className="px-4 py-3 font-medium">Free accounts</th>
                 <th className="px-4 py-3 font-medium">Free listings</th>
                 <th className="px-4 py-3 font-medium">Email sign-ups</th>
               </tr>
@@ -110,8 +137,9 @@ export default async function MembersPage({
             <tbody>
               {sourceRows.map(([source, n]) => (
                 <tr key={source} className="border-b border-rule last:border-0">
-                  <td className="px-4 py-3 font-medium capitalize">{source}</td>
+                  <td className="px-4 py-3 font-medium">{sourceLabel(source)}</td>
                   <td className="px-4 py-3 tabular-nums">{n.members}</td>
+                  <td className="px-4 py-3 tabular-nums">{n.free}</td>
                   <td className="px-4 py-3 tabular-nums">{n.listings}</td>
                   <td className="px-4 py-3 tabular-nums">{n.emails}</td>
                 </tr>
@@ -120,7 +148,8 @@ export default async function MembersPage({
           </table>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          The Dublin QR codes count as &ldquo;dublin&rdquo;, the Instagram link as &ldquo;instagram&rdquo; and links with ?utm_source=facebook as &ldquo;facebook&rdquo;.
+          Sign-ups from the Trichollective Ireland QR codes and links are counted together, whichever version of the link was used.
+          Links with ?utm_source=instagram or ?utm_source=facebook appear under that name, and everyone else is counted as direct.
         </p>
       </Section>
 
@@ -171,6 +200,7 @@ export default async function MembersPage({
               {filters.status && <input type="hidden" name="status" value={filters.status} />}
               {filters.tag && <input type="hidden" name="tag" value={filters.tag} />}
               {filters.owner && <input type="hidden" name="owner" value={filters.owner} />}
+              {filters.joined && <input type="hidden" name="joined" value={filters.joined} />}
               <label htmlFor="member-search" className="sr-only">
                 Search members
               </label>
@@ -194,6 +224,7 @@ export default async function MembersPage({
         }
       >
         <div className="space-y-2">
+          <Chips label="Joined" filters={filters} name="joined" options={JOINED_CHIPS} />
           <Chips label="Plan" filters={filters} name="plan" options={PLAN_CHIPS} />
           <Chips label="Status" filters={filters} name="status" options={STATUS_CHIPS} />
           <Chips label="Owner" filters={filters} name="owner" options={ownerChips} />
@@ -201,10 +232,14 @@ export default async function MembersPage({
         </div>
 
         {members.length === 0 ? (
-          <Empty>No one matches these filters. Try a shorter search or clear a filter.</Empty>
+          <Empty>
+            {filters.joined === "today" && !filters.q && !filters.plan && !filters.status && !filters.tag && !filters.owner
+              ? "Nobody has joined today yet, and new accounts will appear here as soon as they are created."
+              : "No one matches these filters. Try a shorter search or clear a filter."}
+          </Empty>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
-            <table className="w-full min-w-[820px] text-sm">
+            <table className="w-full min-w-[920px] text-sm">
               <thead className="text-left text-muted-foreground">
                 <tr className="border-b border-rule">
                   <th className="px-4 py-3 font-medium">Name</th>
@@ -212,6 +247,7 @@ export default async function MembersPage({
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">City</th>
                   <th className="px-4 py-3 font-medium">Joined</th>
+                  <th className="px-4 py-3 font-medium">Came from</th>
                   <th className="px-4 py-3 font-medium">Team</th>
                 </tr>
               </thead>
@@ -254,7 +290,10 @@ export default async function MembersPage({
                         </div>
                       </td>
                       <td className="px-4 py-3 text-ink-2">{u.profile?.city ?? u.profile?.location ?? "–"}</td>
-                      <td className="px-4 py-3 text-ink-2">{dateOnly(u.createdAt)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-ink-2">{dateOnly(u.createdAt)}</td>
+                      <td className="px-4 py-3 text-ink-2">
+                        {sourceKey(u.signupSource) === "ireland" ? <Tag tone="ink">{sourceLabel(u.signupSource)}</Tag> : sourceLabel(u.signupSource)}
+                      </td>
                       <td className="px-4 py-3">
                         {u.staffRole ? <Tag tone="ink">{STAFF_ROLE_LABEL[u.staffRole as StaffRoleId]}</Tag> : <span className="text-muted-foreground">–</span>}
                       </td>
@@ -288,6 +327,11 @@ export default async function MembersPage({
   );
 }
 
+const JOINED_CHIPS: { value: string; label: string }[] = [
+  { value: "", label: "Any time" },
+  { value: "today", label: "Joined today" },
+];
+
 const PLAN_CHIPS: { value: string; label: string }[] = [
   { value: "", label: "Any plan" },
   ...subscriptionTiers.map((t) => ({ value: t.id, label: t.name })),
@@ -310,7 +354,7 @@ function Chips({
   options,
 }: {
   label: string;
-  name: "plan" | "status" | "tag" | "owner";
+  name: "plan" | "status" | "tag" | "owner" | "joined";
   filters: MemberFilters;
   options: { value: string; label: string }[];
 }) {
@@ -325,7 +369,7 @@ function Chips({
             href={`/studio/members${memberFilterQuery({ ...filters, [name]: o.value })}`}
             aria-current={on ? "true" : undefined}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors",
+              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors pointer-coarse:min-h-10 pointer-coarse:inline-flex pointer-coarse:items-center",
               on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink"
             )}
           >

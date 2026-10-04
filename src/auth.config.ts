@@ -9,6 +9,9 @@ export const authConfig = {
   providers: [],
   pages: {
     signIn: "/login",
+    // Branded pages inside the site, instead of Auth.js's default screens.
+    verifyRequest: "/login/check-email",
+    error: "/login/error",
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {

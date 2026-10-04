@@ -151,7 +151,7 @@ export default async function MemberDetailPage({
               <p className="font-medium text-ink">Tags</p>
               <form action={setMemberTagsAction} className="flex flex-wrap items-end gap-2">
                 <Hidden id={user.id} />
-                <Field label="Tags" hint="Separate tags with commas, for example speaker, dublin 2026." className="min-w-0 flex-1">
+                <Field label="Tags" hint="Separate tags with commas, for example speaker, ireland 2026." className="min-w-0 flex-1">
                   <input name="tags" defaultValue={user.tags.join(", ")} maxLength={2000} className={fieldClass} />
                 </Field>
                 <SubmitButton size="sm" variant="outline" pendingLabel="Saving…">

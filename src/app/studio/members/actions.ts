@@ -283,7 +283,7 @@ async function requireCrmEdit() {
   return staff;
 }
 
-/** Tags for finding and grouping members, e.g. "speaker" or "dublin 2026". Members never see them. */
+/** Tags for finding and grouping members, e.g. "speaker" or "ireland 2026". Members never see them. */
 export async function setMemberTagsAction(form: FormData) {
   const staff = await requireCrmEdit();
   const id = s(form, "id", 64);

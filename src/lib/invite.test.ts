@@ -88,7 +88,7 @@ describe("composeInviteEmail", () => {
     token: "a".repeat(32),
     founderFull: "Karley Weir",
     baseUrl: "https://example.com/",
-    launchTitle: "Trichollective Dublin",
+    launchTitle: "Trichollective Ireland",
     launchStartsAt: "2026-10-05T09:30:00+01:00",
     freeDays: 90,
   };
@@ -100,7 +100,7 @@ describe("composeInviteEmail", () => {
     expect(body).toContain(`https://example.com/directory/list?invite=${"a".repeat(32)}`);
     expect(body).toMatch(/free for good/);
     expect(body).toMatch(/90 days/);
-    expect(body).toContain("Trichollective Dublin on 5 October");
+    expect(body).toContain("Trichollective Ireland on 5 October");
     expect(body).not.toMatch(BANNED);
   });
 

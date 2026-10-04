@@ -11,7 +11,16 @@ import {
   type MemberStatusFilter,
 } from "@/lib/members-filter";
 
-export { parseMemberFilters, memberFilterQuery, accessState, ACCESS_LABEL } from "@/lib/members-filter";
+export {
+  parseMemberFilters,
+  memberFilterQuery,
+  accessState,
+  ACCESS_LABEL,
+  sourceKey,
+  sourceLabel,
+  isIrelandSource,
+  startOfToday,
+} from "@/lib/members-filter";
 export type { MemberFilters } from "@/lib/members-filter";
 
 const PAGE = 50;
@@ -45,9 +54,17 @@ export async function searchMembers(f: {
   status?: MemberStatusFilter;
   tag?: string;
   owner?: string;
+  joined?: "today";
   cursor?: string;
 }) {
-  const filters: MemberFilters = { q: f.q?.trim() ?? "", plan: f.plan ?? "", status: f.status ?? "", tag: f.tag, owner: f.owner };
+  const filters: MemberFilters = {
+    q: f.q?.trim() ?? "",
+    plan: f.plan ?? "",
+    status: f.status ?? "",
+    tag: f.tag,
+    owner: f.owner,
+    joined: f.joined,
+  };
   const where = buildMemberWhere(filters, new Date(), SYSTEM_USER_EMAIL);
   const [rows, total] = await Promise.all([
     prisma.user.findMany({

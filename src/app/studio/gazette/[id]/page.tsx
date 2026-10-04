@@ -185,12 +185,12 @@ export default async function EditionEditorPage({
             {aiAvailable() && (
               <form action={generateRemainingAction}>
                 <input type="hidden" name="id" value={row.id} />
-                <SubmitButton size="sm">Generate remaining pages</SubmitButton>
+                <SubmitButton size="sm" pendingLabel="Starting…">Generate remaining pages</SubmitButton>
               </form>
             )}
             <form action={fillTemplatesAction}>
               <input type="hidden" name="id" value={row.id} />
-              <SubmitButton size="sm" variant="outline">
+              <SubmitButton size="sm" variant="outline" pendingLabel="Preparing…">
                 Write them by hand
               </SubmitButton>
             </form>
@@ -290,7 +290,7 @@ export default async function EditionEditorPage({
                     </option>
                   ))}
                 </select>
-                <SubmitButton size="sm" variant="outline">
+                <SubmitButton size="sm" variant="outline" pendingLabel="Adding…">
                   Add page
                 </SubmitButton>
               </form>
@@ -308,7 +308,7 @@ export default async function EditionEditorPage({
       )}
 
       {tab === "meta" && (
-        <form action={saveMetaAction} className="max-w-3xl space-y-6">
+        <form action={saveMetaAction} className="max-w-4xl space-y-6">
           <input type="hidden" name="id" value={row.id} />
           <fieldset disabled={locked} className="space-y-6">
             {brief.text && (
@@ -529,7 +529,7 @@ function PendingPanel({ id, index, page, locked, ai }: { id: string; index: numb
           <Field label="Note for the writer" hint="Optional. Say anything this page should include or avoid.">
             <textarea name="note" rows={2} defaultValue={page.note ?? ""} className={fieldClass} />
           </Field>
-          <SubmitButton size="sm">Write this page</SubmitButton>
+          <SubmitButton size="sm" pendingLabel="Writing…">Write this page</SubmitButton>
         </form>
       )}
     </Card>

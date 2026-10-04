@@ -77,10 +77,10 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
 
       <Section title="People on the team" intro="Owners named in the site settings always stay owners, so the team can never be locked out.">
         {team.length === 0 ? (
-          <Empty>Nobody has a role yet.</Empty>
+          <Empty>Nobody on the team has a role yet, so add someone below to give them access to Studio.</Empty>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-rule">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
+            <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="bg-paper-2 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Person</th>

@@ -19,7 +19,7 @@ export function SourceField({ name = "source" }: { name?: string }) {
   return <input type="hidden" name={name} defaultValue="" data-source-field={name} />;
 }
 
-/** Landing pages that are their own source (e.g. /dublin, /tricho). */
+/** Landing pages that are their own source (e.g. /ireland, /tricho). */
 export function RememberSource({ value }: { value: string }) {
   useEffect(() => {
     captureSource();

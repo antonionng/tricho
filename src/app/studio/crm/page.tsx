@@ -374,7 +374,7 @@ function Chips({
             href={href(o.value)}
             aria-current={on ? "true" : undefined}
             className={cn(
-              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors",
+              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors pointer-coarse:min-h-10 pointer-coarse:inline-flex pointer-coarse:items-center",
               on ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink"
             )}
           >

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Check, Circle } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Check, Circle } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { Card, MemberPage, PageHeader, SectionLabel, fieldClass } from "@/components/members/MemberPage";
@@ -8,7 +8,7 @@ import { SubmitButton } from "@/components/members/SubmitButton";
 import { ImageUpload } from "@/components/forms/ImageUpload";
 import { auth } from "@/auth";
 import { BUSINESS_SEATS, isBusinessAccount } from "@/lib/subscription";
-import { SETUP_STEPS, setupProgress } from "@/lib/business-profile";
+import { nextSetupStep, SETUP_STEPS, setupProgress, type SetupStepId } from "@/lib/business-profile";
 import { PARTNER_CATEGORIES, partnerLogoSrc, partnerTierLabel } from "@/lib/partners";
 import { cn } from "@/lib/utils";
 import { saveBusinessPage } from "./actions";
@@ -18,6 +18,17 @@ import { TeamSeats } from "./TeamSeats";
 import { Results } from "./Results";
 
 export const metadata = { title: "Your business" };
+
+/** How the portal names the next unfinished step, in a sentence and on its button. */
+const NEXT_STEP: Record<SetupStepId, { phrase: string; button: string }> = {
+  details: { phrase: "adding your brand details", button: "Add your brand details" },
+  logo: { phrase: "adding your logo", button: "Add your logo" },
+  contact: { phrase: "adding your contact details", button: "Add your contact details" },
+  address: { phrase: "adding your business address", button: "Add your business address" },
+  perk: { phrase: "offering members a perk", button: "Add a member perk" },
+  team: { phrase: "giving your team their Professional seats", button: "Add your team" },
+  publish: { phrase: "checking your page and publishing it", button: "Preview and publish" },
+};
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -61,10 +72,15 @@ export default async function BusinessPage({
     );
   }
 
+  // A business account without a page starts the guided setup at the first step.
+  if (!page) redirect("/members/business/setup?step=details");
+
   const logo = partnerLogoSrc(page?.logoUrl);
   const errorText = describeError(error, message);
   const progress = setupProgress({ page, org, seats: seats.length });
   const stepsLeft = SETUP_STEPS.filter((st) => !progress[st.id]).length;
+  const next = SETUP_STEPS.find((st) => st.id === nextSetupStep(progress))!;
+  const premium = page.tier === "premium";
 
   return (
     <MemberPage size="narrow">
@@ -96,7 +112,20 @@ export default async function BusinessPage({
         </div>
       )}
 
-      {saved && SAVED_MESSAGES[saved] && (
+      {saved === "published" && page.published ? (
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-positive/25 bg-positive/10 px-4 py-4 sm:px-5" role="status">
+          <p className="text-[15px] leading-relaxed text-ink">
+            Your page is now live, so anyone browsing the partner directory can find {page.name}
+            {page.perk ? ", and signed-in members can see your perk in Member perks." : "."}
+          </p>
+          <Link
+            href={`/partners/${page.slug}`}
+            className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-ink underline underline-offset-4"
+          >
+            View your public page <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
+      ) : saved && SAVED_MESSAGES[saved] && (
         <p className="mb-6 rounded-2xl border border-positive/25 bg-positive/10 px-4 py-3 text-sm text-positive" role="status">
           {SAVED_MESSAGES[saved]}
         </p>
@@ -109,7 +138,14 @@ export default async function BusinessPage({
 
       <section id="setup" className="mb-10 scroll-mt-20">
         <SectionLabel>{stepsLeft ? `Your profile: ${stepsLeft} of ${SETUP_STEPS.length} steps left` : "Your profile is complete"}</SectionLabel>
-        <Card className="p-5 sm:p-6">
+        <Card className={cn("p-5 sm:p-6", stepsLeft > 0 && !page.published && "border-ink/40")}>
+          {stepsLeft > 0 && (
+            <p className="mb-2 text-lg font-medium leading-snug text-ink">
+              {page.published
+                ? `Your page is live, and your next step is ${NEXT_STEP[next.id].phrase}.`
+                : `Your page is not live yet, and your next step is ${NEXT_STEP[next.id].phrase}.`}
+            </p>
+          )}
           <p className="text-[15px] leading-relaxed text-ink-2">
             {stepsLeft
               ? "A complete profile helps professionals understand what you offer and gives our team what it needs for your invoices. Each step takes a minute or two, and you can stop and come back at any time."
@@ -133,14 +169,16 @@ export default async function BusinessPage({
             ))}
           </ol>
           {stepsLeft > 0 && (
-            <Button asChild className="mt-5">
-              <Link href="/members/business/setup">Continue setting up</Link>
+            <Button asChild size="lg" className="mt-5">
+              <Link href={`/members/business/setup?step=${next.id}`}>{NEXT_STEP[next.id].button}</Link>
             </Button>
           )}
         </Card>
       </section>
 
-      {page && <Results partnerId={page.id} />}
+      {premium && <PremiumStatus isFounding={page.isFounding} />}
+
+      <Results partnerId={page.id} published={page.published} hasPerk={!!page.perk?.trim()} />
 
       <section id="page" className="scroll-mt-20">
         <SectionLabel>Your page</SectionLabel>
@@ -213,5 +251,50 @@ export default async function BusinessPage({
         <TeamSeats seats={seats} business={business} />
       </section>
     </MemberPage>
+  );
+}
+
+/** What Premium Business includes, in full sentences, from the plan in src/config/subscriptions.ts. */
+const PREMIUM_INCLUDES = [
+  "Everything in the Business plan is included, with your business page, five Professional seats and job posts.",
+  "You can run one sponsored masterclass a year, reviewed so that it teaches rather than sells, and it stays in the member library.",
+  "You can co-develop a course with a certificate for members, subject to clinical review.",
+  "You receive one labelled partner feature in Trichozette each year, and a \u201cSupported by\u201d credit on one edition each quarter.",
+  "Your brand is spotlighted in two member newsletters a year.",
+  "You have a talk or demo slot at one conference a year, with sampling or a delegate-bag insert at the others.",
+  "Your member perk has tracked redemptions, and you can run an opt-in product trial panel with structured feedback.",
+  "You receive a quarterly report on how members engaged with your content and perks.",
+  "Your partner page carries the Premium partner badge.",
+];
+
+function PremiumStatus({ isFounding }: { isFounding: boolean }) {
+  return (
+    <section id="premium" className="mb-10 scroll-mt-20">
+      <SectionLabel>Your plan</SectionLabel>
+      <Card className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <BadgeCheck className="h-5 w-5 shrink-0 text-ink" aria-hidden />
+          <h3 className="text-lg font-medium text-ink">Premium partner</h3>
+          {isFounding && <Pill tone="ink">Founding partner</Pill>}
+        </div>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
+          {isFounding
+            ? "You are one of our founding Premium partners, and your plan includes the following throughout the year."
+            : "Your Premium Business plan includes the following throughout the year."}
+        </p>
+        <ul className="mt-4 flex flex-col gap-2.5">
+          {PREMIUM_INCLUDES.map((line) => (
+            <li key={line} className="flex gap-2.5 text-[15px] leading-relaxed text-ink">
+              <Check className="mt-1 h-4 w-4 shrink-0 text-positive" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm text-muted-foreground">
+          To plan your masterclass, Trichozette feature, newsletter spotlights or conference slot, reply to any email from our team
+          and we will arrange the dates with you.
+        </p>
+      </Card>
+    </section>
   );
 }

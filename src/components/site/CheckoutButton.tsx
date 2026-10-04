@@ -28,7 +28,10 @@ export function CheckoutButton({
   wrapperClassName,
   errorTone = "paper",
   currency,
+  source,
 }: {
+  /** The campaign this button belongs to (e.g. "ireland"). Defaults to the visitor's remembered source. */
+  source?: string;
   /** "eur" to charge in euros (the prices carry EUR options). Defaults to pounds. */
   currency?: "gbp" | "eur";
   /** "premium" buys Premium Business, which is yearly and in pounds. */
@@ -53,7 +56,7 @@ export function CheckoutButton({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, interval, founding, source: getSource(), currency, ref: refFromUrl() }),
+        body: JSON.stringify({ plan, interval, founding, source: source ?? getSource(), currency, ref: refFromUrl() }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (data.url) {

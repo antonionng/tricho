@@ -31,7 +31,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
       where: { AND: [memberDirectoryWhere(), { chapterId: chapter.id }] },
       orderBy: { onboardedAt: "desc" },
       take: 12,
-      select: { id: true, name: true, profile: { select: { profession: true } } },
+      select: { id: true, name: true, image: true, profile: { select: { profession: true } } },
     }),
     prisma.user.count({ where: { AND: [memberDirectoryWhere(), { chapterId: chapter.id }] } }),
     prisma.event.findMany({
@@ -63,9 +63,9 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
         }
       />
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
         <div className="flex min-w-0 flex-col gap-4">
-          {isMine && <Composer rooms={await postableRooms(ctx)} chapter={{ city: chapter.city }} chapterDefault collapsed />}
+          {isMine && <Composer key="chapter" rooms={await postableRooms(ctx)} chapter={{ city: chapter.city }} chapterDefault collapsed />}
           <SectionLabel className="mt-2">From {chapter.city}</SectionLabel>
           {posts.length === 0 ? (
             <EmptyState
@@ -110,7 +110,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
                 {members.map((m) => (
                   <li key={m.id}>
                     <Link href={`/members/people/${m.id}`} className="-mx-2 flex items-center gap-3 rounded-xl p-2 hover:bg-paper-2">
-                      <Avatar name={m.name} size="sm" />
+                      <Avatar name={m.name} src={m.image} size="sm" />
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium">{m.name || "Member"}</span>
                         <span className="block text-xs text-muted-foreground">

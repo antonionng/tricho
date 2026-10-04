@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 import { Card, SectionLabel } from "@/components/members/MemberPage";
 import { partnerStatsSummary, plural, type StatDay, type StatField } from "@/lib/partner-stats";
 
@@ -39,18 +41,49 @@ const METRICS: { field: StatField; label: string; explain: (n: number) => string
 ];
 
 /** The brand's results for the last 30 days, with a small daily chart for each figure. */
-export async function Results({ partnerId }: { partnerId: string }) {
+export async function Results({ partnerId, published, hasPerk }: { partnerId: string; published: boolean; hasPerk: boolean }) {
   const { totals, series } = await partnerStatsSummary(partnerId, DAYS);
   const nothingYet = Object.values(totals).every((n) => n === 0);
+
+  if (nothingYet) {
+    return (
+      <section id="results" className="mb-10 scroll-mt-20">
+        <SectionLabel>Your results</SectionLabel>
+        <Card className="flex gap-4 p-5 sm:p-6">
+          <BarChart3 className="mt-0.5 h-6 w-6 shrink-0 stroke-[1.4] text-muted-foreground" aria-hidden />
+          <div className="flex flex-col gap-2">
+            <p className="text-[15px] font-medium leading-snug text-ink">
+              {published
+                ? "Your figures will appear here as soon as professionals start visiting your page."
+                : "Your figures will appear here once your page is live and professionals start visiting it."}
+            </p>
+            <p className="text-sm leading-relaxed text-ink-2">
+              We show page views, visits to your website, how often members see your perk and how often they claim it, for the last{" "}
+              {DAYS} days. Each visit is added within moments, and we count real visits only, never search engines, the
+              Trichollective team or your own visits while signed in.
+            </p>
+            {!hasPerk && (
+              <p className="text-sm leading-relaxed text-ink-2">
+                Perk views and claims start once you add a member perk, which you can do in{" "}
+                <Link href="/members/business/setup?step=perk" className="underline underline-offset-4">
+                  the perk step
+                </Link>
+                .
+              </p>
+            )}
+          </div>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section id="results" className="mb-10 scroll-mt-20">
       <SectionLabel>Your results over the last {DAYS} days</SectionLabel>
       <Card className="p-5 sm:p-6">
         <p className="text-[15px] leading-relaxed text-ink-2">
-          {nothingYet
-            ? "Your figures will appear here as soon as professionals start visiting your page and seeing your perk. We count real visits only, never search engines or your own team."
-            : "These figures show how hair and scalp professionals have found and used your page and perk. We count real visits only, never search engines, the Trichollective team or your own visits while signed in."}
+          These figures show how hair and scalp professionals have found and used your page and perk. We count real visits only, never
+          search engines, the Trichollective team or your own visits while signed in.
         </p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
           {METRICS.map((m) => (

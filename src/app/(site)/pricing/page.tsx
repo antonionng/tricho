@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { images } from "@/content/images";
-import { Check, CreditCard, RotateCcw, ShieldCheck } from "lucide-react";
+import { Check, CreditCard, FileText, ShieldCheck } from "lucide-react";
 import { Container, Section, SectionHeader } from "@/components/site/primitives";
 import { FaqList } from "@/components/site/FaqList";
 import { pricingFaqs } from "@/content/faqs";
@@ -198,9 +198,10 @@ export default async function PricingPage({
           <ul className="mt-12 grid gap-6 border-t border-rule pt-10 sm:grid-cols-3">
             {[
               {
-                icon: RotateCcw,
-                t: "14-day refund",
-                d: "If Trichollective isn't right for you, email us within 14 days of your first payment and we will refund it in full.",
+                icon: FileText,
+                t: "Clear terms",
+                d: "Your membership starts as soon as you pay, so payments are non-refundable. Read the full terms before you join.",
+                href: "/terms#payments-and-refunds",
               },
               {
                 icon: Check,
@@ -212,12 +213,17 @@ export default async function PricingPage({
                 t: "Secure payment by Stripe",
                 d: "Payments are handled by Stripe. Your card details never touch our servers.",
               },
-            ].map(({ icon: Icon, t, d }) => (
+            ].map(({ icon: Icon, t, d, href }: { icon: typeof Check; t: string; d: string; href?: string }) => (
               <li key={t} className="flex gap-4">
                 <Icon className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
                 <div>
                   <p className="font-medium text-ink">{t}</p>
                   <p className="mt-1 text-[15px] leading-relaxed text-ink-2">{d}</p>
+                  {href && (
+                    <Link href={href} className="mt-2 inline-block text-[15px] text-ink underline underline-offset-4">
+                      Read the terms
+                    </Link>
+                  )}
                 </div>
               </li>
             ))}
@@ -318,7 +324,7 @@ export default async function PricingPage({
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="flex flex-col gap-6 lg:col-span-4">
-              <SectionHeader eyebrow="Questions" title="Know what happens to your listing, price and refund before you join." />
+              <SectionHeader eyebrow="Questions" title="Know what happens to your listing, price and payments before you join." />
               <p className="flex items-start gap-3 text-[15px] leading-relaxed text-ink-2">
                 <CreditCard className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5]" aria-hidden />
                 <span>

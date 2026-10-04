@@ -15,12 +15,12 @@ import { getRooms } from "@/lib/rooms";
 
 export const metadata = { title: "Community" };
 
-export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ space?: string }> }) {
+export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ space?: string; welcome?: string }> }) {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/community");
   if (!ctx.allowed) return <Paywall title="The community" body="Every space, your chapter and direct messages are part of membership." />;
 
-  const { space: requested } = await searchParams;
+  const { space: requested, welcome } = await searchParams;
   const allRooms = await getRooms();
   const space = requested && allRooms.some((r) => r.id === requested) ? requested : undefined;
   const room = space ? roomById(space, allRooms) : undefined;
@@ -34,13 +34,18 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
 
   return (
     <MemberPage>
+      {welcome && (
+        <div className="mb-6 rounded-2xl border border-positive/25 bg-positive/10 px-5 py-4 text-sm leading-relaxed text-positive" role="status">
+          Your profile is set up. Colleagues can now find you, and Introductions is the best place to say hello.
+        </div>
+      )}
       <PageHeader
         label="Community"
         title={room?.label ?? "All spaces"}
         lede={room?.blurb ?? "Conversation from every space you can read, newest first. Pinned posts from the team sit at the top."}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <SpaceNav active={space} professional={ctx.professional} rooms={allRooms} />
         </aside>
@@ -65,13 +70,19 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
             </div>
           ) : (
             <>
-              <Composer
-                rooms={space ? rooms.filter((r) => r.id === space).concat(rooms.filter((r) => r.id !== space)) : rooms}
-                defaultSpace={space}
-                chapter={chapter}
-                collapsed
-                name={null}
-              />
+              {!space ? (
+                <Composer key="all" rooms={rooms} chapter={chapter} collapsed name={null} />
+              ) : rooms.some((r) => r.id === space) ? (
+                <Composer key={space} rooms={rooms.filter((r) => r.id === space)} lockedSpace={space} chapter={chapter} collapsed />
+              ) : (
+                <div className="rounded-2xl border border-rule bg-paper-2 p-5 text-sm leading-relaxed text-ink-2">
+                  {room?.archived
+                    ? "This space is archived. Its conversations stay here to read, and new posts belong in another space."
+                    : ctx.profession === "brand"
+                      ? "This space is kept for practitioner discussion, so business accounts can read along but not post here."
+                      : "You can read this space, but posting here is for Professional members."}
+                </div>
+              )}
               {posts.length === 0 ? (
                 <EmptyState
                   title={room ? `Nothing in ${room.label} yet` : "No posts yet"}

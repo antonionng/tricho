@@ -16,7 +16,7 @@ export default async function BillingPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: ctx.session.user.id },
-    select: { isFounding: true, stripeCustomerId: true },
+    select: { isFounding: true, stripeCustomerId: true, cancelAtPeriodEnd: true },
   });
   const active = ctx.membership.isActive;
   const tier = tierById(ctx.membership.tierId ?? ctx.plan);
@@ -25,11 +25,20 @@ export default async function BillingPage() {
 
   return (
     <MemberPage size="narrow">
-      <PageHeader label="Billing" title="Your plan" />
+      <PageHeader label="Billing" title="Your plan" lede="See your membership, when it renews, and where to manage your card and invoices." />
 
       <Card className="p-5 sm:p-7">
         <div className="flex flex-wrap items-center gap-2">
-          {active ? <Pill tone="positive">Active</Pill> : <Pill>No active membership</Pill>}
+          {active ? (
+            user?.cancelAtPeriodEnd && !ctx.membership.via && end ? (
+              <Pill>Ends on {longDate(end)}</Pill>
+            ) : (
+              <Pill tone="positive">Active</Pill>
+            )
+          ) : (
+            <Pill>No active membership</Pill>
+          )}
+          {ctx.membership.complimentary && <Pill>Complimentary</Pill>}
           {user?.isFounding && <Pill tone="ink">Founding member</Pill>}
           {ctx.unlocked && !active && <Pill>Local development unlock</Pill>}
         </div>
@@ -41,9 +50,11 @@ export default async function BillingPage() {
                 ? `Your membership is a gift from the Trichollective team until ${longDate(end)}, so there is nothing to pay.`
                 : "Your membership is a gift from the Trichollective team, so there is nothing to pay."
               : ctx.membership.via
-              ? `Your Professional membership is provided by ${ctx.membership.via}.`
+              ? `Your Professional membership is provided by ${ctx.membership.via} as one of their team seats, so there is nothing for you to pay.`
               : end
-              ? `Your membership renews or ends on ${longDate(end)}.`
+              ? user?.cancelAtPeriodEnd
+                ? `Your membership has been cancelled and ends on ${longDate(end)}. You keep full access until then.`
+                : `Your membership renews on ${longDate(end)}.`
               : "Your membership is active."
             : `Membership starts at £${Math.min(...subscriptionTiers.map((t) => t.price))} a month. Founding members keep their price for life.`}
         </p>
@@ -65,7 +76,7 @@ export default async function BillingPage() {
         </div>
         {((active && !ctx.membership.via) || user?.stripeCustomerId) && (
           <p className="mt-3 text-xs text-muted-foreground">
-            Opens Stripe, where you can update your card, download invoices or cancel.
+            This opens Stripe, where you can update your card, download invoices, or cancel or restart your membership.
           </p>
         )}
       </Card>

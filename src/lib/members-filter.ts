@@ -20,7 +20,58 @@ export type MemberFilters = {
   tag?: string;
   /** The team member who looks after them, or "none". Left out when not filtering. */
   owner?: string;
+  /** "today" lists only people whose account was created today (Irish and UK time). */
+  joined?: "today";
 };
+
+/**
+ * Sign-up sources that mean the same thing. The Trichollective Ireland
+ * launch QR codes were first printed as ?src=dublin, so both count as one source.
+ */
+const SOURCE_ALIASES: Record<string, string> = { dublin: "ireland", ireland: "ireland" };
+const SOURCE_LABELS: Record<string, string> = {
+  ireland: "Trichollective Ireland",
+  direct: "Direct",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+  email: "Email",
+  newsletter: "Newsletter",
+  google: "Google",
+};
+
+/** One key per source, so "dublin" and "ireland" are counted together. Empty means direct. */
+export function sourceKey(source: string | null | undefined): string {
+  const s = (source ?? "").trim().toLowerCase();
+  if (!s) return "direct";
+  return SOURCE_ALIASES[s] ?? s;
+}
+
+/** How a source reads in Studio. */
+export function sourceLabel(source: string | null | undefined): string {
+  const key = sourceKey(source);
+  return SOURCE_LABELS[key] ?? key.charAt(0).toUpperCase() + key.slice(1).replace(/[-_]+/g, " ");
+}
+
+/** Whether a source is the Trichollective Ireland launch event. */
+export function isIrelandSource(source: string | null | undefined) {
+  return sourceKey(source) === "ireland";
+}
+
+/** Midnight at the start of today in Ireland and the UK (they share a clock), as an instant. */
+export function startOfToday(now = new Date()): Date {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Dublin",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const n = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const sinceMidnight = ((n("hour") * 60 + n("minute")) * 60 + n("second")) * 1000 + now.getMilliseconds();
+  return new Date(now.getTime() - sinceMidnight);
+}
 
 /** Read filters from search params, ignoring anything we don't recognise. */
 export function parseMemberFilters(sp: Record<string, string | string[] | undefined>): MemberFilters {
@@ -29,12 +80,14 @@ export function parseMemberFilters(sp: Record<string, string | string[] | undefi
   const status = one(sp.status);
   const tag = one(sp.tag).toLowerCase().replace(/\s+/g, " ").slice(0, 40);
   const owner = one(sp.owner);
+  const joined = one(sp.joined);
   return {
     q: one(sp.q).slice(0, 120),
     plan: (MEMBER_PLANS as readonly string[]).includes(plan) || plan === "none" ? (plan as MemberPlanFilter) : "",
     status: (MEMBER_STATUSES as readonly string[]).includes(status) ? (status as MemberStatusFilter) : "",
     tag: tag || undefined,
     owner: /^[a-z0-9_-]{1,64}$/i.test(owner) ? owner : undefined,
+    joined: joined === "today" ? "today" : undefined,
   };
 }
 
@@ -46,6 +99,7 @@ export function memberFilterQuery(f: Partial<MemberFilters>, extra: Record<strin
   if (f.status) params.set("status", f.status);
   if (f.tag) params.set("tag", f.tag);
   if (f.owner) params.set("owner", f.owner);
+  if (f.joined) params.set("joined", f.joined);
   for (const [k, v] of Object.entries(extra)) if (v) params.set(k, v);
   const s = params.toString();
   return s ? `?${s}` : "";
@@ -76,6 +130,7 @@ export function buildMemberWhere(f: MemberFilters, now: Date, systemEmail: strin
   if (f.tag) and.push({ tags: { has: f.tag } });
   if (f.owner === "none") and.push({ crmOwnerId: null });
   else if (f.owner) and.push({ crmOwnerId: f.owner });
+  if (f.joined === "today") and.push({ createdAt: { gte: startOfToday(now) } });
 
   switch (f.status) {
     case "active":

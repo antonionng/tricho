@@ -82,14 +82,14 @@ export function newAccountAlert({ name, email }: { name?: string | null; email: 
 // Newsletter and lead sign-ups
 // ---------------------------------------------------------------------------
 
-export const FOUNDING_SOURCES = ["dublin", "instagram", "founding", "facebook"] as const;
+export const FOUNDING_SOURCES = ["ireland", "dublin", "instagram", "founding", "facebook"] as const;
 
 /** The starter guide is the email itself: where to begin on Trichollective. */
 export function starterGuideEmail(): Email {
   return {
     subject: "Your Trichollective starter guide",
     content: {
-      preheader: "Where to begin: free guides to share with clients, the Dublin edition of Trichozette and the directory.",
+      preheader: "Where to begin: free guides to share with clients, the Ireland edition of Trichozette and the directory.",
       eyebrow: "Starter guide",
       heading: "Here is your starter guide to the best of Trichollective.",
       image: "ed02",
@@ -102,13 +102,13 @@ export function starterGuideEmail(): Email {
         `- Hair shedding: what's normal and when to get help ${site.url}/guides/hair-shedding-when-to-worry`,
         `- Your first trichology appointment: what to expect ${site.url}/guides/first-trichology-appointment`,
         "## Trichozette, free to read",
-        "The opening pages of every edition of Trichozette are free, including the Dublin edition, which looks back at what changed in cosmetic, clinical and medical practice.",
+        "The opening pages of every edition of Trichozette are free, including the Ireland edition, which looks back at what changed in cosmetic, clinical and medical practice.",
         "## The glossary",
         `The terms clients and colleagues use, from telogen effluvium to trichoscopy, explained in a sentence or two: ${site.url}/glossary`,
         "## Be found by the right clients",
         `Adding your practice to the founding directory is free for good, and your full profile and enquiries are included for your first ${FREE_LISTING_DAYS} days.`,
       ].join("\n\n"),
-      cta: { label: "Read the Dublin edition", href: "/trichozette/dublin" },
+      cta: { label: "Read the Ireland edition", href: "/trichozette/dublin" },
       secondary: { label: "Add your free directory listing", href: "/directory/list" },
       reason: "You receive this because you asked for the Trichollective starter guide.",
     },
@@ -143,13 +143,13 @@ export function foundingWelcomeEmail(): Email {
       heading: "You can join Trichollective in its founding year and keep the founding price for good.",
       image: "ed02",
       body: [
-        "Thank you for leaving your email. Trichollective launches at Trichollective Dublin, and here is everything you need to catch up.",
+        "Thank you for leaving your email. Trichollective launches at Trichollective Ireland, and here is everything you need to catch up.",
         "## The founding directory",
         `Add your practice to the founding directory for free. Your listing stays free for good, and your full profile and enquiries are included for your first ${FREE_LISTING_DAYS} days, so clients looking for a head spa therapist, stylist, trichologist or doctor can find you.`,
         "## Founding membership",
         "Founding members pay a lower monthly price and keep it for as long as they stay. Membership brings the Case Room, peer referrals, CPD courses and every edition of Trichozette in full. You can cancel at any time.",
         "## Trichozette",
-        "The opening pages of every edition are free to read, including the Dublin edition.",
+        "The opening pages of every edition are free to read, including the Ireland edition.",
       ].join("\n\n"),
       cta: { label: "See the founding offer", href: "/founding" },
       secondary: { label: "Add your free directory listing", href: "/directory/list" },
@@ -422,7 +422,7 @@ export const samples: EmailSample[] = [
   ownerSample("alert-new-account", "New free account", "Sent to the owners when someone creates a free account.", newAccountAlert({ name: "Niamh Walsh", email: "niamh@example.com" })),
   sample("starter-guide", "Starter guide", "Sent when someone asks for the starter guide.", "public", starterGuideEmail()),
   sample("course-interest", "Course interest", "Sent when someone registers interest in a course that hasn't opened yet.", "public", courseInterestEmail({ slug: "scalp-consultation-for-stylists", title: "The scalp consultation for stylists and head spa therapists" })),
-  sample("founding-welcome", "Founding welcome", "Sent when someone leaves their email on a founding or launch page, such as the Dublin QR code.", "public", foundingWelcomeEmail()),
+  sample("founding-welcome", "Founding welcome", "Sent when someone leaves their email on a founding or launch page, such as the Trichollective Ireland QR code.", "public", foundingWelcomeEmail()),
   sample("newsletter-welcome", "Newsletter welcome", "Sent when someone subscribes to the newsletter anywhere else on the site.", "public", newsletterWelcomeEmail()),
   sample("contact-acknowledgement", "Contact acknowledgement", "Sent when someone sends a message through the contact page.", "public", contactAcknowledgementEmail(sampleContact)),
   ownerSample("alert-contact", "New contact message", "Sent to the owners when someone sends a message through the contact page.", contactAlert(sampleContact)),

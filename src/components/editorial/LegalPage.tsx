@@ -10,7 +10,7 @@ export function LegalPage({
   updated,
   crumbs,
   sections,
-  draft = true,
+  draft = false,
 }: {
   eyebrow: string;
   title: string;

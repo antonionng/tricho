@@ -96,24 +96,25 @@ export default async function InvitePage({
         {waiting === 0 ? (
           <Empty>No invitations are waiting to be sent.</Empty>
         ) : confirm === "send" ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-rule bg-card p-4">
-            <span className="text-sm text-ink">
-              Send {waiting} invitation{waiting === 1 ? "" : "s"} from Karley now? This can&apos;t be undone.
-            </span>
-            <form action={sendInvitesAction}>
-              <input type="hidden" name="confirm" value="yes" />
-              <SubmitButton size="sm" pendingLabel="Sending…">
-                Yes, send them
-              </SubmitButton>
-            </form>
-            <Button asChild size="sm" variant="ghost">
-              <Link href="/studio/invite">Cancel</Link>
-            </Button>
+          <div className="space-y-3 rounded-2xl border-2 border-ink bg-card p-5">
+            <p className="font-medium text-ink">
+              Send {waiting} invitation{waiting === 1 ? "" : "s"} from Karley now?
+            </p>
+            <p className="text-sm text-ink-2">Each invitation is emailed straight away, and sent emails can&apos;t be recalled.</p>
+            <div className="flex flex-wrap gap-2">
+              <form action={sendInvitesAction}>
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton pendingLabel="Sending…">Yes, send them</SubmitButton>
+              </form>
+              <Button asChild variant="outline">
+                <Link href="/studio/invite">Cancel</Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <form action={sendInvitesAction}>
-              <Button type="submit">Approve and send all waiting invitations…</Button>
+              <SubmitButton pendingLabel="Checking…">Approve and send all waiting invitations…</SubmitButton>
             </form>
             <Button asChild variant="ghost">
               <Link href="/studio/inbox?agent=membership&status=draft">Review them in the inbox</Link>
@@ -127,7 +128,7 @@ export default async function InvitePage({
           <Empty>Nobody has been invited yet.</Empty>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="border-b border-rule text-xs text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Name</th>

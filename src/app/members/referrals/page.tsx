@@ -10,13 +10,13 @@ import { prisma } from "@/lib/prisma";
 import { REFERRAL_STATUS_LABEL } from "@/lib/client-referrals";
 import { cn } from "@/lib/utils";
 
-export const metadata = { title: "Referrals" };
+export const metadata = { title: "Client referrals" };
 
 export default async function ReferralsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const ctx = await getMemberContext();
   const me = ctx.session?.user?.id;
   if (!me) redirect("/login?next=/members/referrals");
-  if (!ctx.allowed) return <Paywall title="Referrals" body="Referring clients to colleagues is part of membership." />;
+  if (!ctx.allowed) return <Paywall title="Client referrals" body="Referring clients to colleagues is part of membership." />;
   const tab = (await searchParams).tab === "sent" ? "sent" : "received";
 
   const person = { select: { id: true, name: true, image: true } };
@@ -40,8 +40,8 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
   return (
     <MemberPage size="narrow">
       <PageHeader
-        label="Referrals"
-        title="Referrals"
+        label="Client referrals"
+        title="Client referrals"
         lede="Clients you and your colleagues have referred to each other. Each referral describes the concern without identifying the client, and the introduction happens once it is accepted."
       />
 
@@ -53,7 +53,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
             role="tab"
             aria-selected={tab === t.id}
             className={cn(
-              "rounded-full border px-4 py-2 text-sm transition-colors",
+              "inline-flex h-10 items-center rounded-full border px-4 text-sm transition-colors",
               tab === t.id ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink/40"
             )}
           >

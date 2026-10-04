@@ -98,7 +98,7 @@ export default async function PodcastStudioPage({
           title="Plan a new episode"
           intro="Tell us who you are talking to and what about, and you will get interview questions and a running order to work from."
         >
-          <form action={createEpisodeAction} className="max-w-3xl space-y-4 rounded-2xl border border-rule bg-card p-5 sm:p-6">
+          <form action={createEpisodeAction} className="max-w-4xl space-y-4 rounded-2xl border border-rule bg-card p-5 sm:p-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Guest's name">
                 <input name="guestName" required maxLength={120} className={fieldClass} />

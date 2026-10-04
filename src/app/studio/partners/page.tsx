@@ -100,7 +100,7 @@ export default async function StudioPartnersPage({
                     })()}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {p.isFounding && <Tag tone="ink">Founding</Tag>}
                   {p.perk ? <Tag>Perk</Tag> : <Tag tone="warn">No perk</Tag>}
                   {p.hidden ? (

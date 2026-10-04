@@ -40,8 +40,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
 };
 
+// Phone-app feel: fill the screen edge to edge (safe areas are padded in CSS),
+// keep pinch zoom for accessibility, and match the browser chrome to the paper.
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#f4f3f0",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -52,7 +58,7 @@ export default function RootLayout({
   return (
     <html lang="en-GB">
       <body
-        className={`${inter.variable} ${interTight.variable} font-sans antialiased bg-background text-foreground overflow-x-hidden`}
+        className={`${inter.variable} ${interTight.variable} font-sans antialiased bg-background text-foreground`}
       >
         {children}
         <JsonLd data={[organizationLd(), websiteLd()]} />

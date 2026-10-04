@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
-import { Pill } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { Card, MemberPage, PageHeader, fieldClass } from "@/components/members/MemberPage";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { ImageUpload } from "@/components/forms/ImageUpload";
 import { auth } from "@/auth";
 import { isBusinessAccount } from "@/lib/subscription";
-import { displayHost, PARTNER_CATEGORIES, partnerLogoSrc, partnerTierLabel } from "@/lib/partners";
+import { PARTNER_CATEGORIES, partnerLogoSrc } from "@/lib/partners";
+import { PartnerProfile } from "@/components/partners/PartnerProfile";
 import { ORGANISATION_KINDS, ORGANISATION_SIZES } from "@/lib/crm-intake";
 import {
   isSetupStep,
@@ -18,6 +18,7 @@ import {
   setupProgress,
   SOCIAL_NETWORKS,
   socialLinks,
+  stepAfter,
   type SetupStepId,
 } from "@/lib/business-profile";
 import { cn } from "@/lib/utils";
@@ -69,12 +70,29 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function StepForm({ step, children, submit = "Save and continue" }: { step: SetupStepId; children: React.ReactNode; submit?: string }) {
+/**
+ * One step's form, with the same controls on every step: Save and continue,
+ * and Skip for now on the steps that are optional.
+ */
+function StepForm({ step, children }: { step: SetupStepId; children: React.ReactNode }) {
+  const optional = !SETUP_STEPS.find((s) => s.id === step)?.required;
   return (
     <form action={saveSetupStep} className="flex flex-col gap-4">
       <input type="hidden" name="step" value={step} />
       {children}
-      <SubmitButton className="self-start">{submit}</SubmitButton>
+      <div className="flex flex-col gap-3 border-t border-rule pt-5 sm:flex-row sm:items-center">
+        <SubmitButton pending="Saving…">Save and continue</SubmitButton>
+        {optional && (
+          <Button asChild size="lg" variant="outline">
+            <Link href={`/members/business/setup?step=${stepAfter(step)}`}>Skip for now</Link>
+          </Button>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {optional
+          ? "This step is optional, and you can come back to it from Your business at any time."
+          : "This step is needed before your page can go live."}
+      </p>
     </form>
   );
 }
@@ -156,14 +174,19 @@ export default async function BusinessSetupPage({
       ) : step === "team" ? (
         <div className="flex flex-col gap-4">
           <TeamSeats seats={seats} business={business} returnTo="setup" />
-          <StepForm step="team" submit={seats.length ? "Continue" : "Skip for now"}>
-            {null}
-          </StepForm>
+          <Card className="p-5 sm:p-6">
+            <StepForm step="team">
+              <p className="text-[15px] leading-relaxed text-ink-2">
+                {seats.length
+                  ? `${seats.length} of your team ${seats.length === 1 ? "has" : "have"} Professional membership through your plan.`
+                  : "You can add your team now, or skip this step and add them later from Your business."}
+              </p>
+            </StepForm>
+          </Card>
         </div>
       ) : step === "publish" ? (
         <PublishStep
           page={page!}
-          logo={logo}
           socials={socialLinks(org?.socials)}
           progress={progress}
           canPublish={business || page!.published}
@@ -314,87 +337,45 @@ export default async function BusinessSetupPage({
         </Card>
       )}
 
-      {step !== "publish" && step !== "details" && !needsPage && (
-        <p className="mt-4 text-sm text-muted-foreground">
-          This step is optional. You can{" "}
-          <Link href={`/members/business/setup?step=${SETUP_STEPS[index + 1]?.id ?? "publish"}`} className="underline underline-offset-4">
-            skip it for now
-          </Link>{" "}
-          and come back to it from Your business at any time.
-        </p>
-      )}
     </MemberPage>
   );
 }
 
 function PublishStep({
   page,
-  logo,
   socials,
   progress,
   canPublish,
 }: {
   page: NonNullable<Awaited<ReturnType<typeof loadBusiness>>["page"]>;
-  logo: string | null;
   socials: { id: string; label: string; url: string }[];
   progress: Record<SetupStepId, boolean>;
   canPublish: boolean;
 }) {
   const ready = readyToPublish(page);
-  const host = displayHost(page.website);
   const missing = SETUP_STEPS.filter((s) => s.id !== "publish" && !progress[s.id]);
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="flex flex-col gap-4 p-6 sm:p-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <Pill>{partnerTierLabel(page.tier)}</Pill>
-          <Pill>{page.category}</Pill>
-          {page.published && <Pill tone="positive">Live</Pill>}
+      <div className="overflow-hidden rounded-3xl border border-rule bg-paper shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-rule bg-paper-2 px-4 py-2.5 text-xs text-muted-foreground">
+          <span className="truncate">trichollective.net/partners/{page.slug}</span>
+          <span className="shrink-0">{page.published ? "Live now" : "Preview"}</span>
         </div>
-        {logo && (
-          <div className="flex h-24 items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt={`${page.name} logo`} className="max-h-24 max-w-[260px] object-contain" />
-          </div>
-        )}
-        <h2 className="display text-4xl">{page.name}</h2>
-        {page.blurb ? (
-          <div className="flex flex-col gap-3 text-[15px] leading-relaxed text-ink-2">
-            {page.blurb.split(/\n\s*\n/).map((para, i) => (
-              <p key={i}>{para}</p>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Your description will appear here.</p>
-        )}
-        {(host || socials.length > 0) && (
-          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            {host && <span className="text-ink underline underline-offset-4">{host}</span>}
-            {socials.map((s) => (
-              <span key={s.id} className="text-ink-2">
-                {s.label}
-              </span>
-            ))}
-          </p>
-        )}
-        {page.perk && (
-          <div className="rounded-xl border border-rule bg-paper-2 p-4">
-            <p className="label mb-1 text-muted-foreground">Member perk</p>
-            <p className="text-[15px]">{page.perk}</p>
-          </div>
-        )}
-      </Card>
+        <div className="p-5 sm:p-8">
+          <PartnerProfile partner={page} socials={socials} preview />
+        </div>
+      </div>
 
       {missing.length > 0 && (
         <p className="text-sm text-ink-2">
-          You can publish now and finish the rest later. Still to do:{" "}
+          {page.published ? "Your page is live, and you can still make it more complete by adding your" : "You can publish now and finish the rest later by adding your"}{" "}
           {missing.map((s, i) => (
             <span key={s.id}>
               <Link href={`/members/business/setup?step=${s.id}`} className="underline underline-offset-4">
                 {s.label.toLowerCase()}
               </Link>
-              {i < missing.length - 1 ? ", " : "."}
+              {i < missing.length - 2 ? ", " : i === missing.length - 2 ? " and " : "."}
             </span>
           ))}
         </p>
@@ -430,11 +411,18 @@ function PublishStep({
           .
         </p>
       ) : (
-        <form action={publishBusinessPage} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <SubmitButton pending="Publishing…">Publish my page</SubmitButton>
-          <Link href="/members/business" className="text-sm text-ink-2 underline underline-offset-4">
-            Keep it hidden for now
-          </Link>
+        <form action={publishBusinessPage} className="flex flex-col gap-3">
+          <p className="text-[15px] leading-relaxed text-ink-2">
+            When you publish, your page appears in the partner directory for every visitor
+            {page.perk ? ", and signed-in members see your perk in Member perks." : "."} You can edit or hide it at any time.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <SubmitButton pending="Publishing…">Publish my page</SubmitButton>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/members/business">Skip for now</Link>
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">If you skip this step, your page stays hidden until you publish it.</p>
         </form>
       )}
     </div>

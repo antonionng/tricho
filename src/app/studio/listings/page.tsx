@@ -40,7 +40,7 @@ export default async function ListingsPage() {
 
       <Section title={`Waiting for review (${pending.length})`}>
         {pending.length === 0 ? (
-          <Empty>No listings waiting.</Empty>
+          <Empty>No listings are waiting for review, and new ones will appear here as soon as they are submitted.</Empty>
         ) : (
           <div className="grid gap-3 xl:grid-cols-2">
             {pending.map((item) => (
@@ -120,7 +120,7 @@ export default async function ListingsPage() {
 
       <Section title="Verified badge" intro="Tick a listing once you've checked their qualifications. The badge shows in the public directory.">
         {listed.length === 0 ? (
-          <Empty>No live listings yet.</Empty>
+          <Empty>No listings are live yet, and approved listings will appear here.</Empty>
         ) : (
           <ul className="divide-y divide-rule rounded-2xl border border-rule bg-card">
             {listed.map((l) => (

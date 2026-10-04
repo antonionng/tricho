@@ -52,6 +52,7 @@ const postInclude = (userId?: string) =>
       select: {
         id: true,
         name: true,
+        image: true,
         isFounding: true,
         profile: { select: { profession: true } },
       },
@@ -75,6 +76,7 @@ export type FeedPost = {
   author: {
     id: string;
     name: string | null;
+    image: string | null;
     isFounding: boolean;
     profession: ProfessionId | null;
   };
@@ -98,6 +100,7 @@ function toFeedPost(p: RawPost, allRooms: Room[]): FeedPost {
     author: {
       id: p.author.id,
       name: p.author.name,
+      image: p.author.image,
       isFounding: p.author.isFounding,
       profession: (p.author.profile?.profession as ProfessionId | null) ?? null,
     },
@@ -216,5 +219,6 @@ export async function postableRooms(ctx: {
     id: r.id,
     label: r.label,
     prompt: r.prompt,
+    blurb: r.blurb,
   }));
 }

@@ -11,7 +11,10 @@ import { greeting, monthYear } from "@/components/members/format";
 import { Composer } from "@/components/community/Composer";
 import { PostCard } from "@/components/community/PostCard";
 import { getMemberContext } from "@/lib/member";
-import { firstName, getTodayFeed, memberDirectoryWhere, postableRooms } from "@/lib/community";
+import { firstName, getTodayFeed, memberDirectoryWhere, postableRooms, rawSpacesFor } from "@/lib/community";
+import { profileCompleteness } from "@/lib/profile";
+import { isBusinessAccount } from "@/lib/subscription";
+import { loadApplicant } from "./profile/verification/applicant";
 import { prisma } from "@/lib/prisma";
 import { professionById } from "@/config/rooms";
 import { cn } from "@/lib/utils";
@@ -35,8 +38,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         name: true,
         isFounding: true,
         chapter: { select: { id: true, slug: true, city: true } },
-        profile: { select: { profession: true } },
-        _count: { select: { posts: true, rsvps: true, listings: true } },
+        image: true,
+        chapterId: true,
+        profile: true,
       },
     }),
     getTodayFeed({ userId, professional: ctx.professional, chapterId: ctx.chapterId, profession: ctx.profession }),
@@ -55,6 +59,15 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   ]);
   if (!user) redirect("/login");
 
+  const email = ctx.session.user.email?.toLowerCase() ?? null;
+  const [introduced, invited, applicant, businessPage, businessAccount] = await Promise.all([
+    prisma.communityPost.count({ where: { authorId: userId, space: { in: rawSpacesFor(["introductions"]) } } }),
+    prisma.user.count({ where: { referredById: userId } }),
+    loadApplicant(ctx),
+    email ? prisma.partner.findUnique({ where: { ownerEmail: email }, select: { id: true } }).catch(() => null) : null,
+    email ? isBusinessAccount(email) : false,
+  ]);
+
   const people = user.chapter
     ? await prisma.user.findMany({
         where: {
@@ -65,18 +78,26 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         },
         take: 4,
         orderBy: { onboardedAt: "desc" },
-        select: { id: true, name: true, profile: { select: { profession: true } } },
+        select: { id: true, name: true, image: true, profile: { select: { profession: true } } },
       })
     : [];
 
-  const profileDone = ctx.professional
-    ? !!user.profile?.profession && user._count.listings > 0
-    : !!user.name && !!user.profile?.profession;
+  const completeness = profileCompleteness(user.profile, user);
   const checklist = [
-    { done: profileDone, label: ctx.professional ? "Complete your directory profile" : "Complete your profile", href: "/members/profile" },
+    {
+      done: completeness.percent === 100,
+      label: completeness.percent === 100 ? "Finish your profile" : `Finish your profile (${completeness.percent}% complete)`,
+      href: "/members/profile",
+    },
+    { done: introduced > 0, label: "Introduce yourself in Introductions", href: "/members/community?space=introductions#compose" },
     { done: !!user.chapter, label: "Choose your chapter", href: "/members/profile#about" },
-    { done: user._count.posts > 0, label: "Write your first post", href: "/members/community?space=introductions#compose" },
-    { done: user._count.rsvps > 0, label: "Say you're going to an event", href: "/members/events" },
+    ...(applicant && (applicant.eligible || applicant.isVerified)
+      ? [{ done: applicant.isVerified, label: "Get verified", href: "/members/profile/verification" }]
+      : []),
+    { done: invited > 0, label: "Invite a colleague", href: "/members/refer" },
+    ...(businessPage || businessAccount
+      ? [{ done: !!businessPage, label: "Set up your business page", href: "/members/business/setup" }]
+      : []),
   ];
   const remaining = checklist.filter((c) => !c.done).length;
   const name = firstName(user.name);
@@ -108,16 +129,19 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         </div>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
         <div className="flex min-w-0 flex-col gap-4">
           {remaining > 0 && (
             <Card className="p-5">
               <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-medium">Settle in</h2>
+                <h2 className="label text-muted-foreground">Getting started</h2>
                 <span className="text-xs text-muted-foreground">
                   {checklist.length - remaining} of {checklist.length} done
                 </span>
               </div>
+              <p className="mt-2 text-[15px] leading-relaxed text-ink-2">
+                These few steps help colleagues find you, trust your work and refer clients to you.
+              </p>
               <ul className="mt-3 flex flex-col">
                 {checklist.map((c) => (
                   <li key={c.label}>
@@ -147,7 +171,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
           <Composer rooms={await postableRooms(ctx)} defaultSpace="lounge" chapter={user.chapter} collapsed name={name || null} />
 
-          <SectionLabel className="mt-4" action={<Link href="/members/community" className="text-sm text-ink-2 hover:underline">All spaces</Link>}>
+          <SectionLabel className="mt-4" action={<Link href="/members/community" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:underline">All spaces</Link>}>
             Latest from the collective
           </SectionLabel>
           {feed.length === 0 ? (
@@ -180,7 +204,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           )}
 
           <Card className="p-5">
-            <SectionLabel action={<Link href="/members/events" className="text-sm text-ink-2 hover:underline">All</Link>}>
+            <SectionLabel action={<Link href="/members/events" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:underline">All</Link>}>
               Coming up
             </SectionLabel>
             {events.length === 0 ? (
@@ -213,7 +237,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
           {user.chapter && (
             <Card className="p-5">
-              <SectionLabel action={<Link href="/members/people" className="text-sm text-ink-2 hover:underline">Everyone</Link>}>
+              <SectionLabel action={<Link href="/members/people" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:underline">Everyone</Link>}>
                 People to meet
               </SectionLabel>
               {people.length === 0 ? (
@@ -225,7 +249,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
                   {people.map((p) => (
                     <li key={p.id} className="flex items-center gap-3">
                       <Link href={`/members/people/${p.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                        <Avatar name={p.name} size="sm" />
+                        <Avatar name={p.name} src={p.image} size="sm" />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium">{p.name || "Member"}</span>
                           <span className="block truncate text-xs text-muted-foreground">

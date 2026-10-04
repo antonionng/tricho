@@ -67,7 +67,7 @@ const foundingFaqs: Faq[] = [
   },
   {
     q: "I'm not sure yet. Can I try it for free?",
-    a: `You can create a free account and add a free listing to the directory, with your full profile included for ${FREE_LISTING_DAYS} days, or join the newsletter below to hear how things are going. If you join and it isn't right for you, email us within 14 days of your first payment for a full refund.`,
+    a: `You can create a free account and add a free listing to the directory, with your full profile included for ${FREE_LISTING_DAYS} days, or join the newsletter below to hear how things are going. If you do join, you can cancel at any time to stop the next renewal.`,
   },
   {
     q: "Is this the same as the Facebook group?",

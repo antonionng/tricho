@@ -42,7 +42,7 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
       </header>
 
       {/* Listing status */}
-      <Card className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="mt-8 flex flex-col gap-4 p-5 sm:flex-row sm:p-6 sm:items-center sm:justify-between">
         <div className="flex gap-4">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-paper-2">
             {listing?.status === "listed" ? <Check className="h-5 w-5" /> : listing?.status === "pending" ? <Clock className="h-5 w-5" /> : <ListChecks className="h-5 w-5" />}
@@ -86,7 +86,7 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
       {/* Upgrade */}
       <SectionLabel className="mt-12">Become a founding member</SectionLabel>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <Card className="flex flex-col gap-4">
+        <Card className="flex flex-col gap-4 p-5 sm:p-6">
           <div>
             <p className="label text-muted-foreground">Community</p>
             <p className="display mt-2 text-4xl">
@@ -105,7 +105,7 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
             Join Community at £{community.foundingPrice} a month
           </CheckoutButton>
         </Card>
-        <Card className="flex flex-col gap-4 bg-ink text-paper">
+        <Card className="flex flex-col gap-4 bg-ink p-5 text-paper sm:p-6">
           <div>
             <p className="label text-paper/60">Professional</p>
             <p className="display mt-2 text-4xl">
@@ -140,9 +140,9 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
         ))}
       </ul>
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        <Link href="/news" className="underline underline-offset-4">Latest news for practitioners</Link>
-        <Link href="/guides" className="underline underline-offset-4">Guides to share with clients</Link>
-        <Link href="/events" className="underline underline-offset-4">Upcoming conferences and masterclasses</Link>
+        <Link href="/news" className="inline-flex min-h-10 items-center underline underline-offset-4">Latest news for practitioners</Link>
+        <Link href="/guides" className="inline-flex min-h-10 items-center underline underline-offset-4">Guides to share with clients</Link>
+        <Link href="/events" className="inline-flex min-h-10 items-center underline underline-offset-4">Upcoming conferences and masterclasses</Link>
       </div>
     </MemberPage>
   );

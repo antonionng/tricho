@@ -275,7 +275,7 @@ const invite = composeInviteEmail({
   token: "sample-token",
   founderFull: site.founderFull,
   baseUrl: site.url,
-  launchTitle: "the Dublin launch",
+  launchTitle: site.launch.title,
   launchStartsAt: "2026-10-05T10:00:00Z",
   freeDays: 90,
 });

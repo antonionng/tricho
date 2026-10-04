@@ -7,6 +7,9 @@ import {
   membersCsv,
   parseMemberFilters,
   untilFromDays,
+  sourceKey,
+  sourceLabel,
+  startOfToday,
   MEMBER_CSV_HEADER,
 } from "./members-filter";
 
@@ -65,6 +68,32 @@ describe("member filters", () => {
   it("lists the team for staff", () => {
     const where = buildMemberWhere({ q: "", plan: "", status: "staff" }, now, SYSTEM);
     expect((where.AND as object[])[1]).toEqual({ staffRole: { not: null } });
+  });
+});
+
+describe("joined today and sources", () => {
+  it("filters to people who joined since midnight in Ireland", () => {
+    expect(parseMemberFilters({ joined: "today" }).joined).toBe("today");
+    expect(parseMemberFilters({ joined: "yesterday" }).joined).toBeUndefined();
+    expect(memberFilterQuery({ joined: "today" })).toBe("?joined=today");
+    const where = buildMemberWhere({ q: "", plan: "", status: "", joined: "today" }, now, SYSTEM);
+    expect((where.AND as object[])[1]).toEqual({ createdAt: { gte: startOfToday(now) } });
+  });
+
+  it("finds midnight in Irish summer and winter time", () => {
+    expect(startOfToday(new Date("2026-10-02T12:00:00Z")).toISOString()).toBe("2026-10-01T23:00:00.000Z");
+    expect(startOfToday(new Date("2026-12-02T12:00:00Z")).toISOString()).toBe("2026-12-02T00:00:00.000Z");
+    expect(startOfToday(new Date("2026-10-02T23:30:00Z")).toISOString()).toBe("2026-10-02T23:00:00.000Z");
+  });
+
+  it("counts dublin and ireland as Trichollective Ireland", () => {
+    expect(sourceKey("dublin")).toBe("ireland");
+    expect(sourceKey("Ireland")).toBe("ireland");
+    expect(sourceKey(null)).toBe("direct");
+    expect(sourceLabel("dublin")).toBe("Trichollective Ireland");
+    expect(sourceLabel("ireland")).toBe("Trichollective Ireland");
+    expect(sourceLabel("instagram")).toBe("Instagram");
+    expect(sourceLabel("spring_promo")).toBe("Spring promo");
   });
 });
 

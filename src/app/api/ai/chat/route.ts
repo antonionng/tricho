@@ -57,5 +57,15 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    // The SDK hides stream errors by default; log the cause and tell the client
+    // which kind of failure it was so the chat can explain it.
+    onError: (error) => {
+      console.error("[assistant] reply failed", error);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (/unauthenticated|api key|authentication/i.test(msg)) return "The AI service rejected our API key (unauthenticated).";
+      if (/rate limit|429/i.test(msg)) return "Rate limited (429).";
+      return "The reply failed.";
+    },
+  });
 }

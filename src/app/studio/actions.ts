@@ -30,6 +30,7 @@ function inboxUrl(form: FormData, params: Record<string, string | undefined>) {
   return withParams("/studio/inbox", {
     status: s(form, "f_status", 20) || undefined,
     agent: s(form, "f_agent", 40) || undefined,
+    kind: s(form, "f_kind", 40) || undefined,
     ...params,
   });
 }

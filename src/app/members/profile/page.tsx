@@ -10,9 +10,11 @@ import {
   LayoutDashboard,
   MessageCircle,
   Newspaper,
-  Search,
   Sparkles,
   UserPlus,
+  BookOpen,
+  Gift,
+  HeartHandshake,
 } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Avatar } from "@/components/members/Avatar";
@@ -161,10 +163,12 @@ export default async function ProfilePage({
     { href: "/members/billing", label: "Plan and billing", icon: CreditCard },
     { href: "/members/notifications", label: "Notifications", icon: Bell },
     { href: "/members/messages", label: "Messages", icon: MessageCircle },
-    { href: "/members/people", label: "People", icon: Search },
+    { href: "/members/learn", label: "Learn", icon: BookOpen },
     { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
     { href: "/members/assistant", label: "Assistant", icon: Sparkles },
-    { href: "/members/refer", label: "Invite colleagues", icon: UserPlus },
+    { href: "/members/perks", label: "Member perks", icon: Gift },
+    { href: "/members/referrals", label: "Client referrals", icon: HeartHandshake },
+    { href: "/members/refer", label: "Invite a colleague", icon: UserPlus },
     ...(business ? [{ href: "/members/business", label: "Your business", icon: Building2 }] : []),
     ...(ctx.isAdmin || ctx.unlocked ? [{ href: "/studio", label: "Studio", icon: LayoutDashboard }] : []),
   ];
@@ -381,7 +385,7 @@ export default async function ProfilePage({
           <SectionLabel
             action={
               publicHref ? (
-                <Link href={publicHref} className="inline-flex items-center gap-1 text-sm text-ink-2 hover:underline">
+                <Link href={publicHref} className="inline-flex min-h-10 items-center gap-1 text-sm text-ink-2 hover:underline">
                   View <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               ) : undefined

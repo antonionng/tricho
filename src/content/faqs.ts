@@ -54,7 +54,7 @@ export const pricingFaqs: Faq[] = [
   },
   {
     q: "Do you offer refunds?",
-    a: "If Trichollective isn't right for you, email us within 14 days of your first payment and we will refund it in full.",
+    a: "No. Your membership starts as soon as you pay, so payments are non-refundable. You can cancel at any time to stop the next renewal, and you keep access until the end of the period you have paid for.",
   },
   {
     q: "Can my whole team join?",

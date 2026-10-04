@@ -34,7 +34,7 @@ export function UsefulButton({
       }
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border text-[13px] transition-colors",
-        size === "sm" ? "h-9 px-3" : "h-11 px-4 text-sm",
+        size === "sm" ? "h-10 px-3" : "h-11 px-4 text-sm",
         state.reacted ? "border-ink bg-ink text-paper" : "border-rule text-ink-2 hover:border-ink/40"
       )}
     >

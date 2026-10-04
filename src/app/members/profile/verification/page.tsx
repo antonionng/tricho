@@ -60,7 +60,7 @@ export default async function VerificationPage({
     <MemberPage size="narrow">
       <Link
         href="/members/profile"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-ink"
+        className="-ml-2 mb-4 inline-flex h-10 items-center gap-1 rounded-full px-2 text-sm text-muted-foreground hover:text-ink"
       >
         <ChevronLeft className="h-4 w-4" /> Your profile
       </Link>

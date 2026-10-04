@@ -26,7 +26,7 @@ export default async function MessagesPage() {
         select: {
           id: true,
           updatedAt: true,
-          members: { where: { userId: { not: me } }, select: { user: { select: { id: true, name: true } } } },
+          members: { where: { userId: { not: me } }, select: { user: { select: { id: true, name: true, image: true } } } },
           messages: { orderBy: { createdAt: "desc" }, take: 1, select: { body: true, createdAt: true, senderId: true } },
         },
       },
@@ -60,7 +60,7 @@ export default async function MessagesPage() {
             return (
               <li key={t.id} className="border-b border-rule last:border-0">
                 <Link href={`/members/messages/${t.id}`} className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-paper-2">
-                  <Avatar name={t.others[0]?.name} />
+                  <Avatar name={t.others[0]?.name} src={t.others[0]?.image} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-3">
                       <span className={cn("truncate", t.unread ? "font-semibold" : "font-medium")}>{title}</span>

@@ -207,38 +207,42 @@ export type NavItem = {
   perm: Permission;
   exact?: boolean;
   badge?: boolean;
-  group: "run" | "publish" | "people" | "settings";
+  group: NavGroup;
 };
 
 /** Studio navigation. The rail only shows what the signed-in role can open. */
 export const NAV: NavItem[] = [
-  { href: "/studio", label: "Overview", icon: "overview", perm: "overview.view", exact: true, group: "run" },
-  { href: "/studio/inbox", label: "Inbox", icon: "inbox", perm: "inbox.view", badge: true, group: "run" },
-  { href: "/studio/month", label: "This month", icon: "month", perm: "inbox.view", group: "run" },
+  { href: "/studio", label: "Overview", icon: "overview", perm: "overview.view", exact: true, group: "today" },
+  { href: "/studio/inbox", label: "Inbox", icon: "inbox", perm: "inbox.view", badge: true, group: "today" },
+  { href: "/studio/month", label: "This month", icon: "month", perm: "inbox.view", group: "today" },
   { href: "/studio/gazette", label: "Trichozette", icon: "gazette", perm: "gazette.view", group: "publish" },
   { href: "/studio/podcast", label: "Podcast", icon: "podcast", perm: "podcast.view", group: "publish" },
   { href: "/studio/events", label: "Events", icon: "events", perm: "events.view", group: "publish" },
   { href: "/studio/emails", label: "Emails", icon: "emails", perm: "emails.view", group: "publish" },
-  { href: "/studio/crm", label: "Businesses", icon: "crm", perm: "crm.view", group: "people" },
   { href: "/studio/members", label: "Members", icon: "members", perm: "members.view", group: "people" },
+  { href: "/studio/crm", label: "Businesses", icon: "crm", perm: "crm.view", group: "people" },
+  { href: "/studio/community", label: "Community", icon: "community", perm: "community.view", group: "people" },
   { href: "/studio/verification", label: "Verification", icon: "verification", perm: "verification.review", group: "people" },
   { href: "/studio/enquiries", label: "Enquiries", icon: "enquiries", perm: "enquiries.view", group: "people" },
-  { href: "/studio/retention", label: "Retention", icon: "retention", perm: "retention.view", group: "people" },
-  { href: "/studio/referrals", label: "Referrals", icon: "referrals", perm: "referrals.view", group: "people" },
-  { href: "/studio/community", label: "Community", icon: "community", perm: "community.view", group: "people" },
-  { href: "/studio/listings", label: "Listings", icon: "listings", perm: "listings.view", group: "people" },
-  { href: "/studio/partners", label: "Partners", icon: "partners", perm: "partners.view", group: "people" },
-  { href: "/studio/invite", label: "Invite", icon: "invite", perm: "invite.send", group: "people" },
-  { href: "/studio/subscribers", label: "Subscribers", icon: "subscribers", perm: "subscribers.view", group: "people" },
+  { href: "/studio/referrals", label: "Referrals", icon: "referrals", perm: "referrals.view", group: "growth" },
+  { href: "/studio/retention", label: "Retention", icon: "retention", perm: "retention.view", group: "growth" },
+  { href: "/studio/subscribers", label: "Subscribers", icon: "subscribers", perm: "subscribers.view", group: "growth" },
+  { href: "/studio/invite", label: "Invite", icon: "invite", perm: "invite.send", group: "growth" },
+  { href: "/studio/partners", label: "Partners", icon: "partners", perm: "partners.view", group: "growth" },
+  { href: "/studio/listings", label: "Listings", icon: "listings", perm: "listings.view", group: "growth" },
   { href: "/studio/team", label: "Team", icon: "team", perm: "staff.manage", group: "settings" },
   { href: "/studio/audit", label: "Audit log", icon: "audit", perm: "audit.view", group: "settings" },
   { href: "/studio/agents", label: "Agents", icon: "agents", perm: "agents.view", group: "settings" },
 ];
 
-export const NAV_GROUP_LABEL: Record<NavItem["group"], string> = {
-  run: "Run",
+export const NAV_GROUPS = ["today", "publish", "people", "growth", "settings"] as const;
+export type NavGroup = (typeof NAV_GROUPS)[number];
+
+export const NAV_GROUP_LABEL: Record<NavGroup, string> = {
+  today: "Today",
   publish: "Publish",
   people: "People",
+  growth: "Growth",
   settings: "Team and settings",
 };
 

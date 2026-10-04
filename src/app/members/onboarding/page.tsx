@@ -58,7 +58,7 @@ function Footer({ step, skip = true, label = "Continue" }: { step: number; skip?
       {step > 1 && (
         <Link
           href={`/members/onboarding?step=${step - 1}`}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          className="inline-flex h-12 items-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           Back
         </Link>
@@ -103,7 +103,7 @@ export default async function OnboardingPage({
 
   return (
     <MemberPage size="narrow">
-      <ol className="mb-8 grid grid-cols-8 gap-1.5" aria-label="Progress">
+      <ol className="mb-8 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${TOTAL}, minmax(0, 1fr))` }} aria-label="Progress">
         {ONBOARDING_STEPS.map((s, i) => (
           <li key={s.id} aria-current={i + 1 === step ? "step" : undefined}>
             <span className={cn("block h-1 rounded-full", i + 1 <= step ? "bg-ink" : "bg-paper-3")} />
@@ -140,14 +140,14 @@ export default async function OnboardingPage({
           </label>
           <fieldset className="flex flex-col gap-2.5">
             <legend className="sr-only">Discipline</legend>
-            {PROFESSIONS.map((p, i) => (
+            {PROFESSIONS.map((p) => (
               <label key={p.id} className={optionClass}>
                 <input
                   type="radio"
                   name="profession"
                   value={p.id}
                   required
-                  defaultChecked={ctx.profession ? ctx.profession === p.id : i === 0}
+                  defaultChecked={ctx.profession === p.id}
                   className="mt-1 accent-[var(--ink)]"
                 />
                 <span>
@@ -281,7 +281,7 @@ export default async function OnboardingPage({
           />
           <div className="flex flex-wrap items-center gap-3">
             <SubmitButton pending="Finishing…">Go to my free account</SubmitButton>
-            <Link href="/members/onboarding?step=7" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            <Link href="/members/onboarding?step=7" className="inline-flex h-12 items-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
               Back
             </Link>
           </div>
@@ -293,18 +293,18 @@ export default async function OnboardingPage({
           <Header
             step={8}
             title="Introduce yourself to the community."
-            body="A few lines in Introductions is the easiest way to be welcomed. Say what you do, where you practise and what you would like to learn. You can skip this and do it later."
+            body="A few lines in Introductions is the easiest way to be welcomed. Say what you do, where you practise and what you would like to learn. You can leave this empty and introduce yourself later."
           />
           <textarea
             name="intro"
             rows={6}
             maxLength={3000}
-            placeholder="Hello, I'm a head spa therapist in Dublin. I've been practising for four years and I'd love to learn more about when to refer clients on."
+            placeholder="Hello, I'm a head spa therapist in Cork. I've been practising for four years and I'd love to learn more about when to refer clients on."
             className={cn(fieldClass, "resize-y py-3 leading-relaxed")}
           />
           <div className="flex flex-wrap items-center gap-3">
-            <SubmitButton pending="Finishing…">Finish and go to the community</SubmitButton>
-            <Link href="/members/onboarding?step=7" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+            <SubmitButton pending="Finishing…">Finish and go to Introductions</SubmitButton>
+            <Link href="/members/onboarding?step=7" className="inline-flex h-12 items-center px-2 text-sm text-muted-foreground underline-offset-4 hover:underline">
               Back
             </Link>
           </div>
