@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { Container, Section } from "@/components/site/primitives";
 import { prisma } from "@/lib/prisma";
-import { partnerTierLabel, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
+import { isCharity, partnerTierLabel, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
 import { socialLinks } from "@/lib/business-profile";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 import { CountView } from "@/components/partners/CountView";
-import { PartnerProfile } from "@/components/partners/PartnerProfile";
+import { ShowcaseProfile } from "@/components/partners/ShowcaseProfile";
+import { listPhotos } from "@/lib/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const partner = await getPartner(slug);
   if (!partner) return { title: "Partner not found", robots: { index: false } };
   return pageMetadata({
-    title: `${partner.name}, ${partnerTierLabel(partner.tier).toLowerCase()}`,
-    description: partner.blurb.slice(0, 160),
+    title: `${partner.name}, ${partnerTierLabel(partner.tier, partner.kind).toLowerCase()}`,
+    description: (partner.tagline || partner.blurb).slice(0, 160),
     path: `/partners/${partner.slug}`,
   });
 }
@@ -36,6 +34,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
   const partner = await getPartner(slug);
   if (!partner) notFound();
 
+  const photos = await listPhotos({ partnerId: partner.id });
   const logo = partnerLogoSrc(partner.logoUrl);
   const website = safeHttpUrl(partner.website);
   const socials = socialLinks(partner.organisation?.socials);
@@ -46,30 +45,25 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
   return (
     <>
       <CountView url={`/api/partners/${partner.slug}/view`} />
-      <Section className="pb-12 md:pb-16">
-        <Container size="narrow">
-          <Link href="/partners" className="inline-flex items-center gap-1.5 text-sm text-ink-2 hover:text-ink">
-            <ArrowLeft className="h-4 w-4" aria-hidden /> All partners
-          </Link>
-
-          <div className="mt-10">
-            <PartnerProfile partner={partner} socials={socials} />
-          </div>
-        </Container>
-      </Section>
+      <ShowcaseProfile
+        partner={partner}
+        photos={photos.map((p) => ({ src: p.url, caption: p.caption }))}
+        socials={socials}
+      />
 
       <JsonLd
         data={[
           {
             "@context": "https://schema.org",
-            "@type": "Organization",
+            "@type": isCharity(partner) ? "NGO" : "Organization",
             name: partner.name,
             ...(website ? { url: website } : {}),
             ...(logo ? { logo: new URL(logo, site.url).toString() } : {}),
             ...(socials.length ? { sameAs: socials.map((s) => s.url) } : {}),
             ...(publicEmail ? { email: publicEmail } : {}),
             ...(publicPhone ? { telephone: publicPhone } : {}),
-            description: partner.blurb,
+            description: partner.tagline || partner.blurb,
+            ...(photos.length ? { image: photos.slice(0, 4).map((p) => new URL(p.url, site.url).toString()) } : {}),
           },
           breadcrumbLd([
             { name: "Home", path: "/" },

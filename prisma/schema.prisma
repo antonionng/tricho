@@ -207,6 +207,7 @@ model User {
   memberNotes    MemberNote[]          @relation("noteSubject")
   notesWritten   MemberNote[]          @relation("noteAuthor")
   files          StoredFile[]
+  profilePhotos  ProfilePhoto[]
   verifications  VerificationRequest[] @relation("verificationSubject")
   orgMemberships OrganisationContact[]
 
@@ -229,6 +230,8 @@ model TrichologistProfile {
 
   /// The member's own profile is the source of truth; the directory listing is kept in step with it.
   photoFileId     String?
+  /// A wide photo of the clinic or salon across the top of the public profile.
+  coverFileId     String?
   headline        String?
   practiceName    String?
   city            String?
@@ -670,6 +673,31 @@ model Partner {
   ownerEmail    String?       @unique
   /// Taken down by the Studio: hidden, and the owner can't republish it.
   hidden        Boolean       @default(false)
+  /// "brand" (a paying, sponsored partner) or "charity" (a cause we support free, never labelled sponsored).
+  kind          String        @default("brand")
+  /// A hex colour that themes a charity's page, e.g. "#E6007E".
+  accentColor   String?
+  /// A wide banner image across the top of the page.
+  coverUrl      String?
+  coverFileId   String?
+  /// A registered charity number, shown on the page.
+  charityNumber String?
+  /// One sentence under the name.
+  tagline       String?
+  /// The longer "Our story", paragraphs separated by a blank line.
+  story         String?       @db.Text
+  /// { value, label }[]: a few headline numbers.
+  highlights    Json?
+  /// { title, body }[]: products or services.
+  offerings     Json?
+  /// The main button on the page, e.g. "Book a demo".
+  ctaLabel      String?
+  ctaUrl        String?
+  /// A YouTube or Vimeo link (Premium).
+  videoUrl      String?
+  /// { eyebrow?, title, body?, steps?: string[], ctaLabel?, ctaUrl? }[]: longer feature sections.
+  sections      Json?
+  photos        ProfilePhoto[]
   logo          PartnerLogo?
   logoFileId    String?
   organisation  Organisation?
@@ -849,10 +877,28 @@ model PodcastEpisode {
   @@index([status, publishedAt])
 }
 
+/// A photo in a gallery: on a partner page, or on a member's public directory profile.
+model ProfilePhoto {
+  id        String   @id @default(cuid())
+  /// The uploaded file. Empty for images we commit ourselves under public/.
+  fileId    String?
+  url       String
+  caption   String?
+  sortOrder Int      @default(0)
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([partnerId, sortOrder])
+  @@index([userId, sortOrder])
+}
+
 /// An uploaded file. Stored in Supabase Storage when it is configured, otherwise in the database.
 model StoredFile {
   id          String   @id @default(cuid())
-  /// "logo" | "avatar" | "document"
+  /// "logo" | "avatar" | "photo" | "cover" | "document"
   kind        String
   /// "supabase" | "db"
   driver      String

@@ -8,6 +8,9 @@ import { prisma } from "@/lib/prisma";
 import { getMemberContext } from "@/lib/member";
 import { PROFESSIONS } from "@/config/rooms";
 import { asCreateData, profileDataFromForm, saveProfilePhoto, syncListingFromProfile } from "@/lib/profile";
+import { applyPhotosFromForm, coverFromForm } from "@/lib/photos";
+import { deleteStoredFile } from "@/lib/storage";
+import { PRACTITIONER } from "@/lib/showcase";
 
 /** Name, discipline and chapter. Open to anyone signed in, member or not. */
 export async function saveMemberDetails(formData: FormData) {
@@ -87,6 +90,36 @@ export async function saveProfilePhotoAction(formData: FormData) {
   await syncListingFromProfile(userId, { full: ctx.professional });
   revalidateProfile();
   redirect("/members/profile?saved=photo#photo");
+}
+
+/** A wide cover photo of the practice, shown across the top of the public profile. */
+export async function saveProfileCoverAction(formData: FormData) {
+  const ctx = await getMemberContext();
+  const userId = ctx.session?.user?.id;
+  if (!userId) redirect("/login?next=/members/profile");
+
+  const change = await coverFromForm(formData, userId);
+  if (!change.ok) redirect(`/members/profile?error=cover&message=${encodeURIComponent(change.message)}#cover`);
+  if (change.changed) {
+    const before = await prisma.trichologistProfile.findUnique({ where: { userId }, select: { coverFileId: true } });
+    const coverFileId = change.file?.id ?? null;
+    await prisma.trichologistProfile.upsert({ where: { userId }, create: { userId, coverFileId }, update: { coverFileId } });
+    if (before?.coverFileId && before.coverFileId !== coverFileId) await deleteStoredFile(before.coverFileId);
+  }
+  revalidateProfile();
+  redirect("/members/profile?saved=cover#cover");
+}
+
+/** Adds, captions, reorders or removes gallery photos on the public profile. */
+export async function saveProfileGalleryAction(formData: FormData) {
+  const ctx = await getMemberContext();
+  const userId = ctx.session?.user?.id;
+  if (!userId) redirect("/login?next=/members/profile");
+
+  const result = await applyPhotosFromForm(formData, { userId }, PRACTITIONER.photos, userId);
+  if (!result.ok) redirect(`/members/profile?error=gallery&message=${encodeURIComponent(result.message)}#gallery`);
+  revalidateProfile();
+  redirect("/members/profile?saved=gallery#gallery");
 }
 
 /** The two optional email lists. Account, booking and payment emails are always sent. */

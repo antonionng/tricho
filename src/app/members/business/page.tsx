@@ -22,7 +22,11 @@ export const metadata = { title: "Your business" };
 /** How the portal names the next unfinished step, in a sentence and on its button. */
 const NEXT_STEP: Record<SetupStepId, { phrase: string; button: string }> = {
   details: { phrase: "adding your brand details", button: "Add your brand details" },
-  logo: { phrase: "adding your logo", button: "Add your logo" },
+  logo: { phrase: "adding your logo, a cover photo and your brand colour", button: "Add your logo and cover" },
+  story: { phrase: "telling your story", button: "Tell your story" },
+  offerings: { phrase: "showing your products and services", button: "Add your products and services" },
+  photos: { phrase: "adding photos to your page", button: "Add photos" },
+  extras: { phrase: "adding a video or a feature section", button: "Add video and features" },
   contact: { phrase: "adding your contact details", button: "Add your contact details" },
   address: { phrase: "adding your business address", button: "Add your business address" },
   perk: { phrase: "offering members a perk", button: "Add a member perk" },
@@ -50,7 +54,7 @@ export default async function BusinessPage({
   if (!email) redirect("/login?next=/members/business");
   const { saved, error, message } = await searchParams;
 
-  const [{ page, org, seats }, business] = await Promise.all([loadBusiness(email), isBusinessAccount(email)]);
+  const [{ page, org, seats, photos }, business] = await Promise.all([loadBusiness(email), isBusinessAccount(email)]);
 
   if (!page && !business) {
     return (
@@ -58,7 +62,7 @@ export default async function BusinessPage({
         <PageHeader
           label="Your business"
           title="Put your business in front of hair and scalp professionals."
-          lede="The Business plan gives you a page in the partner directory with your logo, a perk for members, and Professional membership for five of your team."
+          lede="The Business plan gives you a full page in the directory in your own colours, with your story, products and photos, plus a perk for members and Professional membership for five of your team."
         />
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button asChild size="lg">
@@ -77,7 +81,7 @@ export default async function BusinessPage({
 
   const logo = partnerLogoSrc(page?.logoUrl);
   const errorText = describeError(error, message);
-  const progress = setupProgress({ page, org, seats: seats.length });
+  const progress = setupProgress({ page, org, seats: seats.length, photos: photos.length });
   const stepsLeft = SETUP_STEPS.filter((st) => !progress[st.id]).length;
   const next = SETUP_STEPS.find((st) => st.id === nextSetupStep(progress))!;
   const premium = page.tier === "premium";
@@ -99,7 +103,7 @@ export default async function BusinessPage({
           ) : (
             <Pill>Hidden</Pill>
           )}
-          <Pill>{partnerTierLabel(page.tier)}</Pill>
+          <Pill>{partnerTierLabel(page.tier, page.kind)}</Pill>
           {page.isFounding && <Pill tone="ink">Founding partner</Pill>}
           {page.published && (
             <Link

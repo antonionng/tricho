@@ -54,7 +54,7 @@ export default async function PerksPage() {
                       )}
                     </div>
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      <Pill tone={p.tier === "premium" ? "ink" : "default"}>{partnerTierLabel(p.tier)}</Pill>
+                      <Pill tone={p.tier === "premium" ? "ink" : "default"}>{partnerTierLabel(p.tier, p.kind)}</Pill>
                       <Pill>{p.category}</Pill>
                     </div>
                   </div>

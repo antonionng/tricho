@@ -87,7 +87,7 @@ export default async function StudioPartnersPage({
                 <div className="min-w-0 space-y-0.5">
                   <p className="text-sm font-medium text-ink">{p.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {partnerTierLabel(p.tier)} · {p.category} · /partners/{p.slug}
+                    {partnerTierLabel(p.tier, p.kind)} · {p.category} · /partners/{p.slug}
                     {p.featuredUntil && ` · Featured until ${dateOnly(p.featuredUntil)}`}
                     {p.contactEmail && ` · ${p.contactEmail}`}
                   </p>
@@ -184,6 +184,21 @@ function PartnerForm({ partner }: { partner: (Partner & { organisation: { id: st
               </option>
             ))}
           </select>
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Field label="Kind" hint="A charity is supported free of charge and never labelled sponsored.">
+          <select name="kind" defaultValue={partner?.kind ?? "brand"} className={fieldClass}>
+            <option value="brand">Brand</option>
+            <option value="charity">Charity</option>
+          </select>
+        </Field>
+        <Field label="Charity colour" hint="A hex colour, e.g. #D4007A.">
+          <input name="accentColor" defaultValue={partner?.accentColor ?? ""} placeholder="#D4007A" className={fieldClass} />
+        </Field>
+        <Field label="Charity number">
+          <input name="charityNumber" defaultValue={partner?.charityNumber ?? ""} className={fieldClass} />
         </Field>
       </div>
 

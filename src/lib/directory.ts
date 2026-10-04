@@ -42,6 +42,8 @@ const listingSelect = {
   isFounding: true,
   isVerified: true,
   acceptsReferrals: true,
+  userId: true,
+  isSample: true,
   kind: true,
   freeUntil: true,
   createdAt: true,

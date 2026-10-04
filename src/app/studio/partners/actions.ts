@@ -72,7 +72,7 @@ export async function savePartnerAction(form: FormData) {
     fail("Please add a name, a category and a blurb of at least a sentence.");
   }
   // A logo served by us (an upload) keeps its path; anything else must be a full web address.
-  let logoUrl = logoRaw.startsWith("/api/") ? partnerLogoSrc(logoRaw) : cleanUrl(logoRaw);
+  let logoUrl = logoRaw.startsWith("/") ? partnerLogoSrc(logoRaw) : cleanUrl(logoRaw);
   if (logoRaw && !logoUrl) fail("Please check the logo address. It needs to be a full web address.");
   const before = id ? await prisma.partner.findUnique({ where: { id } }) : null;
   let logoFileId: string | null = before?.logoFileId ?? null;
@@ -97,6 +97,9 @@ export async function savePartnerAction(form: FormData) {
   if (publicPhone && !/^[+()\d\s.-]{6,40}$/.test(publicPhone)) fail("Please check the public phone number.");
   const ownerEmail = s(form, "ownerEmail", 160).toLowerCase();
   if (ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) fail("Please check the Managed by email.");
+  const kind = s(form, "kind", 20) === "charity" ? "charity" : "brand";
+  const accentRaw = s(form, "accentColor", 7);
+  if (accentRaw && !/^#[0-9a-fA-F]{6}$/.test(accentRaw)) fail("Please give the charity colour as a hex value, like #D4007A.");
   const hidden = form.get("hidden") === "on";
   let featuredUntil: Date | null = null;
   if (featuredRaw) {
@@ -122,6 +125,9 @@ export async function savePartnerAction(form: FormData) {
     hidden,
     ownerEmail: ownerEmail || null,
     featuredUntil,
+    kind,
+    accentColor: accentRaw || null,
+    charityNumber: s(form, "charityNumber", 20) || null,
   };
 
   let result: { error: string } | { slug: string; id: string };

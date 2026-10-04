@@ -24,6 +24,14 @@ describe("business setup progress", () => {
     expect(nextSetupStep(progress)).toBe("logo");
   });
 
+  it("counts the showcase steps once they hold content", () => {
+    const full = { ...page, logoUrl: "/x.png", coverUrl: "/c.webp", tagline: "A line.", story: "Our story.", offerings: [{ title: "A" }], sections: [] };
+    const progress = setupProgress({ page: full, org: null, seats: 0, photos: 2 });
+    expect(progress.logo && progress.story && progress.offerings && progress.photos).toBe(true);
+    expect(progress.extras).toBe(false);
+    expect(setupProgress({ page: { ...full, coverUrl: null }, org: null, seats: 0 }).logo).toBe(false);
+  });
+
   it("counts the address only when it is complete enough for an invoice", () => {
     const org = { phone: null, socials: null, addressLine1: "1 High St", postcode: null, country: "GB" };
     expect(setupProgress({ page, org, seats: 0 }).address).toBe(false);

@@ -2,7 +2,7 @@
  * Pure helpers for uploads, shared by the storage module, forms and tests.
  */
 
-export type FileKind = "logo" | "avatar" | "document";
+export type FileKind = "logo" | "avatar" | "photo" | "cover" | "document";
 
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export const DOCUMENT_TYPES = [...IMAGE_TYPES, "application/pdf"] as const;
@@ -11,13 +11,17 @@ export const DOCUMENT_TYPES = [...IMAGE_TYPES, "application/pdf"] as const;
 export const MAX_UPLOAD_BYTES: Record<FileKind, number> = {
   logo: 5 * 1024 * 1024,
   avatar: 8 * 1024 * 1024,
+  photo: 8 * 1024 * 1024,
+  cover: 8 * 1024 * 1024,
   document: 9 * 1024 * 1024,
 };
 
-/** How images are resized on upload. Logos keep their shape; photos are cropped square. */
+/** How images are resized on upload. Logos, gallery photos and covers keep their shape; avatars are cropped square. */
 export const IMAGE_SIZES: Record<Exclude<FileKind, "document">, { width: number; height: number; fit: "inside" | "cover" }> = {
   logo: { width: 800, height: 800, fit: "inside" },
   avatar: { width: 640, height: 640, fit: "cover" },
+  photo: { width: 1600, height: 1600, fit: "inside" },
+  cover: { width: 2400, height: 1200, fit: "inside" },
 };
 
 /** The real type of a file, from its first bytes, so a renamed file can't pass as an image. */

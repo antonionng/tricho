@@ -29,6 +29,7 @@ import { images, img } from "@/content/images";
 import { getEditions } from "@/content/gazette/loader";
 import { Cover } from "@/components/gazette/Cover";
 import { PartnerStrip } from "@/components/site/PartnerStrip";
+import { ProudSupporters } from "@/components/site/ProudSupporters";
 import { ParallaxImage } from "@/components/gazette/Parallax";
 import { coverImage } from "@/components/gazette/art";
 import { gazetteFonts } from "@/components/gazette/fonts";
@@ -385,6 +386,7 @@ export default async function HomePage() {
       </section>
 
       <PartnerStrip />
+      <ProudSupporters />
 
       {/* 6. Courses */}
       <Section tone="paper-2">

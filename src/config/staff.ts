@@ -230,6 +230,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/invite", label: "Invite", icon: "invite", perm: "invite.send", group: "growth" },
   { href: "/studio/partners", label: "Partners", icon: "partners", perm: "partners.view", group: "growth" },
   { href: "/studio/listings", label: "Listings", icon: "listings", perm: "listings.view", group: "growth" },
+  { href: "/studio/photos", label: "Photos", icon: "listings", perm: "listings.view", group: "growth" },
   { href: "/studio/team", label: "Team", icon: "team", perm: "staff.manage", group: "settings" },
   { href: "/studio/audit", label: "Audit log", icon: "audit", perm: "audit.view", group: "settings" },
   { href: "/studio/agents", label: "Agents", icon: "agents", perm: "agents.view", group: "settings" },

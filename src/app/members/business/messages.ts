@@ -9,14 +9,19 @@ export const SAVED_MESSAGES: Record<string, string> = {
   seat: "Your team member is added, and we've emailed them to say their Professional membership is ready.",
   "seat-removed": "That seat is free again.",
   details: "Your brand details are saved.",
-  logo: "Your logo is saved.",
+  logo: "Your logo, cover and colour are saved.",
+  story: "Your story is saved.",
+  offerings: "Your products and services are saved.",
+  photo: "Your photos are updated.",
+  photos: "Your photos are saved.",
+  extras: "Your video and features are saved.",
   contact: "Your contact details are saved.",
   address: "Your business address and records are saved.",
   perk: "Your member perk is saved.",
   team: "Your team is up to date.",
 };
 
-/** What went wrong, keyed by the ?error= value. "cap", "logo" and "social" carry their own message. */
+/** What went wrong, keyed by the ?error= value. "cap", "logo", "social" and "photo" carry their own message. */
 export const ERROR_MESSAGES: Record<string, string> = {
   plan: "Your page can go live while your Business or Premium Business plan is active. Check your plan in Billing, or reply to any of our emails and we'll help.",
   name: "Please add your business name.",
@@ -29,6 +34,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
   "public-phone": "Please check the public phone number, or leave it empty.",
   vat: "Please check the VAT number. It is usually a country code followed by numbers, such as GB123456789.",
   "company-number": "Please check the company number. A UK company number has eight characters, such as 01234567.",
+  colour: "Please choose your brand colour as a hex value, like #D4007A.",
+  cta: "Please check the button link. It needs to be a full web address, or leave it empty.",
+  video: "Please use a YouTube or Vimeo link for your video.",
   save: "Something went wrong saving your details. Please try again.",
   "details-first": "Please start with your brand details, so there is a page to add the rest to.",
   "not-ready": "Your page needs a name, a category and a short description before it can go live.",
@@ -41,6 +49,6 @@ export const ERROR_MESSAGES: Record<string, string> = {
 
 export function errorText(error?: string, message?: string) {
   if (!error) return null;
-  if ((error === "cap" || error === "logo" || error === "social") && message) return message;
+  if ((error === "cap" || error === "logo" || error === "social" || error === "photo") && message) return message;
   return ERROR_MESSAGES[error] ?? null;
 }

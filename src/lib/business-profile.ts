@@ -5,7 +5,11 @@
 
 export const SETUP_STEPS = [
   { id: "details", label: "Brand details", required: true },
-  { id: "logo", label: "Logo", required: false },
+  { id: "logo", label: "Logo, cover and colour", required: false },
+  { id: "story", label: "Your story", required: false },
+  { id: "offerings", label: "Products and services", required: false },
+  { id: "photos", label: "Photos", required: false },
+  { id: "extras", label: "Video and features", required: false },
   { id: "contact", label: "Contact details", required: false },
   { id: "address", label: "Business address", required: false },
   { id: "perk", label: "Member perk", required: false },
@@ -28,6 +32,12 @@ export type ProfileSnapshot = {
     perk: string | null;
     contactEmail: string | null;
     published: boolean;
+    coverUrl?: string | null;
+    tagline?: string | null;
+    story?: string | null;
+    offerings?: unknown;
+    sections?: unknown;
+    videoUrl?: string | null;
   } | null;
   org: {
     phone: string | null;
@@ -37,6 +47,8 @@ export type ProfileSnapshot = {
     country: string | null;
   } | null;
   seats: number;
+  /** How many gallery photos the page has. */
+  photos?: number;
 };
 
 /** True when the page has what it needs to go live: a name, a category and a real description. */
@@ -49,10 +61,15 @@ function hasSocials(value: unknown) {
 }
 
 /** Which setup steps are done. */
-export function setupProgress({ page, org, seats }: ProfileSnapshot): Record<SetupStepId, boolean> {
+export function setupProgress({ page, org, seats, photos = 0 }: ProfileSnapshot): Record<SetupStepId, boolean> {
+  const filled = (v: unknown) => Array.isArray(v) && v.length > 0;
   return {
     details: readyToPublish(page),
-    logo: !!page?.logoUrl,
+    logo: !!page?.logoUrl && !!page?.coverUrl,
+    story: !!(page?.tagline?.trim() && page?.story?.trim()),
+    offerings: filled(page?.offerings),
+    photos: photos > 0,
+    extras: !!page?.videoUrl || filled(page?.sections),
     contact: !!(page?.contactEmail || org?.phone || hasSocials(org?.socials)),
     address: !!(org?.addressLine1 && org?.postcode && org?.country),
     perk: !!page?.perk?.trim(),

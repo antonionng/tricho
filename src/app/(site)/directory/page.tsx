@@ -4,6 +4,8 @@ import { ArrowRight } from "lucide-react";
 import { Container, SectionHeader } from "@/components/site/primitives";
 import { DirectorySearch } from "@/components/site/DirectorySearch";
 import { ListingCard } from "@/components/directory/ListingCard";
+import { BusinessCard } from "@/components/directory/BusinessCard";
+import { searchBusinesses } from "@/lib/partners";
 import { Button } from "@/components/ui/button";
 import { DISCIPLINES, type DisciplineId } from "@/content/disciplines";
 import { listingCityPairs, searchListings, cityKey } from "@/lib/directory";
@@ -26,11 +28,13 @@ export default async function DirectoryPage({
 }) {
   const { q = "", discipline = "" } = await searchParams;
   const disciplineId = DISCIPLINES.some((d) => d.id === discipline) ? (discipline as DisciplineId) : undefined;
-  const [listings, pairs] = await Promise.all([
-    searchListings({ q, discipline: disciplineId }),
+  const onlyBusinesses = discipline === "businesses";
+  const [listings, businesses, pairs] = await Promise.all([
+    onlyBusinesses ? Promise.resolve([]) : searchListings({ q, discipline: disciplineId }),
+    disciplineId ? Promise.resolve([]) : searchBusinesses(q),
     listingCityPairs(),
   ]);
-  const filtered = !!(q || disciplineId);
+  const filtered = !!(q || disciplineId || onlyBusinesses);
 
   const chip = (id: string, label: string) => {
     const params = new URLSearchParams();
@@ -69,6 +73,7 @@ export default async function DirectoryPage({
           <div className="mt-6 flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             {chip("", "Everyone")}
             {DISCIPLINES.map((d) => chip(d.id, d.name))}
+            {chip("businesses", "Brands, clinics and charities")}
           </div>
         </Container>
       </section>
@@ -76,16 +81,18 @@ export default async function DirectoryPage({
       <Container className="py-14 md:py-20">
         <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
           <p className="text-[15px] text-ink-2" aria-live="polite">
-            {listings.length === 0
-              ? "No professionals match that search yet."
-              : `${listings.length} ${listings.length === 1 ? "professional" : "professionals"}${filtered ? " match your search" : ""}`}
+            {onlyBusinesses
+              ? `${businesses.length} ${businesses.length === 1 ? "brand, clinic or charity" : "brands, clinics and charities"}${q ? " match your search" : ""}`
+              : listings.length === 0
+                ? "No professionals match that search yet."
+                : `${listings.length} ${listings.length === 1 ? "professional" : "professionals"}${filtered ? " match your search" : ""}`}
           </p>
           <Link href="/find" className="text-sm text-ink underline underline-offset-4">
             Not sure who you need? Answer three questions
           </Link>
         </div>
 
-        {listings.length > 0 ? (
+        {onlyBusinesses ? null : listings.length > 0 ? (
           <ul className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             {listings.map((l) => (
               <li key={l.id}>
@@ -106,6 +113,29 @@ export default async function DirectoryPage({
               </Link>
             </Button>
           </div>
+        )}
+
+        {businesses.length > 0 && (
+          <section aria-labelledby="directory-businesses" className={cn(!onlyBusinesses && "mt-16 border-t border-rule pt-12")}>
+            {!onlyBusinesses && (
+              <div className="mb-8 flex flex-col gap-2">
+                <h2 id="directory-businesses" className="display text-3xl">
+                  Brands, clinics and charities
+                </h2>
+                <p className="text-[15px] text-ink-2">
+                  {q ? `Businesses that match "${q}".` : "Businesses and causes that support hair and scalp professionals."}
+                </p>
+              </div>
+            )}
+            {onlyBusinesses && <h2 id="directory-businesses" className="sr-only">Brands, clinics and charities</h2>}
+            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {businesses.map((b) => (
+                <li key={b.id}>
+                  <BusinessCard partner={b} />
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </Container>
 
