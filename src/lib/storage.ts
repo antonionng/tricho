@@ -1,5 +1,4 @@
 import "server-only";
-import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import {
   checkUpload,
@@ -11,6 +10,23 @@ import {
 } from "@/lib/files";
 
 export { fileUrl };
+
+type Sharp = typeof import("sharp");
+let sharpLoader: Promise<Sharp | null> | null = null;
+
+/**
+ * Load the image library only when an image is uploaded. If it can't load on
+ * the server, uploads are kept as they are rather than taking the page down.
+ */
+function loadSharp(): Promise<Sharp | null> {
+  sharpLoader ??= import("sharp")
+    .then((m) => ((m as unknown as { default?: Sharp }).default ?? (m as unknown as Sharp)))
+    .catch((error) => {
+      console.error("[storage] image processing is unavailable, so the original file is kept", error);
+      return null;
+    });
+  return sharpLoader;
+}
 
 const PUBLIC_BUCKET = "public-media";
 const PRIVATE_BUCKET = "private-documents";
@@ -66,28 +82,38 @@ export async function storeUpload(opts: {
   let width: number | null = null;
   let height: number | null = null;
 
-  if (kind !== "document") {
-    const size = IMAGE_SIZES[kind];
-    const out = await sharp(raw, { failOn: "error" })
-      .rotate()
-      .resize({ width: size.width, height: size.height, fit: size.fit, withoutEnlargement: size.fit === "inside" })
-      .webp({ quality: 86 })
-      .toBuffer({ resolveWithObject: true });
-    data = out.data;
-    width = out.info.width;
-    height = out.info.height;
-    contentType = "image/webp";
-  } else if (contentType !== "application/pdf") {
-    // A photo of a document: re-encoding also strips location and camera details.
-    const out = await sharp(raw)
-      .rotate()
-      .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer({ resolveWithObject: true });
-    data = out.data;
-    width = out.info.width;
-    height = out.info.height;
-    contentType = "image/jpeg";
+  const sharp = kind === "document" && contentType === "application/pdf" ? null : await loadSharp();
+  try {
+    if (sharp && kind !== "document") {
+      const size = IMAGE_SIZES[kind];
+      const out = await sharp(raw, { failOn: "error" })
+        .rotate()
+        .resize({ width: size.width, height: size.height, fit: size.fit, withoutEnlargement: size.fit === "inside" })
+        .webp({ quality: 86 })
+        .toBuffer({ resolveWithObject: true });
+      data = out.data;
+      width = out.info.width;
+      height = out.info.height;
+      contentType = "image/webp";
+    } else if (sharp && contentType !== "application/pdf") {
+      // A photo of a document: re-encoding also strips location and camera details.
+      const out = await sharp(raw)
+        .rotate()
+        .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer({ resolveWithObject: true });
+      data = out.data;
+      width = out.info.width;
+      height = out.info.height;
+      contentType = "image/jpeg";
+    }
+  } catch (error) {
+    // A file that can't be processed is kept as uploaded; it has already passed the type check.
+    console.error("[storage] couldn't process the image, so the original file is kept", error);
+    data = Buffer.from(raw);
+    contentType = check.contentType;
+    width = null;
+    height = null;
   }
 
   const isPublic = opts.isPublic ?? kind !== "document";
