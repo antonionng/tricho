@@ -17,8 +17,10 @@ const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
 const adapter = new PrismaPg({
   connectionString: url,
   ssl: isLocal ? false : { rejectUnauthorized: false },
-  // Small pools: serverless functions and parallel build workers each hold their own.
-  max: Number(process.env.DATABASE_POOL_MAX ?? (isLocal ? 10 : 3)),
+  // One connection per serverless instance: the Supabase pooler caps the total,
+  // and many instances start at once when a page is busy.
+  max: Number(process.env.DATABASE_POOL_MAX ?? (isLocal ? 10 : 1)),
+  idleTimeoutMillis: isLocal ? 10_000 : 5_000,
 });
 
 export const prisma =

@@ -81,7 +81,7 @@ export function ArchiveShelf({
                 <ul className="grid grid-cols-2 gap-5 sm:grid-cols-4 lg:col-span-10">
                   {items.map((e) => (
                     <li key={e.slug}>
-                      <Link href={`${basePath}/${e.slug}`} className="group block">
+                      <Link href={`${basePath}/${e.slug}`} prefetch={false} className="group block">
                         <div className="transition-transform duration-700 group-hover:-translate-y-1.5">
                           <Cover edition={e} className="shadow-[0_30px_60px_-30px_rgba(0,0,0,0.9)]" sizes="(min-width:1024px) 18vw, 45vw" />
                         </div>
