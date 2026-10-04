@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { images, img } from "@/content/images";
 import { premiumBusiness } from "@/config/subscriptions";
 import { foundingPartnerPlacesLeft } from "@/lib/founding";
-import { partnerTierLabel, publishedPartners, partnerLogoSrc } from "@/lib/partners";
+import { isCharity, partnerTierLabel, publishedPartners, partnerLogoSrc } from "@/lib/partners";
+import { ProudSupporters } from "@/components/site/ProudSupporters";
 import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -54,7 +55,8 @@ const options = [
 ];
 
 export default async function PartnersPage() {
-  const [partners, placesLeft] = await Promise.all([publishedPartners(), foundingPartnerPlacesLeft()]);
+  const [everyone, placesLeft] = await Promise.all([publishedPartners(), foundingPartnerPlacesLeft()]);
+  const partners = everyone.filter((p) => !isCharity(p));
 
   return (
     <>
@@ -97,6 +99,8 @@ export default async function PartnersPage() {
           </div>
         </Container>
       </section>
+
+      <ProudSupporters />
 
       {/* Showcase */}
       <Section tone="paper-2" id="partners">

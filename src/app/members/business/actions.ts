@@ -10,7 +10,9 @@ import { BUSINESS_SEATS, isBusinessAccount } from "@/lib/subscription";
 import { PARTNER_CATEGORIES, partnerCapError } from "@/lib/partners";
 import { isOrganisationKind, ORGANISATION_SIZES } from "@/lib/crm-intake";
 import { isSetupStep, readyToPublish, SOCIAL_NETWORKS, socialUrl, stepAfter, type SetupStepId } from "@/lib/business-profile";
-import { applyLogoFromForm, ensureOrganisation } from "./_data";
+import { applyCoverFromForm, applyLogoFromForm, ensureOrganisation } from "./_data";
+import { applyPhotosFromForm } from "@/lib/photos";
+import { partnerAllowance, safeHex, videoEmbedUrl } from "@/lib/showcase";
 import { deliver } from "@/lib/mail/send";
 import { seatInviteEmail } from "@/lib/mail/templates/members";
 
@@ -253,9 +255,84 @@ export async function saveSetupStep(form: FormData) {
   if (!page) setupBack("details", { error: "details-first" });
   const org = await ensureOrganisation(page, email);
 
+  const allow = partnerAllowance(page);
+
   if (step === "logo") {
     const logo = await applyLogoFromForm(form, page, org.id, userId);
     if (!logo.ok) fail("logo", logo.message);
+    const cover = await applyCoverFromForm(form, page, userId);
+    if (!cover.ok) fail("logo", cover.message);
+    const colourRaw = s(form, "accentColor", 7);
+    if (colourRaw && safeHex(colourRaw, "") === "") fail("colour");
+    await prisma.partner.update({ where: { id: page.id }, data: { accentColor: colourRaw ? safeHex(colourRaw) : null } });
+    done();
+  }
+
+  if (step === "story") {
+    const highlights = Array.from({ length: allow.highlights }, (_, i) => ({
+      value: s(form, `hValue${i}`, 12),
+      label: s(form, `hLabel${i}`, 80),
+    })).filter((h) => h.value && h.label);
+    const ctaLabel = s(form, "ctaLabel", 40);
+    const ctaRaw = s(form, "ctaUrl", 500);
+    const ctaUrl = ctaRaw.startsWith("#") ? (/^#(section-\d|photos|contact)$/.test(ctaRaw) ? ctaRaw : null) : cleanUrl(ctaRaw);
+    if (ctaRaw && !ctaUrl) fail("cta");
+    await prisma.partner.update({
+      where: { id: page.id },
+      data: {
+        tagline: s(form, "tagline", 200) || null,
+        story: s(form, "story", 6000) || null,
+        highlights: highlights.length ? highlights : Prisma.DbNull,
+        ctaLabel: ctaLabel && ctaUrl ? ctaLabel : null,
+        ctaUrl: ctaLabel && ctaUrl ? ctaUrl : null,
+      },
+    });
+    done();
+  }
+
+  if (step === "offerings") {
+    const offerings = Array.from({ length: allow.offerings }, (_, i) => ({
+      title: s(form, `oTitle${i}`, 80),
+      body: s(form, `oBody${i}`, 400),
+    })).filter((o) => o.title);
+    await prisma.partner.update({ where: { id: page.id }, data: { offerings: offerings.length ? offerings : Prisma.DbNull } });
+    done();
+  }
+
+  if (step === "photos") {
+    const result = await applyPhotosFromForm(form, { partnerId: page.id }, allow.photos, userId);
+    if (!result.ok) fail("photo", result.message);
+    // Adding, moving or removing a photo stays on this step; Save and continue moves on.
+    if (form.get("intent") !== "continue") {
+      revalidateBusiness(page.slug);
+      setupBack("photos", { saved: "photo" });
+    }
+    done();
+  }
+
+  if (step === "extras") {
+    const videoRaw = s(form, "videoUrl", 500);
+    if (videoRaw && allow.video && !videoEmbedUrl(videoRaw)) fail("video");
+    const sections = Array.from({ length: allow.sections }, (_, i) => {
+      const ctaRaw = s(form, `sCtaUrl${i}`, 500);
+      const ctaUrl = cleanUrl(ctaRaw);
+      const ctaLabel = s(form, `sCtaLabel${i}`, 40);
+      return {
+        eyebrow: s(form, `sEyebrow${i}`, 40) || undefined,
+        title: s(form, `sTitle${i}`, 140),
+        body: s(form, `sBody${i}`, 1200) || undefined,
+        steps: s(form, `sSteps${i}`, 2000).split(/\n+/).map((x) => x.trim()).filter(Boolean).slice(0, 6),
+        ctaLabel: ctaLabel && ctaUrl ? ctaLabel : undefined,
+        ctaUrl: ctaLabel && ctaUrl ? ctaUrl : undefined,
+      };
+    }).filter((x) => x.title);
+    await prisma.partner.update({
+      where: { id: page.id },
+      data: {
+        videoUrl: allow.video ? videoRaw || null : page.videoUrl,
+        sections: sections.length ? sections : Prisma.DbNull,
+      },
+    });
     done();
   }
 

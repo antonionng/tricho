@@ -69,7 +69,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
   const org = await prisma.organisation.findUnique({
     where: { id },
     include: {
-      partner: { select: { id: true, slug: true, name: true, tier: true, published: true, hidden: true, isFounding: true, ownerEmail: true, category: true } },
+      partner: { select: { id: true, slug: true, name: true, tier: true, kind: true, published: true, hidden: true, isFounding: true, ownerEmail: true, category: true } },
       contacts: {
         orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
         include: { user: { select: { id: true, name: true } } },
@@ -170,7 +170,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
             <Tag>{kindLabel(org.kind)}</Tag>
             {org.valueGBP !== null && <Tag>{formatGBP(org.valueGBP)} a year</Tag>}
             {org.followUpAt && <Tag tone={due ? "warn" : "default"}>Follow up on {dateOnly(org.followUpAt)}</Tag>}
-            {org.partner && <Tag tone="ink">{partnerTierLabel(org.partner.tier)}</Tag>}
+            {org.partner && <Tag tone="ink">{partnerTierLabel(org.partner.tier, org.partner.kind)}</Tag>}
             {org.tags.map((t) => (
               <Tag key={t}>{t}</Tag>
             ))}
@@ -366,7 +366,7 @@ export default async function BusinessPage({ params, searchParams }: { params: P
               <Row label="Brand page">
                 {org.partner ? (
                   <span className="flex flex-wrap items-center gap-2">
-                    {org.partner.name}, {partnerTierLabel(org.partner.tier)}
+                    {org.partner.name}, {partnerTierLabel(org.partner.tier, org.partner.kind)}
                     {org.partner.isFounding && <Tag>Founding</Tag>}
                     {org.partner.hidden ? <Tag tone="danger">Taken down</Tag> : org.partner.published ? <Tag tone="positive">Published</Tag> : <Tag tone="warn">Draft</Tag>}
                     <TextLink href="/studio/partners">Manage on the Partners page</TextLink>

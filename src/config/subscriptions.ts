@@ -73,7 +73,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     legacyPriceIds: [process.env.STRIPE_PRICE_ID_MEMBER],
     features: [
       "Everything in Community",
-      "Be found in the directory with a full profile, and receive enquiries from the public directly",
+      "Be found in the directory with a full profile, including a cover photo and up to 6 photos of your practice, and receive enquiries from the public directly",
       "Show a verified badge once we have checked your training and registration by hand",
       "Get peer review on anonymised cases in the Case Room",
       "Refer clients to the right cosmetic, clinical or medical colleague through the referral network",
@@ -98,7 +98,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
       process.env.STRIPE_PRICE_ID_BUSINESS_LUXURY,
     ],
     features: [
-      "Be found by the public with a business page in the directory",
+      "Be found in the directory with a full business page in your own colours, with your story, products and services, and up to 8 photos",
       "Give five of your team Professional membership",
       "Advertise roles on the jobs board to trained hair and scalp professionals",
       "Offer members a perk and put your products in front of practitioners",
@@ -153,7 +153,7 @@ export const premiumBusiness = {
     "A talk or demo slot at one conference a year, with sampling or a delegate-bag insert at the others",
     "A member perk with tracked redemptions, and an opt-in product trial panel with structured feedback",
     "A quarterly report on how members engaged with your content and perks",
-    "A partner page and the Premium partner badge",
+    "A partner page with up to 16 photos, a video and four feature sections, plus the Premium partner badge",
   ],
   guardrails: [
     "Every sponsored piece is clearly labelled",

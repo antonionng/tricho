@@ -41,13 +41,26 @@ import {
 import { tierById } from "@/config/subscriptions";
 import { isBusinessAccount } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
-import { saveEmailPreferences, saveMemberDetails, saveProfilePhotoAction, saveProfileSection, signOutAction } from "./actions";
+import {
+  saveEmailPreferences,
+  saveMemberDetails,
+  saveProfileCoverAction,
+  saveProfileGalleryAction,
+  saveProfilePhotoAction,
+  saveProfileSection,
+  signOutAction,
+} from "./actions";
+import { PhotoManager } from "@/components/forms/PhotoManager";
+import { listPhotos } from "@/lib/photos";
+import { PRACTITIONER } from "@/lib/showcase";
 
 export const metadata = { title: "Your profile" };
 
 const MESSAGES: Record<string, string> = {
   about: "Your details are saved.",
   photo: "Your photo is saved.",
+  cover: "Your cover photo is saved.",
+  gallery: "Your photos are updated.",
   practice: "Your practice details are saved.",
   qualifications: "Your qualifications and memberships are saved.",
   contact: "Your contact details are saved.",
@@ -67,12 +80,12 @@ const ERRORS: Record<string, string> = {
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; message?: string }>;
 }) {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/profile");
   const userId = ctx.session.user.id;
-  const { saved, error } = await searchParams;
+  const { saved, error, message } = await searchParams;
 
   const [user, chapters] = await Promise.all([
     prisma.user.findUnique({
@@ -145,7 +158,11 @@ export default async function ProfilePage({
     : (listing?.enquiries ?? []);
   const profession = user.profile?.profession ?? null;
   const profile = user.profile;
-  const uploadedPhoto = await urlForFile(profile?.photoFileId);
+  const [uploadedPhoto, coverUrl, galleryPhotos] = await Promise.all([
+    urlForFile(profile?.photoFileId),
+    urlForFile(profile?.coverFileId),
+    listPhotos({ userId }),
+  ]);
   const photoUrl = uploadedPhoto ?? listing?.photoUrl ?? user.image ?? null;
   const completeness = profileCompleteness(profile, { name: user.name, image: photoUrl });
   const plan = tierById(ctx.plan)?.name;
@@ -176,6 +193,7 @@ export default async function ProfilePage({
   const sections = [
     { id: "about", label: "About you" },
     { id: "photo", label: "Photo" },
+    ...(fullProfile ? [{ id: "cover", label: "Cover photo" }, { id: "gallery", label: "Photos" }] : []),
     { id: "practice", label: "Practice" },
     { id: "qualifications", label: "Qualifications" },
     { id: "contact", label: "Contact and address" },
@@ -224,9 +242,9 @@ export default async function ProfilePage({
           {MESSAGES[saved]}
         </p>
       )}
-      {error && ERRORS[error] && (
+      {error && (ERRORS[error] || ((error === "cover" || error === "gallery") && message)) && (
         <p className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
-          {ERRORS[error]}
+          {ERRORS[error] ?? message}
         </p>
       )}
 
@@ -325,6 +343,45 @@ export default async function ProfilePage({
           </form>
         </Card>
       </section>
+
+      {fullProfile && (
+        <>
+          <section id="cover" className="mt-10 scroll-mt-20">
+            <SectionLabel>Cover photo</SectionLabel>
+            <Card className="p-5 sm:p-6">
+              <form action={saveProfileCoverAction} className="flex flex-col gap-4">
+                <ImageUpload
+                  name="cover"
+                  currentUrl={coverUrl}
+                  shape="wide"
+                  label={coverUrl ? "Choose a new cover photo" : "Choose a cover photo"}
+                  hint="A wide landscape photo of your clinic, salon or treatment room runs across the top of your public profile. JPEG, PNG or WebP, up to 8MB."
+                  removeName="removeCover"
+                />
+                <SubmitButton className="self-start" pending="Uploading…">
+                  Save cover photo
+                </SubmitButton>
+              </form>
+            </Card>
+          </section>
+
+          <section id="gallery" className="mt-10 scroll-mt-20">
+            <SectionLabel>Photos</SectionLabel>
+            <Card className="p-5 sm:p-6">
+              <p className="mb-5 text-[15px] leading-relaxed text-ink-2">
+                Show clients your space, your equipment and your team. Your first photo is shown first, and clients can open each one
+                full screen on your profile.
+              </p>
+              <PhotoManager
+                action={saveProfileGalleryAction}
+                photos={galleryPhotos.map((p) => ({ id: p.id, url: p.url, caption: p.caption }))}
+                limit={PRACTITIONER.photos}
+                addHint="A JPEG, PNG or WebP up to 8MB. Please don't include clients without their written consent."
+              />
+            </Card>
+          </section>
+        </>
+      )}
 
       <section id="practice" className="mt-10 scroll-mt-20">
         <SectionLabel>Practice</SectionLabel>

@@ -25,7 +25,8 @@ export const PARTNER_CATEGORIES = [
   "Something else",
 ] as const;
 
-export function partnerTierLabel(tier: string) {
+export function partnerTierLabel(tier: string, kind?: string) {
+  if (kind === "charity") return "Charity we support";
   return tier === "premium" ? "Premium partner" : "Business partner";
 }
 
@@ -49,11 +50,52 @@ export async function publishedPartners() {
   return sortPartners(rows);
 }
 
+/** Paying Premium partners, for the "Supported by our partners" strip. Charities have their own band. */
 export async function publishedPremiumPartners() {
   const rows = await prisma.partner
-    .findMany({ where: { published: true, tier: "premium" } })
+    .findMany({ where: { published: true, tier: "premium", kind: { not: "charity" } } })
     .catch(() => [] as Partner[]);
   return sortPartners(rows);
+}
+
+/**
+ * Published partner pages for the public directory search: brands, clinics and charities.
+ * Premium first, then featured, then by name.
+ */
+export async function searchBusinesses(q?: string, take = 24) {
+  const query = q?.trim();
+  const rows = await prisma.partner
+    .findMany({
+      where: {
+        published: true,
+        hidden: false,
+        ...(query
+          ? {
+              OR: [
+                { name: { contains: query, mode: "insensitive" } },
+                { category: { contains: query, mode: "insensitive" } },
+                { tagline: { contains: query, mode: "insensitive" } },
+                { blurb: { contains: query, mode: "insensitive" } },
+                { story: { contains: query, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
+      take,
+    })
+    .catch(() => [] as Partner[]);
+  return sortPartners(rows);
+}
+
+/** Charities we support free of charge, for the "Proud supporters of" band. */
+export async function publishedCharities() {
+  return prisma.partner
+    .findMany({ where: { published: true, kind: "charity" }, orderBy: { name: "asc" } })
+    .catch(() => [] as Partner[]);
+}
+
+export function isCharity(partner: Pick<Partner, "kind">) {
+  return partner.kind === "charity";
 }
 
 /** Only http(s) links are ever rendered, so a stray "javascript:" value can't reach an href or src. */
@@ -72,6 +114,8 @@ export function safeHttpUrl(value: string | null | undefined) {
  * an older portal upload at /api/partners/{slug}/logo, or an http(s) link set in the Studio.
  */
 export function partnerLogoSrc(value: string | null | undefined) {
+  // Images we commit ourselves under public/partners/.
+  if (value && /^\/partners\/[a-z0-9-]+\/[a-z0-9-]+\.(png|webp|jpg)$/.test(value)) return value;
   if (value && /^\/api\/partners\/[a-z0-9-]+\/logo(\?v=\d+)?$/.test(value)) return value;
   if (value && /^\/api\/files\/[A-Za-z0-9_-]+$/.test(value)) return value;
   return safeHttpUrl(value);
