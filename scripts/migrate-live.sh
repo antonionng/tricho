@@ -10,6 +10,11 @@ LIVE=$(grep -E '^DATABASE_URL=' .env | head -1 | sed -E 's/^DATABASE_URL="?([^"]
 
 if [ "${1:-}" = "--apply" ]; then
   DATABASE_URL="$LIVE" npx prisma migrate deploy
+  # New tables must never be readable through Supabase's public data API. The app
+  # connects as the table owner, which isn't subject to row level security.
+  echo "DO \$\$ DECLARE t record; BEGIN FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND NOT rowsecurity LOOP EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t.tablename); END LOOP; END \$\$;" \
+    | DATABASE_URL="$LIVE" npx prisma db execute --stdin
+  echo "Row level security is on for every public table."
 else
   DATABASE_URL="$LIVE" npx prisma migrate status || true
   echo
