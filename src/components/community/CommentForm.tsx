@@ -6,25 +6,46 @@ import { SubmitButton } from "@/components/members/SubmitButton";
 import { fieldClass } from "@/components/members/MemberPage";
 import { cn } from "@/lib/utils";
 
-export function CommentForm({ postId }: { postId: string }) {
+export function CommentForm({
+  postId,
+  parentId,
+  replyingTo,
+  onDone,
+}: {
+  postId: string;
+  /** Set when answering a particular comment. */
+  parentId?: string;
+  replyingTo?: string;
+  onDone?: () => void;
+}) {
   const [state, action] = useActionState<FormState, FormData>(createComment, null);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (state?.ok) ref.current?.reset();
-  }, [state]);
+    if (!state?.ok) return;
+    ref.current?.reset();
+    onDone?.();
+  }, [state, onDone]);
+  const fieldId = parentId ? `reply-${parentId}` : "reply-body";
 
   return (
-    <form ref={ref} action={action} id="reply" className="scroll-mt-24 rounded-2xl border border-rule bg-card p-4 sm:p-5">
+    <form
+      ref={ref}
+      action={action}
+      id={parentId ? undefined : "reply"}
+      className={cn("scroll-mt-24 rounded-2xl border border-rule bg-card", parentId ? "p-3" : "p-4 sm:p-5")}
+    >
       <input type="hidden" name="postId" value={postId} />
-      <label htmlFor="reply-body" className="label text-muted-foreground">
-        Your reply
+      {parentId && <input type="hidden" name="parentId" value={parentId} />}
+      <label htmlFor={fieldId} className="label text-muted-foreground">
+        {replyingTo ? `Reply to ${replyingTo}` : "Your reply"}
       </label>
       <textarea
-        id="reply-body"
+        id={fieldId}
+        autoFocus={!!parentId}
         name="content"
         required
         minLength={2}
-        rows={3}
+        rows={parentId ? 2 : 3}
         placeholder="Add something useful: an experience, a question or a reference."
         className={cn(fieldClass, "mt-2 resize-y py-3 leading-relaxed")}
       />

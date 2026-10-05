@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bell, MessageCircle, UserPlus, MessagesSquare } from "lucide-react";
+import { Bell, MessageCircle, UserPlus, MessagesSquare, ThumbsUp } from "lucide-react";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { MarkAllRead } from "@/components/members/MarkAllRead";
@@ -15,6 +15,7 @@ const ICONS: Record<string, typeof Bell> = {
   comment: MessagesSquare,
   message: MessageCircle,
   follow: UserPlus,
+  useful: ThumbsUp,
 };
 
 export default async function NotificationsPage() {

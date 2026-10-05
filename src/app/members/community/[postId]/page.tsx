@@ -8,6 +8,9 @@ import { timeAgo } from "@/components/members/format";
 import { UsefulButton } from "@/components/community/UsefulButton";
 import { ReportButton } from "@/components/community/ReportButton";
 import { CommentForm } from "@/components/community/CommentForm";
+import { ReplyToComment } from "@/components/community/ReplyToComment";
+import { firstName } from "@/lib/community";
+import { cn } from "@/lib/utils";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { canPostInRoom, canReadRoom, normalizeSpace, professionById, roomById } from "@/config/rooms";
@@ -30,7 +33,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
       comments: {
         where: { hiddenAt: null },
         orderBy: { createdAt: "asc" },
-        include: { author: { select: { id: true, name: true, image: true, profile: { select: { profession: true } } } } },
+        include: {
+          author: { select: { id: true, name: true, image: true, profile: { select: { profession: true } } } },
+          _count: { select: { reactions: true } },
+          reactions: { where: { userId }, select: { id: true } },
+        },
       },
       _count: { select: { reactions: true } },
       reactions: { where: { userId }, select: { id: true } },
@@ -49,6 +56,32 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
     );
   }
   const canReply = canPostInRoom(space, ctx, allRooms);
+  // Replies hang under the comment they answer; a reply whose parent was hidden shows at the top level.
+  const visible = new Set(post.comments.map((c) => c.id));
+  const topLevel = post.comments.filter((c) => !c.parentId || !visible.has(c.parentId));
+  const repliesTo = (id: string) => post.comments.filter((c) => c.parentId === id);
+  type ThreadComment = (typeof post.comments)[number];
+  const renderComment = (c: ThreadComment, nested: boolean) => (
+    <div id={`comment-${c.id}`} className={cn("flex scroll-mt-24 gap-3", nested ? "pt-3" : "")}>
+      <Link href={`/members/people/${c.author.id}`} className="shrink-0">
+        <Avatar name={c.author.name} src={c.author.image} size="sm" />
+      </Link>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm">
+          <Link href={`/members/people/${c.author.id}`} className="font-medium hover:underline">
+            {c.author.name || "Member"}
+          </Link>
+          <span className="text-muted-foreground"> · {timeAgo(c.createdAt)}</span>
+        </p>
+        <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{c.content}</p>
+        <div className="-ml-1 mt-2 flex flex-wrap items-center gap-1">
+          <UsefulButton commentId={c.id} count={c._count.reactions} reacted={c.reactions.length > 0} size="xs" />
+          {canReply && <ReplyToComment postId={post.id} parentId={c.parentId ?? c.id} name={firstName(c.author.name) || "this member"} />}
+          {c.author.id !== userId && <ReportButton commentId={c.id} />}
+        </div>
+      </div>
+    </div>
+  );
   const discipline = post.author.profile?.profession ? professionById(post.author.profile.profession)?.label : null;
 
   return (
@@ -87,27 +120,21 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
           {post.comments.length === 0 ? "No replies yet" : `${post.comments.length} ${post.comments.length === 1 ? "reply" : "replies"}`}
         </h2>
         <ol className="flex flex-col gap-3">
-          {post.comments.map((c) => (
-            <li key={c.id} className="flex gap-3 rounded-2xl border border-rule bg-card p-4">
-              <Link href={`/members/people/${c.author.id}`} className="shrink-0">
-                <Avatar name={c.author.name} src={c.author.image} size="sm" />
-              </Link>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm">
-                  <Link href={`/members/people/${c.author.id}`} className="font-medium hover:underline">
-                    {c.author.name || "Member"}
-                  </Link>
-                  <span className="text-muted-foreground"> · {timeAgo(c.createdAt)}</span>
-                </p>
-                <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{c.content}</p>
-                {c.author.id !== userId && (
-                  <div className="-ml-3 mt-1">
-                    <ReportButton commentId={c.id} />
-                  </div>
+          {topLevel.map((c) => {
+            const replies = repliesTo(c.id);
+            return (
+              <li key={c.id} className="rounded-2xl border border-rule bg-card p-4">
+                {renderComment(c, false)}
+                {replies.length > 0 && (
+                  <ol className="ml-11 mt-3 flex flex-col divide-y divide-rule border-l border-rule pl-4">
+                    {replies.map((r) => (
+                      <li key={r.id}>{renderComment(r, true)}</li>
+                    ))}
+                  </ol>
                 )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ol>
       </section>
 

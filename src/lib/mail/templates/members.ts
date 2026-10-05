@@ -143,16 +143,24 @@ export function commentReplyEmail(p: {
   postTitle: string;
   comment: string;
   postId: string;
+  /** Why this person hears about it: they wrote the post, wrote the comment being answered, or took part in the thread. */
+  relation?: "post" | "comment" | "thread";
 }): Email {
+  const relation = p.relation ?? "post";
+  const subject = {
+    post: `${p.commenterName} replied to your post`,
+    comment: `${p.commenterName} replied to your comment`,
+    thread: `${p.commenterName} replied in a thread you joined`,
+  }[relation];
   return {
-    subject: `${p.commenterName} replied to your post`,
+    subject,
     content: {
       preheader: clip(p.comment, 110),
       eyebrow: "Community",
-      heading: `${p.commenterName} replied to your post in the community.`,
+      heading: `${subject} in the community.`,
       body: [
         `Hello ${firstNameOf(p.recipientName)},`,
-        `${p.commenterName} replied to "${clip(p.postTitle, 90)}":`,
+        `${p.commenterName} replied${relation === "comment" ? " to your comment" : ""} in "${clip(p.postTitle, 90)}":`,
         `"${clip(p.comment, 300)}"`,
         "Reply in the thread to keep the conversation going, so colleagues who find it later see the whole discussion.",
       ].join("\n\n"),

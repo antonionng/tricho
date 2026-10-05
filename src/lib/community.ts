@@ -208,6 +208,43 @@ export async function notify(data: {
   }
 }
 
+/**
+ * Tells an author that someone found their post or comment useful. Unread notifications about the same
+ * item are folded into one ("Sam and 2 others found…") so a popular post doesn't flood the bell.
+ */
+export async function notifyUseful(data: {
+  userId: string;
+  reactorName: string;
+  /** All reactions on the item, including the new one. */
+  count: number;
+  what: "post" | "comment";
+  about: string;
+  href: string;
+}) {
+  const others = data.count - 1;
+  const who = others > 0 ? `${data.reactorName} and ${others} ${others === 1 ? "other" : "others"}` : data.reactorName;
+  const title = `${who} found your ${data.what} “${data.about}” useful`;
+  try {
+    const existing = await prisma.notification.findFirst({
+      where: { userId: data.userId, kind: "useful", href: data.href, readAt: null },
+      select: { id: true },
+    });
+    if (existing) {
+      await prisma.notification.update({ where: { id: existing.id }, data: { title, createdAt: new Date() } });
+    } else {
+      await prisma.notification.create({ data: { userId: data.userId, kind: "useful", title, href: data.href } });
+    }
+  } catch (err) {
+    console.error("[notifyUseful] failed", err);
+  }
+}
+
+/** A short quote of a post or comment for notification titles. */
+export function excerpt(text: string, max = 60) {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? flat.slice(0, max).trimEnd() + "…" : flat;
+}
+
 /** Rooms a member may post in, shaped for the Composer. */
 export async function postableRooms(ctx: {
   professional: boolean;
