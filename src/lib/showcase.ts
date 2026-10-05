@@ -14,6 +14,14 @@ export type Allowance = {
   sections: number;
 };
 
+/**
+ * Kinds of page: "brand" (a paying partner, labelled sponsored), "charity" (supported free and
+ * shown in the "Proud supporters of" band) and "gifted" (a free Premium page with no partner or
+ * sponsor wording, found only through its own page and directory search).
+ */
+export const PARTNER_KINDS = ["brand", "charity", "gifted"] as const;
+export type PartnerKind = (typeof PARTNER_KINDS)[number];
+
 /** Business (£99 a month) partner pages. */
 const BUSINESS: Allowance = { cover: true, colour: true, highlights: 3, offerings: 6, photos: 8, cta: true, video: false, sections: 1 };
 /** Premium Business, and charities we support free of charge. */
@@ -22,7 +30,7 @@ const PREMIUM: Allowance = { cover: true, colour: true, highlights: 4, offerings
 export const PRACTITIONER: Allowance = { cover: true, colour: false, highlights: 0, offerings: 0, photos: 6, cta: false, video: false, sections: 0 };
 
 export function partnerAllowance(p: { tier: string; kind?: string | null }): Allowance {
-  return p.kind === "charity" || p.tier === "premium" ? PREMIUM : BUSINESS;
+  return p.kind === "charity" || p.kind === "gifted" || p.tier === "premium" ? PREMIUM : BUSINESS;
 }
 
 export type Highlight = { value: string; label: string };

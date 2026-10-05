@@ -188,10 +188,11 @@ function PartnerForm({ partner }: { partner: (Partner & { organisation: { id: st
       </div>
 
       <div className="grid gap-5 sm:grid-cols-3">
-        <Field label="Kind" hint="A charity is supported free of charge and never labelled sponsored.">
+        <Field label="Kind" hint="Charities and gifted pages are free and never labelled sponsored. Gifted pages get Premium features and appear only in directory search.">
           <select name="kind" defaultValue={partner?.kind ?? "brand"} className={fieldClass}>
             <option value="brand">Brand</option>
             <option value="charity">Charity</option>
+            <option value="gifted">Gifted Premium (no partner wording)</option>
           </select>
         </Field>
         <Field label="Charity colour" hint="A hex colour, e.g. #D4007A.">

@@ -73,6 +73,8 @@ export function ShowcaseProfile({
 }) {
   const allow = partnerAllowance(partner);
   const charity = partner.kind === "charity";
+  // A free Premium page: no partner label, no sponsored wording, nothing about payment.
+  const gifted = partner.kind === "gifted";
   const accent = safeHex(allow.colour ? partner.accentColor : null);
   const onAccent = textOn(accent);
   // Numbers and headings use the brand colour only when it reads well on white.
@@ -90,7 +92,7 @@ export function ShowcaseProfile({
   const website = safeHttpUrl(partner.website);
   const host = displayHost(partner.website);
   const websiteHref = preview ? website : `/go/${partner.slug}`;
-  const rel = charity ? "noopener" : "noopener nofollow sponsored";
+  const rel = charity ? "noopener" : gifted ? "noopener nofollow" : "noopener nofollow sponsored";
   const publicEmail = partner.publicEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(partner.publicEmail) ? partner.publicEmail : null;
   const publicPhone = partner.publicPhone?.trim() || null;
   const telHref = publicPhone ? `tel:${publicPhone.replace(/[^\d+]/g, "")}` : null;
@@ -113,8 +115,11 @@ export function ShowcaseProfile({
         {charity && <Hearts />}
         <Container className="relative">
           {!preview && (
-            <Link href="/partners" className="inline-flex items-center gap-1.5 text-sm opacity-80 hover:opacity-100">
-              <ArrowLeft className="h-4 w-4" aria-hidden /> All partners
+            <Link
+              href={gifted ? "/directory?discipline=businesses" : "/partners"}
+              className="inline-flex items-center gap-1.5 text-sm opacity-80 hover:opacity-100"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden /> {gifted ? "Directory" : "All partners"}
             </Link>
           )}
 
@@ -126,9 +131,11 @@ export function ShowcaseProfile({
                 </span>
               ) : (
                 <>
-                  <span className={cn(eyebrow, "rounded-full bg-[var(--c-on)] px-3 py-1.5 text-[10px] text-[var(--c-accent)]")}>
-                    {partnerTierLabel(partner.tier, partner.kind)}
-                  </span>
+                  {!gifted && (
+                    <span className={cn(eyebrow, "rounded-full bg-[var(--c-on)] px-3 py-1.5 text-[10px] text-[var(--c-accent)]")}>
+                      {partnerTierLabel(partner.tier, partner.kind)}
+                    </span>
+                  )}
                   <span className={cn(eyebrow, "rounded-full border border-current/30 px-3 py-1.5 text-[10px] opacity-90")}>
                     {partner.category}
                   </span>
@@ -231,7 +238,11 @@ export function ShowcaseProfile({
             <div className="flex max-w-2xl flex-col gap-4">
               <p className={cn(eyebrow, "text-[var(--c-strong)]")}>{charity ? "What they give" : "What we offer"}</p>
               <h2 className={cn(display, "text-4xl leading-[1.05] md:text-5xl")}>
-                {charity ? "Everything is free to every family." : `What ${partner.name} offers hair and scalp professionals.`}
+                {charity
+                  ? "Everything is free to every family."
+                  : gifted
+                    ? `What ${partner.name} offers.`
+                    : `What ${partner.name} offers hair and scalp professionals.`}
               </h2>
             </div>
             <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -370,7 +381,7 @@ export function ShowcaseProfile({
                       key={s.id}
                       href={s.url}
                       target="_blank"
-                      rel={charity ? "noopener noreferrer" : "noopener noreferrer sponsored"}
+                      rel={charity || gifted ? "noopener noreferrer" : "noopener noreferrer sponsored"}
                       className="rounded-full bg-[var(--c-wash)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--c-soft)]"
                     >
                       {s.label}
@@ -399,6 +410,7 @@ export function ShowcaseProfile({
             </aside>
           )}
 
+          {!gifted && (
           <p className="mt-14 flex gap-3 border-t border-[var(--c-soft)] pt-6 text-sm leading-relaxed text-muted-foreground">
             {charity ? (
               <>
@@ -418,6 +430,7 @@ export function ShowcaseProfile({
               </>
             )}
           </p>
+          )}
         </Container>
       </section>
     </div>

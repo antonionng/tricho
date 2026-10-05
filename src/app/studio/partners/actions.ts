@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { partnerCapError, partnerLogoSrc } from "@/lib/partners";
+import { PARTNER_KINDS } from "@/lib/showcase";
 import { studioAction } from "../_lib/guard";
 import { audit } from "@/lib/staff";
 import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
@@ -97,7 +98,8 @@ export async function savePartnerAction(form: FormData) {
   if (publicPhone && !/^[+()\d\s.-]{6,40}$/.test(publicPhone)) fail("Please check the public phone number.");
   const ownerEmail = s(form, "ownerEmail", 160).toLowerCase();
   if (ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) fail("Please check the Managed by email.");
-  const kind = s(form, "kind", 20) === "charity" ? "charity" : "brand";
+  const kindRaw = s(form, "kind", 20);
+  const kind = (PARTNER_KINDS as readonly string[]).includes(kindRaw) ? kindRaw : "brand";
   const accentRaw = s(form, "accentColor", 7);
   if (accentRaw && !/^#[0-9a-fA-F]{6}$/.test(accentRaw)) fail("Please give the charity colour as a hex value, like #D4007A.");
   const hidden = form.get("hidden") === "on";

@@ -27,6 +27,8 @@ export const PARTNER_CATEGORIES = [
 
 export function partnerTierLabel(tier: string, kind?: string) {
   if (kind === "charity") return "Charity we support";
+  // A gifted Premium page is never called a partner: it is simply a Premium listing.
+  if (kind === "gifted") return "Premium";
   return tier === "premium" ? "Premium partner" : "Business partner";
 }
 
@@ -53,7 +55,7 @@ export async function publishedPartners() {
 /** Paying Premium partners, for the "Supported by our partners" strip. Charities have their own band. */
 export async function publishedPremiumPartners() {
   const rows = await prisma.partner
-    .findMany({ where: { published: true, tier: "premium", kind: { not: "charity" } } })
+    .findMany({ where: { published: true, tier: "premium", kind: "brand" } })
     .catch(() => [] as Partner[]);
   return sortPartners(rows);
 }
