@@ -27,6 +27,9 @@ describe("partnerAllowance", () => {
       expect(a.sections).toBe(4);
     }
   });
+  it("gives gifted pages the Premium allowance", () => {
+    expect(partnerAllowance({ tier: "business", kind: "gifted" }).photos).toBe(16);
+  });
   it("gives practitioners 6 photos and a cover", () => {
     expect(PRACTITIONER.photos).toBe(6);
     expect(PRACTITIONER.cover).toBe(true);

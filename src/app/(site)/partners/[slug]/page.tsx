@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const partner = await getPartner(slug);
   if (!partner) return { title: "Partner not found", robots: { index: false } };
   return pageMetadata({
-    title: `${partner.name}, ${partnerTierLabel(partner.tier, partner.kind).toLowerCase()}`,
+    title: partner.kind === "gifted" ? `${partner.name}, ${partner.category.toLowerCase()}` : `${partner.name}, ${partnerTierLabel(partner.tier, partner.kind).toLowerCase()}`,
     description: (partner.tagline || partner.blurb).slice(0, 160),
     path: `/partners/${partner.slug}`,
   });

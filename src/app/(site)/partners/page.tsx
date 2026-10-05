@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { images, img } from "@/content/images";
 import { premiumBusiness } from "@/config/subscriptions";
 import { foundingPartnerPlacesLeft } from "@/lib/founding";
-import { isCharity, partnerTierLabel, publishedPartners, partnerLogoSrc } from "@/lib/partners";
+import { partnerTierLabel, publishedPartners, partnerLogoSrc } from "@/lib/partners";
 import { ProudSupporters } from "@/components/site/ProudSupporters";
 import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
@@ -56,7 +56,8 @@ const options = [
 
 export default async function PartnersPage() {
   const [everyone, placesLeft] = await Promise.all([publishedPartners(), foundingPartnerPlacesLeft()]);
-  const partners = everyone.filter((p) => !isCharity(p));
+  // Charities have their own band, and gifted pages are found only through the directory.
+  const partners = everyone.filter((p) => p.kind === "brand");
 
   return (
     <>

@@ -21,6 +21,7 @@ export function BusinessCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
         )}
+        {partner.kind !== "gifted" && (
         <span
           className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
           style={{ backgroundColor: charity ? accent : "#0B0B0B", color: "#FFFFFF" }}
@@ -28,6 +29,7 @@ export function BusinessCard({
           {charity && <Heart className="h-3 w-3 fill-current" aria-hidden />}
           {partnerTierLabel(partner.tier, partner.kind)}
         </span>
+        )}
       </div>
       <div className="relative flex flex-1 flex-col gap-2 px-5 pb-5 pt-10">
         <div className="absolute -top-8 left-5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-rule bg-white p-1.5 shadow-sm">
