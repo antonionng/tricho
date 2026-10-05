@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Gift, Heart, Info, Mail, Phone, Sparkles } from "lucide-react";
 import type { Partner } from "@prisma/client";
+import type { TeamMember } from "@/lib/business-team";
 import { Container } from "@/components/site/primitives";
 import { bodoni } from "@/components/gazette/fonts";
 import { PhotoGallery, type GalleryPhoto } from "@/components/partners/PhotoGallery";
@@ -64,11 +65,14 @@ export function ShowcaseProfile({
   partner,
   photos,
   socials,
+  team = [],
   preview = false,
 }: {
   partner: ShowcasePartner;
   photos: GalleryPhoto[];
   socials: { id: string; label: string; url: string }[];
+  /** People from the business's team seats who are shown on the page. */
+  team?: TeamMember[];
   preview?: boolean;
 }) {
   const allow = partnerAllowance(partner);
@@ -251,6 +255,40 @@ export function ShowcaseProfile({
                   <span className="h-2 w-8 rounded-full bg-[var(--c-accent)]" aria-hidden />
                   <h3 className="text-xl font-semibold tracking-tight">{o.title}</h3>
                   {o.body && <p className="text-[15px] leading-relaxed text-ink-2">{o.body}</p>}
+                </li>
+              ))}
+            </ul>
+          </Container>
+        </section>
+      )}
+
+      {/* Team */}
+      {team.length > 0 && (
+        <section id="team" className="scroll-mt-20 bg-[var(--c-wash)] py-20 md:py-28">
+          <Container>
+            <div className="flex max-w-2xl flex-col gap-4">
+              <p className={cn(eyebrow, "text-[var(--c-strong)]")}>Meet the team</p>
+              <h2 className={cn(display, "text-4xl leading-[1.05] md:text-5xl")}>The people you&apos;ll work with at {partner.name}.</h2>
+            </div>
+            <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {team.map((m) => (
+                <li key={m.id} className="flex flex-col gap-4 rounded-3xl bg-white p-7">
+                  {m.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.photo} alt={m.name} className="aspect-square w-full rounded-2xl object-cover" loading="lazy" />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="grid aspect-square w-full place-items-center rounded-2xl bg-[var(--c-soft)] text-5xl font-semibold text-[var(--c-strong)]"
+                    >
+                      {m.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+                    </span>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-xl font-semibold tracking-tight">{m.name}</h3>
+                    {m.role && <p className="text-[15px] text-[var(--c-strong)]">{m.role}</p>}
+                  </div>
+                  {m.bio && <p className="text-[15px] leading-relaxed text-ink-2">{m.bio}</p>}
                 </li>
               ))}
             </ul>

@@ -8,6 +8,7 @@ export const SAVED_MESSAGES: Record<string, string> = {
   hidden: "Your changes are saved. The Trichollective team has paused your page, so it isn't showing yet. Reply to any of our emails and we'll help.",
   seat: "Your team member is added, and we've emailed them to say their Professional membership is ready.",
   "seat-removed": "That seat is free again.",
+  "seat-profile": "Your team member's details are saved, and they show on your business page when it's live.",
   details: "Your brand details are saved.",
   logo: "Your logo, cover and colour are saved.",
   story: "Your story is saved.",
@@ -45,6 +46,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   "seat-self": "You already have your own membership, so add someone else from your team.",
   "seat-full": `All ${BUSINESS_SEATS} seats are in use. Remove someone to add a new team member.`,
   "seat-exists": "That person already has one of your seats.",
+  "seat-missing": "We couldn't find that team member. Please try again.",
+  "seat-photo": "That photo couldn't be used. Please choose a JPG, PNG or WebP image under 8MB.",
 };
 
 export function errorText(error?: string, message?: string) {

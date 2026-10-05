@@ -13,6 +13,7 @@ import { isSetupStep, readyToPublish, SOCIAL_NETWORKS, socialUrl, stepAfter, typ
 import { applyLogoFromForm, ensureOrganisation } from "./_data";
 import { isShowcaseStep, saveShowcaseStep } from "@/lib/showcase-save";
 import { deliver } from "@/lib/mail/send";
+import { deleteStoredFile, storeUpload } from "@/lib/storage";
 import { seatInviteEmail } from "@/lib/mail/templates/members";
 
 const PAGE = "/members/business";
@@ -186,12 +187,41 @@ export async function addSeat(form: FormData) {
 }
 
 export async function removeSeat(form: FormData) {
-  const { email: ownerEmail } = await requireBusiness();
+  const { email: ownerEmail, page } = await requireBusiness();
   const id = s(form, "id", 64);
+  const seat = await prisma.businessSeat.findFirst({ where: { id, ownerEmail }, select: { photoFileId: true } });
   await prisma.businessSeat.deleteMany({ where: { id, ownerEmail } });
-  revalidatePath(PAGE);
-  revalidatePath(SETUP);
+  await deleteStoredFile(seat?.photoFileId);
+  revalidateBusiness(page?.slug);
   seatBack(form, { saved: "seat-removed" });
+}
+
+/** How a team member is introduced on the business page: name, role, a few lines and a photo. */
+export async function saveSeatProfile(form: FormData) {
+  const { email: ownerEmail, page, userId } = await requireBusiness();
+  const id = s(form, "id", 64);
+  const seat = await prisma.businessSeat.findFirst({ where: { id, ownerEmail } });
+  if (!seat) seatBack(form, { error: "seat-missing" });
+
+  const upload = await storeUpload({ kind: "avatar", file: form.get("photo") as File | null, ownerId: userId });
+  if (upload && !upload.ok) seatBack(form, { error: "seat-photo" });
+  const removePhoto = form.get("removePhoto") === "on";
+  const photoFileId = upload?.ok ? upload.file.id : removePhoto ? null : seat.photoFileId;
+
+  await prisma.businessSeat.update({
+    where: { id: seat.id },
+    data: {
+      name: s(form, "name", 80) || null,
+      role: s(form, "role", 80) || null,
+      bio: s(form, "bio", 600) || null,
+      showOnPage: form.get("showOnPage") === "on",
+      photoFileId,
+    },
+  });
+  if (photoFileId !== seat.photoFileId) await deleteStoredFile(seat.photoFileId);
+
+  revalidateBusiness(page?.slug);
+  seatBack(form, { saved: "seat-profile" });
 }
 
 function revalidateBusiness(slug?: string) {

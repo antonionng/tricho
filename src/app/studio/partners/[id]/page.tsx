@@ -10,6 +10,7 @@ import { ShowcaseFields } from "@/components/partners/ShowcaseFields";
 import { ShowcaseProfile } from "@/components/partners/ShowcaseProfile";
 import { partnerTierLabel } from "@/lib/partners";
 import { listPhotos } from "@/lib/photos";
+import { publicTeam } from "@/lib/business-team";
 import { partnerAllowance, readOfferings, readSections } from "@/lib/showcase";
 import { isShowcaseStep, SHOWCASE_STEPS } from "@/lib/showcase-save";
 import { socialLinks } from "@/lib/business-profile";
@@ -36,7 +37,7 @@ export default async function StudioPartnerEditor({
 
   const page = await prisma.partner.findUnique({ where: { id }, include: { organisation: { select: { socials: true } } } });
   if (!page) notFound();
-  const photos = await listPhotos({ partnerId: id });
+  const [photos, team] = await Promise.all([listPhotos({ partnerId: id }), publicTeam(page.ownerEmail)]);
   const allow = partnerAllowance(page);
   const step = isShowcaseStep(sp.step) ? sp.step : sp.step === "preview" ? "preview" : "logo";
 
@@ -121,6 +122,7 @@ export default async function StudioPartnerEditor({
                 partner={page}
                 photos={photos.map((p) => ({ src: p.url, caption: p.caption }))}
                 socials={socialLinks(page.organisation?.socials)}
+                team={team}
                 preview
               />
             </div>
