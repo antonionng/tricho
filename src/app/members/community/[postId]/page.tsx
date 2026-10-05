@@ -18,7 +18,14 @@ import { getAllRooms } from "@/lib/rooms";
 
 export const metadata = { title: "Community" };
 
-export default async function ThreadPage({ params }: { params: Promise<{ postId: string }> }) {
+export default async function ThreadPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ postId: string }>;
+  searchParams: Promise<{ shared?: string }>;
+}) {
+  const { shared } = await searchParams;
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/community");
   if (!ctx.allowed) return <Paywall title="The community" body="Threads and replies are part of membership." />;
@@ -86,6 +93,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ postId:
 
   return (
     <MemberPage size="narrow">
+      {shared === "1" && (
+        <p role="status" className="mb-4 rounded-2xl border border-positive/25 bg-positive/10 px-4 py-3 text-sm text-positive">
+          Your post is live in The Lounge, so colleagues can see you are going and join you.
+        </p>
+      )}
       <Link
         href={`/members/community?space=${space}`}
         className="-ml-2 inline-flex h-10 items-center gap-1.5 rounded-full px-2 text-sm text-ink-2 hover:text-ink"

@@ -28,6 +28,7 @@ export function LaunchLanding({
   cancelled = false,
   qr,
   currency = "gbp",
+  offerFree = true,
 }: {
   source: string;
   eyebrow: string;
@@ -45,6 +46,8 @@ export function LaunchLanding({
   qr?: { svg: string; shortUrl: string };
   /** The currency shown and charged. The Ireland page uses euro so the page and Stripe always match. */
   currency?: "gbp" | "eur";
+  /** Show the free listing and free account as a quieter alternative. Off at events, where the choice is between the two plans. */
+  offerFree?: boolean;
 }) {
   const pro = tierById("professional")!;
   const community = tierById("community")!;
@@ -113,39 +116,49 @@ export function LaunchLanding({
 
             {cancelled && (
               <p role="status" className="rounded-2xl border border-paper/20 bg-paper/10 px-4 py-3 text-[15px] leading-relaxed text-paper/90">
-                Your payment was not taken. You can choose a plan below whenever you are ready, or add a free listing instead.
+                {offerFree
+                  ? "Your payment was not taken. You can choose a plan below whenever you are ready, or add a free listing instead."
+                  : "Your payment was not taken. You can choose a plan below whenever you are ready."}
               </p>
             )}
 
             <div className="flex flex-col gap-3">
               <p className="label text-paper">{placesNote}</p>
               <div className="flex max-w-2xl flex-col gap-3 sm:flex-row">
-                <CheckoutButton
-                  source={source}
-                  currency={currency}
-                  plan="professional"
-                  founding={founding}
-                  size="xl"
-                  variant="paper"
-                  errorTone="ink"
-                  className="w-full"
-                  wrapperClassName="sm:flex-1"
-                >
-                  Professional at {sym}{proPrice} a month
-                </CheckoutButton>
-                <CheckoutButton
-                  source={source}
-                  currency={currency}
-                  plan="community"
-                  founding={founding}
-                  size="xl"
-                  variant="outline"
-                  errorTone="ink"
-                  className="w-full border-paper/40 text-paper hover:border-paper"
-                  wrapperClassName="sm:flex-1"
-                >
-                  Community at {sym}{communityPrice} a month
-                </CheckoutButton>
+                <div className="flex flex-col gap-2 sm:flex-1">
+                  <CheckoutButton
+                    source={source}
+                    currency={currency}
+                    plan="professional"
+                    founding={founding}
+                    size="xl"
+                    variant="paper"
+                    errorTone="ink"
+                    className="w-full"
+                  >
+                    Professional at {sym}{proPrice} a month
+                  </CheckoutButton>
+                  <p className="px-1 text-[14px] leading-snug text-paper/75">
+                    Be found by clients, get referrals and peer review on your cases.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-1">
+                  <CheckoutButton
+                    source={source}
+                    currency={currency}
+                    plan="community"
+                    founding={founding}
+                    size="xl"
+                    variant="outline"
+                    errorTone="ink"
+                    className="w-full border-paper/40 text-paper hover:border-paper"
+                  >
+                    Community at {sym}{communityPrice} a month
+                  </CheckoutButton>
+                  <p className="px-1 text-[14px] leading-snug text-paper/75">
+                    Learn with colleagues across every discipline, and pay less for courses.
+                  </p>
+                </div>
               </div>
               <p className="text-[13px] leading-relaxed text-paper/65">
                 {founding
@@ -154,15 +167,17 @@ export function LaunchLanding({
               </p>
             </div>
 
-            <Link
-              href="/directory/list"
-              className="inline-flex items-center gap-1.5 self-start text-[15px] text-paper underline decoration-paper/40 underline-offset-4 hover:decoration-paper"
-            >
-              Or add your free directory listing <ArrowRight className="h-4 w-4" />
-            </Link>
+            {offerFree && (
+              <Link
+                href="/directory/list"
+                className="inline-flex items-center gap-1.5 self-start text-[15px] text-paper underline decoration-paper/40 underline-offset-4 hover:decoration-paper"
+              >
+                Or add your free directory listing <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
             <a
               href="#business"
-              className="-mt-3 inline-flex items-center gap-1.5 self-start text-[15px] text-paper underline decoration-paper/40 underline-offset-4 hover:decoration-paper"
+              className="inline-flex items-center gap-1.5 self-start text-[15px] text-paper underline decoration-paper/40 underline-offset-4 hover:decoration-paper"
             >
               Joining as a clinic, salon or brand? See the Business plan <ArrowRight className="h-4 w-4" />
             </a>
@@ -261,8 +276,9 @@ export function LaunchLanding({
 
       <Section>
         <Container>
-          <p className="label text-muted-foreground">Not ready to become a member?</p>
-          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          <p className="label text-muted-foreground">{offerFree ? "Not ready to become a member?" : "Read before you decide"}</p>
+          <div className={offerFree ? "mt-6 grid gap-5 lg:grid-cols-2" : "mt-6 grid max-w-3xl gap-5"}>
+            {offerFree && (
             <div className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 md:p-8">
               <p className="text-xl font-semibold leading-snug tracking-tight">
                 Add your practice to the directory for free, with your full profile included for {FREE_LISTING_DAYS} days.
@@ -282,6 +298,7 @@ export function LaunchLanding({
                 </Link>
               </div>
             </div>
+            )}
             <div className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 md:p-8">
               <BookOpen className="h-6 w-6 stroke-[1.5]" aria-hidden />
               <p className="text-xl font-semibold leading-snug tracking-tight">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock, MapPin, Users, Video } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CalendarDays, CalendarPlus, Clock, MapPin, Megaphone, Users, Video } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Avatar } from "@/components/members/Avatar";
 import { goingSentence } from "@/components/members/EventAttendees";
@@ -20,6 +20,10 @@ import {
 import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
+import { googleCalendarHref } from "@/lib/calendar-links";
+import { absoluteUrl } from "@/lib/mail/layout";
+import { SubmitButton } from "@/components/members/SubmitButton";
+import { shareGoingAction } from "../actions";
 
 export const metadata = { title: "Event" };
 
@@ -28,20 +32,21 @@ export default async function MemberEventPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ticket?: string }>;
+  searchParams: Promise<{ ticket?: string; shared?: string }>;
 }) {
   const ctx = await getMemberContext();
   const { slug } = await params;
   if (!ctx.session?.user?.id) redirect(`/login?next=/members/events/${slug}`);
   if (!ctx.allowed) return <Paywall title="Events" body="Gatherings, masterclasses and chapter meetups are part of membership." />;
   const userId = ctx.session.user.id;
-  const { ticket } = await searchParams;
+  const { ticket, shared } = await searchParams;
 
   const event = await prisma.event.findFirst({
     where: { slug, published: true },
     select: {
       ...publicEventSelect,
       chapterId: true,
+      joinUrl: true,
       rsvps: {
         orderBy: { createdAt: "asc" },
         select: {
@@ -70,6 +75,10 @@ export default async function MemberEventPage({
     .map((r) => r.user)
     .filter((u) => u.accessStatus === "active")
     .sort((a, b) => Number(b.id === userId) - Number(a.id === userId));
+  const attending = going || hasTicket;
+  // The joining link is only ever shown to members who are going.
+  const joinUrl = attending && event.online ? event.joinUrl : null;
+  const gcal = googleCalendarHref({ ...event, joinUrl, pageUrl: absoluteUrl(`/members/events/${event.slug}`) });
   const paragraphs = (event.body ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
@@ -122,8 +131,10 @@ export default async function MemberEventPage({
             )}
             <dd>
               {eventPlace(event)}
-              {event.online && (
-                <span className="block text-[13px] text-muted-foreground">The joining link is sent to everyone who books.</span>
+              {event.online && !joinUrl && (
+                <span className="block text-[13px] text-muted-foreground">
+                  The joining link appears here and in your confirmation email once you say you are going.
+                </span>
               )}
             </dd>
           </div>
@@ -142,6 +153,50 @@ export default async function MemberEventPage({
             <EventActions event={event} going={going} hasTicket={hasTicket} full={full} started={started} />
             {hasTicket && (
               <p className="text-sm leading-relaxed text-ink-2">Your ticket is confirmed, and the details have been sent to your email.</p>
+            )}
+            {attending && (
+              <div className="mt-5 flex flex-col gap-4">
+                {joinUrl && (
+                  <a
+                    href={joinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-12 items-center justify-center gap-2 self-start rounded-full bg-ink px-6 text-[15px] font-medium text-paper hover:bg-ink/85"
+                  >
+                    <Video className="h-4 w-4" /> Join on Google Meet <ArrowUpRight className="h-4 w-4" />
+                  </a>
+                )}
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm font-medium text-ink">Add it to your calendar so you don&apos;t miss it.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={gcal}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-11 items-center gap-2 rounded-full border border-rule bg-card px-4 text-sm hover:border-ink/40"
+                    >
+                      <CalendarPlus className="h-4 w-4" /> Google Calendar
+                    </a>
+                    <a
+                      href={`/api/events/${event.id}/ics`}
+                      className="inline-flex h-11 items-center gap-2 rounded-full border border-rule bg-card px-4 text-sm hover:border-ink/40"
+                    >
+                      <CalendarPlus className="h-4 w-4" /> Apple or Outlook
+                    </a>
+                  </div>
+                </div>
+                <form action={shareGoingAction.bind(null, event.id)} className="flex flex-col gap-2">
+                  <p className="text-sm font-medium text-ink">Let colleagues know you are going, so they can join you.</p>
+                  <SubmitButton variant="outline" className="self-start" pending="Sharing…">
+                    <Megaphone className="h-4 w-4" /> Tell the community you&apos;re going
+                  </SubmitButton>
+                  {shared === "no" && (
+                    <p className="text-sm text-destructive">
+                      This couldn&apos;t be shared just now. Please make sure you are going and can post in The Lounge.
+                    </p>
+                  )}
+                </form>
+              </div>
             )}
           </div>
         )}

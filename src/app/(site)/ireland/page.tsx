@@ -41,6 +41,7 @@ export default async function IrelandPage({ searchParams }: { searchParams: Prom
       lede="Founding members join the community, the Case Room and the directory, and keep the founding price for as long as they stay."
       placesLeft={placesLeft}
       cancelled={cancelled === "1"}
+      offerFree={false}
       qr={qrSvg ? { svg: qrSvg, shortUrl: "trichollective.net/ireland" } : undefined}
       details={
         <p className="label text-paper/60">
