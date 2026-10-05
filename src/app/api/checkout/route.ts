@@ -99,12 +99,31 @@ export async function POST(req: Request) {
       }
     }
 
+    // Stripe holds each customer to one currency once they have paid. Membership prices come in pounds
+    // and euro, so a member who already pays in one is charged in it. Premium is in pounds only, so a
+    // member who pays in euro starts Premium as a new Stripe customer with the same email; the webhook
+    // still links it to their account through the userId in the metadata.
+    let currency: "gbp" | "eur" = body.currency === "eur" && !premium ? "eur" : "gbp";
+    let customerEmail: string | undefined;
+    if (customer) {
+      const existing = await stripe.customers.retrieve(customer).catch(() => null);
+      const held = existing && !existing.deleted ? existing.currency : null;
+      if (held && held !== currency) {
+        if (!premium && (held === "gbp" || held === "eur")) {
+          currency = held;
+        } else {
+          customerEmail = buyer?.email ?? session?.user?.email ?? undefined;
+          customer = undefined;
+        }
+      }
+    }
+
     // Invited by a colleague: half of one month off the first invoice. Never blocks the checkout.
     const referral = await referralForCheckout({
       code: typeof body.ref === "string" && body.ref ? body.ref : (await cookies()).get(REFERRAL_COOKIE)?.value,
       plan: planId,
       founding,
-      currency: body.currency === "eur" && !premium ? "eur" : "gbp",
+      currency,
       buyer,
     }).catch((error) => {
       console.error("[CHECKOUT_REFERRAL]", error);
@@ -118,12 +137,12 @@ export async function POST(req: Request) {
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      ...(customer ? { customer } : {}),
+      ...(customer ? { customer } : customerEmail ? { customer_email: customerEmail } : {}),
       // Stripe allows either a discount or promotion codes on a session, not both.
       ...(referral ? { discounts: [{ coupon: referral.coupon }] } : { allow_promotion_codes: true }),
       // Prices carry EUR currency options. Always name the currency, or Stripe picks one from the
       // visitor's location and someone who saw pounds on our page is asked to pay in euro.
-      currency: body.currency === "eur" && !premium ? "eur" : "gbp",
+      currency,
       ...(askBrand ? { custom_fields: premiumCheckoutFields() } : {}),
       // Businesses need an address on their invoices.
       billing_address_collection: premium || body.plan === "business" ? "required" : "auto",
