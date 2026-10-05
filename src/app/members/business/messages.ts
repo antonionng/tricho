@@ -1,4 +1,5 @@
 import { BUSINESS_SEATS } from "@/lib/subscription";
+import { MAX_OPEN_JOBS } from "@/lib/jobs";
 
 /** What the portal and the setup say after a save, keyed by the ?saved= value. */
 export const SAVED_MESSAGES: Record<string, string> = {
@@ -8,6 +9,11 @@ export const SAVED_MESSAGES: Record<string, string> = {
   hidden: "Your changes are saved. The Trichollective team has paused your page, so it isn't showing yet. Reply to any of our emails and we'll help.",
   seat: "Your team member is added, and we've emailed them to say their Professional membership is ready.",
   "seat-removed": "That seat is free again.",
+  job: "Your changes to the role are saved.",
+  "job-posted": "Your role is live on the jobs board and on your business page, and members have been told about it.",
+  "job-closed": "That role is closed and no longer shows on the jobs board.",
+  "job-reopened": "That role is open again for another 60 days.",
+  "job-deleted": "That role is deleted.",
   "seat-profile": "Your team member's details are saved, and they show on your business page when it's live.",
   details: "Your brand details are saved.",
   logo: "Your logo, cover and colour are saved.",
@@ -46,12 +52,17 @@ export const ERROR_MESSAGES: Record<string, string> = {
   "seat-self": "You already have your own membership, so add someone else from your team.",
   "seat-full": `All ${BUSINESS_SEATS} seats are in use. Remove someone to add a new team member.`,
   "seat-exists": "That person already has one of your seats.",
+  "job-page": "Set up and publish your business page first, so candidates can see who they would work for.",
+  "job-plan": "Posting roles is part of the Business plan. Check your plan in billing to post again.",
+  "job-missing": "We couldn't find that role. Please try again.",
+  "job-hidden": "The Trichollective team has taken this role down, so it can't be reopened. Reply to any of our emails and we'll help.",
+  "job-full": `You can have up to ${MAX_OPEN_JOBS} roles open at once. Close one to post another.`,
   "seat-missing": "We couldn't find that team member. Please try again.",
   "seat-photo": "That photo couldn't be used. Please choose a JPG, PNG or WebP image under 8MB.",
 };
 
 export function errorText(error?: string, message?: string) {
   if (!error) return null;
-  if ((error === "cap" || error === "logo" || error === "social" || error === "photo") && message) return message;
+  if ((error === "cap" || error === "logo" || error === "social" || error === "photo" || error === "job-form") && message) return message;
   return ERROR_MESSAGES[error] ?? null;
 }

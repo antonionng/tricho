@@ -15,6 +15,8 @@ import { isShowcaseStep, saveShowcaseStep } from "@/lib/showcase-save";
 import { deliver } from "@/lib/mail/send";
 import { deleteStoredFile, storeUpload } from "@/lib/storage";
 import { seatInviteEmail } from "@/lib/mail/templates/members";
+import { jobExpiry, liveJobWhere, MAX_OPEN_JOBS, parseJobForm } from "@/lib/jobs";
+import { memberDirectoryWhere } from "@/lib/community";
 
 const PAGE = "/members/business";
 const SETUP = "/members/business/setup";
@@ -367,4 +369,118 @@ export async function publishBusinessPage() {
   }
   revalidateBusiness(page.slug);
   back({ saved: "published" });
+}
+
+const JOBS = "/members/business/jobs";
+
+function jobsBack(params: Record<string, string>, path: string = JOBS): never {
+  back(params, path);
+}
+
+/** A business with an active plan and a live page: roles only show under a page people can visit. */
+async function requireJobPoster() {
+  const ctx = await requireBusiness();
+  if (!ctx.page) jobsBack({ error: "job-page" });
+  if (!(await isBusinessAccount(ctx.email))) jobsBack({ error: "job-plan" });
+  return { ...ctx, page: ctx.page };
+}
+
+function revalidateJobs(partnerSlug: string, jobSlug?: string) {
+  revalidatePath(JOBS);
+  revalidatePath("/jobs");
+  if (jobSlug) revalidatePath(`/jobs/${jobSlug}`);
+  revalidatePath(`/partners/${partnerSlug}`);
+}
+
+async function uniqueJobSlug(title: string, place: string) {
+  const base = slugify(`${title} ${place}`).slice(0, 70) || "role";
+  for (let i = 1; i < 50; i++) {
+    const slug = i === 1 ? base : `${base}-${i}`;
+    if (!(await prisma.job.findUnique({ where: { slug }, select: { id: true } }))) return slug;
+  }
+  return `${base}-${Date.now().toString(36)}`;
+}
+
+/** Tells members about a new role, once, in their notifications. Never blocks the save. */
+async function announceJob(job: { slug: string; title: string; location: string }, businessName: string, ownerEmail: string) {
+  try {
+    const seats = await prisma.businessSeat.findMany({ where: { ownerEmail }, select: { email: true } });
+    const members = await prisma.user.findMany({
+      where: {
+        AND: [memberDirectoryWhere(), { accessStatus: "active" }],
+        email: { notIn: [ownerEmail, ...seats.map((s) => s.email)] },
+      },
+      select: { id: true },
+    });
+    if (members.length === 0) return;
+    await prisma.notification.createMany({
+      data: members.map((m) => ({
+        userId: m.id,
+        kind: "job",
+        title: `${businessName} is hiring a ${job.title} in ${job.location}.`,
+        href: `/jobs/${job.slug}`,
+      })),
+    });
+  } catch (error) {
+    console.error("[announceJob]", error);
+  }
+}
+
+export type JobFormState = { error?: string; values?: Record<string, string>; attempt: number };
+
+/**
+ * Posts a new role, or saves changes to one. A new role goes live at once and is open for 60 days.
+ * A problem comes back with what was typed, so nothing has to be filled in again.
+ */
+export async function saveJob(prev: JobFormState, form: FormData): Promise<JobFormState> {
+  const { email, page } = await requireJobPoster();
+  const id = s(form, "id", 64);
+  const values = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string")) as Record<string, string>;
+  const problem = (error: string): JobFormState => ({ error, values, attempt: prev.attempt + 1 });
+  const parsed = parseJobForm((key) => String(form.get(key) ?? ""));
+  if (!parsed.ok) return problem(parsed.error);
+
+  if (id) {
+    const job = await prisma.job.findFirst({ where: { id, partnerId: page.id } });
+    if (!job) jobsBack({ error: "job-missing" });
+    await prisma.job.update({ where: { id: job.id }, data: parsed.value });
+    revalidateJobs(page.slug, job.slug);
+    jobsBack({ saved: "job" });
+  }
+
+  const open = await prisma.job.count({ where: { partnerId: page.id, ...liveJobWhere() } });
+  if (open >= MAX_OPEN_JOBS) return problem(`You can have up to ${MAX_OPEN_JOBS} roles open at once. Close one to post another.`);
+  const job = await prisma.job.create({
+    data: { ...parsed.value, partnerId: page.id, slug: await uniqueJobSlug(parsed.value.title, parsed.value.location), expiresAt: jobExpiry() },
+  });
+  await announceJob(job, page.name, email);
+  revalidateJobs(page.slug, job.slug);
+  jobsBack({ saved: "job-posted" });
+}
+
+/** Closes a role, or reopens it for another 60 days. Roles the Studio has taken down stay down. */
+export async function setJobOpen(form: FormData) {
+  const { page } = await requireJobPoster();
+  const job = await prisma.job.findFirst({ where: { id: s(form, "id", 64), partnerId: page.id } });
+  if (!job) jobsBack({ error: "job-missing" });
+  const open = form.get("open") === "1";
+  if (open && job.hiddenAt) jobsBack({ error: "job-hidden" });
+  if (open) {
+    const live = await prisma.job.count({ where: { partnerId: page.id, ...liveJobWhere(), NOT: { id: job.id } } });
+    if (live >= MAX_OPEN_JOBS) jobsBack({ error: "job-full" });
+  }
+  await prisma.job.update({
+    where: { id: job.id },
+    data: open ? { status: "open", expiresAt: jobExpiry() } : { status: "closed" },
+  });
+  revalidateJobs(page.slug, job.slug);
+  jobsBack({ saved: open ? "job-reopened" : "job-closed" });
+}
+
+export async function deleteJob(form: FormData) {
+  const { page } = await requireJobPoster();
+  const job = await prisma.job.findFirst({ where: { id: s(form, "id", 64), partnerId: page.id }, select: { id: true, slug: true } });
+  if (job) await prisma.job.delete({ where: { id: job.id } });
+  revalidateJobs(page.slug, job?.slug);
+  jobsBack({ saved: "job-deleted" });
 }
