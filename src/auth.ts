@@ -12,6 +12,7 @@ import { alertOwners, deliver } from "@/lib/mail/send";
 import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib/mail/templates/leads";
 import { cookies } from "next/headers";
 import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
+import { checkoutSignInUser } from "@/lib/signin-email";
 
 /** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
 async function recordSignupSource(userId: string | undefined) {
@@ -50,6 +51,21 @@ if (process.env.AUTH_RESEND_KEY) {
     })
   );
 }
+
+/**
+ * Straight in after paying: the welcome page passes the Stripe Checkout Session
+ * id, which works once, within an hour, for the email that paid.
+ */
+providers.push(
+  Credentials({
+    id: "checkout",
+    name: "Checkout",
+    credentials: { sessionId: { label: "Session", type: "text" } },
+    async authorize(credentials) {
+      return checkoutSignInUser(credentials?.sessionId);
+    },
+  })
+);
 
 /**
  * Dev login: lets you sign in with just an email in non-production so the
