@@ -31,3 +31,18 @@ describe("sources", () => {
     expect(cleanSource("")).toBeNull();
   });
 });
+
+describe("checkoutSignInAllowed", async () => {
+  const { checkoutSignInAllowed } = await import("./signin-email");
+  const now = 1_800_000_000;
+  const ok = { status: "complete", payment_status: "paid", mode: "subscription", created: now - 120 };
+  it("lets a just-paid membership checkout sign in", () => expect(checkoutSignInAllowed(ok, now)).toBe(true));
+  it("refuses unpaid, incomplete or one-off checkouts", () => {
+    expect(checkoutSignInAllowed({ ...ok, payment_status: "unpaid" }, now)).toBe(false);
+    expect(checkoutSignInAllowed({ ...ok, status: "open" }, now)).toBe(false);
+    expect(checkoutSignInAllowed({ ...ok, mode: "payment" }, now)).toBe(false);
+  });
+  it("refuses checkouts older than an hour", () => {
+    expect(checkoutSignInAllowed({ ...ok, created: now - 3601 }, now)).toBe(false);
+  });
+});

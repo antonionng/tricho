@@ -8,7 +8,7 @@ import { premiumBusiness, tierById } from "@/config/subscriptions";
 import { pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 import { paidCheckout } from "@/lib/signin-email";
-import { continueToSignIn } from "./actions";
+import { continueAfterCheckout, continueToSignIn } from "./actions";
 
 export const metadata = pageMetadata({
   title: "Welcome, and thank you",
@@ -102,22 +102,37 @@ export default async function WelcomePage({
                 Your payment went through, and your account is ready for you to sign in with the email address you paid
                 with.
               </p>
-              <form action={continueToSignIn.bind(null, paid ? session_id ?? null : null, signIn)} className="flex flex-col gap-4">
+              <form
+                action={
+                  paid?.email && session_id
+                    ? continueAfterCheckout.bind(null, session_id, businessCustomer ? "/members/business/setup" : "/members/onboarding", signIn)
+                    : continueToSignIn.bind(null, null, signIn)
+                }
+                className="flex flex-col gap-4"
+              >
                 <Button type="submit" size="xl" className="h-14 w-full text-base sm:w-auto sm:self-start">
-                  {businessCustomer ? "Sign in to set up your business" : "Sign in to set up your profile"} <ArrowRight />
+                  {businessCustomer ? "Set up your business page" : "Set up your profile"} <ArrowRight />
                 </Button>
               </form>
               <div className="flex max-w-xl flex-col gap-3 rounded-2xl border border-rule bg-card p-5 text-[15px] leading-relaxed text-ink-2">
                 {paid?.email ? (
-                  <p>
-                    You paid with <strong className="font-semibold text-ink">{paid.email}</strong>, and we will fill it in for
-                    you on the next page.
-                  </p>
+                  <>
+                    <p>
+                      Your account is ready for <strong className="font-semibold text-ink">{paid.email}</strong>, and the button
+                      above takes you straight in to set it up. It takes about two minutes.
+                    </p>
+                    <p>
+                      Next time, sign in with the same email address and we will email you a link, so there is no password to
+                      remember.
+                    </p>
+                  </>
                 ) : (
-                  <p>Use the same email address you paid with, which is also the address your Stripe receipt was sent to.</p>
+                  <>
+                    <p>Use the same email address you paid with, which is also the address your Stripe receipt was sent to.</p>
+                    <p>We will email you a sign-in link. The link opens your account, so there is no password to set up.</p>
+                    <p>If the email has not arrived within a couple of minutes, please check your spam or junk folder.</p>
+                  </>
                 )}
-                <p>We will email you a sign-in link. The link opens your account, so there is no password to set up.</p>
-                <p>If the email has not arrived within a couple of minutes, please check your spam or junk folder.</p>
               </div>
             </div>
           </div>
