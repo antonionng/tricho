@@ -124,7 +124,10 @@ export default async function StudioPartnersPage({
                     </Button>
                   )}
                   <Button asChild size="xs" variant="outline">
-                    <Link href={`/studio/partners?edit=${p.id}`}>Edit</Link>
+                    <Link href={`/studio/partners?edit=${p.id}`}>Details</Link>
+                  </Button>
+                  <Button asChild size="xs">
+                    <Link href={`/studio/partners/${p.id}`}>Edit page</Link>
                   </Button>
                 </div>
               </li>

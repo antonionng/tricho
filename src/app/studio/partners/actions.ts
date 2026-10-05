@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { partnerCapError, partnerLogoSrc } from "@/lib/partners";
 import { PARTNER_KINDS } from "@/lib/showcase";
+import { isShowcaseStep, saveShowcaseStep, SHOWCASE_STEPS } from "@/lib/showcase-save";
 import { studioAction } from "../_lib/guard";
 import { audit } from "@/lib/staff";
 import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
@@ -196,9 +197,77 @@ export async function savePartnerAction(form: FormData) {
   revalidatePath("/partners", "layout");
   revalidatePath(`/partners/${result.slug}`);
   revalidatePath("/members/perks");
+  // A new page goes straight to the page editor, so the team can add the logo, photos and story.
   redirect(
-    withParams("/studio/partners", {
-      notice: data.published ? `${name} saved and published.` : `${name} saved. It stays hidden until you tick Published.`,
+    withParams(id ? "/studio/partners" : `/studio/partners/${result.id}`, {
+      notice: id
+        ? data.published
+          ? `${name} saved and published.`
+          : `${name} saved. It stays hidden until you tick Published.`
+        : `${name} is created. Now add the logo, cover, story and photos, then publish it from the Preview step.`,
     })
   );
+}
+
+const SHOWCASE_ERRORS: Record<string, string> = {
+  colour: "Please give the colour as a hex value, like #D4007A.",
+  cta: "Please check the button link. It needs to be a full web address, or leave it empty.",
+  video: "Please use a YouTube or Vimeo link for the video.",
+};
+
+/**
+ * Saves one step of a partner page from the Studio editor, through exactly the same code the
+ * business portal uses. Uploads go to storage and everything else to the database.
+ */
+export async function saveShowcaseStudioAction(form: FormData) {
+  const staff = await studioAction("partners.manage");
+  const id = s(form, "id", 64);
+  const step = s(form, "step", 20);
+  const page = await prisma.partner.findUnique({ where: { id } });
+  if (!page || !isShowcaseStep(step)) redirect("/studio/partners");
+  const back = (params: Record<string, string | undefined>) => redirect(withParams(`/studio/partners/${id}`, { step, ...params }));
+
+  const org = await prisma.organisation.findUnique({ where: { partnerId: id }, select: { id: true } });
+  const result = await saveShowcaseStep(step, form, page, org?.id ?? null, staff.userId);
+  if (!result.ok) back({ notice: result.message ?? SHOWCASE_ERRORS[result.error] ?? "That couldn't be saved. Please check it and try again.", tone: "danger" });
+
+  await audit(staff, {
+    action: "partner.showcase",
+    targetType: "partner",
+    targetId: id,
+    summary: `Edited the ${SHOWCASE_STEPS.find((x) => x.id === step)!.label.toLowerCase()} on ${page.name}'s page.`,
+  });
+  revalidatePath(`/studio/partners/${id}`);
+  revalidatePath(`/partners/${page.slug}`);
+  revalidatePath("/partners", "layout");
+  revalidatePath("/directory");
+  // Photo changes stay on the photos step; other steps move on to the next one.
+  const order = SHOWCASE_STEPS.map((x) => x.id) as string[];
+  const next = step === "photos" && form.get("intent") !== "continue" ? "photos" : (order[order.indexOf(step) + 1] ?? "preview");
+  redirect(withParams(`/studio/partners/${id}`, { step: next, notice: "Saved." }));
+}
+
+/** Publishes or hides a page from the Studio editor's Preview step. */
+export async function setPartnerPublishedAction(form: FormData) {
+  const staff = await studioAction("partners.manage");
+  const id = s(form, "id", 64);
+  const publish = form.get("publish") === "1";
+  const page = await prisma.partner.findUnique({ where: { id } });
+  if (!page) redirect("/studio/partners");
+  if (publish && page.hidden) {
+    redirect(withParams(`/studio/partners/${id}`, { step: "preview", notice: "This page is paused. Untick Paused in its basic details first.", tone: "danger" }));
+  }
+  await prisma.partner.update({ where: { id }, data: { published: publish } });
+  await audit(staff, {
+    action: publish ? "partner.publish" : "partner.unpublish",
+    targetType: "partner",
+    targetId: id,
+    summary: `${publish ? "Published" : "Hid"} ${page.name}'s page.`,
+  });
+  revalidatePath("/studio/partners");
+  revalidatePath(`/partners/${page.slug}`);
+  revalidatePath("/partners", "layout");
+  revalidatePath("/directory");
+  revalidatePath("/");
+  redirect(withParams(`/studio/partners/${id}`, { step: "preview", notice: publish ? `${page.name} is live.` : `${page.name} is hidden.` }));
 }
