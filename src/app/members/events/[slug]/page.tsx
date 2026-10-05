@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, CalendarDays, CalendarPlus, Clock, MapPin, Megaphone, Users, Video } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
+import { Avatar } from "@/components/members/Avatar";
+import { goingSentence } from "@/components/members/EventAttendees";
+import { professionById } from "@/config/rooms";
 import { Paywall } from "@/components/members/Paywall";
 import { Card, MemberPage } from "@/components/members/MemberPage";
 import { EventActions } from "@/components/members/EventActions";
@@ -44,7 +47,13 @@ export default async function MemberEventPage({
       ...publicEventSelect,
       chapterId: true,
       joinUrl: true,
-      rsvps: { select: { userId: true } },
+      rsvps: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          userId: true,
+          user: { select: { id: true, name: true, image: true, accessStatus: true, profile: { select: { profession: true } } } },
+        },
+      },
       tickets: {
         where: { OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: holdCutoff() } }] },
         select: { quantity: true, userId: true, status: true },
@@ -61,6 +70,11 @@ export default async function MemberEventPage({
   const left = event.sellTickets ? seatsLeft(event, event.tickets, event.rsvps) : null;
   const full = event.sellTickets ? left === 0 : event.capacity != null && event.rsvps.length >= event.capacity;
   const local = !!ctx.chapterId && event.chapterId === ctx.chapterId;
+  // You first, then everyone else in the order they said they were going.
+  const attendees = event.rsvps
+    .map((r) => r.user)
+    .filter((u) => u.accessStatus === "active")
+    .sort((a, b) => Number(b.id === userId) - Number(a.id === userId));
   const attending = going || hasTicket;
   // The joining link is only ever shown to members who are going.
   const joinUrl = attending && event.online ? event.joinUrl : null;
@@ -195,6 +209,35 @@ export default async function MemberEventPage({
           <p>The full programme will be shared here and sent to everyone who books.</p>
         )}
       </div>
+
+      <Card className="mt-8 p-5 sm:p-6">
+        <h2 className="text-lg font-semibold tracking-[-0.01em]">{past ? "Who went" : "Who's going"}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {past
+            ? `${attendees.length} ${attendees.length === 1 ? "member" : "members"} said they were going.`
+            : goingSentence(attendees.length, attendees.some((a) => a.id === userId))}
+        </p>
+        {attendees.length > 0 && (
+          <ul className="mt-4 grid gap-1 sm:grid-cols-2">
+            {attendees.map((a) => (
+              <li key={a.id}>
+                <Link href={`/members/people/${a.id}`} className="-mx-2 flex items-center gap-3 rounded-xl p-2 hover:bg-paper-2">
+                  <Avatar name={a.name} src={a.image} size="sm" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {a.name || "Member"}
+                      {a.id === userId && <span className="font-normal text-muted-foreground"> (you)</span>}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {a.profile?.profession ? professionById(a.profile.profession)?.label ?? "Member" : "Member"}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       {event.chapter && (
         <Link

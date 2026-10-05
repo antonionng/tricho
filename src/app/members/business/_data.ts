@@ -3,6 +3,7 @@ import type { Organisation, Partner } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
 import { listPhotos } from "@/lib/photos";
+import { publicTeam, withPhotoUrls } from "@/lib/business-team";
 
 /**
  * The CRM record behind a brand's partner page, created and linked when it is missing, so every
@@ -40,16 +41,17 @@ export async function ensureOrganisation(page: Partner, ownerEmail: string): Pro
   });
 }
 
-/** The brand's page, its CRM record and gallery (when there is a page) and their seats. */
+/** The brand's page, its CRM record and gallery (when there is a page), their seats and the team shown on the page. */
 export async function loadBusiness(email: string) {
-  const [page, seats] = await Promise.all([
+  const [page, rawSeats] = await Promise.all([
     prisma.partner.findUnique({ where: { ownerEmail: email } }),
     prisma.businessSeat.findMany({ where: { ownerEmail: email }, orderBy: { createdAt: "asc" } }),
   ]);
+  const seats = await withPhotoUrls(rawSeats);
   const [org, photos] = page
     ? await Promise.all([prisma.organisation.findUnique({ where: { partnerId: page.id } }), listPhotos({ partnerId: page.id })])
     : [null, []];
-  return { page, org, seats, photos };
+  return { page, org, seats, photos, team: await publicTeam(email) };
 }
 
 // Logo and cover saving is shared with the Studio editor.

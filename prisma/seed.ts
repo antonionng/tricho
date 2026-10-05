@@ -241,7 +241,7 @@ async function main() {
     await prisma.event.upsert({ where: { slug: e.slug }, update: { chapterId: e.chapterId ?? null }, create: { ...e, published: true } });
   }
 
-  console.log("Seeded. Test accounts are listed in docs/TEST-ACCOUNTS.md.");
+  console.log("Seeded.");
 }
 
 main().finally(() => prisma.$disconnect());

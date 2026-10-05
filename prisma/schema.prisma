@@ -185,11 +185,12 @@ model User {
   chapterId     String?
   chapter       Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
-  profile   TrichologistProfile?
-  posts     CommunityPost[]
-  comments  Comment[]
-  reactions Reaction[]
-  listings  DirectoryListing[]
+  profile          TrichologistProfile?
+  posts            CommunityPost[]
+  comments         Comment[]
+  reactions        Reaction[]
+  commentReactions CommentReaction[]
+  listings         DirectoryListing[]
 
   following      Follow[]              @relation("follower")
   followers      Follow[]              @relation("followee")
@@ -326,12 +327,17 @@ model CommunityPost {
 }
 
 model Comment {
-  id           String        @id @default(cuid())
-  content      String        @db.Text
+  id           String            @id @default(cuid())
+  content      String            @db.Text
   postId       String
-  post         CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post         CommunityPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorId     String
-  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// The comment this one answers. Replies are one level deep: answering a reply attaches to its parent.
+  parentId     String?
+  parent       Comment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment[]         @relation("CommentReplies")
+  reactions    CommentReaction[]
   reports      Report[]
   hiddenAt     DateTime?
   hiddenReason String?
@@ -340,6 +346,21 @@ model Comment {
   updatedAt DateTime @updatedAt
 
   @@index([postId])
+  @@index([parentId])
+}
+
+/// A member marking a comment as useful, the comment-level twin of Reaction.
+model CommentReaction {
+  id        String  @id @default(cuid())
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
 }
 
 model Reaction {
@@ -652,31 +673,31 @@ model AgentSetting {
 
 /// Business and Premium Business partners shown on /partners. Only real, published partners appear.
 model Partner {
-  id            String        @id @default(cuid())
-  slug          String        @unique
+  id            String         @id @default(cuid())
+  slug          String         @unique
   name          String
   /// "premium" or "business"
-  tier          String        @default("premium")
+  tier          String         @default("premium")
   /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
   category      String
   logoUrl       String?
-  blurb         String        @db.Text
+  blurb         String         @db.Text
   website       String?
   /// The member perk, shown in the member area.
-  perk          String?       @db.Text
+  perk          String?        @db.Text
   contactEmail  String?
   /// Shown on the public partner page when set.
   publicEmail   String?
   publicPhone   String?
-  isFounding    Boolean       @default(false)
-  published     Boolean       @default(false)
+  isFounding    Boolean        @default(false)
+  published     Boolean        @default(false)
   featuredUntil DateTime?
   /// The sign-in email of the person who manages this page from the member area.
-  ownerEmail    String?       @unique
+  ownerEmail    String?        @unique
   /// Taken down by the Studio: hidden, and the owner can't republish it.
-  hidden        Boolean       @default(false)
+  hidden        Boolean        @default(false)
   /// "brand" (a paying, sponsored partner) or "charity" (a cause we support free, never labelled sponsored).
-  kind          String        @default("brand")
+  kind          String         @default("brand")
   /// A hex colour that themes a charity's page, e.g. "#E6007E".
   accentColor   String?
   /// A wide banner image across the top of the page.
@@ -687,7 +708,7 @@ model Partner {
   /// One sentence under the name.
   tagline       String?
   /// The longer "Our story", paragraphs separated by a blank line.
-  story         String?       @db.Text
+  story         String?        @db.Text
   /// { value, label }[]: a few headline numbers.
   highlights    Json?
   /// { title, body }[]: products or services.
@@ -704,8 +725,9 @@ model Partner {
   logoFileId    String?
   organisation  Organisation?
   stats         PartnerStat[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  jobs          Job[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([published, tier])
 }
@@ -719,13 +741,53 @@ model PartnerLogo {
   updatedAt   DateTime @updatedAt
 }
 
+/// A role advertised on the jobs board by a business with an active Business or Premium plan.
+model Job {
+  id          String    @id @default(cuid())
+  /// The business page the role belongs to; the job shows under its name and logo.
+  partnerId   String
+  partner     Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  slug        String    @unique
+  title       String
+  /// "full_time" | "part_time" | "contract" | "self_employed" | "chair_rental"
+  employment  String
+  /// "on_site" | "hybrid" | "remote"
+  workplace   String    @default("on_site")
+  location    String
+  country     String?
+  /// Written as the business wants it shown, e.g. "€32,000 to €38,000 a year".
+  pay         String?
+  /// One sentence for the jobs list.
+  summary     String
+  description String    @db.Text
+  applyUrl    String?
+  applyEmail  String?
+  /// "open" or "closed". Open roles show until expiresAt.
+  status      String    @default("open")
+  expiresAt   DateTime
+  /// Taken down by the Studio; the business can't reopen it.
+  hiddenAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([partnerId])
+}
+
 /// A team member given Professional membership through a business plan (five per business).
 model BusinessSeat {
-  id         String   @id @default(cuid())
+  id          String   @id @default(cuid())
   /// The business account holder's sign-in email.
-  ownerEmail String
-  email      String
-  createdAt  DateTime @default(now())
+  ownerEmail  String
+  email       String
+  /// How the business introduces this person on its public page. Filled in by the account holder.
+  name        String?
+  role        String?
+  bio         String?  @db.Text
+  photoFileId String?
+  /// Shown in "Meet the team" on the business page once a name is filled in.
+  showOnPage  Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
   @@unique([ownerEmail, email])
   @@index([email])

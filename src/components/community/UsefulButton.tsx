@@ -2,19 +2,22 @@
 
 import { useOptimistic, useTransition } from "react";
 import { ThumbsUp } from "lucide-react";
-import { toggleUseful } from "@/app/members/community/actions";
+import { toggleCommentUseful, toggleUseful } from "@/app/members/community/actions";
 import { cn } from "@/lib/utils";
 
 export function UsefulButton({
   postId,
+  commentId,
   count,
   reacted,
   size = "sm",
 }: {
-  postId: string;
+  postId?: string;
+  /** Marks a comment as useful instead of a post. */
+  commentId?: string;
   count: number;
   reacted: boolean;
-  size?: "sm" | "lg";
+  size?: "xs" | "sm" | "lg";
 }) {
   const [, startTransition] = useTransition();
   const [state, setState] = useOptimistic({ count, reacted }, (s) => ({
@@ -29,12 +32,13 @@ export function UsefulButton({
       onClick={() =>
         startTransition(async () => {
           setState(null);
-          await toggleUseful(postId);
+          if (commentId) await toggleCommentUseful(commentId);
+          else if (postId) await toggleUseful(postId);
         })
       }
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border text-[13px] transition-colors",
-        size === "sm" ? "h-10 px-3" : "h-11 px-4 text-sm",
+        { xs: "h-8 px-2.5", sm: "h-10 px-3", lg: "h-11 px-4 text-sm" }[size],
         state.reacted ? "border-ink bg-ink text-paper" : "border-rule text-ink-2 hover:border-ink/40"
       )}
     >

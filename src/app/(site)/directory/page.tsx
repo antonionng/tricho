@@ -84,7 +84,11 @@ export default async function DirectoryPage({
             {onlyBusinesses
               ? `${businesses.length} ${businesses.length === 1 ? "brand, clinic or charity" : "brands, clinics and charities"}${q ? " match your search" : ""}`
               : listings.length === 0
-                ? "No professionals match that search yet."
+                ? filtered
+                  ? "No professionals match that search yet."
+                  : businesses.length > 0
+                    ? `The first ${businesses.length === 1 ? "business is" : `${businesses.length} brands, clinics and charities are`} listed below, and professionals are joining now.`
+                    : "Professionals are joining the directory now."
                 : `${listings.length} ${listings.length === 1 ? "professional" : "professionals"}${filtered ? " match your search" : ""}`}
           </p>
           <Link href="/find" className="text-sm text-ink underline underline-offset-4">
@@ -100,23 +104,10 @@ export default async function DirectoryPage({
               </li>
             ))}
           </ul>
-        ) : (
-          <div className="rounded-3xl border border-rule bg-card p-10 text-center">
-            <p className="display text-3xl">The directory is filling up.</p>
-            <p className="mx-auto mt-3 max-w-lg text-ink-2">
-              Try a nearby city or a different discipline. If you&apos;re a professional in this area,
-              you could be the first listed here.
-            </p>
-            <Button asChild className="mt-6">
-              <Link href="/directory/list">
-                Add your founding listing <ArrowRight />
-              </Link>
-            </Button>
-          </div>
-        )}
+        ) : null}
 
         {businesses.length > 0 && (
-          <section aria-labelledby="directory-businesses" className={cn(!onlyBusinesses && "mt-16 border-t border-rule pt-12")}>
+          <section aria-labelledby="directory-businesses" className={cn(!onlyBusinesses && listings.length > 0 && "mt-16 border-t border-rule pt-12")}>
             {!onlyBusinesses && (
               <div className="mb-8 flex flex-col gap-2">
                 <h2 id="directory-businesses" className="display text-3xl">
@@ -136,6 +127,22 @@ export default async function DirectoryPage({
               ))}
             </ul>
           </section>
+        )}
+
+        {/* With nobody listed here yet, the businesses come first and this invitation sits underneath. */}
+        {!onlyBusinesses && listings.length === 0 && (
+          <div className={cn("rounded-3xl border border-rule bg-card p-10 text-center", businesses.length > 0 && "mt-16")}>
+            <p className="display text-3xl">The directory is filling up.</p>
+            <p className="mx-auto mt-3 max-w-lg text-ink-2">
+              Try a nearby city or a different discipline. If you&apos;re a professional in this area,
+              you could be the first listed here.
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/directory/list">
+                Add your founding listing <ArrowRight />
+              </Link>
+            </Button>
+          </div>
         )}
       </Container>
 

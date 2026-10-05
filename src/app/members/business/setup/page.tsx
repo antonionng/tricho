@@ -26,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { publishBusinessPage, saveSetupStep } from "../actions";
 import { loadBusiness } from "../_data";
+import type { TeamMember } from "@/lib/business-team";
 import { errorText as describeError, SAVED_MESSAGES } from "../messages";
 import { TeamSeats } from "../TeamSeats";
 
@@ -125,7 +126,7 @@ export default async function BusinessSetupPage({
   if (!email) redirect("/login?next=/members/business/setup");
   const sp = await searchParams;
 
-  const [{ page, org, seats, photos }, business] = await Promise.all([loadBusiness(email), isBusinessAccount(email)]);
+  const [{ page, org, seats, photos, team }, business] = await Promise.all([loadBusiness(email), isBusinessAccount(email)]);
   if (!page && !business) redirect("/members/business");
 
   const progress = setupProgress({ page, org, seats: seats.length, photos: photos.length });
@@ -217,6 +218,7 @@ export default async function BusinessSetupPage({
           page={page!}
           photos={photos.map((p) => ({ src: p.url, caption: p.caption }))}
           socials={socialLinks(org?.socials)}
+          team={team}
           progress={progress}
           canPublish={business || page!.published}
         />
@@ -367,12 +369,14 @@ function PublishStep({
   page,
   photos,
   socials,
+  team,
   progress,
   canPublish,
 }: {
   page: NonNullable<Awaited<ReturnType<typeof loadBusiness>>["page"]>;
   photos: { src: string; caption: string | null }[];
   socials: { id: string; label: string; url: string }[];
+  team: TeamMember[];
   progress: Record<SetupStepId, boolean>;
   canPublish: boolean;
 }) {
@@ -387,7 +391,7 @@ function PublishStep({
           <span className="shrink-0">{page.published ? "Live now" : "Preview"}</span>
         </div>
         <div className="max-h-[80vh] overflow-y-auto">
-          <ShowcaseProfile partner={page} photos={photos} socials={socials} preview />
+          <ShowcaseProfile partner={page} photos={photos} socials={socials} team={team} preview />
         </div>
       </div>
 

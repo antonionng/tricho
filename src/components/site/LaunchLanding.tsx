@@ -27,6 +27,7 @@ export function LaunchLanding({
   placesLeft,
   cancelled = false,
   qr,
+  currency = "gbp",
   offerFree = true,
 }: {
   source: string;
@@ -43,15 +44,23 @@ export function LaunchLanding({
   cancelled?: boolean;
   /** A QR code shown beside the hero on larger screens, for presenting the page on a projector. */
   qr?: { svg: string; shortUrl: string };
+  /** The currency shown and charged. The Ireland page uses euro so the page and Stripe always match. */
+  currency?: "gbp" | "eur";
   /** Show the free listing and free account as a quieter alternative. Off at events, where the choice is between the two plans. */
   offerFree?: boolean;
 }) {
   const pro = tierById("professional")!;
   const community = tierById("community")!;
+  const business = tierById("business")!;
   // When the founding places are gone, checkout charges the standard price, so say so.
   const founding = placesLeft === undefined || placesLeft > 0;
-  const proPrice = founding ? pro.foundingPrice! : pro.price;
-  const communityPrice = founding ? community.foundingPrice! : community.price;
+  const eur = currency === "eur";
+  const sym = eur ? "€" : "£";
+  const proPrices = eur && pro.eur ? pro.eur : pro;
+  const communityPrices = eur && community.eur ? community.eur : community;
+  const proPrice = founding ? proPrices.foundingPrice! : proPrices.price;
+  const communityPrice = founding ? communityPrices.foundingPrice! : communityPrices.price;
+  const businessPrice = eur && business.eur ? business.eur.price : business.price;
   const placesNote =
     placesLeft === undefined
       ? "Founding places are limited."
@@ -78,7 +87,7 @@ export function LaunchLanding({
     {
       icon: Lock,
       t: "Keep the founding price for as long as you stay.",
-      d: `Professional is £${pro.foundingPrice} a month instead of £${pro.price}, and Community is £${community.foundingPrice} instead of £${community.price}. You can cancel at any time.`,
+      d: `Professional is ${sym}${proPrices.foundingPrice} a month instead of ${sym}${proPrices.price}, and Community is ${sym}${communityPrices.foundingPrice} instead of ${sym}${communityPrices.price}. You can cancel at any time.`,
     },
   ];
 
@@ -119,6 +128,7 @@ export function LaunchLanding({
                 <div className="flex flex-col gap-2 sm:flex-1">
                   <CheckoutButton
                     source={source}
+                    currency={currency}
                     plan="professional"
                     founding={founding}
                     size="xl"
@@ -126,7 +136,7 @@ export function LaunchLanding({
                     errorTone="ink"
                     className="w-full"
                   >
-                    Professional at £{proPrice} a month
+                    Professional at {sym}{proPrice} a month
                   </CheckoutButton>
                   <p className="px-1 text-[14px] leading-snug text-paper/75">
                     Be found by clients, get referrals and peer review on your cases.
@@ -135,6 +145,7 @@ export function LaunchLanding({
                 <div className="flex flex-col gap-2 sm:flex-1">
                   <CheckoutButton
                     source={source}
+                    currency={currency}
                     plan="community"
                     founding={founding}
                     size="xl"
@@ -142,7 +153,7 @@ export function LaunchLanding({
                     errorTone="ink"
                     className="w-full border-paper/40 text-paper hover:border-paper"
                   >
-                    Community at £{communityPrice} a month
+                    Community at {sym}{communityPrice} a month
                   </CheckoutButton>
                   <p className="px-1 text-[14px] leading-snug text-paper/75">
                     Learn with colleagues across every discipline, and pay less for courses.
@@ -151,8 +162,8 @@ export function LaunchLanding({
               </div>
               <p className="text-[13px] leading-relaxed text-paper/65">
                 {founding
-                  ? "Founding prices are in pounds and stay the same for as long as you remain a member. You can cancel at any time."
-                  : "Prices are in pounds, and you can cancel at any time."}
+                  ? `Founding prices are in ${eur ? "euro" : "pounds"} and stay the same for as long as you remain a member. You can cancel at any time.`
+                  : `Prices are in ${eur ? "euro" : "pounds"}, and you can cancel at any time.`}
               </p>
             </div>
 
@@ -164,6 +175,12 @@ export function LaunchLanding({
                 Or add your free directory listing <ArrowRight className="h-4 w-4" />
               </Link>
             )}
+            <a
+              href="#business"
+              className="inline-flex items-center gap-1.5 self-start text-[15px] text-paper underline decoration-paper/40 underline-offset-4 hover:decoration-paper"
+            >
+              Joining as a clinic, salon or brand? See the Business plan <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
           {qr && (
             <figure className="hidden w-[340px] shrink-0 rounded-3xl bg-paper p-6 text-ink shadow-2xl lg:block">
@@ -207,28 +224,49 @@ export function LaunchLanding({
             <article className="flex flex-col gap-4 rounded-3xl bg-ink p-6 text-paper md:p-8">
               <p className="label text-paper/70">{pro.name}</p>
               <p className="display text-5xl">
-                £{proPrice}
+                {sym}{proPrice}
                 <span className="text-base font-normal opacity-60"> a month</span>
               </p>
               <p className="text-[15px] leading-relaxed text-paper/80">{pro.audience}.</p>
               <p className="text-[15px] leading-relaxed text-paper/80">{pro.summary}</p>
-              <CheckoutButton source={source} plan="professional" founding={founding} size="xl" variant="paper" errorTone="ink" className="w-full" wrapperClassName="mt-auto pt-2">
-                Join {pro.name} at £{proPrice}
+              <CheckoutButton source={source} currency={currency} plan="professional" founding={founding} size="xl" variant="paper" errorTone="ink" className="w-full" wrapperClassName="mt-auto pt-2">
+                Join {pro.name} at {sym}{proPrice}
               </CheckoutButton>
             </article>
             <article className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 md:p-8">
               <p className="label text-muted-foreground">{community.name}</p>
               <p className="display text-5xl">
-                £{communityPrice}
+                {sym}{communityPrice}
                 <span className="text-base font-normal opacity-60"> a month</span>
               </p>
               <p className="text-[15px] leading-relaxed text-ink-2">{community.audience}.</p>
               <p className="text-[15px] leading-relaxed text-ink-2">{community.summary}</p>
-              <CheckoutButton source={source} plan="community" founding={founding} size="xl" variant="outline" className="w-full" wrapperClassName="mt-auto pt-2">
-                Join {community.name} at £{communityPrice}
+              <CheckoutButton source={source} currency={currency} plan="community" founding={founding} size="xl" variant="outline" className="w-full" wrapperClassName="mt-auto pt-2">
+                Join {community.name} at {sym}{communityPrice}
               </CheckoutButton>
             </article>
           </div>
+          <article id="business" className="mt-5 flex scroll-mt-20 flex-col gap-6 rounded-3xl border border-rule bg-card p-6 md:flex-row md:items-center md:justify-between md:p-8">
+            <div className="flex max-w-2xl flex-col gap-3">
+              <p className="label text-muted-foreground">{business.name}, for clinics, salons and brands</p>
+              <p className="display text-4xl">
+                {sym}
+                {businessPrice}
+                <span className="text-base font-normal opacity-60"> a month</span>
+              </p>
+              <p className="text-[15px] leading-relaxed text-ink-2">
+                Your business gets its own page in the directory, five of your team get Professional membership, and you can
+                introduce each of them on your page with a photo, their role and a few words about their work.
+              </p>
+              <p className="text-[15px] leading-relaxed text-ink-2">
+                You can also advertise roles to trained hair and scalp professionals and offer members a perk.
+              </p>
+            </div>
+            <CheckoutButton source={source} currency={currency} plan="business" interval="month" size="xl" className="w-full md:w-auto" wrapperClassName="md:shrink-0">
+              Join {business.name} at {sym}
+              {businessPrice}
+            </CheckoutButton>
+          </article>
           <p className="mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             You pay securely by card through Stripe and do not need an account first. We create your account from the email
             you pay with, and you sign in with that same email afterwards.

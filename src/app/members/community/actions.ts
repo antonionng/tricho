@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMemberContext, memberCanPost } from "@/lib/member";
 import { canReadRoom, normalizeSpace, roomById } from "@/config/rooms";
-import { firstName, notify } from "@/lib/community";
+import { excerpt, firstName, notify, notifyUseful } from "@/lib/community";
 import { alertOwners, deliver } from "@/lib/mail/send";
 import { commentReplyEmail } from "@/lib/mail/templates/members";
 import { postReportedAlert } from "@/lib/mail/templates/owners";
@@ -107,30 +107,62 @@ export async function createComment(_prev: FormState, formData: FormData): Promi
     return { error: "Replies in this space are for Professional members." };
   }
 
-  const comment = await prisma.comment.create({ data: { content, postId, authorId: userId }, select: { id: true } });
+  // Replies are one level deep, so answering a reply attaches to the comment it belongs under.
+  const parentRaw = clean(formData.get("parentId"), 64);
+  const parent = parentRaw
+    ? await prisma.comment.findFirst({
+        where: { id: parentRaw, postId, hiddenAt: null },
+        select: { id: true, parentId: true, authorId: true },
+      })
+    : null;
+  if (parentRaw && !parent) return { error: "That reply could not be found. It may have been removed." };
+  const parentId = parent ? (parent.parentId ?? parent.id) : null;
+
+  const comment = await prisma.comment.create({ data: { content, postId, authorId: userId, parentId }, select: { id: true } });
   after(() => moderateNewContent({ postId, commentId: comment.id, text: content, roomId: space }));
 
-  if (post.authorId !== userId) {
+  // Everyone with a stake in the thread hears about the reply once, by the closest reason:
+  // the person answered first, then the post's author, then anyone else who has replied.
+  const participants = await prisma.comment.findMany({
+    where: { postId, hiddenAt: null, authorId: { not: userId } },
+    select: { authorId: true },
+    distinct: ["authorId"],
+  });
+  const recipients = new Map<string, "comment" | "post" | "thread">();
+  if (parent && parent.authorId !== userId) recipients.set(parent.authorId, "comment");
+  if (post.authorId !== userId && !recipients.has(post.authorId)) recipients.set(post.authorId, "post");
+  for (const p of participants) if (!recipients.has(p.authorId)) recipients.set(p.authorId, "thread");
+
+  if (recipients.size > 0) {
     const who = firstName(ctx.session?.user?.name) || "A member";
-    const about = post.title || post.content.slice(0, 60) + (post.content.length > 60 ? "…" : "");
-    await notify({
-      userId: post.authorId,
-      kind: "comment",
-      title: `${who} replied to “${about}”`,
-      href: `/members/community/${postId}`,
-    });
+    const about = excerpt(post.title || post.content);
+    const href = `/members/community/${postId}#comment-${comment.id}`;
+    const titles = {
+      comment: `${who} replied to your comment on “${about}”`,
+      post: `${who} replied to “${about}”`,
+      thread: `${who} also replied to “${about}”`,
+    };
+    for (const [recipientId, relation] of recipients) {
+      await notify({ userId: recipientId, kind: "comment", title: titles[relation], href });
+    }
     const commenter = ctx.session?.user?.name?.trim() || "A member";
     after(async () => {
-      const author = await prisma.user.findUnique({ where: { id: post.authorId }, select: { name: true, email: true } });
-      if (!author?.email) return;
-      const email = commentReplyEmail({
-        recipientName: author.name,
-        commenterName: commenter,
-        postTitle: post.title || post.content,
-        comment: content,
-        postId,
+      const people = await prisma.user.findMany({
+        where: { id: { in: [...recipients.keys()] } },
+        select: { id: true, name: true, email: true },
       });
-      await deliver(author.email, email.subject, email.content, { list: "activity", tag: "activity" });
+      for (const person of people) {
+        if (!person.email) continue;
+        const email = commentReplyEmail({
+          recipientName: person.name,
+          commenterName: commenter,
+          postTitle: post.title || post.content,
+          comment: content,
+          postId,
+          relation: recipients.get(person.id),
+        });
+        await deliver(person.email, email.subject, email.content, { list: "activity", tag: "activity" });
+      }
     });
   }
 
@@ -144,7 +176,10 @@ export async function toggleUseful(postId: string) {
   if ("refused" in member) return;
   const { ctx, userId } = member;
 
-  const post = await prisma.communityPost.findUnique({ where: { id: postId }, select: { space: true, hiddenAt: true } });
+  const post = await prisma.communityPost.findUnique({
+    where: { id: postId },
+    select: { space: true, hiddenAt: true, authorId: true, title: true, content: true },
+  });
   const rooms = await getAllRooms();
   if (!post || post.hiddenAt || !canReadRoom(normalizeSpace(post.space, rooms), ctx.professional, rooms)) return;
 
@@ -156,8 +191,54 @@ export async function toggleUseful(postId: string) {
     await prisma.reaction.delete({ where: { id: existing.id } });
   } else {
     await prisma.reaction.create({ data: { postId, userId, type: "useful" } });
+    if (post.authorId !== userId) {
+      await notifyUseful({
+        userId: post.authorId,
+        reactorName: firstName(ctx.session?.user?.name) || "A member",
+        count: await prisma.reaction.count({ where: { postId, userId: { not: post.authorId } } }),
+        what: "post",
+        about: excerpt(post.title || post.content),
+        href: `/members/community/${postId}`,
+      });
+    }
   }
   revalidateFeeds(postId);
+}
+
+export async function toggleCommentUseful(commentId: string) {
+  const member = await requireMember();
+  if (!member) return;
+  if ("refused" in member) return;
+  const { ctx, userId } = member;
+
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { postId: true, authorId: true, content: true, hiddenAt: true, post: { select: { space: true, hiddenAt: true } } },
+  });
+  const rooms = await getAllRooms();
+  if (!comment || comment.hiddenAt || comment.post.hiddenAt) return;
+  if (!canReadRoom(normalizeSpace(comment.post.space, rooms), ctx.professional, rooms)) return;
+
+  const existing = await prisma.commentReaction.findUnique({
+    where: { commentId_userId: { commentId, userId } },
+    select: { id: true },
+  });
+  if (existing) {
+    await prisma.commentReaction.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.commentReaction.create({ data: { commentId, userId } });
+    if (comment.authorId !== userId) {
+      await notifyUseful({
+        userId: comment.authorId,
+        reactorName: firstName(ctx.session?.user?.name) || "A member",
+        count: await prisma.commentReaction.count({ where: { commentId, userId: { not: comment.authorId } } }),
+        what: "comment",
+        about: excerpt(comment.content),
+        href: `/members/community/${comment.postId}#comment-${commentId}`,
+      });
+    }
+  }
+  revalidatePath(`/members/community/${comment.postId}`);
 }
 
 const REASONS: Record<string, string> = {
