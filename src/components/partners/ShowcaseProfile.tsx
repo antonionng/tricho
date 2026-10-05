@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Gift, Heart, Info, Mail, Phone, Sparkles } from "lucide-react";
 import type { Partner } from "@prisma/client";
 import type { TeamMember } from "@/lib/business-team";
+import { employmentLabel } from "@/lib/jobs";
 import { Container } from "@/components/site/primitives";
 import { bodoni } from "@/components/gazette/fonts";
 import { PhotoGallery, type GalleryPhoto } from "@/components/partners/PhotoGallery";
@@ -66,6 +67,7 @@ export function ShowcaseProfile({
   photos,
   socials,
   team = [],
+  jobs = [],
   preview = false,
 }: {
   partner: ShowcasePartner;
@@ -73,6 +75,8 @@ export function ShowcaseProfile({
   socials: { id: string; label: string; url: string }[];
   /** People from the business's team seats who are shown on the page. */
   team?: TeamMember[];
+  /** Live roles from the jobs board. */
+  jobs?: { slug: string; title: string; location: string; employment: string }[];
   preview?: boolean;
 }) {
   const allow = partnerAllowance(partner);
@@ -289,6 +293,33 @@ export function ShowcaseProfile({
                     {m.role && <p className="text-[15px] text-[var(--c-strong)]">{m.role}</p>}
                   </div>
                   {m.bio && <p className="text-[15px] leading-relaxed text-ink-2">{m.bio}</p>}
+                </li>
+              ))}
+            </ul>
+          </Container>
+        </section>
+      )}
+
+      {/* Open roles */}
+      {jobs.length > 0 && (
+        <section id="jobs" className="scroll-mt-20 bg-white py-16 md:py-20">
+          <Container>
+            <div className="flex max-w-2xl flex-col gap-4">
+              <p className={cn(eyebrow, "text-[var(--c-strong)]")}>Open roles</p>
+              <h2 className={cn(display, "text-4xl leading-[1.05] md:text-5xl")}>{partner.name} is hiring.</h2>
+            </div>
+            <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+              {jobs.map((j) => (
+                <li key={j.slug}>
+                  <Link
+                    href={`/jobs/${j.slug}`}
+                    className="flex h-full flex-col gap-1 rounded-3xl border-2 border-[var(--c-soft)] bg-[var(--c-wash)] p-6 transition-colors hover:border-[var(--c-accent)]"
+                  >
+                    <span className="text-xl font-semibold tracking-tight">{j.title}</span>
+                    <span className="text-[15px] text-ink-2">
+                      {j.location} · {employmentLabel(j.employment)}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

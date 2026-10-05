@@ -15,6 +15,8 @@ import { saveBusinessPage } from "./actions";
 import { loadBusiness } from "./_data";
 import { errorText as describeError, SAVED_MESSAGES } from "./messages";
 import { TeamSeats } from "./TeamSeats";
+import { liveJobWhere } from "@/lib/jobs";
+import { prisma } from "@/lib/prisma";
 import { Results } from "./Results";
 
 export const metadata = { title: "Your business" };
@@ -85,6 +87,7 @@ export default async function BusinessPage({
   const stepsLeft = SETUP_STEPS.filter((st) => !progress[st.id]).length;
   const next = SETUP_STEPS.find((st) => st.id === nextSetupStep(progress))!;
   const premium = page.tier === "premium";
+  const openJobs = await prisma.job.count({ where: { partnerId: page.id, ...liveJobWhere() } });
 
   return (
     <MemberPage size="narrow">
@@ -253,6 +256,18 @@ export default async function BusinessPage({
           Your team: {seats.length} of {BUSINESS_SEATS} seats used
         </SectionLabel>
         <TeamSeats seats={seats} business={business} />
+      </section>
+
+      <section id="jobs" className="mt-10 scroll-mt-20">
+        <SectionLabel>Job posts: {openJobs} open</SectionLabel>
+        <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <p className="text-[15px] leading-relaxed text-ink-2">
+            Post roles to hair and scalp professionals. They show on the jobs board and your page, and members are told about each one.
+          </p>
+          <Button asChild variant="outline" className="shrink-0">
+            <Link href="/members/business/jobs">{openJobs ? "Manage your roles" : "Post a role"}</Link>
+          </Button>
+        </Card>
       </section>
     </MemberPage>
   );

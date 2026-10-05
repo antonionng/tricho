@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { liveJobWhere } from "@/lib/jobs";
 import { absoluteUrl } from "@/lib/seo";
 import { guides } from "@/content/guides";
 import { getAllEditions } from "@/content/gazette/loader";
@@ -30,7 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/directory/list", "/find", "/guides", "/glossary", "/contact", "/privacy", "/terms", "/cookies",
   ];
 
-  const [listings, pairs, events, episodes] = await Promise.all([
+  const [listings, pairs, events, episodes, jobs] = await Promise.all([
     safely("listings", () =>
       prisma.directoryListing.findMany({
         where: { AND: [publicListingWhere(), { slug: { not: null } }] },
@@ -42,6 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     safely("podcast episodes", () =>
       prisma.podcastEpisode.findMany({ where: { status: "published" }, select: { slug: true, updatedAt: true } })
     ),
+    safely("jobs", () => prisma.job.findMany({ where: liveJobWhere(), select: { slug: true, updatedAt: true } })),
   ]);
   const allEditions = await getAllEditions();
 
@@ -57,5 +59,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...listings.map((l) => ({ url: absoluteUrl(`/directory/p/${l.slug}`), lastModified: l.updatedAt, priority: 0.6 })),
     ...events.map((e) => ({ url: absoluteUrl(`/events/${e.slug}`), lastModified: e.updatedAt, priority: 0.6 })),
     ...episodes.map((e) => ({ url: absoluteUrl(`/podcast/${e.slug}`), lastModified: e.updatedAt, priority: 0.6 })),
+    ...jobs.map((j) => ({ url: absoluteUrl(`/jobs/${j.slug}`), lastModified: j.updatedAt, priority: 0.7 })),
   ];
 }

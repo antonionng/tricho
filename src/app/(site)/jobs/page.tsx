@@ -7,6 +7,12 @@ import { NewsletterForm } from "@/components/site/NewsletterForm";
 import { images, img } from "@/content/images";
 import { tierById } from "@/config/subscriptions";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
+import { prisma } from "@/lib/prisma";
+import { employmentLabel, liveJobWhere, workplaceLabel } from "@/lib/jobs";
+import { partnerLogoSrc } from "@/lib/partners";
+
+// New roles show as soon as they are posted.
+export const dynamic = "force-dynamic";
 
 const business = tierById("business")!;
 
@@ -18,7 +24,15 @@ export const metadata = pageMetadata({
     og: { title: "Find your next role in hair and scalp care.", eyebrow: "Careers", img: images.ed32.src, variant: "photo" },
 });
 
-export default function JobsPage() {
+export default async function JobsPage() {
+  const jobs = await prisma.job
+    .findMany({
+      where: liveJobWhere(),
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: { partner: { select: { name: true, slug: true, logoUrl: true } } },
+    })
+    .catch(() => []);
   return (
     <>
       <Section className="pb-12 md:pb-16">
@@ -38,18 +52,52 @@ export default function JobsPage() {
         </Container>
       </Section>
 
-      {/* Honest board state */}
+      {/* The board */}
       <section className="pb-20 md:pb-28">
         <Container>
-          <div className="flex flex-col items-center gap-5 rounded-3xl border border-dashed border-rule bg-card px-6 py-16 text-center md:py-20">
-            <Briefcase className="h-7 w-7 stroke-[1.25]" aria-hidden />
-            <h2 className="text-2xl font-semibold tracking-tight">No roles are listed yet</h2>
-            <p className="max-w-lg text-[15px] leading-relaxed text-ink-2">
-              The jobs board opens with Trichollective online. Roles posted by Business members will appear
-              here as soon as they are published. Leave your email below and we&apos;ll let you know when the
-              first ones go up.
-            </p>
-          </div>
+          {jobs.length > 0 ? (
+            <ul className="flex flex-col gap-3">
+              {jobs.map((job) => {
+                const logo = partnerLogoSrc(job.partner.logoUrl);
+                return (
+                  <li key={job.id} className="relative flex gap-4 rounded-3xl border border-rule bg-card p-5 transition-colors hover:border-ink/40 sm:gap-5 sm:p-6">
+                    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border border-rule bg-white">
+                      {logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={logo} alt="" className="h-full w-full object-contain p-1.5" />
+                      ) : (
+                        <Briefcase className="h-6 w-6 stroke-[1.25]" aria-hidden />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-xl font-semibold leading-snug tracking-tight">
+                        <Link href={`/jobs/${job.slug}`} className="after:absolute after:inset-0 after:rounded-3xl">
+                          {job.title}
+                        </Link>
+                      </h2>
+                      <p className="mt-0.5 text-[15px] text-ink-2">{job.partner.name}</p>
+                      <p className="mt-1 flex flex-wrap gap-x-2 text-sm text-muted-foreground">
+                        <span>{job.location}</span>
+                        <span>{employmentLabel(job.employment)}</span>
+                        {job.workplace !== "on_site" && <span>{workplaceLabel(job.workplace)}</span>}
+                        {job.pay && <span>{job.pay}</span>}
+                      </p>
+                      <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{job.summary}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="flex flex-col items-center gap-5 rounded-3xl border border-dashed border-rule bg-card px-6 py-16 text-center md:py-20">
+              <Briefcase className="h-7 w-7 stroke-[1.25]" aria-hidden />
+              <h2 className="text-2xl font-semibold tracking-tight">No roles are listed right now</h2>
+              <p className="max-w-lg text-[15px] leading-relaxed text-ink-2">
+                Roles posted by Business members appear here as soon as they are published. Leave your email below and
+                we&apos;ll let you know when new ones go up.
+              </p>
+            </div>
+          )}
         </Container>
       </section>
 
