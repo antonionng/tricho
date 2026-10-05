@@ -121,8 +121,9 @@ export async function POST(req: Request) {
       ...(customer ? { customer } : {}),
       // Stripe allows either a discount or promotion codes on a session, not both.
       ...(referral ? { discounts: [{ coupon: referral.coupon }] } : { allow_promotion_codes: true }),
-      // Prices carry EUR currency options; charge in the currency the visitor chose on /pricing.
-      ...(body.currency === "eur" && !premium ? { currency: "eur" } : {}),
+      // Prices carry EUR currency options. Always name the currency, or Stripe picks one from the
+      // visitor's location and someone who saw pounds on our page is asked to pay in euro.
+      currency: body.currency === "eur" && !premium ? "eur" : "gbp",
       ...(askBrand ? { custom_fields: premiumCheckoutFields() } : {}),
       // Businesses need an address on their invoices.
       billing_address_collection: premium || body.plan === "business" ? "required" : "auto",

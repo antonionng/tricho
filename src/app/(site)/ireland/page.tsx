@@ -34,6 +34,7 @@ export default async function IrelandPage({ searchParams }: { searchParams: Prom
   return (
     <LaunchLanding
       source="ireland"
+      currency="eur"
       eyebrow={`${site.launch.title} · ${when}`}
       title="Welcome to Trichollective Ireland,"
       fade="where you can join as a founding member today."
