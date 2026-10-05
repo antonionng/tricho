@@ -23,6 +23,15 @@ describe("ticket emails", () => {
     });
   }
 
+  it("gives guests who bought a ticket the joining link for an online event", () => {
+    const withLink = { ...event, joinUrl: "https://meet.google.com/abc-defg-hij" };
+    const confirmed = ticketConfirmedEmail({ name: null, event: withLink, quantity: 1, amount: "£20.00", priceType: "guest" });
+    expect(confirmed.content.facts).toContainEqual(["Join online", withLink.joinUrl]);
+    expect(confirmed.content.cta?.href).toBe(withLink.joinUrl);
+    const reminder = ticketReminderEmail({ name: null, event: withLink, quantity: 1 });
+    expect(reminder.content.facts).toContainEqual(["Join online", withLink.joinUrl]);
+  });
+
   it("links to the calendar file and states the quantity and price", () => {
     const e = ticketConfirmedEmail({ name: "Dr Aisling Murphy", event, quantity: 1, amount: "£40.00", priceType: "member" });
     expect(e.content.secondary?.href).toBe("/api/events/evt_1/ics");
