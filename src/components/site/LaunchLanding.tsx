@@ -26,6 +26,7 @@ export function LaunchLanding({
   editionHref = "/trichozette/dublin",
   placesLeft,
   cancelled = false,
+  qr,
 }: {
   source: string;
   eyebrow: string;
@@ -39,6 +40,8 @@ export function LaunchLanding({
   placesLeft?: number;
   /** The visitor came back from Stripe without paying. */
   cancelled?: boolean;
+  /** A QR code shown beside the hero on larger screens, for presenting the page on a projector. */
+  qr?: { svg: string; shortUrl: string };
 }) {
   const pro = tierById("professional")!;
   const community = tierById("community")!;
@@ -80,9 +83,17 @@ export function LaunchLanding({
     <>
       <RememberSource value={source} />
       <section id="join" className="relative scroll-mt-20 overflow-hidden bg-ink text-paper">
-        <Image src={img(image, 2000)} alt={image.alt} fill priority sizes="100vw" className="mag-bw object-cover object-top opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/85 to-black md:bg-gradient-to-r md:from-black md:via-black/80 md:to-black/20" />
+        <Image
+          src={img(image, 2000)}
+          alt={image.alt}
+          fill
+          priority
+          sizes="100vw"
+          className="mag-bw object-cover object-top opacity-50 md:object-[70%_20%] md:opacity-90"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/85 to-black md:bg-gradient-to-r md:from-black md:via-black/75 md:to-black/10" />
         <Container className="relative">
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-16">
           <div className="flex max-w-3xl flex-col gap-5 py-7 md:gap-6 md:py-20 lg:py-24">
             <p className="label text-paper/70">{eyebrow}</p>
             <h1 className="display text-[2.3rem] leading-[0.98] sm:text-5xl lg:text-6xl">
@@ -138,6 +149,17 @@ export function LaunchLanding({
             >
               Or add your free directory listing <ArrowRight className="h-4 w-4" />
             </Link>
+          </div>
+          {qr && (
+            <figure className="hidden w-[340px] shrink-0 rounded-3xl bg-paper p-6 text-ink shadow-2xl lg:block">
+              {/* Generated on the server by the qrcode library from our own URL. */}
+              <div className="aspect-square w-full [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr.svg }} />
+              <figcaption className="mt-4 space-y-1 text-center">
+                <p className="text-[17px] font-medium leading-snug">Scan with your phone camera to join.</p>
+                <p className="text-sm text-ink-2">Or go to {qr.shortUrl}</p>
+              </figcaption>
+            </figure>
+          )}
           </div>
         </Container>
       </section>
