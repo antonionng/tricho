@@ -84,7 +84,11 @@ export default async function DirectoryPage({
             {onlyBusinesses
               ? `${businesses.length} ${businesses.length === 1 ? "brand, clinic or charity" : "brands, clinics and charities"}${q ? " match your search" : ""}`
               : listings.length === 0
-                ? "No professionals match that search yet."
+                ? filtered
+                  ? "No professionals match that search yet."
+                  : businesses.length > 0
+                    ? `The first ${businesses.length === 1 ? "business is" : `${businesses.length} brands, clinics and charities are`} listed below, and professionals are joining now.`
+                    : "Professionals are joining the directory now."
                 : `${listings.length} ${listings.length === 1 ? "professional" : "professionals"}${filtered ? " match your search" : ""}`}
           </p>
           <Link href="/find" className="text-sm text-ink underline underline-offset-4">
