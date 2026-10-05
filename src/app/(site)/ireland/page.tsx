@@ -3,6 +3,10 @@ import { site } from "@/config/site";
 import { pageMetadata } from "@/lib/seo";
 import { images } from "@/content/images";
 import { foundingMemberPlacesLeft } from "@/lib/founding";
+import QRCode from "qrcode";
+
+/** The QR shown beside the hero when the page is on a projector. */
+const QR_TARGET = "https://www.trichollective.net/ireland?utm_source=ireland";
 
 export const metadata = pageMetadata({
   title: "Welcome to Trichollective Ireland",
@@ -26,6 +30,7 @@ export default async function IrelandPage({ searchParams }: { searchParams: Prom
   const { cancelled } = await searchParams;
   // If the count can't be read, the page still works and simply says places are limited.
   const placesLeft = await foundingMemberPlacesLeft().catch(() => undefined);
+  const qrSvg = await QRCode.toString(QR_TARGET, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#0b0b0b", light: "#00000000" } }).catch(() => null);
   return (
     <LaunchLanding
       source="ireland"
@@ -35,6 +40,7 @@ export default async function IrelandPage({ searchParams }: { searchParams: Prom
       lede="Founding members join the community, the Case Room and the directory, and keep the founding price for as long as they stay."
       placesLeft={placesLeft}
       cancelled={cancelled === "1"}
+      qr={qrSvg ? { svg: qrSvg, shortUrl: "trichollective.net/ireland" } : undefined}
       details={
         <p className="label text-paper/60">
           {site.launch.venue} · 9.30am to 6pm
