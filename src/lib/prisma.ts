@@ -6,7 +6,9 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function databaseUrl() {
-  const raw = process.env.DATABASE_URL ?? "";
+  // DATABASE_POOL_URL, when set, points at the transaction-mode pooler (port 6543),
+  // which shares connections across serverless instances instead of capping them.
+  const raw = process.env.DATABASE_POOL_URL || process.env.DATABASE_URL || "";
   // pg v8 treats sslmode=require as verify-full, which rejects the Supabase pooler chain.
   return raw.replace(/([?&])sslmode=[^&]*/g, "$1").replace(/[?&]$/, "");
 }
