@@ -5,6 +5,7 @@ import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { EventActions } from "@/components/members/EventActions";
+import { AttendeeFaces } from "@/components/members/EventAttendees";
 import { TicketReturnBanner } from "@/components/events/BuyTicket";
 import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { eventDay, timeOfDay } from "@/components/members/format";
@@ -48,7 +49,10 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
       ticketUrl: true,
       sellTickets: true,
       chapterId: true,
-      rsvps: { select: { userId: true } },
+      rsvps: {
+        orderBy: { createdAt: "asc" },
+        select: { userId: true, user: { select: { id: true, name: true, image: true, accessStatus: true } } },
+      },
       tickets: {
         where: { OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: cutoff } }] },
         select: { quantity: true, userId: true, status: true },
@@ -89,8 +93,9 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             const left = e.sellTickets ? seatsLeft(e, e.tickets, e.rsvps) : null;
             const full = e.sellTickets ? left === 0 : e.capacity != null && e.rsvps.length >= e.capacity;
             const local = !!ctx.chapterId && e.chapterId === ctx.chapterId;
+            const attendees = e.rsvps.map((r) => r.user).filter((u) => u.accessStatus === "active");
             return (
-              <li key={e.id} className="flex gap-4 rounded-2xl border border-rule bg-card p-4 sm:gap-5 sm:p-5">
+              <li key={e.id} className="relative flex gap-4 rounded-2xl border border-rule bg-card p-4 sm:gap-5 sm:p-5">
                 <div className="grid h-16 w-14 shrink-0 place-items-center rounded-2xl bg-paper-2 text-center leading-none sm:h-20 sm:w-16">
                   <span>
                     <span className="block text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{d.month}</span>
@@ -104,7 +109,12 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                     {local && <Pill tone="ink">Your chapter</Pill>}
                     {hasTicket ? <Pill tone="positive">You have a ticket</Pill> : isGoing && <Pill tone="positive">You&apos;re going</Pill>}
                   </div>
-                  <h2 className="mt-2 text-lg font-semibold leading-snug tracking-[-0.01em]">{e.title}</h2>
+                  <h2 className="mt-2 text-lg font-semibold leading-snug tracking-[-0.01em]">
+                    {/* The title link covers the whole card, so a tap anywhere opens the event. */}
+                    <Link href={`/members/events/${e.slug}`} className="after:absolute after:inset-0 after:rounded-2xl hover:underline">
+                      {e.title}
+                    </Link>
+                  </h2>
                   <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[13px] text-muted-foreground">
                     <span>{timeOfDay(e.startsAt)}{e.endsAt ? ` to ${timeOfDay(e.endsAt)}` : ""}</span>
                     <span className="inline-flex items-center gap-1">
@@ -116,7 +126,10 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                     {left != null && left > 0 && <span>{left} {left === 1 ? "place" : "places"} left</span>}
                   </p>
                   <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-2">{e.summary}</p>
-                  <div className="mt-4 flex flex-wrap items-start gap-2">
+                  <div className="mt-3">
+                    <AttendeeFaces attendees={attendees} userId={userId} />
+                  </div>
+                  <div className="relative z-10 mt-4 flex flex-wrap items-start gap-2">
                     <EventActions
                       event={e}
                       going={isGoing}
