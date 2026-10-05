@@ -24,7 +24,7 @@ export const metadata = { title: "Your business" };
 /** How the portal names the next unfinished step, in a sentence and on its button. */
 const NEXT_STEP: Record<SetupStepId, { phrase: string; button: string }> = {
   details: { phrase: "adding your brand details", button: "Add your brand details" },
-  logo: { phrase: "adding your logo, a cover photo and your brand colour", button: "Add your logo and cover" },
+  logo: { phrase: "adding your logo and a cover photo", button: "Add your logo and cover" },
   story: { phrase: "telling your story", button: "Tell your story" },
   offerings: { phrase: "showing your products and services", button: "Add your products and services" },
   photos: { phrase: "adding photos to your page", button: "Add photos" },
@@ -64,7 +64,7 @@ export default async function BusinessPage({
         <PageHeader
           label="Your business"
           title="Put your business in front of hair and scalp professionals."
-          lede="The Business plan gives you a full page in the directory in your own colours, with your story, products and photos, plus a perk for members and Professional membership for five of your team."
+          lede="The Business plan gives you a full page in the directory with your story, products and photos, plus a perk for members and Professional membership for five of your team."
         />
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button asChild size="lg">

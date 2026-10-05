@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tricho-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3300,
+      "autoPort": true
+    },
+    {
+      "name": "charity-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "dev",
+        "/private/tmp/claude-501/-Users-ant-tricho/251d4e9f-106e-4ab6-9ca2-249b30453303/scratchpad/app",
+        "-p",
+        "3310"
+      ],
+      "port": 3310
+    }
+  ]
+}

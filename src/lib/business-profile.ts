@@ -5,7 +5,7 @@
 
 export const SETUP_STEPS = [
   { id: "details", label: "Brand details", required: true },
-  { id: "logo", label: "Logo, cover and colour", required: false },
+  { id: "logo", label: "Logo and cover", required: false },
   { id: "story", label: "Your story", required: false },
   { id: "offerings", label: "Products and services", required: false },
   { id: "photos", label: "Photos", required: false },

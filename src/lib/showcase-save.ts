@@ -96,7 +96,7 @@ export async function saveShowcaseStep(
     if (!cover.ok) return { ok: false, error: "logo", message: cover.message };
     const colourRaw = s(form, "accentColor", 7);
     if (colourRaw && !/^#[0-9a-fA-F]{6}$/.test(colourRaw)) return { ok: false, error: "colour" };
-    await prisma.partner.update({ where: { id: page.id }, data: { accentColor: colourRaw ? safeHex(colourRaw) : null } });
+    if (allow.colour) await prisma.partner.update({ where: { id: page.id }, data: { accentColor: colourRaw ? safeHex(colourRaw) : null } });
     return { ok: true };
   }
 

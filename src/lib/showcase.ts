@@ -22,15 +22,21 @@ export type Allowance = {
 export const PARTNER_KINDS = ["brand", "charity", "gifted"] as const;
 export type PartnerKind = (typeof PARTNER_KINDS)[number];
 
-/** Business (£99 a month) partner pages. */
-const BUSINESS: Allowance = { cover: true, colour: true, highlights: 3, offerings: 6, photos: 8, cta: true, video: false, sections: 1 };
-/** Premium Business, and charities we support free of charge. */
-const PREMIUM: Allowance = { cover: true, colour: true, highlights: 4, offerings: 9, photos: 16, cta: true, video: true, sections: 4 };
+/**
+ * Business (£99 a month) partner pages. Every paying page uses the Trichollective look; only the
+ * pages we support free of charge (charities and gifted pages) carry their own colour.
+ */
+const BUSINESS: Allowance = { cover: true, colour: false, highlights: 3, offerings: 6, photos: 8, cta: true, video: false, sections: 1 };
+/** Premium Business. */
+const PREMIUM: Allowance = { cover: true, colour: false, highlights: 4, offerings: 9, photos: 16, cta: true, video: true, sections: 4 };
+/** Charities and gifted pages: everything in Premium, in their own colour. */
+const SUPPORTED: Allowance = { ...PREMIUM, colour: true };
 /** A Professional member's directory profile (or a free listing inside its trial). */
 export const PRACTITIONER: Allowance = { cover: true, colour: false, highlights: 0, offerings: 0, photos: 6, cta: false, video: false, sections: 0 };
 
 export function partnerAllowance(p: { tier: string; kind?: string | null }): Allowance {
-  return p.kind === "charity" || p.kind === "gifted" || p.tier === "premium" ? PREMIUM : BUSINESS;
+  if (p.kind === "charity" || p.kind === "gifted") return SUPPORTED;
+  return p.tier === "premium" ? PREMIUM : BUSINESS;
 }
 
 export type Highlight = { value: string; label: string };
