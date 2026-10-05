@@ -30,7 +30,9 @@ export default async function LearnPage() {
     where: { userId, status: "active" },
     orderBy: { updatedAt: "desc" },
     include: { lessons: { select: { lessonSlug: true, completedAt: true } }, certificate: true },
-  });
+  })
+    // Before the courses migration has run, show the page without "Your courses".
+    .catch(() => []);
   // People who bought a course without joining can still reach their courses here.
   if (!ctx.allowed && enrolments.length === 0) {
     return <Paywall title="Learn" body="The library and member prices on courses are part of membership." />;

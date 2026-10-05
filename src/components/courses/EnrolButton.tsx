@@ -26,13 +26,14 @@ export function EnrolButton({ slug, memberPriceGBP, priceGBP }: { slug: string; 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     setCancelled(new URLSearchParams(window.location.search).get("checkout") === "cancelled");
     fetch(`/api/courses/${slug}/checkout`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setState)
-      .catch(() => setState(null));
+      .catch(() => setFailed(true));
   }, [slug]);
 
   async function enrol() {
@@ -47,6 +48,14 @@ export function EnrolButton({ slug, memberPriceGBP, priceGBP }: { slug: string; 
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setBusy(false);
     }
+  }
+
+  if (failed) {
+    return (
+      <p className="rounded-xl bg-paper-2 px-4 py-3 text-[14px] leading-relaxed">
+        We couldn&apos;t load enrolment just now. Please refresh the page in a moment, or write to us if it keeps happening.
+      </p>
+    );
   }
 
   if (!state) {

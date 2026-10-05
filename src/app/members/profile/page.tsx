@@ -93,7 +93,7 @@ export default async function ProfilePage({
     where: { userId, withdrawnAt: null },
     orderBy: { issuedAt: "desc" },
     select: { id: true, courseSlug: true, courseTitle: true, hours: true, showOnProfile: true },
-  });
+  }).catch(() => []);
   const [user, chapters] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
