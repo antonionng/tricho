@@ -43,6 +43,8 @@ export type EmailEvent = {
   venue?: string | null;
   city?: string | null;
   ticketUrl?: string | null;
+  /** Online joining link, e.g. Google Meet. Only ever sent to people who are going. */
+  joinUrl?: string | null;
   priceGBP?: number;
   memberPriceGBP?: number;
 };
@@ -77,16 +79,19 @@ function eventFacts(e: EmailEvent): [string, string][] {
     ["Time", eventTime(e.startsAt, e.endsAt)],
     ["Where", eventWhere(e)],
   ];
-  if (e.ticketUrl) facts.push([e.online ? "Joining and tickets" : "Tickets", e.ticketUrl]);
+  if (e.joinUrl) facts.push(["Join online", e.joinUrl]);
+  else if (e.ticketUrl) facts.push([e.online ? "Joining and tickets" : "Tickets", e.ticketUrl]);
   return facts;
 }
 
 export function rsvpConfirmedEmail(p: { name: string | null; event: EmailEvent }): Email {
   const e = p.event;
   const how = e.online
-    ? e.ticketUrl
-      ? "It takes place online. Please book through the ticket link below, which is also where the joining details are shared."
-      : "It takes place online, and we will share the joining details with you before it starts."
+    ? e.joinUrl
+      ? "It takes place online on Google Meet. Use the joining link below at the start time, and keep this email so you have it to hand."
+      : e.ticketUrl
+        ? "It takes place online. Please book through the ticket link below, which is also where the joining details are shared."
+        : "It takes place online, and we will share the joining details with you before it starts."
     : `It takes place at ${eventWhere(e)}.`;
   return {
     subject: `Your place at ${e.title} is saved`,

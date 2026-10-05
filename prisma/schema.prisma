@@ -569,6 +569,8 @@ model Event {
   capacity       Int?
   /// External ticketing (e.g. Eventbrite) until native ticketing ships.
   ticketUrl      String?
+  /// The online joining link (for example Google Meet). Shown only to members who are going.
+  joinUrl        String?
   published      Boolean       @default(false)
   /// Sell tickets on Trichollective through Stripe instead of an external link.
   sellTickets    Boolean       @default(false)
