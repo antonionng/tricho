@@ -6,7 +6,11 @@ import { ArrowLink, Container, Eyebrow } from "@/components/site/primitives";
 import { Breadcrumbs } from "@/components/editorial/PageHero";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
-import { courses } from "@/content/courses";
+import { courseBySlug, courses } from "@/content/courses";
+import { prisma } from "@/lib/prisma";
+import { isCertificateReference } from "@/lib/course-rules";
+import { CertificateCard } from "@/components/courses/CertificateCard";
+import { BadgeCheck, ShieldX } from "lucide-react";
 
 type Params = { id: string };
 
@@ -36,17 +40,78 @@ export default async function CertificateVerifyPage({ params }: { params: Promis
   const { id } = await params;
   const reference = safeReference(id);
   const anyCourseOpen = courses.some((c) => c.status === "open");
-
-  // TODO(Learn phase): look the id up in the Certificate model and, when found,
-  // render the holder's name, course, study hours, completion date, the named
-  // reviewer and any CPD accreditation, plus a "withdrawn" state. Until that
-  // model exists, every reference honestly resolves to "not found".
+  const lookup = reference?.toUpperCase() ?? null;
+  const certificate =
+    lookup && isCertificateReference(lookup)
+      ? await prisma.certificate
+          .findUnique({
+            where: { id: lookup },
+            select: { id: true, holderName: true, courseSlug: true, courseTitle: true, hours: true, issuedAt: true, withdrawnAt: true },
+          })
+          .catch(() => null)
+      : null;
 
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Certification", path: "/certification" },
     { name: "Check a certificate", path: `/certificates/${encodeURIComponent(id)}` },
   ];
+
+  if (certificate) {
+    const course = courseBySlug(certificate.courseSlug);
+    const withdrawn = !!certificate.withdrawnAt;
+    return (
+      <>
+        <section className="bg-paper">
+          <Container className="py-16 md:py-24">
+            <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+              <div className="flex flex-col gap-8 animate-rise lg:col-span-5">
+                <Breadcrumbs items={crumbs} showCurrent={false} />
+                <Eyebrow rule>Certificate check</Eyebrow>
+                <h1 className="display text-[2.5rem] leading-[0.98] sm:text-6xl">
+                  {withdrawn ? "This certificate has been withdrawn." : "This certificate is genuine."}
+                </h1>
+                <div
+                  className={
+                    withdrawn
+                      ? "flex items-start gap-4 rounded-3xl border border-destructive/30 bg-destructive/5 p-6"
+                      : "flex items-start gap-4 rounded-3xl bg-positive/10 p-6"
+                  }
+                >
+                  {withdrawn ? (
+                    <ShieldX className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5] text-destructive" aria-hidden />
+                  ) : (
+                    <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.5] text-positive" aria-hidden />
+                  )}
+                  <p className="text-[15px] leading-relaxed">
+                    {withdrawn
+                      ? `${site.name} issued this certificate but has since withdrawn it, so it should no longer be relied on.`
+                      : `${site.name} issued this certificate to ${certificate.holderName} on completing ${certificate.courseTitle}, including a final assessment.`}
+                  </p>
+                </div>
+                <p className="text-[15px] leading-relaxed text-ink-2">
+                  It is a certificate of completion for continuing professional development, not an accredited qualification.
+                </p>
+                {course && <ArrowLink href={`/courses/${course.slug}`}>About this course</ArrowLink>}
+              </div>
+              <div className="lg:col-span-7">
+                <CertificateCard
+                  reference={certificate.id}
+                  holderName={certificate.holderName}
+                  courseTitle={certificate.courseTitle}
+                  hours={certificate.hours}
+                  issuedAt={certificate.issuedAt}
+                  reviewer={course?.reviewer ? `${course.reviewer.name}, ${course.reviewer.credentials}` : null}
+                  withdrawn={withdrawn}
+                />
+              </div>
+            </div>
+          </Container>
+        </section>
+        <JsonLd data={breadcrumbLd(crumbs)} />
+      </>
+    );
+  }
 
   return (
     <>

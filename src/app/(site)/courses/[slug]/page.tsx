@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Check, Clock, LayoutList, ShieldCheck, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ArrowLink, Container, Pill, Section, SectionHeader } from "@/components/site/primitives";
 import { NewsletterForm } from "@/components/site/NewsletterForm";
+import { EnrolButton } from "@/components/courses/EnrolButton";
 import { Breadcrumbs } from "@/components/editorial/PageHero";
 import { CertificatePreview } from "@/components/editorial/CertificatePreview";
 import { Syllabus } from "@/components/editorial/Syllabus";
@@ -34,7 +34,10 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   });
 }
 
-const REVIEW_LINE = "Every course is reviewed by a qualified practitioner before it opens.";
+/** Only claim a review once a named reviewer has signed the course off. */
+function reviewLine(c: Course) {
+  return c.reviewer ? `Reviewed by ${c.reviewer.name}, ${c.reviewer.credentials}.` : null;
+}
 
 function courseLd(c: Course) {
   const url = absoluteUrl(`/courses/${c.slug}`);
@@ -102,10 +105,12 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
                 {course.title}
               </h1>
               <p className="lede max-w-2xl">{course.summary}</p>
-              <p className="flex items-start gap-2.5 text-[15px] text-ink-2">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
-                {REVIEW_LINE}
-              </p>
+              {reviewLine(course) && (
+                <p className="flex items-start gap-2.5 text-[15px] text-ink-2">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
+                  {reviewLine(course)}
+                </p>
+              )}
             </div>
             <div className="lg:col-span-5">
               <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-paper-2 lg:aspect-[4/5]">
@@ -180,19 +185,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3">
-                    <Button asChild size="lg" className="w-full">
-                      <Link href="/pricing">
-                        Join to enrol <ArrowRight />
-                      </Link>
-                    </Button>
-                    <p className="text-[13px] text-muted-foreground">
-                      {course.memberPriceGBP === 0
-                        ? "Included in every membership."
-                        : `Members pay £${course.memberPriceGBP}.`}{" "}
-                      You can cancel membership at any time.
-                    </p>
-                  </div>
+                  <EnrolButton slug={course.slug} priceGBP={course.priceGBP} memberPriceGBP={course.memberPriceGBP} />
                 )}
               </div>
             </aside>
@@ -225,8 +218,10 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
           <div className="grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule md:grid-cols-3">
             {[
               { label: "Who it's for", title: course.audience, body: "No previous course is needed. If you're unsure whether it fits your scope of practice, write to us and we'll tell you honestly." },
-              { label: "Format", title: course.format, body: "Everything is online. Lessons are short, so you can work through them between clients, and your hours are added to your CPD log." },
-              { label: "Review", title: "Checked before it opens", body: `${REVIEW_LINE} The reviewer is named on the course and on your certificate.` },
+              { label: "Format", title: course.format, body: "Everything is online and saves as you go, so you can study between clients. Each lesson has case studies, scripts and templates to use in practice, and your reflections become a printable CPD record." },
+              course.reviewer
+                ? { label: "Review", title: `Reviewed by ${course.reviewer.name}`, body: `${course.reviewer.name}, ${course.reviewer.credentials}, checked this course before it opened, and is named on your certificate.` }
+                : { label: "Assessment", title: "Checked as you go", body: "Every lesson ends with a short knowledge check, and a final assessment confirms what you've learned before your certificate is issued." },
             ].map((b) => (
               <div key={b.label} className="flex flex-col gap-4 bg-paper p-8 md:p-10">
                 <p className="label text-muted-foreground">{b.label}</p>

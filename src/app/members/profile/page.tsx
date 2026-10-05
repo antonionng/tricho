@@ -1,3 +1,4 @@
+import { setCertificateOnProfile } from "../courses/[slug]/actions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -6,6 +7,7 @@ import {
   Bell,
   Building2,
   ChevronRight,
+  Award,
   CreditCard,
   LayoutDashboard,
   MessageCircle,
@@ -87,6 +89,11 @@ export default async function ProfilePage({
   const userId = ctx.session.user.id;
   const { saved, error, message } = await searchParams;
 
+  const certificates = await prisma.certificate.findMany({
+    where: { userId, withdrawnAt: null },
+    orderBy: { issuedAt: "desc" },
+    select: { id: true, courseSlug: true, courseTitle: true, hours: true, showOnProfile: true },
+  });
   const [user, chapters] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -191,6 +198,7 @@ export default async function ProfilePage({
   ];
 
   const sections = [
+    { id: "courses", label: "Courses completed" },
     { id: "about", label: "About you" },
     { id: "photo", label: "Photo" },
     ...(fullProfile ? [{ id: "cover", label: "Cover photo" }, { id: "gallery", label: "Photos" }] : []),
@@ -288,6 +296,47 @@ export default async function ProfilePage({
         </span>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </Link>
+
+      <section id="courses" className="mb-10 scroll-mt-20">
+        <SectionLabel>Courses completed</SectionLabel>
+        {certificates.length === 0 ? (
+          <Link href="/members/learn" className="flex items-center gap-4 rounded-2xl border border-dashed border-rule bg-card p-5 hover:border-ink/40">
+            <Award className="h-6 w-6 shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium">Complete a course to add a badge to your profile.</span>
+              <span className="mt-0.5 block text-sm text-muted-foreground">
+                Each course you finish shows on your member and directory profiles, linked to a certificate anyone can check.
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        ) : (
+          <Card className="divide-y divide-rule">
+            {certificates.map((c) => (
+              <div key={c.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <Link href={`/members/courses/${c.courseSlug}/certificate`} className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-paper">
+                    <Award className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-medium leading-snug">{c.courseTitle}</span>
+                    <span className="block text-sm text-muted-foreground">
+                      {c.hours} hours CPD · {c.showOnProfile ? "Showing on your profile" : "Hidden from your profile"}
+                    </span>
+                  </span>
+                </Link>
+                <form action={setCertificateOnProfile}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="show" value={c.showOnProfile ? "0" : "1"} />
+                  <SubmitButton variant="outline" size="sm" pending="Saving…">
+                    {c.showOnProfile ? "Hide badge" : "Show badge"}
+                  </SubmitButton>
+                </form>
+              </div>
+            ))}
+          </Card>
+        )}
+      </section>
 
       <section id="about" className="scroll-mt-20">
         <SectionLabel>About you</SectionLabel>

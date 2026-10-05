@@ -133,7 +133,7 @@ export default function LearnPage() {
                 {
                   icon: BookOpen,
                   t: "Short and practical",
-                  d: "Most courses take between two and five hours, split into short lessons you can fit between appointments. Your hours go into your CPD log automatically.",
+                  d: "Most courses take between three and six hours, split into short lessons you can fit between appointments. Your hours go into your CPD log automatically.",
                 },
                 {
                   icon: ShieldCheck,
