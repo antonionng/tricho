@@ -7,6 +7,8 @@ import { Avatar } from "@/components/members/Avatar";
 import { Card, EmptyState, MemberPage, SectionLabel } from "@/components/members/MemberPage";
 import { EventMini } from "@/components/members/EventMini";
 import { FollowButton } from "@/components/members/FollowButton";
+import { Cover } from "@/components/gazette/Cover";
+import { getEditions } from "@/content/gazette/loader";
 import { greeting, monthYear } from "@/components/members/format";
 import { Composer } from "@/components/community/Composer";
 import { PostCard } from "@/components/community/PostCard";
@@ -31,7 +33,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const { welcome } = await searchParams;
   const now = new Date();
 
-  const [user, feed, events, gazette, following] = await Promise.all([
+  const [user, feed, events, gazette, following, editions] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -56,7 +58,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       select: { id: true, title: true, summary: true, publishedAt: true },
     }),
     prisma.follow.findMany({ where: { followerId: userId }, select: { followeeId: true } }),
+    getEditions(),
   ]);
+  const edition = editions[0];
   if (!user) redirect("/login");
 
   const email = ctx.session.user.email?.toLowerCase() ?? null;
@@ -221,17 +225,35 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           </Card>
 
           <Card className="p-5">
-            <SectionLabel>{gazette?.publishedAt ? `Trichozette, ${monthYear(gazette.publishedAt)}` : "Trichozette"}</SectionLabel>
-            {gazette ? (
-              <Link href={`/members/trichozette/${gazette.id}`} className="group block">
-                <p className="text-[17px] font-semibold leading-snug group-hover:underline">{gazette.title}</p>
-                {gazette.summary && <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-ink-2">{gazette.summary}</p>}
-                <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium">
-                  Read <ArrowRight className="h-4 w-4" />
+            <SectionLabel
+              action={
+                <Link href="/members/trichozette" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:underline">
+                  All editions
+                </Link>
+              }
+            >
+              Trichozette
+            </SectionLabel>
+            {edition && (
+              <Link href={`/trichozette/${edition.slug}`} prefetch={false} className="group flex items-center gap-4">
+                <Cover edition={edition} sizes="96px" className="w-24 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-[17px] font-semibold leading-snug group-hover:underline">{edition.title}</span>
+                  {edition.theme && <span className="mt-1 block text-sm text-ink-2">{edition.theme}</span>}
+                  <span className="mt-2 inline-flex items-center gap-1 text-sm font-medium">
+                    Read <ArrowRight className="h-4 w-4" />
+                  </span>
                 </span>
               </Link>
+            )}
+            {gazette ? (
+              <Link href={`/members/trichozette/${gazette.id}`} className={cn("group block", edition && "mt-4 border-t border-rule pt-4")}>
+                {gazette.publishedAt && <p className="text-xs text-muted-foreground">{monthYear(gazette.publishedAt)}</p>}
+                <p className="text-[15px] font-semibold leading-snug group-hover:underline">{gazette.title}</p>
+                {gazette.summary && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-2">{gazette.summary}</p>}
+              </Link>
             ) : (
-              <p className="text-sm leading-relaxed text-muted-foreground">The first edition is being prepared.</p>
+              !edition && <p className="text-sm leading-relaxed text-muted-foreground">The first edition is being prepared.</p>
             )}
           </Card>
 
