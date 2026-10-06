@@ -1,5 +1,5 @@
 import "server-only";
-import { coverLinesFor } from "@/components/gazette/Cover";
+import { coverLinesFor } from "@/components/gazette/cover-lines";
 import { artFor, coverImage, img } from "@/components/gazette/art";
 import { editionLabel, type Edition } from "@/content/gazette";
 

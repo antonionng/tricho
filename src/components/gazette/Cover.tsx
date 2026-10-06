@@ -1,17 +1,12 @@
 import Image from "next/image";
 import { img } from "@/content/images";
 import { coverImage } from "./art";
-import { editionLabel, pageTitle, type Edition } from "@/content/gazette";
+import { editionLabel, type Edition } from "@/content/gazette";
 import { gazetteFonts } from "./fonts";
-import { cn } from "@/lib/utils";
+import { coverLinesFor } from "./cover-lines";
 
-/** Cover lines from the edition's features, newsstand style. */
-export function coverLinesFor(edition: Edition, n = 3) {
-  return edition.pages
-    .filter((p) => p.kind === "article" || p.kind === "perspectives" || p.kind === "interactive")
-    .slice(0, n)
-    .map((p) => pageTitle(p));
-}
+export { coverLinesFor };
+import { cn } from "@/lib/utils";
 
 /**
  * A4 magazine cover in black and white. Sized entirely in container units, so the
