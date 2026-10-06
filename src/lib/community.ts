@@ -141,46 +141,25 @@ export async function getPosts({
 
   const posts = await prisma.communityPost.findMany({
     where,
-    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+    // Newest first. Pinned posts lead only inside their own space, so the main feeds always open on the latest.
+    orderBy: space ? [{ pinned: "desc" }, { createdAt: "desc" }] : [{ createdAt: "desc" }],
     take,
     include: postInclude(userId),
   });
   return posts.map((p) => toFeedPost(p, allRooms));
 }
 
-/**
- * The Today feed: pinned first, then recent posts, nudged towards the member's
- * chapter and the spaces their discipline tends to use.
- */
+/** The Today feed: every space the member can read, newest first. */
 export async function getTodayFeed({
   userId,
   professional,
-  chapterId,
-  profession,
   take = 20,
 }: {
   userId: string;
   professional: boolean;
-  chapterId: string | null;
-  profession: ProfessionId | null;
   take?: number;
 }) {
-  const posts = await getPosts({ userId, professional, take: 60 });
-  const favoured = new Set<RoomId>(profession ? DISCIPLINE_SPACES[profession] : []);
-  const now = Date.now();
-  // Lower is better: age in hours, less a head start for local and relevant posts.
-  const score = (p: FeedPost) => {
-    const hours = (now - p.createdAt.getTime()) / 36e5;
-    const local = chapterId && p.chapterId === chapterId ? 30 : 0;
-    const relevant = favoured.has(p.space) ? 18 : 0;
-    return hours - local - relevant;
-  };
-
-  return posts
-    .map((p) => ({ p, s: score(p) }))
-    .sort((a, b) => Number(b.p.pinned) - Number(a.p.pinned) || a.s - b.s)
-    .slice(0, take)
-    .map(({ p }) => p);
+  return getPosts({ userId, professional, take });
 }
 
 /** Only members with an active membership, or who have finished onboarding. */

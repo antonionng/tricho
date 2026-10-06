@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import { Paywall } from "@/components/members/Paywall";
+import { Button } from "@/components/ui/button";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { longDate, monthYear } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
@@ -15,15 +15,16 @@ export const metadata = { title: "Trichozette" };
 export default async function GazettePage() {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/trichozette");
-  if (!ctx.allowed) return <Paywall title="Trichozette" body="The monthly Trichozette is written for members." />;
-
+  // Free accounts browse every edition and read its opening features. The articles below are for members.
   const [library, archive] = await Promise.all([getEditions(), getArchive()]);
-  const articles = await prisma.draft.findMany({
-    where: { kind: "gazette_article", status: "published" },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: 120,
-    select: { id: true, title: true, summary: true, publishedAt: true, createdAt: true },
-  });
+  const articles = ctx.allowed
+    ? await prisma.draft.findMany({
+        where: { kind: "gazette_article", status: "published" },
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        take: 120,
+        select: { id: true, title: true, summary: true, publishedAt: true, createdAt: true },
+      })
+    : [];
 
   const editions: { month: string; items: typeof articles }[] = [];
   for (const a of articles) {
@@ -65,7 +66,17 @@ export default async function GazettePage() {
         <ArchiveShelf archive={archive} member />
       </div>
 
-      {editions.length === 0 ? (
+      {!ctx.allowed ? (
+        <EmptyState
+          title="Membership opens every edition in full, including the archive from 2023 to 2026."
+          body="Your free account includes the opening features of each edition. Members also read every page, Karley's column and the monthly articles."
+          action={
+            <Button asChild size="lg">
+              <Link href="/pricing">See membership plans</Link>
+            </Button>
+          }
+        />
+      ) : editions.length === 0 ? (
         <EmptyState title="This month's pieces are being prepared." body="New articles, including Karley's column, appear here as soon as they're published." />
       ) : (
         <div className="flex flex-col gap-12">
