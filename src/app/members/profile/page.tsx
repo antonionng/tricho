@@ -1,19 +1,17 @@
-import { setCertificateOnProfile } from "../courses/[slug]/actions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
+  Award,
   BadgeCheck,
-  Bell,
   Building2,
   ChevronRight,
-  Award,
-  CreditCard,
   LayoutDashboard,
   MessageCircle,
   Newspaper,
   Sparkles,
   UserPlus,
+  Users,
   BookOpen,
   Gift,
   HeartHandshake,
@@ -53,8 +51,10 @@ import {
   signOutAction,
 } from "./actions";
 import { PhotoManager } from "@/components/forms/PhotoManager";
+import { Fold, OpenFoldFromHash } from "@/components/members/Fold";
 import { listPhotos } from "@/lib/photos";
 import { PRACTITIONER } from "@/lib/showcase";
+import { setCertificateOnProfile } from "../courses/[slug]/actions";
 
 export const metadata = { title: "Your profile" };
 
@@ -89,11 +89,14 @@ export default async function ProfilePage({
   const userId = ctx.session.user.id;
   const { saved, error, message } = await searchParams;
 
-  const certificates = await prisma.certificate.findMany({
-    where: { userId, withdrawnAt: null },
-    orderBy: { issuedAt: "desc" },
-    select: { id: true, courseSlug: true, courseTitle: true, hours: true, showOnProfile: true },
-  }).catch(() => []);
+  // Courses they've completed, for the badges on their profile. Empty before the courses migration has run.
+  const certificates = await prisma.certificate
+    .findMany({
+      where: { userId, withdrawnAt: null },
+      orderBy: { issuedAt: "desc" },
+      select: { id: true, courseSlug: true, courseTitle: true, hours: true, showOnProfile: true },
+    })
+    .catch(() => []);
   const [user, chapters] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -184,9 +187,8 @@ export default async function ProfilePage({
     : false;
 
   const links = [
-    { href: "/members/billing", label: "Plan and billing", icon: CreditCard },
-    { href: "/members/notifications", label: "Notifications", icon: Bell },
     { href: "/members/messages", label: "Messages", icon: MessageCircle },
+    { href: "/members/people", label: "People", icon: Users },
     { href: "/members/learn", label: "Learn", icon: BookOpen },
     { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
     { href: "/members/assistant", label: "Assistant", icon: Sparkles },
@@ -197,25 +199,28 @@ export default async function ProfilePage({
     ...(ctx.isAdmin || ctx.unlocked ? [{ href: "/studio", label: "Studio", icon: LayoutDashboard }] : []),
   ];
 
-  const sections = [
-    { id: "courses", label: "Courses completed" },
-    { id: "about", label: "About you" },
-    { id: "photo", label: "Photo" },
-    ...(fullProfile ? [{ id: "cover", label: "Cover photo" }, { id: "gallery", label: "Photos" }] : []),
-    { id: "practice", label: "Practice" },
-    { id: "qualifications", label: "Qualifications" },
-    { id: "contact", label: "Contact and address" },
-    { id: "goals", label: "Goals and interests" },
-    ...(fullProfile ? [{ id: "listing", label: "Directory profile" }] : []),
-    { id: "emails", label: "Email preferences" },
-    { id: "enquiries", label: "Enquiries" },
-  ];
+  // Which row to open: the one just saved, or the one with a problem to fix.
+  const ERROR_SECTION: Record<string, string> = {
+    name: "about",
+    discipline: "about",
+    profession: "about",
+    city: "practice",
+    photo: "photo",
+    nophoto: "photo",
+    cover: "cover",
+    gallery: "gallery",
+  };
+  const openId = (error && ERROR_SECTION[error]) || saved;
+  const isOpen = (id: string) => openId === id;
+
+  const qualificationCount = Array.isArray(profile?.qualifications) ? profile.qualifications.length : 0;
+  const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const notYet = "Not added yet";
 
   return (
-    <MemberPage>
-      <div className="lg:grid lg:grid-cols-[minmax(0,42rem)_12rem] lg:justify-between lg:gap-12">
-      <div className="min-w-0">
-      <header className="mb-8 flex items-center gap-4">
+    <MemberPage size="narrow">
+      <OpenFoldFromHash />
+      <header className="flex items-center gap-4">
         <Avatar name={user.name} src={[uploadedPhoto, listing?.photoUrl, user.image]} size="xl" />
         <div className="min-w-0">
           <p className="label text-muted-foreground">Your profile</p>
@@ -228,7 +233,7 @@ export default async function ProfilePage({
         </div>
       </header>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         <Link
           href={`/members/people/${userId}`}
           className="inline-flex h-10 items-center rounded-full border border-rule bg-card px-4 text-sm hover:border-ink/40"
@@ -246,80 +251,71 @@ export default async function ProfilePage({
       </div>
 
       {saved && MESSAGES[saved] && (
-        <p className="mb-6 rounded-2xl border border-positive/25 bg-positive/10 px-4 py-3 text-sm text-positive" role="status">
+        <p className="mt-6 rounded-2xl border border-positive/25 bg-positive/10 px-4 py-3 text-sm text-positive" role="status">
           {MESSAGES[saved]}
         </p>
       )}
       {error && (ERRORS[error] || ((error === "cover" || error === "gallery") && message)) && (
-        <p className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
+        <p className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
           {ERRORS[error] ?? message}
         </p>
       )}
 
-      <Card className="mb-4 p-5 sm:p-6">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-[15px] font-medium">Your profile is {completeness.percent}% complete.</p>
-          <span className="text-sm text-muted-foreground">{completeness.percent}%</span>
+      <Card className="mt-6 overflow-hidden">
+        <div className="p-5 sm:p-6">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[15px] font-medium">Your profile is {completeness.percent}% complete.</p>
+            <span className="text-sm text-muted-foreground">{completeness.percent}%</span>
+          </div>
+          <div
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper-3"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={completeness.percent}
+            aria-label="Profile completeness"
+          >
+            <div className="h-full rounded-full bg-ink" style={{ width: `${completeness.percent}%` }} />
+          </div>
+          {completeness.missing.length > 0 && (
+            <p className="mt-3 text-sm leading-relaxed text-ink-2">
+              Adding {completeness.missing.slice(0, 3).join(", ")} will help colleagues and clients understand your work and
+              refer to you with confidence.
+            </p>
+          )}
         </div>
-        <div
-          className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper-3"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={completeness.percent}
-          aria-label="Profile completeness"
-        >
-          <div className="h-full rounded-full bg-ink" style={{ width: `${completeness.percent}%` }} />
-        </div>
-        {completeness.missing.length > 0 && (
-          <p className="mt-3 text-sm leading-relaxed text-ink-2">
-            Adding {completeness.missing.slice(0, 3).join(", ")} will help colleagues and clients understand your work and
-            refer to you with confidence.
-          </p>
-        )}
-      </Card>
-
-      <Link
-        href="/members/profile/verification"
-        className="mb-10 flex items-center gap-4 rounded-2xl border border-rule bg-card p-5 hover:border-ink/40"
-      >
-        <BadgeCheck className="h-6 w-6 shrink-0 text-positive" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-medium">
+        <Link href="/members/profile/verification" className="flex items-center gap-3 border-t border-rule px-5 py-4 hover:bg-paper-2 sm:px-6">
+          <BadgeCheck className="h-5 w-5 shrink-0 text-positive" />
+          <span className="min-w-0 flex-1 text-[15px]">
             {profile?.isVerified ? "Your credentials are verified." : "Get the verified badge on your profile."}
           </span>
-          <span className="mt-0.5 block text-sm text-muted-foreground">
-            {profile?.isVerified
-              ? "The verified badge shows on your member and directory profiles."
-              : "Upload proof of your qualification and we will check it, so clients and colleagues know your credentials are confirmed."}
-          </span>
-        </span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </Link>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+      </Card>
 
-      <section id="courses" className="mb-10 scroll-mt-20">
+      <section id="courses" className="mt-10 scroll-mt-20">
         <SectionLabel>Courses completed</SectionLabel>
-        {certificates.length === 0 ? (
-          <Link href="/members/learn" className="flex items-center gap-4 rounded-2xl border border-dashed border-rule bg-card p-5 hover:border-ink/40">
-            <Award className="h-6 w-6 shrink-0" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-medium">Complete a course to add a badge to your profile.</span>
-              <span className="mt-0.5 block text-sm text-muted-foreground">
-                Each course you finish shows on your member and directory profiles, linked to a certificate anyone can check.
+        <div className="overflow-hidden rounded-2xl border border-rule bg-card">
+          {certificates.length === 0 ? (
+            <Link href="/members/learn" className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-paper-2 sm:px-5">
+              <Award className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-medium">Complete a course to add a badge to your profile.</span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">
+                  Each course you finish shows on your member and directory profiles, linked to a certificate anyone can check.
+                </span>
               </span>
-            </span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        ) : (
-          <Card className="divide-y divide-rule">
-            {certificates.map((c) => (
-              <div key={c.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          ) : (
+            certificates.map((c) => (
+              <div key={c.id} className="flex flex-col gap-3 border-b border-rule px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <Link href={`/members/courses/${c.courseSlug}/certificate`} className="flex min-w-0 items-center gap-3">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-paper">
                     <Award className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block font-medium leading-snug">{c.courseTitle}</span>
+                    <span className="block text-[15px] font-medium leading-snug">{c.courseTitle}</span>
                     <span className="block text-sm text-muted-foreground">
                       {c.hours} hours CPD · {c.showOnProfile ? "Showing on your profile" : "Hidden from your profile"}
                     </span>
@@ -333,292 +329,347 @@ export default async function ProfilePage({
                   </SubmitButton>
                 </form>
               </div>
-            ))}
-          </Card>
-        )}
-      </section>
-
-      <section id="about" className="scroll-mt-20">
-        <SectionLabel>About you</SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <form action={saveMemberDetails} className="flex flex-col gap-4">
-            <Field label="Name">
-              <input name="name" required minLength={2} defaultValue={user.name ?? ""} autoComplete="name" className={cn(fieldClass, "h-12")} />
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Discipline">
-                <select name="profession" defaultValue={profession ?? ""} className={cn(fieldClass, "h-12")}>
-                  <option value="" disabled>
-                    Choose one
-                  </option>
-                  {PROFESSIONS.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Chapter">
-                <select name="chapter" defaultValue={user.chapter?.slug ?? "none"} className={cn(fieldClass, "h-12")}>
-                  {chapters.map((c) => (
-                    <option key={c.slug} value={c.slug}>
-                      {c.city}
-                    </option>
-                  ))}
-                  <option value="none">None near me yet</option>
-                </select>
-              </Field>
-            </div>
-            <SubmitButton className="self-start">Save</SubmitButton>
-          </form>
-        </Card>
-      </section>
-
-      <section id="photo" className="mt-10 scroll-mt-20">
-        <SectionLabel>Photo</SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <form action={saveProfilePhotoAction} className="flex flex-col gap-4">
-            <ImageUpload
-              name="photo"
-              currentUrl={photoUrl}
-              shape="circle"
-              label={photoUrl ? "Choose a new photo" : "Choose a photo"}
-              hint="A clear, square head-and-shoulders photo works best. JPEG, PNG or WebP, up to 8MB."
-              removeName="removePhoto"
-            />
-            <SubmitButton className="self-start" pending="Uploading…">
-              Save photo
-            </SubmitButton>
-          </form>
-        </Card>
-      </section>
-
-      {fullProfile && (
-        <>
-          <section id="cover" className="mt-10 scroll-mt-20">
-            <SectionLabel>Cover photo</SectionLabel>
-            <Card className="p-5 sm:p-6">
-              <form action={saveProfileCoverAction} className="flex flex-col gap-4">
-                <ImageUpload
-                  name="cover"
-                  currentUrl={coverUrl}
-                  shape="wide"
-                  label={coverUrl ? "Choose a new cover photo" : "Choose a cover photo"}
-                  hint="A wide landscape photo of your clinic, salon or treatment room runs across the top of your public profile. JPEG, PNG or WebP, up to 8MB."
-                  removeName="removeCover"
-                />
-                <SubmitButton className="self-start" pending="Uploading…">
-                  Save cover photo
-                </SubmitButton>
-              </form>
-            </Card>
-          </section>
-
-          <section id="gallery" className="mt-10 scroll-mt-20">
-            <SectionLabel>Photos</SectionLabel>
-            <Card className="p-5 sm:p-6">
-              <p className="mb-5 text-[15px] leading-relaxed text-ink-2">
-                Show clients your space, your equipment and your team. Your first photo is shown first, and clients can open each one
-                full screen on your profile.
-              </p>
-              <PhotoManager
-                action={saveProfileGalleryAction}
-                photos={galleryPhotos.map((p) => ({ id: p.id, url: p.url, caption: p.caption }))}
-                limit={PRACTITIONER.photos}
-                addHint="A JPEG, PNG or WebP up to 8MB. Please don't include clients without their written consent."
-              />
-            </Card>
-          </section>
-        </>
-      )}
-
-      <section id="practice" className="mt-10 scroll-mt-20">
-        <SectionLabel>Practice</SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <form action={saveProfileSection} className="flex flex-col gap-4">
-            <input type="hidden" name="section" value="practice" />
-            <IdentityFields profile={profile} fallbackCity={user.chapter?.city} />
-            <PracticeFields profile={profile} withBio />
-            {!fullProfile && (
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                These details are saved to your member profile straight away. Your headline, photo, services and website
-                appear in the public directory while you have a full profile.
-              </p>
-            )}
-            <SubmitButton className="self-start">Save practice details</SubmitButton>
-          </form>
-        </Card>
-      </section>
-
-      <section id="qualifications" className="mt-10 scroll-mt-20">
-        <SectionLabel>Qualifications and memberships</SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <form action={saveProfileSection} className="flex flex-col gap-5">
-            <input type="hidden" name="section" value="qualifications" />
-            <QualificationFields profile={profile} />
-            <SubmitButton className="self-start">Save qualifications</SubmitButton>
-          </form>
-        </Card>
-      </section>
-
-      <section id="contact" className="mt-10 scroll-mt-20">
-        <SectionLabel>Contact and address</SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <form action={saveProfileSection} className="flex flex-col gap-5">
-            <input type="hidden" name="section" value="contact" />
-            <ContactFields profile={profile} />
-            <SubmitButton className="self-start">Save contact details</SubmitButton>
-          </form>
-        </Card>
-      </section>
-
-      <section id="goals" className="mt-10 scroll-mt-20">
-        <SectionLabel>Goals and interests</SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <form action={saveProfileSection} className="flex flex-col gap-5">
-            <input type="hidden" name="section" value="goals" />
-            <p className="text-sm leading-relaxed text-ink-2">
-              Only you can see these. We use them to suggest people, discussions and learning that match what you want.
-            </p>
-            <GoalsFields profile={profile} />
-            <SubmitButton className="self-start">Save goals and interests</SubmitButton>
-          </form>
-        </Card>
-      </section>
-
-      {fullProfile ? (
-        <section id="listing" className="mt-10 scroll-mt-20">
-          <SectionLabel
-            action={
-              publicHref ? (
-                <Link href={publicHref} className="inline-flex min-h-10 items-center gap-1 text-sm text-ink-2 hover:underline">
-                  View <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              ) : undefined
-            }
-          >
-            Directory profile visibility
-          </SectionLabel>
-          <Card className="p-5 sm:p-6">
-            <p className="mb-5 text-sm leading-relaxed text-ink-2">
-              Your directory listing is filled from the profile above, including your photo, headline, practice,
-              specialisms, services, qualifications and website. Enquiries come straight to you here. Your phone number and
-              address stay private unless you choose to show them in Contact and address.
-            </p>
-            {!profession ? (
-              <p className="rounded-xl bg-paper-2 p-4 text-sm text-ink-2">
-                Choose your discipline in About you first, then you can publish your directory profile.
-              </p>
-            ) : (
-              <form action={publishMemberListing} className="flex flex-col gap-4">
-                <input type="hidden" name="next" value="/members/profile?saved=listing#listing" />
-                {listing && (
-                  <p className="text-sm text-ink-2">
-                    {listing.status === "listed"
-                      ? "Your listing is live in the directory."
-                      : listing.status === "pending"
-                        ? "Your listing is waiting for a quick check by our team before it goes live."
-                        : "Your listing is not public yet. Publishing sends it to the directory."}
-                    {listing.kind !== "member" && listing.freeUntil && trialDaysLeft(listing) > 0
-                      ? ` Your full profile is included for another ${trialDaysLeft(listing)} days.`
-                      : ""}
-                  </p>
-                )}
-                <SubmitButton className="self-start" pending="Publishing…">
-                  {listing ? "Update my directory listing" : "Publish to the directory"}
-                </SubmitButton>
-              </form>
-            )}
-          </Card>
-        </section>
-      ) : (
-        <section className="mt-10">
-          <ProfessionalUpsell
-            title="Be found, and hear from clients directly"
-            body="Professional turns your listing into a full profile and adds the tools that bring you referrals."
-            points={[
-              "A full directory profile with photo, services and website",
-              "Enquiries from the public sent straight to you",
-              "The Case Room for anonymised case discussion",
-              "The referral network and the Assistant",
-            ]}
-          />
-        </section>
-      )}
-
-      <section id="emails" className="mt-10 scroll-mt-20">
-        <SectionLabel>Email preferences</SectionLabel>
-        <Card className="p-5 sm:p-6">
-          <form action={saveEmailPreferences} className="flex flex-col gap-5">
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                name="emailUpdates"
-                defaultChecked={user.emailUpdates}
-                className="mt-1 h-5 w-5 shrink-0 accent-ink"
-              />
-              <span className="flex flex-col gap-1">
-                <span className="text-[15px] font-medium">News and new releases</span>
-                <span className="text-sm text-muted-foreground">
-                  The monthly newsletter, and an email when a new Trichozette edition, course or event is released.
-                </span>
-              </span>
-            </label>
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                name="emailActivity"
-                defaultChecked={user.emailActivity}
-                className="mt-1 h-5 w-5 shrink-0 accent-ink"
-              />
-              <span className="flex flex-col gap-1">
-                <span className="text-[15px] font-medium">Replies and messages</span>
-                <span className="text-sm text-muted-foreground">
-                  An email when someone replies to your post or sends you a private message. You&apos;ll always see them in
-                  the app.
-                </span>
-              </span>
-            </label>
-            <p className="text-sm text-muted-foreground">
-              Emails about your account, event bookings and payments are always sent to {user.email ?? "your email address"}.
-            </p>
-            <SubmitButton className="self-start">Save email preferences</SubmitButton>
-          </form>
-        </Card>
-      </section>
-
-      <section id="enquiries" className="mt-10 scroll-mt-20">
-        <SectionLabel>Enquiries</SectionLabel>
-        {!fullProfile ? (
-          <Card className="p-5 text-sm leading-relaxed text-ink-2">
-            {enquiries.length > 0
-              ? `${enquiries.length} ${enquiries.length === 1 ? "enquiry is" : "enquiries are"} waiting for your listing. They are held until you join the Professional plan.`
-              : "When a member of the public contacts you through the directory, it will appear here once you're on Professional."}
-          </Card>
-        ) : enquiries.length === 0 ? (
-          <Card className="p-5 text-sm leading-relaxed text-muted-foreground">
-            No enquiries yet. A clear headline, a list of services and a photo make it easier for people to reach out.
-          </Card>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {enquiries.map((e) => (
-              <li key={e.id} className="rounded-2xl border border-rule bg-card p-4 sm:p-5">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium">{e.name}</p>
-                  <p className="text-xs text-muted-foreground">{shortDate(e.createdAt)}</p>
-                </div>
-                <a href={`mailto:${e.email}`} className="text-sm text-ink-2 underline underline-offset-4">
-                  {e.email}
-                </a>
-                <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{e.message}</p>
-              </li>
-            ))}
-          </ul>
-        )}
+            ))
+          )}
+        </div>
       </section>
 
       <section className="mt-10">
-        <SectionLabel>Everything else</SectionLabel>
+        <SectionLabel>Your profile</SectionLabel>
+        <div className="overflow-hidden rounded-2xl border border-rule bg-card">
+          <Fold
+            id="about"
+            title="About you"
+            hint={[profession && professionById(profession)?.label, user.chapter?.city].filter(Boolean).join(" · ") || notYet}
+            open={isOpen("about")}
+          >
+            <form action={saveMemberDetails} className="flex flex-col gap-4">
+              <Field label="Name">
+                <input name="name" required minLength={2} defaultValue={user.name ?? ""} autoComplete="name" className={cn(fieldClass, "h-12")} />
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Discipline">
+                  <select name="profession" defaultValue={profession ?? ""} className={cn(fieldClass, "h-12")}>
+                    <option value="" disabled>
+                      Choose one
+                    </option>
+                    {PROFESSIONS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Chapter">
+                  <select name="chapter" defaultValue={user.chapter?.slug ?? "none"} className={cn(fieldClass, "h-12")}>
+                    {chapters.map((c) => (
+                      <option key={c.slug} value={c.slug}>
+                        {c.city}
+                      </option>
+                    ))}
+                    <option value="none">None near me yet</option>
+                  </select>
+                </Field>
+              </div>
+              <SubmitButton className="self-start">Save</SubmitButton>
+            </form>
+          </Fold>
+
+          <Fold id="photo" title="Photo" hint={photoUrl ? "Added" : notYet} open={isOpen("photo")}>
+            <form action={saveProfilePhotoAction} className="flex flex-col gap-4">
+              <ImageUpload
+                name="photo"
+                currentUrl={photoUrl}
+                shape="circle"
+                label={photoUrl ? "Choose a new photo" : "Choose a photo"}
+                hint="A clear, square head-and-shoulders photo works best. JPEG, PNG or WebP, up to 8MB."
+                removeName="removePhoto"
+              />
+              <SubmitButton className="self-start" pending="Uploading…">
+                Save photo
+              </SubmitButton>
+            </form>
+          </Fold>
+
+          <Fold
+            id="practice"
+            title="Practice"
+            hint={[profile?.headline, profile?.city].filter(Boolean).join(" · ") || notYet}
+            open={isOpen("practice")}
+          >
+            <form action={saveProfileSection} className="flex flex-col gap-4">
+              <input type="hidden" name="section" value="practice" />
+              <IdentityFields profile={profile} fallbackCity={user.chapter?.city} />
+              <PracticeFields profile={profile} withBio />
+              {!fullProfile && (
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  These details are saved to your member profile straight away. Your headline, photo, services and website
+                  appear in the public directory while you have a full profile.
+                </p>
+              )}
+              <SubmitButton className="self-start">Save practice details</SubmitButton>
+            </form>
+          </Fold>
+
+          <Fold
+            id="qualifications"
+            title="Qualifications and memberships"
+            hint={
+              qualificationCount || profile?.memberships.length
+                ? [
+                    qualificationCount && count(qualificationCount, "qualification", "qualifications"),
+                    profile?.memberships.length && profile.memberships.join(", "),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : notYet
+            }
+            open={isOpen("qualifications")}
+          >
+            <form action={saveProfileSection} className="flex flex-col gap-5">
+              <input type="hidden" name="section" value="qualifications" />
+              <QualificationFields profile={profile} />
+              <SubmitButton className="self-start">Save qualifications</SubmitButton>
+            </form>
+          </Fold>
+
+          <Fold id="contact" title="Contact and address" hint="Private unless you choose to show it" open={isOpen("contact")}>
+            <form action={saveProfileSection} className="flex flex-col gap-5">
+              <input type="hidden" name="section" value="contact" />
+              <ContactFields profile={profile} />
+              <SubmitButton className="self-start">Save contact details</SubmitButton>
+            </form>
+          </Fold>
+
+          <Fold id="goals" title="Goals and interests" hint="Only you can see these" open={isOpen("goals")}>
+            <form action={saveProfileSection} className="flex flex-col gap-5">
+              <input type="hidden" name="section" value="goals" />
+              <p className="text-sm leading-relaxed text-ink-2">
+                We use these to suggest people, discussions and learning that match what you want.
+              </p>
+              <GoalsFields profile={profile} />
+              <SubmitButton className="self-start">Save goals and interests</SubmitButton>
+            </form>
+          </Fold>
+
+          {fullProfile && (
+            <>
+              <Fold id="cover" title="Cover photo" hint={coverUrl ? "Added" : notYet} open={isOpen("cover")}>
+                <form action={saveProfileCoverAction} className="flex flex-col gap-4">
+                  <ImageUpload
+                    name="cover"
+                    currentUrl={coverUrl}
+                    shape="wide"
+                    label={coverUrl ? "Choose a new cover photo" : "Choose a cover photo"}
+                    hint="A wide landscape photo of your clinic, salon or treatment room runs across the top of your public profile. JPEG, PNG or WebP, up to 8MB."
+                    removeName="removeCover"
+                  />
+                  <SubmitButton className="self-start" pending="Uploading…">
+                    Save cover photo
+                  </SubmitButton>
+                </form>
+              </Fold>
+
+              <Fold
+                id="gallery"
+                title="Photos of your practice"
+                hint={galleryPhotos.length ? count(galleryPhotos.length, "photo", "photos") : notYet}
+                open={isOpen("gallery")}
+              >
+                <p className="mb-5 text-[15px] leading-relaxed text-ink-2">
+                  Show clients your space, your equipment and your team. Your first photo is shown first, and clients can open
+                  each one full screen on your profile.
+                </p>
+                <PhotoManager
+                  action={saveProfileGalleryAction}
+                  photos={galleryPhotos.map((p) => ({ id: p.id, url: p.url, caption: p.caption }))}
+                  limit={PRACTITIONER.photos}
+                  addHint="A JPEG, PNG or WebP up to 8MB. Please don't include clients without their written consent."
+                />
+              </Fold>
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <SectionLabel
+          action={
+            publicHref ? (
+              <Link href={publicHref} className="inline-flex min-h-10 items-center gap-1 text-sm text-ink-2 hover:underline">
+                View <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : undefined
+          }
+        >
+          Directory and enquiries
+        </SectionLabel>
+        {!fullProfile && (
+          <div className="mb-4">
+            <ProfessionalUpsell
+              title="Be found, and hear from clients directly"
+              body="Professional turns your listing into a full profile and adds the tools that bring you referrals."
+              points={[
+                "A full directory profile with photo, services and website",
+                "Enquiries from the public sent straight to you",
+                "The Case Room for anonymised case discussion",
+                "The referral network and the Assistant",
+              ]}
+            />
+          </div>
+        )}
+        <div className="overflow-hidden rounded-2xl border border-rule bg-card">
+          {fullProfile && (
+            <Fold
+              id="listing"
+              title="Directory profile"
+              hint={
+                listing?.status === "listed"
+                  ? "Live in the directory"
+                  : listing?.status === "pending"
+                    ? "Waiting for a quick check"
+                    : "Not public yet"
+              }
+              open={isOpen("listing")}
+            >
+              <p className="mb-5 text-sm leading-relaxed text-ink-2">
+                Your directory listing is filled from your profile, including your photo, headline, practice, specialisms,
+                services, qualifications and website. Enquiries come straight to you here. Your phone number and address stay
+                private unless you choose to show them in Contact and address.
+              </p>
+              {!profession ? (
+                <p className="rounded-xl bg-paper-2 p-4 text-sm text-ink-2">
+                  Choose your discipline in About you first, then you can publish your directory profile.
+                </p>
+              ) : (
+                <form action={publishMemberListing} className="flex flex-col gap-4">
+                  <input type="hidden" name="next" value="/members/profile?saved=listing#listing" />
+                  {listing && (
+                    <p className="text-sm text-ink-2">
+                      {listing.status === "listed"
+                        ? "Your listing is live in the directory."
+                        : listing.status === "pending"
+                          ? "Your listing is waiting for a quick check by our team before it goes live."
+                          : "Your listing is not public yet. Publishing sends it to the directory."}
+                      {listing.kind !== "member" && listing.freeUntil && trialDaysLeft(listing) > 0
+                        ? ` Your full profile is included for another ${trialDaysLeft(listing)} days.`
+                        : ""}
+                    </p>
+                  )}
+                  <SubmitButton className="self-start" pending="Publishing…">
+                    {listing ? "Update my directory listing" : "Publish to the directory"}
+                  </SubmitButton>
+                </form>
+              )}
+            </Fold>
+          )}
+
+          <Fold
+            id="enquiries"
+            title="Enquiries"
+            hint={enquiries.length ? count(enquiries.length, "enquiry", "enquiries") : "None yet"}
+            open={isOpen("enquiries")}
+          >
+            {!fullProfile ? (
+              <p className="text-sm leading-relaxed text-ink-2">
+                {enquiries.length > 0
+                  ? `${enquiries.length} ${enquiries.length === 1 ? "enquiry is" : "enquiries are"} waiting for your listing. They are held until you join the Professional plan.`
+                  : "When a member of the public contacts you through the directory, it will appear here once you're on Professional."}
+              </p>
+            ) : enquiries.length === 0 ? (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                No enquiries yet. A clear headline, a list of services and a photo make it easier for people to reach out.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {enquiries.map((e) => (
+                  <li key={e.id} className="rounded-2xl border border-rule bg-paper p-4 sm:p-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="font-medium">{e.name}</p>
+                      <p className="text-xs text-muted-foreground">{shortDate(e.createdAt)}</p>
+                    </div>
+                    <a href={`mailto:${e.email}`} className="text-sm text-ink-2 underline underline-offset-4">
+                      {e.email}
+                    </a>
+                    <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{e.message}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Fold>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <SectionLabel>Account</SectionLabel>
+        <div className="overflow-hidden rounded-2xl border border-rule bg-card">
+          <Link href="/members/billing" className="flex min-h-14 items-center gap-3 border-b border-rule px-4 py-3 hover:bg-paper-2 sm:px-5">
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium">Plan and billing</span>
+              <span className="mt-0.5 block truncate text-sm text-muted-foreground">{(ctx.allowed && plan) || "Free account"}</span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Fold
+            id="emails"
+            title="Email preferences"
+            hint={
+              user.emailUpdates && user.emailActivity
+                ? "News, replies and messages"
+                : user.emailUpdates
+                  ? "News and new releases only"
+                  : user.emailActivity
+                    ? "Replies and messages only"
+                    : "Account emails only"
+            }
+            open={isOpen("emails")}
+          >
+            <form action={saveEmailPreferences} className="flex flex-col gap-5">
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  name="emailUpdates"
+                  defaultChecked={user.emailUpdates}
+                  className="mt-1 h-5 w-5 shrink-0 accent-ink"
+                />
+                <span className="flex flex-col gap-1">
+                  <span className="text-[15px] font-medium">News and new releases</span>
+                  <span className="text-sm text-muted-foreground">
+                    The monthly newsletter, and an email when a new Trichozette edition, course or event is released.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  name="emailActivity"
+                  defaultChecked={user.emailActivity}
+                  className="mt-1 h-5 w-5 shrink-0 accent-ink"
+                />
+                <span className="flex flex-col gap-1">
+                  <span className="text-[15px] font-medium">Replies and messages</span>
+                  <span className="text-sm text-muted-foreground">
+                    An email when someone replies to your post or sends you a private message. You&apos;ll always see them in
+                    the app.
+                  </span>
+                </span>
+              </label>
+              <p className="text-sm text-muted-foreground">
+                Emails about your account, event bookings and payments are always sent to {user.email ?? "your email address"}.
+              </p>
+              <SubmitButton className="self-start">Save email preferences</SubmitButton>
+            </form>
+          </Fold>
+          <Link href="/members/notifications" className="flex min-h-14 items-center gap-3 px-4 py-3 text-[15px] font-medium hover:bg-paper-2 sm:px-5">
+            <span className="flex-1">Notifications</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Phones have no side rail, so everything else in the member area is listed here. */}
+      <section className="mt-10 lg:hidden">
+        <SectionLabel>More</SectionLabel>
         <ul className="overflow-hidden rounded-2xl border border-rule bg-card">
           {links.map(({ href, label, icon: Icon }) => (
             <li key={href} className="border-b border-rule last:border-0">
@@ -630,25 +681,13 @@ export default async function ProfilePage({
             </li>
           ))}
         </ul>
-        <form action={signOutAction} className="mt-4">
-          <SubmitButton variant="ghost" size="default" pending="Signing out…">
-            Sign out
-          </SubmitButton>
-        </form>
       </section>
-      </div>
-      <nav aria-label="Profile sections" className="hidden lg:block">
-        <div className="sticky top-24 space-y-1 border-l border-rule pl-4">
-          <p className="pb-2 text-xs font-medium text-muted-foreground">On this page</p>
-          {sections.map((sec) => (
-            <a key={sec.id} href={`#${sec.id}`} className="block py-1 text-sm text-ink-2 hover:text-ink">
-              {sec.label}
-            </a>
-          ))}
-          <p className="pt-4 text-xs leading-relaxed text-muted-foreground">Your profile is {completeness.percent}% complete.</p>
-        </div>
-      </nav>
-      </div>
+
+      <form action={signOutAction} className="mt-6">
+        <SubmitButton variant="ghost" size="default" pending="Signing out…">
+          Sign out
+        </SubmitButton>
+      </form>
     </MemberPage>
   );
 }
