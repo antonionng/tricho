@@ -47,17 +47,19 @@ export function ShowcaseFields({ step, page }: { step: "logo" | "story" | "offer
             hint="A wide landscape photo up to 8MB, at least 2000 pixels across. It runs across the top of your page."
             removeName="removeCover"
           />
-          <Field label="Brand colour" hint="Your page's main colour. We choose white or black text on it automatically, so it always reads clearly.">
-            <span className="flex items-center gap-3">
-              <input
-                type="color"
-                name="accentColor"
-                defaultValue={safeHex(page?.accentColor, "#0B0B0B").toLowerCase()}
-                className="h-12 w-20 cursor-pointer rounded-xl border border-rule bg-card p-1"
-              />
-              <span className="text-sm text-muted-foreground">Pick a colour, or use the hex code from your brand guidelines.</span>
-            </span>
-          </Field>
+          {allow.colour && (
+            <Field label="Brand colour" hint="Your page's main colour. We choose white or black text on it automatically, so it always reads clearly.">
+              <span className="flex items-center gap-3">
+                <input
+                  type="color"
+                  name="accentColor"
+                  defaultValue={safeHex(page?.accentColor, "#0B0B0B").toLowerCase()}
+                  className="h-12 w-20 cursor-pointer rounded-xl border border-rule bg-card p-1"
+                />
+                <span className="text-sm text-muted-foreground">Pick a colour, or use the hex code from your brand guidelines.</span>
+              </span>
+            </Field>
+          )}
         </>
       )}
 

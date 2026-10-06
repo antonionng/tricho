@@ -38,8 +38,8 @@ const INTRO: Record<SetupStepId, { title: string; lede: string }> = {
     lede: "Your name, category and a short description appear on your partner page, so trichologists and hair professionals can see at a glance whether you are relevant to their work.",
   },
   logo: {
-    title: "Make your page look like your brand.",
-    lede: "Your logo, a wide cover photo and your brand colour set the look of your whole page, so professionals recognise you the moment it opens.",
+    title: "Make your page instantly recognisable.",
+    lede: "Your logo and a wide cover photo sit at the top of your page, so professionals recognise you the moment it opens.",
   },
   story: {
     title: "Tell professionals your story.",

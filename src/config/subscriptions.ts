@@ -98,7 +98,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
       process.env.STRIPE_PRICE_ID_BUSINESS_LUXURY,
     ],
     features: [
-      "Be found in the directory with a full business page in your own colours, with your story, products and services, and up to 8 photos",
+      "Be found in the directory with a full business page with your story, products and services, and up to 8 photos",
       "Give five of your team Professional membership",
       "Advertise roles on the jobs board to trained hair and scalp professionals",
       "Offer members a perk and put your products in front of practitioners",
