@@ -13,6 +13,7 @@ import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib
 import { cookies } from "next/headers";
 import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
 import { checkoutSignInUser } from "@/lib/signin-email";
+import { mobileAuthSession } from "@/lib/mobile/session";
 
 /** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
 async function recordSignupSource(userId: string | undefined) {
@@ -106,12 +107,7 @@ if (isDevOrDemo()) {
   );
 }
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+const nextAuth = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   ...authConfig,
@@ -170,3 +166,22 @@ export const {
     },
   },
 });
+
+export const {
+  handlers: { GET, POST },
+  signIn,
+  signOut,
+} = nextAuth;
+
+/**
+ * The signed-in member. The app sends a bearer token instead of a cookie, so a
+ * request from the phone is answered by the same server actions and helpers as
+ * the website. Called with arguments (as middleware), it is NextAuth's own.
+ */
+export const auth = (async (...args: unknown[]) => {
+  if (args.length === 0) {
+    const mobile = await mobileAuthSession();
+    if (mobile) return mobile;
+  }
+  return (nextAuth.auth as (...a: unknown[]) => unknown)(...args);
+}) as typeof nextAuth.auth;

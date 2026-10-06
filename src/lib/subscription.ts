@@ -62,6 +62,25 @@ export function resolveMembership(user: {
   };
 }
 
+/** A membership bought in the iOS or Android app, from the fields the RevenueCat webhook keeps up to date. */
+export function resolveStoreMembership(user: {
+  storePlan?: string | null;
+  storeCurrentPeriodEnd?: Date | null;
+}): MembershipStatus {
+  const end = user.storeCurrentPeriodEnd ?? null;
+  const tier = subscriptionTiers.find((t) => t.id === user.storePlan);
+  const isActive = !!tier && !!end && end.getTime() + GRACE_PERIOD_MS > Date.now();
+  return { isActive, tierId: tier?.id, tierName: tier?.name, currentPeriodEnd: end };
+}
+
+const PLAN_RANK: Record<string, number> = { community: 1, professional: 2, business: 3 };
+
+/** The stronger of two memberships: an active one first, then the higher plan. */
+export function betterMembership(a: MembershipStatus, b: MembershipStatus): MembershipStatus {
+  if (a.isActive !== b.isActive) return a.isActive ? a : b;
+  return (PLAN_RANK[b.tierId ?? ""] ?? 0) > (PLAN_RANK[a.tierId ?? ""] ?? 0) ? b : a;
+}
+
 /**
  * Local development can treat any signed-in user as a member so the product
  * is usable before Stripe price IDs are connected. Never active in production.
@@ -87,10 +106,18 @@ export async function getMembershipByEmail(
 
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { stripePriceId: true, stripeCurrentPeriodEnd: true, compPlan: true, compUntil: true },
+    select: {
+      stripePriceId: true,
+      stripeCurrentPeriodEnd: true,
+      compPlan: true,
+      compUntil: true,
+      storePlan: true,
+      storeCurrentPeriodEnd: true,
+    },
   });
 
-  const own = user ? resolveMembership(user) : ({ isActive: false } as MembershipStatus);
+  // Paid on the website through Stripe, or in the app through the App Store or Google Play.
+  const own = user ? betterMembership(resolveMembership(user), resolveStoreMembership(user)) : ({ isActive: false } as MembershipStatus);
   if (own.isActive && own.tierId !== "community") return own;
   // A complimentary Professional or Business plan comes before a business seat; a complimentary Community plan after it.
   const comp = user ? resolveComp(user) : null;
@@ -117,7 +144,15 @@ async function checkBusinessAccount(email: string) {
   const [user, premium] = await Promise.all([
     prisma.user.findUnique({
       where: { email },
-      select: { plan: true, stripePriceId: true, stripeCurrentPeriodEnd: true, compPlan: true, compUntil: true },
+      select: {
+        plan: true,
+        stripePriceId: true,
+        stripeCurrentPeriodEnd: true,
+        compPlan: true,
+        compUntil: true,
+        storePlan: true,
+        storeCurrentPeriodEnd: true,
+      },
     }),
     prisma.partner.findFirst({ where: { ownerEmail: email, tier: "premium", hidden: false }, select: { id: true } }),
   ]);
@@ -125,6 +160,8 @@ async function checkBusinessAccount(email: string) {
   if (!user) return false;
   // A complimentary Business plan counts exactly like a paid one, seats included.
   if (resolveComp(user)?.tierId === "business") return true;
+  const store = resolveStoreMembership(user);
+  if (store.isActive && store.tierId === "business") return true;
   return user.plan === "business" && resolveMembership(user).isActive;
 }
 

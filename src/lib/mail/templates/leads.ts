@@ -39,6 +39,25 @@ export function signInLinkEmail({ url }: { url: string }): Email {
   };
 }
 
+/** The six-digit code for signing in on the app. */
+export function signInCodeEmail({ code }: { code: string }): Email {
+  return {
+    subject: `${code} is your Trichollective sign-in code`,
+    content: {
+      preheader: "Enter this code in the app to sign in. It works once and expires in 10 minutes.",
+      eyebrow: "Sign in",
+      heading: `Your code to sign in to the Trichollective app is ${code}.`,
+      body: [
+        "Type this code into the app on your phone and you will be signed in. There is no password to remember.",
+        "The code works once and expires in 10 minutes. If it has expired, you can ask the app for a new one.",
+        "If you didn't ask for this, you can ignore this email. Nobody can sign in without access to your inbox.",
+      ].join("\n\n"),
+      signoff: null,
+      reason: "You receive this because someone asked to sign in to the Trichollective app with this email address.",
+    },
+  };
+}
+
 /** A new free account, created on first sign-in. */
 export function welcomeFreeAccountEmail({ name }: { name?: string | null }): Email {
   return {
@@ -418,6 +437,7 @@ const sampleEnquiry: PartnerEnquiry = {
 
 export const samples: EmailSample[] = [
   sample("sign-in-link", "Sign-in link", "Sent when someone asks to sign in with their email address.", "everyone", signInLinkEmail({ url: `${site.url}/api/auth/callback/resend?token=sample` })),
+  sample("sign-in-code", "App sign-in code", "Sent when someone signs in on the iPhone or Android app.", "everyone", signInCodeEmail({ code: "428913" })),
   sample("welcome-free-account", "Welcome to a free account", "Sent when someone creates a free account by signing in for the first time.", "practitioners", welcomeFreeAccountEmail({ name: "Niamh Walsh" })),
   ownerSample("alert-new-account", "New free account", "Sent to the owners when someone creates a free account.", newAccountAlert({ name: "Niamh Walsh", email: "niamh@example.com" })),
   sample("starter-guide", "Starter guide", "Sent when someone asks for the starter guide.", "public", starterGuideEmail()),

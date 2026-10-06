@@ -173,6 +173,14 @@ model User {
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
+  /// A membership bought in the iOS or Android app, kept in sync by the RevenueCat webhook.
+  storePlan              Plan?
+  /// "app_store" or "play_store".
+  storeSource            String?
+  storeProductId         String?
+  storeCurrentPeriodEnd  DateTime?
+  storeCancelAtPeriodEnd Boolean   @default(false)
+
   plan          Plan?
   isFounding    Boolean   @default(false)
   /// Where they came from when they first paid, e.g. "dublin", "instagram", "facebook".
@@ -213,6 +221,7 @@ model User {
   profilePhotos  ProfilePhoto[]
   verifications  VerificationRequest[] @relation("verificationSubject")
   orgMemberships OrganisationContact[]
+  mobileSessions MobileSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1245,4 +1254,37 @@ model Certificate {
   withdrawnNote String?
 
   @@unique([userId, courseSlug])
+}
+
+/// A signed-in phone. The app keeps the token in the device keychain; only its hash is stored.
+model MobileSession {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  /// "ios" or "android".
+  platform   String?
+  deviceName String?
+  /// Expo push token, set when the member allows notifications on this phone.
+  pushToken  String?
+  lastUsedAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([pushToken])
+}
+
+/// A six-digit code emailed to sign in on the app. Only its hash is stored, and it expires after 10 minutes.
+model LoginCode {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
 }
