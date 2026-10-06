@@ -1,8 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { isBusinessAccount } from "@/lib/subscription";
+import { loadJobPoster } from "../_data";
 import { errorText, SAVED_MESSAGES } from "../messages";
 
 /** The signed-in business, its page and whether its plan is active. */
@@ -10,10 +9,7 @@ export async function loadPoster(next: string) {
   const session = await auth();
   const email = session?.user?.email?.toLowerCase();
   if (!email) redirect(`/login?next=${encodeURIComponent(next)}`);
-  const [page, active] = await Promise.all([
-    prisma.partner.findUnique({ where: { ownerEmail: email } }),
-    isBusinessAccount(email),
-  ]);
+  const { page, active } = await loadJobPoster(email);
   return { email, page, active };
 }
 

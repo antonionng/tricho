@@ -8,9 +8,10 @@ import { AutoRefresh } from "@/components/members/AutoRefresh";
 import { MessageComposer } from "@/components/members/MessageComposer";
 import { shortDate, timeOfDay } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
+import { conversationMessages, getConversation, markConversationRead } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 import { shortName } from "@/lib/names";
+import { threadTitle } from "@/lib/messages-format";
 
 export const metadata = { title: "Messages" };
 
@@ -21,27 +22,18 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   const me = ctx.session.user.id;
 
   const { id } = await params;
-  const convo = await prisma.conversation.findFirst({
-    where: { id, members: { some: { userId: me } } },
-    select: {
-      id: true,
-      members: { select: { userId: true, user: { select: { id: true, name: true, image: true } } } },
-      messages: { orderBy: { createdAt: "asc" }, take: 200, select: { id: true, body: true, createdAt: true, senderId: true } },
-    },
-  });
+  const convo = await getConversation(id, me);
   if (!convo) notFound();
+  const messages = await conversationMessages(id);
 
   // Opening the thread marks it read. Runs again on each poll, which is what we want.
-  await prisma.conversationMember.update({
-    where: { conversationId_userId: { conversationId: id, userId: me } },
-    data: { lastReadAt: new Date() },
-  });
+  await markConversationRead(id, me);
 
-  const others = convo.members.filter((m) => m.userId !== me).map((m) => m.user);
+  const others = convo.others;
   const other = others[0];
-  const thread = convo.messages.map((m, i) => {
+  const thread = messages.map((m, i) => {
     const day = shortDate(m.createdAt);
-    return { ...m, day, showDay: i === 0 || day !== shortDate(convo.messages[i - 1].createdAt) };
+    return { ...m, day, showDay: i === 0 || day !== shortDate(messages[i - 1].createdAt) };
   });
 
   return (
@@ -54,7 +46,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         {other ? (
           <Link href={`/members/people/${other.id}`} className="flex min-w-0 items-center gap-3">
             <Avatar name={other.name} src={other.image} size="sm" />
-            <span className="truncate font-medium">{others.map((o) => o.name || "Member").join(", ")}</span>
+            <span className="truncate font-medium">{threadTitle(others)}</span>
           </Link>
         ) : (
           <span className="font-medium">Conversation</span>
@@ -62,7 +54,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
       </header>
 
       <ol className="flex flex-1 flex-col gap-1.5 py-6" aria-live="polite">
-        {convo.messages.length === 0 && (
+        {messages.length === 0 && (
           <li className="py-10 text-center text-sm text-muted-foreground">
             Say hello. Messages are private between you{other?.name ? ` and ${shortName(other.name)}` : ""}.
           </li>

@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
-import { longDate, monthYear } from "@/components/members/format";
+import { longDate } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
+import { byMonth, publishedGazetteArticles } from "./_data";
 import { getArchive, getEditions } from "@/content/gazette/loader";
 import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
 import { Cover } from "@/components/gazette/Cover";
@@ -18,20 +18,8 @@ export default async function GazettePage() {
   if (!ctx.allowed) return <Paywall title="Trichozette" body="The monthly Trichozette is written for members." />;
 
   const [library, archive] = await Promise.all([getEditions(), getArchive()]);
-  const articles = await prisma.draft.findMany({
-    where: { kind: "gazette_article", status: "published" },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: 120,
-    select: { id: true, title: true, summary: true, publishedAt: true, createdAt: true },
-  });
-
-  const editions: { month: string; items: typeof articles }[] = [];
-  for (const a of articles) {
-    const month = monthYear(a.publishedAt ?? a.createdAt);
-    const last = editions[editions.length - 1];
-    if (last?.month === month) last.items.push(a);
-    else editions.push({ month, items: [a] });
-  }
+  const articles = await publishedGazetteArticles();
+  const editions = byMonth(articles);
 
   return (
     <MemberPage>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MessageCircle, Search } from "lucide-react";
-import type { Prisma, Profession } from "@prisma/client";
 import { Paywall } from "@/components/members/Paywall";
 import { Avatar } from "@/components/members/Avatar";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
@@ -9,9 +8,9 @@ import { FollowButton } from "@/components/members/FollowButton";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { startConversation } from "./actions";
 import { getMemberContext } from "@/lib/member";
-import { memberDirectoryWhere } from "@/lib/community";
-import { prisma } from "@/lib/prisma";
-import { PROFESSIONS, professionById } from "@/config/rooms";
+import { searchMembers } from "@/lib/people";
+import { cleanQuery, personSubtitle } from "@/lib/people-search";
+import { professionById } from "@/config/rooms";
 
 export const metadata = { title: "People" };
 
@@ -25,49 +24,8 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
 
   const { q: rawQ, page: rawPage } = await searchParams;
   const page = Math.max(1, Math.min(500, Number.parseInt(rawPage ?? "1", 10) || 1));
-  const q = (rawQ ?? "").trim().slice(0, 80);
-  const professionMatches = q
-    ? PROFESSIONS.filter(
-        (p) => p.label.toLowerCase().includes(q.toLowerCase()) || p.blurb.toLowerCase().includes(q.toLowerCase())
-      ).map((p) => p.id as Profession)
-    : [];
-
-  const search: Prisma.UserWhereInput | undefined = q
-    ? {
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { chapter: { city: { contains: q, mode: "insensitive" } } },
-          { profile: { location: { contains: q, mode: "insensitive" } } },
-          { profile: { specialization: { contains: q, mode: "insensitive" } } },
-          { profile: { practiceName: { contains: q, mode: "insensitive" } } },
-          { profile: { city: { contains: q, mode: "insensitive" } } },
-          { profile: { headline: { contains: q, mode: "insensitive" } } },
-          { profile: { specialisms: { has: q } } },
-          ...(professionMatches.length ? [{ profile: { profession: { in: professionMatches } } }] : []),
-        ],
-      }
-    : undefined;
-
-  const where: Prisma.UserWhereInput = { AND: [memberDirectoryWhere(), ...(search ? [search] : [])] };
-  const [people, total, following] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      // Newest members first, so people met at a gathering are easy to find.
-      orderBy: [{ onboardedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      select: {
-        id: true,
-        name: true,
-        image: true,
-        isFounding: true,
-        chapter: { select: { city: true } },
-        profile: { select: { profession: true, specialization: true, location: true, city: true, practiceName: true, isVerified: true } },
-      },
-    }),
-    prisma.user.count({ where }),
-    prisma.follow.findMany({ where: { followerId: me }, select: { followeeId: true } }),
-  ]);
+  const q = cleanQuery(rawQ);
+  const { people, total, following: followingSet } = await searchMembers({ me, q, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageHref = (n: number) => {
     const params = new URLSearchParams();
@@ -76,7 +34,6 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
     const qs = params.toString();
     return qs ? `/members/people?${qs}` : "/members/people";
   };
-  const followingSet = new Set(following.map((f) => f.followeeId));
 
   return (
     <MemberPage>
@@ -129,7 +86,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{p.name || "Member"}</span>
                     <span className="block truncate text-[13px] text-muted-foreground">
-                      {[discipline, p.profile?.practiceName || p.profile?.specialization, place].filter(Boolean).join(" · ") || "Member"}
+                      {personSubtitle({ discipline, practiceName: p.profile?.practiceName, specialization: p.profile?.specialization, place })}
                     </span>
                   </span>
                 </Link>

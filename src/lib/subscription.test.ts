@@ -46,3 +46,25 @@ describe("complimentary plans", () => {
     expect(resolveComp({ compPlan: "gold" }, now)).toBeNull();
   });
 });
+
+describe("memberships bought in the app", async () => {
+  const { resolveStoreMembership, betterMembership } = await import("./subscription");
+
+  it("counts an app subscription until its period ends, plus the grace day", () => {
+    expect(resolveStoreMembership({ storePlan: "professional", storeCurrentPeriodEnd: new Date(Date.now() + DAY) })).toMatchObject({
+      isActive: true,
+      tierId: "professional",
+    });
+    expect(resolveStoreMembership({ storePlan: "community", storeCurrentPeriodEnd: new Date(Date.now() - 2 * DAY) }).isActive).toBe(false);
+    expect(resolveStoreMembership({ storePlan: null, storeCurrentPeriodEnd: new Date(Date.now() + DAY) }).isActive).toBe(false);
+  });
+
+  it("prefers an active membership, then the higher plan", () => {
+    const active = { isActive: true, tierId: "community" as const };
+    const lapsed = { isActive: false, tierId: "business" as const };
+    const pro = { isActive: true, tierId: "professional" as const };
+    expect(betterMembership(lapsed, active)).toBe(active);
+    expect(betterMembership(active, pro)).toBe(pro);
+    expect(betterMembership(pro, active)).toBe(pro);
+  });
+});

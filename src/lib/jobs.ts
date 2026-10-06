@@ -38,6 +38,16 @@ export function liveJobWhere(now = new Date()): Prisma.JobWhereInput {
   };
 }
 
+export type JobPhase = "hidden" | "closed" | "ended" | "live";
+
+/** Where a role stands for the business that posted it: taken down, closed, past its date, or live. */
+export function jobPhase(job: { status: string; hiddenAt: Date | null; expiresAt: Date }, now = new Date()): JobPhase {
+  if (job.hiddenAt) return "hidden";
+  if (job.status === "closed") return "closed";
+  if (job.expiresAt <= now) return "ended";
+  return "live";
+}
+
 export function jobExpiry(from = new Date()) {
   return new Date(from.getTime() + JOB_DAYS * 24 * 60 * 60 * 1000);
 }

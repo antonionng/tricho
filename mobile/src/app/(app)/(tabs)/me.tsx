@@ -15,8 +15,7 @@ import {
   UserPlus,
   type LucideIcon,
 } from "lucide-react-native";
-import { Avatar, Button, Card, Heading, Label, Muted, Rule, Screen, Small, Text } from "@/components/ui";
-import { CountDot } from "@/components/ui";
+import { Avatar, Button, Card, Heading, Label, Muted, Rule, Screen, Small, Text , CountDot } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useMe } from "@/lib/me";
 import { colors, space } from "@/theme";

@@ -1,28 +1,12 @@
 import { cn } from "@/lib/utils";
+import { plainTextBlocks } from "@/lib/plain-text";
 
 /**
  * Renders plain text as prose: blank lines separate paragraphs and a line
  * starting with "## " becomes a heading. Nothing is interpreted as HTML.
  */
 export function PlainTextBody({ text, className }: { text: string; className?: string }) {
-  const blocks: { type: "h2" | "p"; text: string }[] = [];
-  let para: string[] = [];
-  const flush = () => {
-    if (para.length) blocks.push({ type: "p", text: para.join("\n") });
-    para = [];
-  };
-  for (const raw of text.replace(/\r\n/g, "\n").split("\n")) {
-    const line = raw.trimEnd();
-    if (line.startsWith("## ")) {
-      flush();
-      blocks.push({ type: "h2", text: line.slice(3).trim() });
-    } else if (!line.trim()) {
-      flush();
-    } else {
-      para.push(line);
-    }
-  }
-  flush();
+  const blocks = plainTextBlocks(text);
 
   return (
     <div className={cn("prose-tricho", className)}>

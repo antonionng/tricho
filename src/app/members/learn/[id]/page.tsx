@@ -7,7 +7,7 @@ import { Paywall } from "@/components/members/Paywall";
 import { MemberPage } from "@/components/members/MemberPage";
 import { PlainTextBody } from "@/components/members/PlainTextBody";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
+import { publishedPiece } from "../_data";
 
 export const metadata = { title: "Learn" };
 
@@ -17,8 +17,8 @@ export default async function LearnPiecePage({ params }: { params: Promise<{ id:
   if (!ctx.allowed) return <Paywall title="Learn" body="The library is part of membership." />;
 
   const { id } = await params;
-  const piece = await prisma.educationPiece.findUnique({ where: { id } });
-  if (!piece || !piece.published) notFound();
+  const piece = await publishedPiece(id);
+  if (!piece) notFound();
 
   const prompt = encodeURIComponent(
     `Help me apply this Trichollective piece in practice: "${piece.title}". Summary: ${piece.summary}`

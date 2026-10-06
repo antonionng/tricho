@@ -1,5 +1,7 @@
 import { BUSINESS_SEATS } from "@/lib/subscription";
 import { MAX_OPEN_JOBS } from "@/lib/jobs";
+import { plural, type StatField } from "@/lib/partner-stats";
+import type { SetupStepId } from "@/lib/business-profile";
 
 /** What the portal and the setup say after a save, keyed by the ?saved= value. */
 export const SAVED_MESSAGES: Record<string, string> = {
@@ -66,3 +68,70 @@ export function errorText(error?: string, message?: string) {
   if ((error === "cap" || error === "logo" || error === "social" || error === "photo" || error === "job-form") && message) return message;
   return ERROR_MESSAGES[error] ?? null;
 }
+
+/** How the portal names the next unfinished step, in a sentence and on its button. */
+export const NEXT_STEP: Record<SetupStepId, { phrase: string; button: string }> = {
+  details: { phrase: "adding your brand details", button: "Add your brand details" },
+  logo: { phrase: "adding your logo, a cover photo and your brand colour", button: "Add your logo and cover" },
+  story: { phrase: "telling your story", button: "Tell your story" },
+  offerings: { phrase: "showing your products and services", button: "Add your products and services" },
+  photos: { phrase: "adding photos to your page", button: "Add photos" },
+  extras: { phrase: "adding a video or a feature section", button: "Add video and features" },
+  contact: { phrase: "adding your contact details", button: "Add your contact details" },
+  address: { phrase: "adding your business address", button: "Add your business address" },
+  perk: { phrase: "offering members a perk", button: "Add a member perk" },
+  team: { phrase: "giving your team their Professional seats", button: "Add your team" },
+  publish: { phrase: "checking your page and publishing it", button: "Preview and publish" },
+};
+
+/** What Premium Business includes, in full sentences, from the plan in src/config/subscriptions.ts. */
+export const PREMIUM_INCLUDES = [
+  "Everything in the Business plan is included, with your business page, five Professional seats and job posts.",
+  "You can run one sponsored masterclass a year, reviewed so that it teaches rather than sells, and it stays in the member library.",
+  "You can co-develop a course with a certificate for members, subject to clinical review.",
+  "You receive one labelled partner feature in Trichozette each year, and a \u201cSupported by\u201d credit on one edition each quarter.",
+  "Your brand is spotlighted in two member newsletters a year.",
+  "You have a talk or demo slot at one conference a year, with sampling or a delegate-bag insert at the others.",
+  "Your member perk has tracked redemptions, and you can run an opt-in product trial panel with structured feedback.",
+  "You receive a quarterly report on how members engaged with your content and perks.",
+  "Your partner page carries the Premium partner badge.",
+];
+
+/** The period the results cover, in days. */
+export const RESULT_DAYS = 30;
+
+/** Each figure in Your results, with what it means in a sentence. Shared by the page and the app. */
+export const RESULT_METRICS: { field: StatField; label: string; explain: (n: number) => string }[] = [
+  {
+    field: "views",
+    label: "Page views",
+    explain: (n) =>
+      n
+        ? `Your partner page was opened ${plural(n, "time", "times")} by people browsing the partner directory.`
+        : "Nobody has opened your partner page in this period yet. A complete page with a clear logo tends to draw more visits.",
+  },
+  {
+    field: "websiteClicks",
+    label: "Website visits",
+    explain: (n) =>
+      n
+        ? `Visitors followed the link from your page to your website ${plural(n, "time", "times")}.`
+        : "Nobody has followed the link to your website yet. Adding your website to your page makes this possible.",
+  },
+  {
+    field: "perkViews",
+    label: "Perk views",
+    explain: (n) =>
+      n
+        ? `Your member perk was shown ${plural(n, "time", "times")} to signed-in members on the Member perks page.`
+        : "Your perk has not been shown to members in this period. Add a perk to your page so members can see it.",
+  },
+  {
+    field: "perkClaims",
+    label: "Perk claims",
+    explain: (n) =>
+      n
+        ? `Members chose Get this offer ${plural(n, "time", "times")} and went to your website to claim it.`
+        : "No member has claimed your perk yet. A clear offer, such as a discount code, usually gets the most claims.",
+  },
+];

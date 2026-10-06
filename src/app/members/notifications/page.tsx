@@ -6,7 +6,7 @@ import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberP
 import { MarkAllRead } from "@/components/members/MarkAllRead";
 import { timeAgo } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
+import { listNotifications } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Notifications" };
@@ -25,11 +25,7 @@ export default async function NotificationsPage() {
   if (!ctx.session?.user?.id) redirect("/login?next=/members/notifications");
   if (!ctx.allowed) return <Paywall title="Notifications" body="Replies, messages and follows appear here once you're a member." />;
 
-  const items = await prisma.notification.findMany({
-    where: { userId: ctx.session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 60,
-  });
+  const { items } = await listNotifications(ctx.session.user.id, { take: 60 });
   const unread = items.some((n) => !n.readAt);
   // Marking read refreshes this page; keep just-read items highlighted for this visit.
   const cutoff = new Date().getTime() - 60_000;

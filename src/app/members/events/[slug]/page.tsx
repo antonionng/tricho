@@ -15,15 +15,14 @@ import {
   formatEventDate,
   formatEventTime,
   formatPrice,
-  publicEventSelect,
 } from "@/components/editorial/events";
-import { holdCutoff, seatsLeft } from "@/lib/tickets";
+import { memberEventStatus } from "@/lib/event-status";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
 import { googleCalendarHref } from "@/lib/calendar-links";
 import { absoluteUrl } from "@/lib/mail/layout";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { shareGoingAction } from "../actions";
+import { memberEventBySlug, visibleAttendees } from "../_data";
 
 export const metadata = { title: "Event" };
 
@@ -41,43 +40,14 @@ export default async function MemberEventPage({
   const userId = ctx.session.user.id;
   const { ticket, shared } = await searchParams;
 
-  const event = await prisma.event.findFirst({
-    where: { slug, published: true },
-    select: {
-      ...publicEventSelect,
-      chapterId: true,
-      joinUrl: true,
-      rsvps: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          userId: true,
-          user: { select: { id: true, name: true, image: true, accessStatus: true, profile: { select: { profession: true } } } },
-        },
-      },
-      tickets: {
-        where: { OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: holdCutoff() } }] },
-        select: { quantity: true, userId: true, status: true },
-      },
-    },
-  });
+  const event = await memberEventBySlug(slug);
   if (!event) notFound();
 
-  const now = new Date().getTime();
-  const started = event.startsAt.getTime() < now;
-  const past = (event.endsAt ?? event.startsAt).getTime() < now;
-  const going = event.rsvps.some((r) => r.userId === userId);
-  const hasTicket = event.tickets.some((t) => t.userId === userId && t.status === "paid");
-  const left = event.sellTickets ? seatsLeft(event, event.tickets, event.rsvps) : null;
-  const full = event.sellTickets ? left === 0 : event.capacity != null && event.rsvps.length >= event.capacity;
+  const { started, past, going, hasTicket, left, full, attending, joinUrl } = memberEventStatus(event, userId);
   const local = !!ctx.chapterId && event.chapterId === ctx.chapterId;
   // You first, then everyone else in the order they said they were going.
-  const attendees = event.rsvps
-    .map((r) => r.user)
-    .filter((u) => u.accessStatus === "active")
-    .sort((a, b) => Number(b.id === userId) - Number(a.id === userId));
-  const attending = going || hasTicket;
-  // The joining link is only ever shown to members who are going.
-  const joinUrl = attending && event.online ? event.joinUrl : null;
+  const attendees = visibleAttendees(event.rsvps, userId);
+  // The joining link is only ever shown to members who are going (memberEventStatus).
   const gcal = googleCalendarHref({ ...event, joinUrl, pageUrl: absoluteUrl(`/members/events/${event.slug}`) });
   const paragraphs = (event.body ?? "")
     .split(/\n\s*\n/)

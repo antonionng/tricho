@@ -1,44 +1,8 @@
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import { Card, SectionLabel } from "@/components/members/MemberPage";
-import { partnerStatsSummary, plural, type StatDay, type StatField } from "@/lib/partner-stats";
-
-const DAYS = 30;
-
-const METRICS: { field: StatField; label: string; explain: (n: number) => string }[] = [
-  {
-    field: "views",
-    label: "Page views",
-    explain: (n) =>
-      n
-        ? `Your partner page was opened ${plural(n, "time", "times")} by people browsing the partner directory.`
-        : "Nobody has opened your partner page in this period yet. A complete page with a clear logo tends to draw more visits.",
-  },
-  {
-    field: "websiteClicks",
-    label: "Website visits",
-    explain: (n) =>
-      n
-        ? `Visitors followed the link from your page to your website ${plural(n, "time", "times")}.`
-        : "Nobody has followed the link to your website yet. Adding your website to your page makes this possible.",
-  },
-  {
-    field: "perkViews",
-    label: "Perk views",
-    explain: (n) =>
-      n
-        ? `Your member perk was shown ${plural(n, "time", "times")} to signed-in members on the Member perks page.`
-        : "Your perk has not been shown to members in this period. Add a perk to your page so members can see it.",
-  },
-  {
-    field: "perkClaims",
-    label: "Perk claims",
-    explain: (n) =>
-      n
-        ? `Members chose Get this offer ${plural(n, "time", "times")} and went to your website to claim it.`
-        : "No member has claimed your perk yet. A clear offer, such as a discount code, usually gets the most claims.",
-  },
-];
+import { partnerStatsSummary, type StatDay, type StatField } from "@/lib/partner-stats";
+import { RESULT_DAYS as DAYS, RESULT_METRICS as METRICS } from "./messages";
 
 /** The brand's results for the last 30 days, with a small daily chart for each figure. */
 export async function Results({ partnerId, published, hasPerk }: { partnerId: string; published: boolean; hasPerk: boolean }) {

@@ -5,7 +5,8 @@ import { Avatar } from "@/components/members/Avatar";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { timeAgo } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
+import { getInbox } from "@/lib/messages";
+import { threadPreview, threadTitle } from "@/lib/messages-format";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Messages" };
@@ -16,29 +17,7 @@ export default async function MessagesPage() {
   if (!ctx.allowed) return <Paywall title="Messages" body="Direct messages between members are part of membership." />;
   const me = ctx.session.user.id;
 
-  const memberships = await prisma.conversationMember.findMany({
-    where: { userId: me },
-    orderBy: { conversation: { updatedAt: "desc" } },
-    take: 50,
-    select: {
-      lastReadAt: true,
-      conversation: {
-        select: {
-          id: true,
-          updatedAt: true,
-          members: { where: { userId: { not: me } }, select: { user: { select: { id: true, name: true, image: true } } } },
-          messages: { orderBy: { createdAt: "desc" }, take: 1, select: { body: true, createdAt: true, senderId: true } },
-        },
-      },
-    },
-  });
-
-  const threads = memberships.map(({ lastReadAt, conversation: c }) => {
-    const last = c.messages[0];
-    const unread = !!last && last.senderId !== me && (!lastReadAt || last.createdAt > lastReadAt);
-    const others = c.members.map((m) => m.user);
-    return { id: c.id, others, last, unread, at: last?.createdAt ?? c.updatedAt };
-  });
+  const threads = await getInbox(me);
 
   return (
     <MemberPage size="narrow">
@@ -56,7 +35,7 @@ export default async function MessagesPage() {
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-rule bg-card">
           {threads.map((t) => {
-            const title = t.others.map((o) => o.name || "Member").join(", ") || "Just you";
+            const title = threadTitle(t.others);
             return (
               <li key={t.id} className="border-b border-rule last:border-0">
                 <Link href={`/members/messages/${t.id}`} className="flex items-center gap-3 px-4 py-4 transition-colors hover:bg-paper-2">
@@ -67,7 +46,7 @@ export default async function MessagesPage() {
                       <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(t.at)}</span>
                     </span>
                     <span className={cn("mt-0.5 block truncate text-sm", t.unread ? "text-ink" : "text-muted-foreground")}>
-                      {t.last ? `${t.last.senderId === me ? "You: " : ""}${t.last.body}` : "No messages yet"}
+                      {threadPreview(t.last, me)}
                     </span>
                   </span>
                   {t.unread && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-ink" aria-label="Unread" />}

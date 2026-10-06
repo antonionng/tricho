@@ -9,7 +9,7 @@ import { CertificateActions } from "@/components/courses/CertificateActions";
 import { longDate } from "@/components/members/format";
 import { courseBySlug } from "@/content/courses";
 import { site } from "@/config/site";
-import { requireLearner } from "../_data";
+import { certificateLinks, requireLearner } from "../_data";
 import { setCertificateOnProfile } from "../actions";
 
 type Params = { slug: string };
@@ -35,16 +35,7 @@ export default async function CertificatePage({ params }: { params: Promise<Para
   const certificate = enrolment?.certificate;
   if (!certificate) redirect(`/members/courses/${slug}`);
 
-  const url = `${site.url.replace(/\/$/, "")}/certificates/${certificate.id}`;
-  const linkedIn = `https://www.linkedin.com/profile/add?${new URLSearchParams({
-    startTask: "CERTIFICATION_NAME",
-    name: certificate.courseTitle,
-    organizationName: site.name,
-    issueYear: String(certificate.issuedAt.getFullYear()),
-    issueMonth: String(certificate.issuedAt.getMonth() + 1),
-    certUrl: url,
-    certId: certificate.id,
-  })}`;
+  const { url, linkedIn } = certificateLinks(certificate);
   const progress = new Map((enrolment.lessons ?? []).map((l) => [l.lessonSlug, l]));
   const withdrawn = !!certificate.withdrawnAt;
 

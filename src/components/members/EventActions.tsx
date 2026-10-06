@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { RsvpButton } from "@/components/members/RsvpButton";
 import { BuyTicket } from "@/components/events/BuyTicket";
+import { bookingMode } from "@/lib/event-status";
 
 /**
  * How a member books an event: buy a ticket here, reserve a free place, or book
@@ -19,23 +20,23 @@ export function EventActions({
   full: boolean;
   started: boolean;
 }) {
-  if (hasTicket) return null;
-  if (started) {
-    return going ? null : (
+  const mode = bookingMode(event, { hasTicket, started, going, full });
+  if (mode === "none") return null;
+  if (mode === "started") {
+    return (
       <span className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm text-muted-foreground">
         This event has started
       </span>
     );
   }
-  if (event.sellTickets && event.memberPriceGBP > 0) {
-    return full ? (
-      <span className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm text-muted-foreground">Sold out</span>
-    ) : (
-      <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} returnTo="members" compact />
-    );
+  if (mode === "sold_out") {
+    return <span className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm text-muted-foreground">Sold out</span>;
+  }
+  if (mode === "buy") {
+    return <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} returnTo="members" compact />;
   }
   // Members pay on an outside ticket page, so the place is booked there rather than here.
-  if (!event.sellTickets && event.ticketUrl && event.memberPriceGBP > 0) {
+  if (mode === "external" && event.ticketUrl) {
     return (
       <a
         href={event.ticketUrl}

@@ -6,7 +6,7 @@ import { MemberPage } from "@/components/members/MemberPage";
 import { PlainTextBody } from "@/components/members/PlainTextBody";
 import { longDate, monthYear } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
+import { gazetteArticle } from "../_data";
 
 export const metadata = { title: "Trichozette" };
 
@@ -16,10 +16,7 @@ export default async function GazetteArticlePage({ params }: { params: Promise<{
   if (!ctx.allowed) return <Paywall title="Trichozette" body="The monthly Trichozette is written for members." />;
 
   const { id } = await params;
-  const article = await prisma.draft.findFirst({
-    where: { id, kind: "gazette_article", status: "published" },
-    select: { title: true, summary: true, body: true, publishedAt: true, createdAt: true },
-  });
+  const article = await gazetteArticle(id);
   if (!article) notFound();
   const date = article.publishedAt ?? article.createdAt;
 

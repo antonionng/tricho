@@ -4,17 +4,18 @@ import { Pill } from "@/components/site/primitives";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { shortDate } from "@/components/members/format";
-import { prisma } from "@/lib/prisma";
-import { employmentLabel, JOB_DAYS, MAX_OPEN_JOBS } from "@/lib/jobs";
+import { employmentLabel, jobPhase, JOB_DAYS, MAX_OPEN_JOBS } from "@/lib/jobs";
 import { deleteJob, setJobOpen } from "../actions";
 import { loadPoster, Notices } from "./_shared";
+import { listBusinessJobs } from "../_data";
 
 export const metadata = { title: "Your job posts" };
 
 function jobState(job: { status: string; hiddenAt: Date | null; expiresAt: Date }, now: Date) {
-  if (job.hiddenAt) return { label: "Taken down by Trichollective", live: false };
-  if (job.status === "closed") return { label: "Closed", live: false };
-  if (job.expiresAt <= now) return { label: "Ended", live: false };
+  const phase = jobPhase(job, now);
+  if (phase === "hidden") return { label: "Taken down by Trichollective", live: false };
+  if (phase === "closed") return { label: "Closed", live: false };
+  if (phase === "ended") return { label: "Ended", live: false };
   return { label: `Live until ${shortDate(job.expiresAt)}`, live: true };
 }
 
@@ -25,7 +26,7 @@ export default async function BusinessJobsPage({
 }) {
   const { page, active } = await loadPoster("/members/business/jobs");
   const { saved, error, message } = await searchParams;
-  const jobs = page ? await prisma.job.findMany({ where: { partnerId: page.id }, orderBy: { createdAt: "desc" } }) : [];
+  const jobs = page ? await listBusinessJobs(page.id) : [];
   const now = new Date();
   const ready = !!page?.published && !page.hidden && active;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JOB_DAYS, jobExpiry, jobParagraphs, parseJobForm } from "./jobs";
+import { JOB_DAYS, jobExpiry, jobParagraphs, jobPhase, parseJobForm } from "./jobs";
 
 const valid: Record<string, string> = {
   title: "Senior trichologist",
@@ -52,5 +52,23 @@ describe("job helpers", () => {
 
   it("splits a description into paragraphs", () => {
     expect(jobParagraphs("One.\n\n  Two.\n \nThree.")).toEqual(["One.", "Two.", "Three."]);
+  });
+});
+
+describe("jobPhase", () => {
+  const now = new Date("2026-10-06T12:00:00Z");
+  const later = new Date("2026-11-01T00:00:00Z");
+  const earlier = new Date("2026-10-01T00:00:00Z");
+  it("is live while open and in date", () => {
+    expect(jobPhase({ status: "open", hiddenAt: null, expiresAt: later }, now)).toBe("live");
+  });
+  it("has ended once the date passes", () => {
+    expect(jobPhase({ status: "open", hiddenAt: null, expiresAt: earlier }, now)).toBe("ended");
+  });
+  it("is closed when the business closed it", () => {
+    expect(jobPhase({ status: "closed", hiddenAt: null, expiresAt: later }, now)).toBe("closed");
+  });
+  it("puts a role taken down by the team before everything else", () => {
+    expect(jobPhase({ status: "closed", hiddenAt: earlier, expiresAt: earlier }, now)).toBe("hidden");
   });
 });

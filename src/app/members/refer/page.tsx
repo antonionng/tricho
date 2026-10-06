@@ -5,16 +5,9 @@ import { Card, EmptyState, MemberPage, PageHeader, SectionLabel } from "@/compon
 import { CopyLink } from "@/components/members/CopyLink";
 import { shortDate } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
 import { firstNameOf } from "@/lib/mail/templates/directory";
-import {
-  REWARD_STATUS_LABEL,
-  SHARE_SUBJECT,
-  ensureReferralCode,
-  referralLink,
-  shareMessage,
-  sumByCurrency,
-} from "@/lib/referrals";
+import { REWARD_STATUS_LABEL, SHARE_SUBJECT } from "@/lib/referrals";
+import { loadReferrals } from "./_data";
 
 export const metadata = { title: "Invite a colleague" };
 export const dynamic = "force-dynamic";
@@ -24,36 +17,9 @@ export default async function ReferPage() {
   if (!ctx.session?.user?.id) redirect("/login?next=/members/refer");
   const userId = ctx.session.user.id;
 
-  const [code, rewards] = await Promise.all([
-    ensureReferralCode(userId),
-    prisma.referralReward.findMany({
-      where: { referrerId: userId },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      select: { id: true, status: true, amount: true, currency: true, createdAt: true, creditedAt: true, referred: { select: { name: true } } },
-    }),
-  ]);
-
-  const link = referralLink(code);
-  const message = shareMessage(code);
+  const { code, link, message, rewards, stats, paying } = await loadReferrals(ctx, userId);
   const mailto = `mailto:?${new URLSearchParams({ subject: SHARE_SUBJECT, body: message }).toString().replace(/\+/g, "%20")}`;
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-  const live = rewards.filter((r) => r.status !== "void");
-  const joined = live.filter((r) => r.status === "banked" || r.status === "credited");
-  const credited = live.filter((r) => r.status === "credited");
-  const banked = live.filter((r) => r.status === "banked");
-  const paying = ctx.membership.isActive && !ctx.membership.via;
-
-  const stats = [
-    { label: "Signed up", value: String(live.length) },
-    { label: "Now paying", value: String(joined.length) },
-    { label: "Credited", value: sumByCurrency(credited) },
-    {
-      label: "Banked",
-      value: `${banked.length} ${banked.length === 1 ? "month" : "months"}`,
-    },
-  ];
 
   return (
     <MemberPage size="narrow">

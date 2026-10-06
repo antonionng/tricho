@@ -7,7 +7,6 @@ import { Card, MemberPage, PageHeader, SectionLabel, fieldClass } from "@/compon
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { shortDate } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
 import {
   MAX_PENDING_REQUESTS,
   statusSentence,
@@ -15,21 +14,13 @@ import {
   verificationKindLabel,
   VERIFICATION_KINDS,
 } from "@/lib/verification";
-import { loadApplicant } from "./applicant";
+import { loadApplicant, loadVerificationRequests, VERIFICATION_ERRORS } from "./applicant";
 import { submitVerificationAction, withdrawVerificationAction } from "./actions";
 
 export const metadata = { title: "Verification" };
 export const dynamic = "force-dynamic";
 
-const ERRORS: Record<string, string> = {
-  kind: "Please choose what kind of document you are sending.",
-  title: "Please describe the document, for example the qualification and the year you were awarded it.",
-  file: "Please choose a file to upload.",
-  size: "That file is larger than 9MB. Please choose a smaller one, or a photo of the document.",
-  type: "Please upload a PDF, or a photo of the document as a JPEG, PNG or WebP.",
-  save: "The file could not be saved just now. Please try again in a moment.",
-  limit: `You already have ${MAX_PENDING_REQUESTS} documents waiting for review. Please wait for the team to review them, or withdraw one first.`,
-};
+const ERRORS = VERIFICATION_ERRORS;
 
 const STATUS_PILL = {
   pending: { label: "Waiting for review", tone: "default" },
@@ -48,11 +39,7 @@ export default async function VerificationPage({
   if (!applicant) redirect("/login?next=/members/profile/verification");
   const { sent, withdrawn, error } = await searchParams;
 
-  const requests = await prisma.verificationRequest.findMany({
-    where: { userId: applicant.userId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, kind: true, title: true, fileId: true, note: true, status: true, reviewNote: true, reviewedAt: true, createdAt: true },
-  });
+  const requests = await loadVerificationRequests(applicant.userId);
   const summary = statusSummary(requests, applicant.isVerified);
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 

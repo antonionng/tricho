@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Clock, Target } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { courseBySlug } from "@/content/courses";
 import { lessonsOf } from "@/lib/courses";
 import { LessonBlocks } from "@/components/courses/LessonBlocks";
@@ -10,7 +9,7 @@ import { KnowledgeCheck } from "@/components/courses/KnowledgeCheck";
 import { LessonNotes } from "@/components/courses/LessonNotes";
 import { ProgressRing } from "@/components/courses/ProgressRing";
 import { cn } from "@/lib/utils";
-import { requireLearner } from "../_data";
+import { rememberLesson, requireLearner } from "../_data";
 
 type Params = { slug: string; lesson: string };
 
@@ -34,9 +33,7 @@ export default async function LessonPage({ params }: { params: Promise<Params> }
   const done = !!row?.completedAt;
 
   // Remember where they are, so "Continue" brings them back here.
-  if (enrolment && enrolment.lastLessonSlug !== lessonSlug) {
-    await prisma.courseEnrolment.update({ where: { id: enrolment.id }, data: { lastLessonSlug: lessonSlug } }).catch(() => null);
-  }
+  await rememberLesson(learner, lessonSlug);
 
   const base = `/members/courses/${slug}`;
   const nextHref = next ? `${base}/${next.slug}` : `${base}/assessment`;

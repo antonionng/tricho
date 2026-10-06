@@ -6,9 +6,9 @@ import { Avatar } from "@/components/members/Avatar";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { timeAgo } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
 import { REFERRAL_STATUS_LABEL } from "@/lib/client-referrals";
 import { cn } from "@/lib/utils";
+import { listReferrals } from "./_data";
 
 export const metadata = { title: "Client referrals" };
 
@@ -19,18 +19,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
   if (!ctx.allowed) return <Paywall title="Client referrals" body="Referring clients to colleagues is part of membership." />;
   const tab = (await searchParams).tab === "sent" ? "sent" : "received";
 
-  const person = { select: { id: true, name: true, image: true } };
-  const [rows, receivedCount, sentCount, waiting] = await Promise.all([
-    prisma.referral.findMany({
-      where: tab === "sent" ? { fromId: me } : { toId: me },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      select: { id: true, status: true, reason: true, clientContext: true, createdAt: true, respondedAt: true, from: person, to: person },
-    }),
-    prisma.referral.count({ where: { toId: me } }),
-    prisma.referral.count({ where: { fromId: me } }),
-    prisma.referral.count({ where: { toId: me, status: "sent" } }),
-  ]);
+  const { rows, receivedCount, sentCount, waiting } = await listReferrals(me, tab);
 
   const tabs = [
     { id: "received", label: waiting ? `Received (${waiting} new)` : `Received (${receivedCount})` },

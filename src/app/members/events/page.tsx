@@ -7,11 +7,11 @@ import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberP
 import { EventActions } from "@/components/members/EventActions";
 import { AttendeeFaces } from "@/components/members/EventAttendees";
 import { TicketReturnBanner } from "@/components/events/BuyTicket";
-import { holdCutoff, seatsLeft } from "@/lib/tickets";
+import { memberEventStatus } from "@/lib/event-status";
+import { upcomingMemberEvents } from "./_data";
 import { eventDay, timeOfDay } from "@/components/members/format";
 import { EVENT_KIND_LABEL, formatPrice } from "@/components/editorial/events";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
 
 export const metadata = { title: "Events" };
@@ -22,43 +22,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
   if (!ctx.allowed) return <Paywall title="Events" body="Gatherings, masterclasses and chapter meetups are part of membership." />;
   const userId = ctx.session.user.id;
   const { ticket } = await searchParams;
-  const cutoff = holdCutoff();
-  const now = new Date();
-
-  // Keep an event visible for a few hours after it starts.
-  const since = new Date();
-  since.setHours(since.getHours() - 3);
-  const events = await prisma.event.findMany({
-    where: { published: true, startsAt: { gte: since } },
-    orderBy: { startsAt: "asc" },
-    take: 40,
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      kind: true,
-      summary: true,
-      startsAt: true,
-      endsAt: true,
-      venue: true,
-      city: true,
-      online: true,
-      priceGBP: true,
-      memberPriceGBP: true,
-      capacity: true,
-      ticketUrl: true,
-      sellTickets: true,
-      chapterId: true,
-      rsvps: {
-        orderBy: { createdAt: "asc" },
-        select: { userId: true, user: { select: { id: true, name: true, image: true, accessStatus: true } } },
-      },
-      tickets: {
-        where: { OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: cutoff } }] },
-        select: { quantity: true, userId: true, status: true },
-      },
-    },
-  });
+  const events = await upcomingMemberEvents();
   const going = events.filter((e) => e.rsvps.some((r) => r.userId === userId)).length;
 
   return (
@@ -88,10 +52,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
         <ul className="flex flex-col gap-3">
           {events.map((e) => {
             const d = eventDay(e.startsAt);
-            const isGoing = e.rsvps.some((r) => r.userId === userId);
-            const hasTicket = e.tickets.some((t) => t.userId === userId && t.status === "paid");
-            const left = e.sellTickets ? seatsLeft(e, e.tickets, e.rsvps) : null;
-            const full = e.sellTickets ? left === 0 : e.capacity != null && e.rsvps.length >= e.capacity;
+            const { going: isGoing, hasTicket, left, full, started } = memberEventStatus(e, userId);
             const local = !!ctx.chapterId && e.chapterId === ctx.chapterId;
             const attendees = e.rsvps.map((r) => r.user).filter((u) => u.accessStatus === "active");
             return (
@@ -135,7 +96,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                       going={isGoing}
                       hasTicket={hasTicket}
                       full={full}
-                      started={e.startsAt < now}
+                      started={started}
                     />
                     <Link
                       href={`/members/events/${e.slug}`}

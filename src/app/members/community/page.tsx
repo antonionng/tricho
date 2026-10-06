@@ -12,6 +12,7 @@ import { getPosts, postableRooms } from "@/lib/community";
 import { prisma } from "@/lib/prisma";
 import { canReadRoom, roomById } from "@/config/rooms";
 import { getRooms } from "@/lib/rooms";
+import { postingNotice } from "@/lib/community-rules";
 
 export const metadata = { title: "Community" };
 
@@ -76,11 +77,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
                 <Composer key={space} rooms={rooms.filter((r) => r.id === space)} lockedSpace={space} chapter={chapter} collapsed />
               ) : (
                 <div className="rounded-2xl border border-rule bg-paper-2 p-5 text-sm leading-relaxed text-ink-2">
-                  {room?.archived
-                    ? "This space is archived. Its conversations stay here to read, and new posts belong in another space."
-                    : ctx.profession === "brand"
-                      ? "This space is kept for practitioner discussion, so business accounts can read along but not post here."
-                      : "You can read this space, but posting here is for Professional members."}
+                  {postingNotice(room, ctx.profession)}
                 </div>
               )}
               {posts.length === 0 ? (

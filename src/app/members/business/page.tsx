@@ -8,33 +8,16 @@ import { SubmitButton } from "@/components/members/SubmitButton";
 import { ImageUpload } from "@/components/forms/ImageUpload";
 import { auth } from "@/auth";
 import { BUSINESS_SEATS, isBusinessAccount } from "@/lib/subscription";
-import { nextSetupStep, SETUP_STEPS, setupProgress, type SetupStepId } from "@/lib/business-profile";
+import { nextSetupStep, SETUP_STEPS, setupProgress } from "@/lib/business-profile";
 import { PARTNER_CATEGORIES, partnerLogoSrc, partnerTierLabel } from "@/lib/partners";
 import { cn } from "@/lib/utils";
 import { saveBusinessPage } from "./actions";
-import { loadBusiness } from "./_data";
-import { errorText as describeError, SAVED_MESSAGES } from "./messages";
+import { countOpenJobs, loadBusiness } from "./_data";
+import { errorText as describeError, NEXT_STEP, PREMIUM_INCLUDES, SAVED_MESSAGES } from "./messages";
 import { TeamSeats } from "./TeamSeats";
-import { liveJobWhere } from "@/lib/jobs";
-import { prisma } from "@/lib/prisma";
 import { Results } from "./Results";
 
 export const metadata = { title: "Your business" };
-
-/** How the portal names the next unfinished step, in a sentence and on its button. */
-const NEXT_STEP: Record<SetupStepId, { phrase: string; button: string }> = {
-  details: { phrase: "adding your brand details", button: "Add your brand details" },
-  logo: { phrase: "adding your logo, a cover photo and your brand colour", button: "Add your logo and cover" },
-  story: { phrase: "telling your story", button: "Tell your story" },
-  offerings: { phrase: "showing your products and services", button: "Add your products and services" },
-  photos: { phrase: "adding photos to your page", button: "Add photos" },
-  extras: { phrase: "adding a video or a feature section", button: "Add video and features" },
-  contact: { phrase: "adding your contact details", button: "Add your contact details" },
-  address: { phrase: "adding your business address", button: "Add your business address" },
-  perk: { phrase: "offering members a perk", button: "Add a member perk" },
-  team: { phrase: "giving your team their Professional seats", button: "Add your team" },
-  publish: { phrase: "checking your page and publishing it", button: "Preview and publish" },
-};
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -87,7 +70,7 @@ export default async function BusinessPage({
   const stepsLeft = SETUP_STEPS.filter((st) => !progress[st.id]).length;
   const next = SETUP_STEPS.find((st) => st.id === nextSetupStep(progress))!;
   const premium = page.tier === "premium";
-  const openJobs = await prisma.job.count({ where: { partnerId: page.id, ...liveJobWhere() } });
+  const openJobs = await countOpenJobs(page.id);
 
   return (
     <MemberPage size="narrow">
@@ -272,19 +255,6 @@ export default async function BusinessPage({
     </MemberPage>
   );
 }
-
-/** What Premium Business includes, in full sentences, from the plan in src/config/subscriptions.ts. */
-const PREMIUM_INCLUDES = [
-  "Everything in the Business plan is included, with your business page, five Professional seats and job posts.",
-  "You can run one sponsored masterclass a year, reviewed so that it teaches rather than sells, and it stays in the member library.",
-  "You can co-develop a course with a certificate for members, subject to clinical review.",
-  "You receive one labelled partner feature in Trichozette each year, and a \u201cSupported by\u201d credit on one edition each quarter.",
-  "Your brand is spotlighted in two member newsletters a year.",
-  "You have a talk or demo slot at one conference a year, with sampling or a delegate-bag insert at the others.",
-  "Your member perk has tracked redemptions, and you can run an opt-in product trial panel with structured feedback.",
-  "You receive a quarterly report on how members engaged with your content and perks.",
-  "Your partner page carries the Premium partner badge.",
-];
 
 function PremiumStatus({ isFounding }: { isFounding: boolean }) {
   return (

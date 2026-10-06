@@ -13,6 +13,7 @@ import {
   type KnownRoomId,
 } from "@/config/rooms";
 import { getAllRooms, getRooms } from "@/lib/rooms";
+import { nestComments } from "@/lib/community-rules";
 
 /** Every raw `space` value that resolves to one of these rooms. */
 export function rawSpacesFor(roomIds: RoomId[]) {
@@ -119,6 +120,7 @@ export async function getPosts({
   chapterId,
   authorId,
   take = 30,
+  cursor,
 }: {
   userId?: string;
   professional: boolean;
@@ -126,6 +128,8 @@ export async function getPosts({
   chapterId?: string;
   authorId?: string;
   take?: number;
+  /** The id of the last post already shown, for the next page. */
+  cursor?: string;
 }) {
   const allRooms = await getAllRooms();
   const where: Prisma.CommunityPostWhereInput = { ...visiblePost };
@@ -143,6 +147,7 @@ export async function getPosts({
     where,
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     take,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: postInclude(userId),
   });
   return posts.map((p) => toFeedPost(p, allRooms));
@@ -258,4 +263,48 @@ export async function postableRooms(ctx: {
     prompt: r.prompt,
     blurb: r.blurb,
   }));
+}
+
+/**
+ * A thread with its replies, for the website and the app. "locked" means the
+ * member can't read the room the post is in.
+ */
+export async function getThread(
+  postId: string,
+  ctx: { userId: string; professional: boolean; profession: ProfessionId | null; unlocked: boolean }
+) {
+  const { userId } = ctx;
+  const post = await prisma.communityPost.findUnique({
+    where: { id: postId },
+    include: {
+      author: { select: { id: true, name: true, image: true, isFounding: true, profile: { select: { profession: true } } } },
+      chapter: { select: { slug: true, city: true } },
+      comments: {
+        where: { hiddenAt: null },
+        orderBy: { createdAt: "asc" },
+        include: {
+          author: { select: { id: true, name: true, image: true, profile: { select: { profession: true } } } },
+          _count: { select: { reactions: true } },
+          reactions: { where: { userId }, select: { id: true } },
+        },
+      },
+      _count: { select: { reactions: true } },
+      reactions: { where: { userId }, select: { id: true } },
+    },
+  });
+  if (!post || post.hiddenAt) return { status: "missing" as const };
+
+  const allRooms = await getAllRooms();
+  const space = normalizeSpace(post.space, allRooms);
+  const room = roomById(space, allRooms);
+  if (!canReadRoom(space, ctx.professional, allRooms)) return { status: "locked" as const, space, room };
+
+  return {
+    status: "ok" as const,
+    post,
+    space,
+    room,
+    canReply: canPostInRoom(space, ctx, allRooms),
+    thread: nestComments(post.comments),
+  };
 }

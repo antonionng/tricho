@@ -11,11 +11,8 @@ import { greeting, monthYear } from "@/components/members/format";
 import { Composer } from "@/components/community/Composer";
 import { PostCard } from "@/components/community/PostCard";
 import { getMemberContext } from "@/lib/member";
-import { firstName, getTodayFeed, memberDirectoryWhere, postableRooms, rawSpacesFor } from "@/lib/community";
-import { profileCompleteness } from "@/lib/profile";
-import { isBusinessAccount } from "@/lib/subscription";
-import { loadApplicant } from "./profile/verification/applicant";
-import { prisma } from "@/lib/prisma";
+import { postableRooms } from "@/lib/community";
+import { getHome } from "./_home";
 import { professionById } from "@/config/rooms";
 import { cn } from "@/lib/utils";
 
@@ -27,80 +24,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   if (!ctx.onboarded) redirect("/members/onboarding");
   if (!ctx.allowed) return <FreeHome userId={ctx.session.user.id} email={ctx.session.user.email ?? ""} />;
 
-  const userId = ctx.session.user.id;
   const { welcome } = await searchParams;
   const now = new Date();
+  const home = await getHome(ctx, ctx.session.user, now);
+  if (!home) redirect("/login");
+  const { user, feed, events, gazette, people, checklist, name } = home;
 
-  const [user, feed, events, gazette, following] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        name: true,
-        isFounding: true,
-        chapter: { select: { id: true, slug: true, city: true } },
-        image: true,
-        chapterId: true,
-        profile: true,
-      },
-    }),
-    getTodayFeed({ userId, professional: ctx.professional, chapterId: ctx.chapterId, profession: ctx.profession }),
-    prisma.event.findMany({
-      where: { published: true, startsAt: { gte: now } },
-      orderBy: { startsAt: "asc" },
-      take: 3,
-      select: { id: true, slug: true, title: true, startsAt: true, city: true, online: true, rsvps: { where: { userId }, select: { userId: true } } },
-    }),
-    prisma.draft.findFirst({
-      where: { kind: "gazette_article", status: "published" },
-      orderBy: { publishedAt: "desc" },
-      select: { id: true, title: true, summary: true, publishedAt: true },
-    }),
-    prisma.follow.findMany({ where: { followerId: userId }, select: { followeeId: true } }),
-  ]);
-  if (!user) redirect("/login");
-
-  const email = ctx.session.user.email?.toLowerCase() ?? null;
-  const [introduced, invited, applicant, businessPage, businessAccount] = await Promise.all([
-    prisma.communityPost.count({ where: { authorId: userId, space: { in: rawSpacesFor(["introductions"]) } } }),
-    prisma.user.count({ where: { referredById: userId } }),
-    loadApplicant(ctx),
-    email ? prisma.partner.findUnique({ where: { ownerEmail: email }, select: { id: true } }).catch(() => null) : null,
-    email ? isBusinessAccount(email) : false,
-  ]);
-
-  const people = user.chapter
-    ? await prisma.user.findMany({
-        where: {
-          AND: [
-            memberDirectoryWhere(),
-            { chapterId: user.chapter.id, id: { notIn: [userId, ...following.map((f) => f.followeeId)] } },
-          ],
-        },
-        take: 4,
-        orderBy: { onboardedAt: "desc" },
-        select: { id: true, name: true, image: true, profile: { select: { profession: true } } },
-      })
-    : [];
-
-  const completeness = profileCompleteness(user.profile, user);
-  const checklist = [
-    {
-      done: completeness.percent === 100,
-      label: completeness.percent === 100 ? "Finish your profile" : `Finish your profile (${completeness.percent}% complete)`,
-      href: "/members/profile",
-    },
-    { done: introduced > 0, label: "Introduce yourself in Introductions", href: "/members/community?space=introductions#compose" },
-    { done: !!user.chapter, label: "Choose your chapter", href: "/members/profile#about" },
-    ...(applicant && (applicant.eligible || applicant.isVerified)
-      ? [{ done: applicant.isVerified, label: "Get verified", href: "/members/profile/verification" }]
-      : []),
-    { done: invited > 0, label: "Invite a colleague", href: "/members/refer" },
-    ...(businessPage || businessAccount
-      ? [{ done: !!businessPage, label: "Set up your business page", href: "/members/business/setup" }]
-      : []),
-  ];
   const remaining = checklist.filter((c) => !c.done).length;
-  const name = firstName(user.name);
 
   return (
     <MemberPage size="wide">

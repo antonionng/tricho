@@ -7,10 +7,9 @@ import { EventMini } from "@/components/members/EventMini";
 import { Composer } from "@/components/community/Composer";
 import { PostCard } from "@/components/community/PostCard";
 import { getMemberContext } from "@/lib/member";
-import { getPosts, memberDirectoryWhere, postableRooms } from "@/lib/community";
-import { prisma } from "@/lib/prisma";
+import { postableRooms } from "@/lib/community";
 import { professionById } from "@/config/rooms";
-import { chapterBySlug } from "@/content/chapters";
+import { getChapter } from "./_data";
 
 export const metadata = { title: "Chapter" };
 
@@ -20,40 +19,16 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
   if (!ctx.allowed) return <Paywall title="Chapters" body="Local chapters, meetups and members near you are part of membership." />;
 
   const { slug } = await params;
-  const chapter = await prisma.chapter.findUnique({ where: { slug } });
-  if (!chapter) notFound();
-
-  const userId = ctx.session.user.id;
-  const isMine = ctx.chapterId === chapter.id;
-  const [posts, members, memberCount, events] = await Promise.all([
-    getPosts({ userId, professional: ctx.professional, chapterId: chapter.id }),
-    prisma.user.findMany({
-      where: { AND: [memberDirectoryWhere(), { chapterId: chapter.id }] },
-      orderBy: { onboardedAt: "desc" },
-      take: 12,
-      select: { id: true, name: true, image: true, profile: { select: { profession: true } } },
-    }),
-    prisma.user.count({ where: { AND: [memberDirectoryWhere(), { chapterId: chapter.id }] } }),
-    prisma.event.findMany({
-      where: {
-        published: true,
-        startsAt: { gte: new Date() },
-        OR: [{ chapterId: chapter.id }, { city: { equals: chapter.city, mode: "insensitive" } }],
-      },
-      orderBy: { startsAt: "asc" },
-      take: 5,
-      select: { id: true, slug: true, title: true, startsAt: true, city: true, online: true, rsvps: { where: { userId }, select: { userId: true } } },
-    }),
-  ]);
-
-  const blurb = chapter.blurb || chapterBySlug(chapter.slug)?.blurb;
+  const data = await getChapter(slug, { userId: ctx.session.user.id, professional: ctx.professional, chapterId: ctx.chapterId });
+  if (!data) notFound();
+  const { chapter, isMine, blurb, posts, members, memberCount, events } = data;
 
   return (
     <MemberPage>
       <PageHeader
         label={isMine ? "Your chapter" : `Chapter · ${chapter.country}`}
         title={chapter.city}
-        lede={blurb}
+        lede={blurb ?? undefined}
         action={
           !isMine ? (
             <Link href="/members/profile#about" className="text-sm text-ink-2 underline underline-offset-4">

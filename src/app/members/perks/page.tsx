@@ -5,7 +5,8 @@ import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { getMemberContext } from "@/lib/member";
-import { partnerTierLabel, publishedPartners, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
+import { partnerTierLabel, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
+import { partnersWithPerks } from "./_data";
 import { CountView } from "@/components/partners/CountView";
 
 export const metadata = { title: "Member perks" };
@@ -19,7 +20,7 @@ export default async function PerksPage() {
     );
   }
 
-  const partners = (await publishedPartners()).filter((p) => p.perk);
+  const partners = await partnersWithPerks();
 
   return (
     <MemberPage>

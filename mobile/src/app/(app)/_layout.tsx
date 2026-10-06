@@ -30,6 +30,8 @@ export default function AppLayout() {
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="membership" options={{ presentation: "modal", title: "Membership" }} />
+      <Stack.Screen name="community/new" options={{ presentation: "modal" }} />
+      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
     </Stack>
   );
 }

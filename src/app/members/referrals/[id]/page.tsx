@@ -8,12 +8,12 @@ import { Card, MemberPage, SectionLabel, fieldClass } from "@/components/members
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { longDate } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
-import { NOTE_MAX, REFERRAL_STATUS_LABEL, nextReferralStatus, statusSentence } from "@/lib/client-referrals";
+import { NOTE_MAX, REFERRAL_STATUS_LABEL, statusSentence } from "@/lib/client-referrals";
 import { shortName } from "@/lib/names";
 import { cn } from "@/lib/utils";
 import { startConversation } from "../../people/actions";
 import { respondToReferral } from "../actions";
+import { openReferral } from "../_data";
 
 export const metadata = { title: "Referral" };
 
@@ -31,43 +31,11 @@ export default async function ReferralPage({
   if (!me) redirect(`/login?next=/members/referrals/${id}`);
   if (!ctx.allowed) return <Paywall title="Referrals" body="Referring clients to colleagues is part of membership." />;
 
-  const person = { select: { id: true, name: true, image: true } };
-  const referral = await prisma.referral.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      fromId: true,
-      toId: true,
-      summary: true,
-      reason: true,
-      clientContext: true,
-      status: true,
-      responseNote: true,
-      respondedAt: true,
-      createdAt: true,
-      from: person,
-      to: person,
-    },
-  });
-  // Only the two members involved can open a referral.
-  if (!referral || (referral.fromId !== me && referral.toId !== me)) notFound();
-
-  const isRecipient = referral.toId === me;
-  let status = referral.status;
-  const opened = nextReferralStatus(status, "open", isRecipient);
-  if (opened.ok && opened.changed) {
-    await prisma.referral.updateMany({ where: { id, status: "sent" }, data: { status: opened.status } });
-    status = opened.status;
-  }
-  if (isRecipient || status === "accepted" || status === "declined") {
-    await prisma.notification
-      .updateMany({ where: { userId: me, href: `/members/referrals/${id}`, readAt: null }, data: { readAt: new Date() } })
-      .catch(() => null);
-  }
-
-  const other = isRecipient ? referral.from : referral.to;
+  const opened = await openReferral(id, me);
+  if (!opened) notFound();
+  const { referral, isRecipient, other, canRespond } = opened;
+  const status = referral.status;
   const otherShort = shortName(other.name, "your colleague");
-  const canRespond = isRecipient && (status === "sent" || status === "seen");
 
   return (
     <MemberPage size="narrow">

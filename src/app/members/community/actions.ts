@@ -10,6 +10,7 @@ import { alertOwners, deliver } from "@/lib/mail/send";
 import { commentReplyEmail } from "@/lib/mail/templates/members";
 import { postReportedAlert } from "@/lib/mail/templates/owners";
 import { getAllRooms } from "@/lib/rooms";
+import { participationRefusal } from "@/lib/community-rules";
 import { assessReport, moderateNewContent } from "@/agents/moderation";
 
 export type FormState = { ok?: boolean; error?: string; message?: string; id?: string } | null;
@@ -18,23 +19,9 @@ function clean(value: FormDataEntryValue | null, max: number) {
   return String(value ?? "").trim().slice(0, max);
 }
 
-/** Suspended, closed and muted accounts can read but not take part, and they are told why. */
-function refusalFor(restricted: NonNullable<Awaited<ReturnType<typeof getMemberContext>>["restricted"]>) {
-  const date = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", timeZone: "Europe/Dublin" }).format(d);
-  if (restricted.status === "banned") return "This account has been closed, so you can no longer post, reply or react.";
-  if (restricted.status === "suspended") {
-    return restricted.until
-      ? `Your account is paused until ${date(restricted.until)}, so you can't post, reply or react until then.`
-      : "Your account is paused, so you can't post, reply or react until the team lifts the pause.";
-  }
-  return restricted.until
-    ? `You can read the community, but posting, replying and reacting are paused for your account until ${date(restricted.until)}.`
-    : "You can read the community, but posting, replying and reacting are paused for your account.";
-}
-
 async function requireMember() {
   const ctx = await getMemberContext();
-  if (ctx.session?.user?.id && ctx.restricted) return { refused: refusalFor(ctx.restricted) };
+  if (ctx.session?.user?.id && ctx.restricted) return { refused: participationRefusal(ctx.restricted) };
   if (!ctx.session?.user?.id || !ctx.allowed) return null;
   return { ctx, userId: ctx.session.user.id };
 }

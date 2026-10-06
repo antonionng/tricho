@@ -9,12 +9,11 @@ import { UsefulButton } from "@/components/community/UsefulButton";
 import { ReportButton } from "@/components/community/ReportButton";
 import { CommentForm } from "@/components/community/CommentForm";
 import { ReplyToComment } from "@/components/community/ReplyToComment";
-import { firstName } from "@/lib/community";
+import { firstName, getThread } from "@/lib/community";
 import { cn } from "@/lib/utils";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
-import { canPostInRoom, canReadRoom, normalizeSpace, professionById, roomById } from "@/config/rooms";
-import { getAllRooms } from "@/lib/rooms";
+import { professionById } from "@/config/rooms";
+import { replyNotice } from "@/lib/community-rules";
 
 export const metadata = { title: "Community" };
 
@@ -32,41 +31,17 @@ export default async function ThreadPage({
   const userId = ctx.session.user.id;
 
   const { postId } = await params;
-  const post = await prisma.communityPost.findUnique({
-    where: { id: postId },
-    include: {
-      author: { select: { id: true, name: true, image: true, isFounding: true, profile: { select: { profession: true } } } },
-      chapter: { select: { slug: true, city: true } },
-      comments: {
-        where: { hiddenAt: null },
-        orderBy: { createdAt: "asc" },
-        include: {
-          author: { select: { id: true, name: true, image: true, profile: { select: { profession: true } } } },
-          _count: { select: { reactions: true } },
-          reactions: { where: { userId }, select: { id: true } },
-        },
-      },
-      _count: { select: { reactions: true } },
-      reactions: { where: { userId }, select: { id: true } },
-    },
-  });
-  if (!post || post.hiddenAt) notFound();
-
-  const allRooms = await getAllRooms();
-  const space = normalizeSpace(post.space, allRooms);
-  const room = roomById(space, allRooms);
-  if (!canReadRoom(space, ctx.professional, allRooms)) {
+  const result = await getThread(postId, { userId, professional: ctx.professional, profession: ctx.profession, unlocked: ctx.unlocked });
+  if (result.status === "missing") notFound();
+  if (result.status === "locked") {
+    const { space, room } = result;
     return space === "case-room" ? (
       <Paywall title="The Case Room" body="Anonymised case discussion is part of Professional membership." href="/pricing#professional" cta="See Professional" />
     ) : (
       <Paywall title={room?.label ?? "This space"} body="This space is part of Professional membership." href="/pricing#professional" cta="See Professional" />
     );
   }
-  const canReply = canPostInRoom(space, ctx, allRooms);
-  // Replies hang under the comment they answer; a reply whose parent was hidden shows at the top level.
-  const visible = new Set(post.comments.map((c) => c.id));
-  const topLevel = post.comments.filter((c) => !c.parentId || !visible.has(c.parentId));
-  const repliesTo = (id: string) => post.comments.filter((c) => c.parentId === id);
+  const { post, space, room, canReply, thread } = result;
   type ThreadComment = (typeof post.comments)[number];
   const renderComment = (c: ThreadComment, nested: boolean) => (
     <div id={`comment-${c.id}`} className={cn("flex scroll-mt-24 gap-3", nested ? "pt-3" : "")}>
@@ -132,8 +107,7 @@ export default async function ThreadPage({
           {post.comments.length === 0 ? "No replies yet" : `${post.comments.length} ${post.comments.length === 1 ? "reply" : "replies"}`}
         </h2>
         <ol className="flex flex-col gap-3">
-          {topLevel.map((c) => {
-            const replies = repliesTo(c.id);
+          {thread.map(({ comment: c, replies }) => {
             return (
               <li key={c.id} className="rounded-2xl border border-rule bg-card p-4">
                 {renderComment(c, false)}
@@ -155,9 +129,7 @@ export default async function ThreadPage({
           <CommentForm postId={post.id} />
         ) : (
           <p className="rounded-2xl border border-rule bg-paper-2 p-4 text-sm leading-relaxed text-ink-2">
-            {room?.archived
-              ? `You can read this thread. ${room.label} has been archived, so it no longer takes new replies.`
-              : `You can read this thread. Replies in ${room?.label ?? "this space"} are open to Professional members.`}
+            {replyNotice(room)}
           </p>
         )}
       </div>

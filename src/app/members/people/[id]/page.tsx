@@ -9,16 +9,10 @@ import { FollowButton } from "@/components/members/FollowButton";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { PostCard } from "@/components/community/PostCard";
 import { getMemberContext } from "@/lib/member";
-import { getPosts } from "@/lib/community";
-import { prisma } from "@/lib/prisma";
-import { professionById } from "@/config/rooms";
-import { urlForFile } from "@/lib/storage";
-import { SOCIAL_KEYS, SOCIAL_NETWORKS, membershipLabel, readQualifications, readSocials } from "@/lib/profile";
+import { getMemberProfile } from "@/lib/people";
+import { membershipLabel } from "@/lib/profile";
 import { startConversation } from "../actions";
-import { referralBlocker } from "@/lib/client-referrals";
-import { loadRecipient } from "../../referrals/_data";
 import { shortName } from "@/lib/names";
-import { profileCertificates } from "@/lib/courses";
 import { CourseBadges } from "@/components/courses/CourseBadges";
 
 export const metadata = { title: "People" };
@@ -30,72 +24,10 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const me = ctx.session.user.id;
 
   const { id } = await params;
-  const person = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      image: true,
-      isFounding: true,
-      chapter: { select: { slug: true, city: true } },
-      profile: {
-        select: {
-          profession: true,
-          specialization: true,
-          bio: true,
-          location: true,
-          photoFileId: true,
-          headline: true,
-          practiceName: true,
-          city: true,
-          country: true,
-          specialisms: true,
-          services: true,
-          qualifications: true,
-          memberships: true,
-          yearsInPractice: true,
-          website: true,
-          socials: true,
-          phone: true,
-          showPhone: true,
-          addressLine1: true,
-          addressLine2: true,
-          postcode: true,
-          showAddress: true,
-          isVerified: true,
-        },
-      },
-      listings: {
-        where: { status: "listed", slug: { not: null } },
-        select: { slug: true, headline: true, photoUrl: true, isVerified: true },
-        take: 1,
-      },
-      _count: { select: { followers: true, following: true } },
-    },
-  });
-  if (!person) notFound();
-
-  const [isFollowing, posts, uploadedPhoto, recipient] = await Promise.all([
-    prisma.follow.findUnique({ where: { followerId_followeeId: { followerId: me, followeeId: id } } }),
-    getPosts({ userId: me, professional: ctx.professional, authorId: id, take: 10 }),
-    urlForFile(person.profile?.photoFileId),
-    ctx.professional && me !== id ? loadRecipient(id) : null,
-  ]);
-  const canRefer = !!recipient && !referralBlocker({ id: me, professional: ctx.professional }, recipient);
-  const listing = person.listings[0];
-  const discipline = person.profile?.profession ? professionById(person.profile.profession) : null;
-  const isMe = me === id;
-  const profile = person.profile;
-  const headline = profile?.headline || listing?.headline;
-  const place = [profile?.city || profile?.location, profile?.country].filter(Boolean).join(", ");
-  const qualifications = readQualifications(profile?.qualifications);
-  const badges = await profileCertificates(person.id);
-  const socials = readSocials(profile?.socials);
-  const socialLinks = SOCIAL_KEYS.filter((k) => socials[k]).map((k) => ({ key: k, url: socials[k]!, label: SOCIAL_NETWORKS[k].label }));
-  const address = profile?.showAddress
-    ? [profile.addressLine1, profile.addressLine2, profile.city, profile.postcode].filter(Boolean).join(", ")
-    : null;
-  const verified = !!profile?.isVerified || !!listing?.isVerified;
+  const view = await getMemberProfile(id, { id: me, professional: ctx.professional });
+  if (!view) notFound();
+  const { person, profile, listing, posts, badges, uploadedPhoto, isMe, isFollowing, canRefer, discipline, headline, place, qualifications } = view;
+  const { specialisms, socialLinks, phone, address, verified } = view;
 
   return (
     <MemberPage size="narrow">
@@ -128,9 +60,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         {profile?.bio && <p className="mt-5 whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{profile.bio}</p>}
 
         <dl className="mt-5 flex flex-col gap-4 text-[15px]">
-          {(profile?.specialisms.length ? profile.specialisms : profile?.specialization ? [profile.specialization] : []).length > 0 && (
+          {specialisms.length > 0 && (
             <Detail label="Specialisms">
-              <Chips items={profile!.specialisms.length ? profile!.specialisms : [profile!.specialization!]} />
+              <Chips items={specialisms} />
             </Detail>
           )}
           {!!profile?.services.length && (
@@ -164,7 +96,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           {!!profile?.memberships.length && (
             <Detail label="Memberships">{profile.memberships.map(membershipLabel).join(", ")}</Detail>
           )}
-          {(profile?.website || socialLinks.length > 0 || (profile?.showPhone && profile.phone) || address) && (
+          {(profile?.website || socialLinks.length > 0 || phone || address) && (
             <Detail label="Contact">
               <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-ink-2">
                 {profile?.website && (
@@ -177,9 +109,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
                     {s.label}
                   </a>
                 ))}
-                {profile?.showPhone && profile.phone && (
-                  <a href={`tel:${profile.phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 underline underline-offset-4">
-                    <Phone className="h-4 w-4" /> {profile.phone}
+                {phone && (
+                  <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1.5 underline underline-offset-4">
+                    <Phone className="h-4 w-4" /> {phone}
                   </a>
                 )}
               </div>

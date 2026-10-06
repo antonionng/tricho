@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/members/SubmitButton";
 import { ImageUpload } from "@/components/forms/ImageUpload";
 import { ContactFields, GoalsFields, IdentityFields, PracticeFields, QualificationFields } from "@/components/members/ProfileFields";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
+import { ONBOARDING_ERRORS, onboardingChapters, onboardingUser } from "./_data";
 import { urlForFile } from "@/lib/storage";
 import { ONBOARDING_STEPS, filledSteps, resumeStep } from "@/lib/profile";
 import { PROFESSIONS } from "@/config/rooms";
@@ -21,11 +21,7 @@ const TOTAL = ONBOARDING_STEPS.length;
 const optionClass =
   "flex cursor-pointer items-start gap-3 rounded-2xl border border-rule bg-card p-4 transition-colors hover:border-ink/40 has-[:checked]:border-ink has-[:checked]:bg-paper-2";
 
-const ERRORS: Record<string, string> = {
-  discipline: "Please choose the option closest to your work.",
-  chapter: "Please choose a chapter, or none for now.",
-  photo: "We couldn't use that photo. Please upload a JPEG, PNG or WebP image under 8MB.",
-};
+const ERRORS = ONBOARDING_ERRORS;
 
 function Header({ step, title, body }: { step: number; title: string; body: React.ReactNode }) {
   return (
@@ -77,10 +73,7 @@ export default async function OnboardingPage({
   const userId = ctx.session.user.id;
 
   const { step: rawStep, error } = await searchParams;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { name: true, image: true, chapterId: true, chapter: { select: { slug: true, city: true } }, profile: true },
-  });
+  const user = await onboardingUser(userId);
   const profile = user?.profile ?? null;
 
   const reached = readProgress((await cookies()).get(PROGRESS_COOKIE)?.value, userId);
@@ -93,7 +86,7 @@ export default async function OnboardingPage({
   if (step > 1 && !profile?.profession) redirect("/members/onboarding?step=1");
 
   const [chapters, photoUrl] = await Promise.all([
-    step === 7 ? prisma.chapter.findMany({ orderBy: [{ country: "asc" }, { city: "asc" }] }) : [],
+    step === 7 ? onboardingChapters() : [],
     step === 2 ? urlForFile(profile?.photoFileId).then((u) => u ?? user?.image ?? null) : null,
   ]);
   const free = !ctx.allowed;

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { longDate } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
-import { prisma } from "@/lib/prisma";
-import { subscriptionTiers, tierById } from "@/config/subscriptions";
+import { loadBilling } from "./_data";
+import { subscriptionTiers } from "@/config/subscriptions";
 
 export const metadata = { title: "Plan and billing" };
 
@@ -14,14 +14,7 @@ export default async function BillingPage() {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/billing");
 
-  const user = await prisma.user.findUnique({
-    where: { id: ctx.session.user.id },
-    select: { isFounding: true, stripeCustomerId: true, cancelAtPeriodEnd: true },
-  });
-  const active = ctx.membership.isActive;
-  const tier = tierById(ctx.membership.tierId ?? ctx.plan);
-  const end = ctx.membership.currentPeriodEnd;
-  const upgrade = active && tier?.id === "community" ? tierById("professional") : undefined;
+  const { user, active, tier, end, upgrade } = await loadBilling(ctx, ctx.session.user.id);
 
   return (
     <MemberPage size="narrow">
