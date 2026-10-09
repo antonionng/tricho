@@ -2,9 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { activatePremiumPartner } from "@/lib/partners";
 import { upsertOrganisationFromIntake } from "@/lib/crm-intake";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import { longDate } from "@/lib/mail/templates/directory";
@@ -25,7 +23,6 @@ import {
 import { buildContractPdf } from "@/lib/contract-pdf";
 import { storeUpload } from "@/lib/storage";
 import { createOfferCheckout, createOfferInvoice } from "@/lib/partner-offer-billing";
-import { tierById } from "@/config/subscriptions";
 import { SIGNIN_EMAIL_COOKIE, signinEmailCookieOptions } from "@/lib/signin-email";
 
 export type AcceptState = { error: string; fields: Record<string, string> } | null;
@@ -36,8 +33,8 @@ const COUNTERSIGNED_BY = `${site.founderFull}, Founder, for ${site.company.name}
 
 /**
  * The brand signs: the acceptance is recorded exactly as shown, the countersigned PDF is made and
- * stored privately, the Premium partner page opens for the sign-in email they chose, the CRM record
- * becomes a customer, and both sides get an email. A second submit of the same link does nothing.
+ * stored privately, the CRM record is marked won, and both sides get an email. The partner page opens
+ * only once the payment arrives (src/lib/partner-offer-activation.ts). A second submit does nothing.
  */
 export async function acceptPartnerOffer(token: string, _prev: AcceptState, form: FormData): Promise<AcceptState> {
   const offer = await prisma.partnerOffer.findUnique({ where: { token } });
@@ -137,27 +134,6 @@ export async function acceptPartnerOffer(token: string, _prev: AcceptState, form
     console.error("[PARTNER_OFFER_PDF]", error);
   }
 
-  const partner = await activatePremiumPartner({
-    ownerEmail: a.accountEmail,
-    name: offer.businessName,
-    category: offer.category,
-    website: offer.website,
-    isFounding: offer.isFounding,
-  });
-  // The page starts in the brand's colours, with their logo and tagline, wherever they are still empty.
-  await prisma.partner.update({
-    where: { id: partner.id },
-    data: {
-      accentColor: partner.accentColor ?? offer.accentColor,
-      tagline: partner.tagline ?? offer.tagline,
-      logoUrl: partner.logoUrl ?? offer.logoUrl,
-      coverUrl: partner.coverUrl ?? offer.heroUrl,
-    },
-  });
-  await prisma.partnerOffer.update({ where: { id: offer.id }, data: { partnerId: partner.id } });
-  revalidatePath("/partners");
-  revalidatePath("/for-business");
-
   try {
     await upsertOrganisationFromIntake({
       name: offer.businessName,
@@ -168,9 +144,9 @@ export async function acceptPartnerOffer(token: string, _prev: AcceptState, form
       contactTitle: a.signerRole,
       source: "partner-offer",
       interest: "premium",
-      stage: "customer",
+      // Won: signed. It becomes a customer when the payment arrives.
+      stage: "won",
       accountEmail: a.accountEmail,
-      partnerId: partner.id,
       intake: { offerId: offer.id, legalName: a.legalName, companyNumber: a.companyNumber, address: a.address, termsVersion: PARTNER_TERMS_VERSION, contractSha256: fingerprint },
       note: `${a.signerName} signed the Premium partner agreement (terms version ${PARTNER_TERMS_VERSION}) at ${facts.price}.`,
     });
@@ -228,7 +204,7 @@ export async function startOfferCheckout(token: string): Promise<{ clientSecret:
   }
 }
 
-/** Invoice: Stripe emails an invoice, payable by card or bank transfer within 14 days. */
+/** Invoice: Stripe emails an invoice, payable by card or bank transfer. The page opens when it is paid. */
 export async function requestOfferInvoice(token: string) {
   const offer = await signedOffer(token);
   if (!offer || offer.paidAt || offer.stripeSubscriptionId) redirect(`${offerPath(token)}#payment`);
@@ -240,19 +216,10 @@ export async function requestOfferInvoice(token: string) {
     where: { id: offer.id },
     data: { paymentMethod: "invoice", stripeCustomerId: customerId, stripeSubscriptionId: subscription.id, invoiceUrl },
   });
-  // The account is billed by this subscription, like a member who paid at checkout.
-  const business = tierById("business");
+  // The account is tied to the subscription now; it becomes a Business account when the invoice is paid.
   await prisma.user.updateMany({
     where: { email: offer.accountEmail! },
-    data: {
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscription.id,
-      stripePriceId: subscription.items.data[0]?.price.id ?? null,
-      plan: "business",
-    },
+    data: { stripeCustomerId: customerId, stripeSubscriptionId: subscription.id },
   });
-  if (business) {
-    await prisma.user.updateMany({ where: { email: offer.accountEmail!, role: { not: "admin" } }, data: { role: business.grantsRole } });
-  }
   redirect(`${offerPath(token)}#welcome`);
 }
