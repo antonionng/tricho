@@ -1192,6 +1192,9 @@ model PartnerOffer {
   legalNameHint        String?
   companyNumberHint    String?
   addressHint          String?
+  /// What the partner page starts with when it opens: { story?, offerings?, highlights?, ctaLabel?, ctaUrl?, socials? }.
+  /// Only fills what is still empty, so nothing the brand writes is ever overwritten.
+  pagePrefill          Json?
   /// Anything else agreed, shown under the inclusions.
   specialTerms         String?   @db.Text
   paymentUrl           String?

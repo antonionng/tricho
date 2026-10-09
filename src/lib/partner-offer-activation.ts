@@ -6,7 +6,7 @@ import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import { partnerLiveEmail, partnerPaidAlert } from "@/lib/mail/templates/partner-offers";
 import { tierById } from "@/config/subscriptions";
 import { markOfferPaid } from "@/lib/partner-offer-payments";
-import { offerPriceLabel } from "@/lib/partner-offers";
+import { offerPriceLabel, readPagePrefill } from "@/lib/partner-offers";
 
 /**
  * A signed offer has been paid, by card or by invoice: the Premium partner page opens in the
@@ -26,7 +26,9 @@ export async function activatePaidOffer(p: { offerId: string; subscriptionId?: s
     website: offer.website,
     isFounding: offer.isFounding,
   });
-  // The page starts in the brand's colours, with their logo and tagline, wherever they are still empty.
+  // The page starts with the brand's logo, cover, story, products and button, wherever they are still empty.
+  const prefill = readPagePrefill(offer.pagePrefill);
+  const empty = (v: unknown) => v == null || (Array.isArray(v) && v.length === 0) || v === "";
   await prisma.partner.update({
     where: { id: partner.id },
     data: {
@@ -34,6 +36,10 @@ export async function activatePaidOffer(p: { offerId: string; subscriptionId?: s
       tagline: partner.tagline ?? offer.tagline,
       logoUrl: partner.logoUrl ?? offer.logoUrl,
       coverUrl: partner.coverUrl ?? offer.heroUrl,
+      ...(prefill.story && !partner.story ? { story: prefill.story } : {}),
+      ...(prefill.offerings.length && empty(partner.offerings) ? { offerings: prefill.offerings } : {}),
+      ...(prefill.highlights.length && empty(partner.highlights) ? { highlights: prefill.highlights } : {}),
+      ...(prefill.ctaLabel && prefill.ctaUrl && !partner.ctaUrl ? { ctaLabel: prefill.ctaLabel, ctaUrl: prefill.ctaUrl } : {}),
     },
   });
   if (offer.partnerId !== partner.id) await prisma.partnerOffer.update({ where: { id: offer.id }, data: { partnerId: partner.id } });
@@ -74,6 +80,15 @@ export async function activatePaidOffer(p: { offerId: string; subscriptionId?: s
     });
   } catch (error) {
     console.error("[PARTNER_OFFER_CRM]", error);
+  }
+
+  // Their social accounts go on the CRM record, which the partner page shows; ones already there are kept.
+  if (Object.keys(prefill.socials).length) {
+    const org = await prisma.organisation.findUnique({ where: { partnerId: partner.id }, select: { id: true, socials: true } });
+    if (org) {
+      const current = (org.socials && typeof org.socials === "object" ? org.socials : {}) as Record<string, string>;
+      await prisma.organisation.update({ where: { id: org.id }, data: { socials: { ...prefill.socials, ...current } } });
+    }
   }
 
   const facts = {
