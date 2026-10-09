@@ -127,6 +127,7 @@ export default async function OnboardPage({
     ctaLabel: prefill.ctaLabel,
     ctaUrl: prefill.ctaUrl,
     videoUrl: null,
+    isFounding: offer.isFounding,
   };
 
   const chapters = [
