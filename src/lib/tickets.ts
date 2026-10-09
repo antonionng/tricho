@@ -1,8 +1,8 @@
 import type Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { deliverOnce } from "@/lib/mail/send";
-import { formatMoney } from "@/lib/mail/templates/billing";
+import { alertOwners, deliverOnce } from "@/lib/mail/send";
+import { formatMoney, ticketSoldAlert } from "@/lib/mail/templates/billing";
 import { ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
 
 /**
@@ -166,6 +166,20 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
     priceType: ticket.priceType === "member" ? "member" : "guest",
   });
   await deliverOnce(`ticket-confirmed:${ticket.id}`, ticket.email, email.subject, email.content, { tag: "event-ticket" });
+
+  // The team hears about each sale once: only the event that marked the ticket paid sends it.
+  if (updated.count > 0) {
+    await alertOwners(
+      ticketSoldAlert({
+        name: ticket.name,
+        email: ticket.email,
+        event: ticket.event.title,
+        quantity: ticket.quantity,
+        amount: formatMoney(session.amount_total ?? ticket.amount, session.currency ?? ticket.currency),
+        priceType: ticket.priceType,
+      })
+    );
+  }
 
   refresh(ticket.event.slug);
   return { ok: true as const, ticketId: ticket.id, already: updated.count === 0 };
