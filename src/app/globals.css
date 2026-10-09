@@ -463,3 +463,19 @@
 .mag-pocket .mag-body p {
   font-size: 19px;
 }
+
+/* ---------- Premium partners carousel (home) ---------- */
+@keyframes partner-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.partner-marquee-track { animation: partner-marquee 40s linear infinite; }
+.partner-marquee {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .partner-marquee { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  .partner-marquee-track { animation: none; }
+  .partner-marquee-track > li[aria-hidden] { display: none; }
+}
