@@ -14,6 +14,9 @@ import { offerPath, offerStripeMetadata, offerUnitAmount } from "@/lib/partner-o
 
 let productId: string | null = null;
 
+/** Stripe needs a due date on an invoice; the page only opens once it is paid. */
+export const INVOICE_DAYS = 7;
+
 /** The Premium Business product, read from its listed price, or created once if there is none. */
 export async function premiumProductId() {
   if (productId) return productId;
@@ -70,7 +73,7 @@ export async function createOfferCheckout(offer: Offer) {
 
 /**
  * Invoice: a customer and a yearly subscription billed by invoice, which Stripe emails at once,
- * payable by card or bank transfer within 14 days.
+ * payable by card or bank transfer. The partner page opens when it is paid.
  */
 export async function createOfferInvoice(
   offer: Offer & { stripeCustomerId: string | null },
@@ -92,7 +95,7 @@ export async function createOfferInvoice(
   const subscription = await stripe.subscriptions.create({
     customer: customerId,
     collection_method: "send_invoice",
-    days_until_due: 14,
+    days_until_due: INVOICE_DAYS,
     items: [{ price_data: priceData(offer, await premiumProductId()) }],
     description: `Premium Business partnership: ${offer.businessName}`.slice(0, 250),
     metadata,

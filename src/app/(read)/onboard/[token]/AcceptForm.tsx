@@ -70,14 +70,14 @@ export function AcceptForm({ token, defaults, disabled = false }: { token: strin
             className="bg-card"
           />
           <div className="flex min-h-20 flex-col justify-end border-b border-ink/40 pb-1" aria-hidden>
-            <span className="mag-didone truncate text-4xl italic leading-tight text-[var(--c-strong)] sm:text-5xl">{signature || " "}</span>
+            <span className="mag-didone truncate text-4xl italic leading-tight text-ink sm:text-5xl">{signature || " "}</span>
           </div>
           <p className="text-xs text-muted-foreground">Signed electronically on {today}. Your typed name is your signature on this agreement.</p>
         </div>
 
         <div className="flex flex-col gap-3 text-[15px] leading-relaxed text-ink-2">
           <label className="flex items-start gap-3">
-            <input type="checkbox" name="agree" required className="mt-1 h-4 w-4 shrink-0 accent-[var(--c-accent)]" />
+            <input type="checkbox" name="agree" required className="mt-1 h-4 w-4 shrink-0 accent-ink" />
             <span>
               I agree to this offer, the{" "}
               <Link href="/terms/partners" target="_blank" className="text-ink underline underline-offset-4">
@@ -91,7 +91,7 @@ export function AcceptForm({ token, defaults, disabled = false }: { token: strin
             </span>
           </label>
           <label className="flex items-start gap-3">
-            <input type="checkbox" name="authorised" required className="mt-1 h-4 w-4 shrink-0 accent-[var(--c-accent)]" />
+            <input type="checkbox" name="authorised" required className="mt-1 h-4 w-4 shrink-0 accent-ink" />
             <span>I confirm that I am authorised to sign this agreement for the company.</span>
           </label>
         </div>
@@ -106,7 +106,7 @@ export function AcceptForm({ token, defaults, disabled = false }: { token: strin
           type="submit"
           size="xl"
           disabled={pending || disabled}
-          className="h-14 w-full bg-[var(--c-accent)] text-base text-[var(--c-on)] hover:bg-[var(--c-accent)]/90 sm:w-auto sm:self-start"
+          className="h-14 w-full text-base sm:w-auto sm:self-start"
         >
           {pending ? "Signing and preparing your copy" : "Sign the agreement"} <ArrowRight />
         </Button>
