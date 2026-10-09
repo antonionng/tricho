@@ -4,6 +4,7 @@ import { professionById } from "@/config/rooms";
 import type { FeedPost } from "@/lib/community";
 import { Avatar } from "@/components/members/Avatar";
 import { timeAgo } from "@/components/members/format";
+import { PostMedia } from "./PostMedia";
 import { UsefulButton } from "./UsefulButton";
 
 export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace?: boolean }) {
@@ -36,10 +37,13 @@ export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace
 
       <Link href={href} className="mt-3 block after:absolute after:inset-0 after:rounded-2xl" aria-label={post.title || "Open thread"}>
         {post.title && <h3 className="text-[17px] font-semibold leading-snug tracking-[-0.01em] text-ink">{post.title}</h3>}
-        <p className={`${post.title ? "mt-1.5" : ""} line-clamp-4 whitespace-pre-line text-[15px] leading-relaxed text-ink-2`}>
-          {post.content}
-        </p>
+        {post.content && (
+          <p className={`${post.title ? "mt-1.5" : ""} line-clamp-4 whitespace-pre-line text-[15px] leading-relaxed text-ink-2`}>
+            {post.content}
+          </p>
+        )}
       </Link>
+      <PostMedia media={post.media} className="mt-3" />
 
       <footer className="relative z-10 mt-4 flex items-center gap-2">
         <UsefulButton postId={post.id} count={post.useful} reacted={post.reacted} />

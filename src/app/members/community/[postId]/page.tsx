@@ -9,7 +9,8 @@ import { UsefulButton } from "@/components/community/UsefulButton";
 import { ReportButton } from "@/components/community/ReportButton";
 import { CommentForm } from "@/components/community/CommentForm";
 import { ReplyToComment } from "@/components/community/ReplyToComment";
-import { firstName } from "@/lib/community";
+import { PostMedia } from "@/components/community/PostMedia";
+import { firstName, mediaForPosts } from "@/lib/community";
 import { cn } from "@/lib/utils";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
@@ -52,7 +53,8 @@ export default async function ThreadPage({
   });
   if (!post || post.hiddenAt) notFound();
 
-  const allRooms = await getAllRooms();
+  const [allRooms, mediaByPost] = await Promise.all([getAllRooms(), mediaForPosts([post.id])]);
+  const media = mediaByPost.get(post.id) ?? [];
   const space = normalizeSpace(post.space, allRooms);
   const room = roomById(space, allRooms);
   if (!canReadRoom(space, ctx.professional, allRooms)) {
@@ -120,7 +122,8 @@ export default async function ThreadPage({
           </div>
         </header>
         {post.title && <h1 className="display mt-5 text-3xl sm:text-4xl">{post.title}</h1>}
-        <div className="mt-4 whitespace-pre-line text-[16px] leading-[1.7] text-ink-2">{post.content}</div>
+        {post.content && <div className="mt-4 whitespace-pre-line text-[16px] leading-[1.7] text-ink-2">{post.content}</div>}
+        <PostMedia media={media} className="mt-5" />
         <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-rule pt-4">
           <UsefulButton postId={post.id} count={post._count.reactions} reacted={post.reactions.length > 0} size="lg" />
           {post.author.id !== userId && <ReportButton postId={post.id} />}

@@ -5,7 +5,11 @@ import {
   extensionFor,
   fileUrl,
   IMAGE_SIZES,
+  MAX_VIDEO_BYTES,
+  sniffVideo,
   storagePath,
+  VIDEO_TYPES,
+  videoExtension,
   type FileKind,
 } from "@/lib/files";
 
@@ -195,4 +199,83 @@ export async function urlForFile(id: string | null | undefined) {
   if (!id) return null;
   const row = await prisma.storedFile.findUnique({ where: { id }, select: { id: true, driver: true, bucket: true, path: true, isPublic: true } });
   return row ? fileUrl(row) : null;
+}
+
+export type VideoUploadTicket = { ok: true; path: string; uploadUrl: string } | { ok: false; message: string };
+
+/**
+ * A one-time link the browser uploads a video to directly, since videos are too large for a server action.
+ * The video only counts once `registerVideoUpload` has checked what arrived.
+ */
+export async function createVideoUpload(opts: { contentType: string; size: number }): Promise<VideoUploadTicket> {
+  const cfg = supabaseConfig();
+  if (!cfg) return { ok: false, message: "Video uploads aren't available just now. Photos still work." };
+  if (!(VIDEO_TYPES as readonly string[]).includes(opts.contentType)) {
+    return { ok: false, message: "Please choose an MP4, MOV or WebM video." };
+  }
+  if (opts.size <= 0) return { ok: false, message: "The video was empty. Please choose it again." };
+  if (opts.size > MAX_VIDEO_BYTES) {
+    return { ok: false, message: `Videos can be up to ${MAX_VIDEO_BYTES / 1024 / 1024}MB. Please trim it or choose a shorter one.` };
+  }
+  await ensureBucket(cfg, PUBLIC_BUCKET, true);
+  const path = storagePath("video", videoExtension(opts.contentType));
+  const res = await fetch(`${cfg.url}/storage/v1/object/upload/sign/${PUBLIC_BUCKET}/${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${cfg.key}`, apikey: cfg.key, "Content-Type": "application/json" },
+    body: "{}",
+  });
+  const body = res.ok ? ((await res.json()) as { url?: string }) : null;
+  if (!body?.url) {
+    console.error("[storage] couldn't create a video upload link", res.status, res.ok ? "" : await res.text());
+    return { ok: false, message: "The video couldn't be uploaded just now. Please try again in a moment." };
+  }
+  return { ok: true, path, uploadUrl: `${cfg.url}/storage/v1${body.url}` };
+}
+
+/** Checks a video the browser uploaded really is one and within the limit, then records it. Anything else is removed. */
+export async function registerVideoUpload(opts: { path: string; ownerId: string; name?: string | null }): Promise<UploadResult> {
+  const cfg = supabaseConfig();
+  const failed = { ok: false as const, message: "The video didn't arrive. Please try uploading it again." };
+  if (!cfg || !/^video\/\d{4}\/\d{2}\/[a-z0-9]+\.(mp4|mov|webm)$/.test(opts.path)) return failed;
+
+  const already = await prisma.storedFile.findFirst({ where: { bucket: PUBLIC_BUCKET, path: opts.path }, select: { id: true } });
+  if (already) return failed;
+
+  const res = await fetch(`${cfg.url}/storage/v1/object/${PUBLIC_BUCKET}/${opts.path}`, {
+    headers: { Authorization: `Bearer ${cfg.key}`, apikey: cfg.key, Range: "bytes=0-15" },
+  });
+  if (!res.ok) return failed;
+  const head = new Uint8Array(await res.arrayBuffer()).slice(0, 16);
+  const size = Number(res.headers.get("content-range")?.split("/")[1] ?? res.headers.get("content-length") ?? 0);
+  const contentType = sniffVideo(head);
+  const remove = () =>
+    fetch(`${cfg.url}/storage/v1/object/${PUBLIC_BUCKET}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${cfg.key}`, apikey: cfg.key, "Content-Type": "application/json" },
+      body: JSON.stringify({ prefixes: [opts.path] }),
+    }).catch(() => null);
+  if (!contentType) {
+    await remove();
+    return { ok: false, message: "That file isn't a video we can play. Please choose an MP4, MOV or WebM." };
+  }
+  if (size > MAX_VIDEO_BYTES) {
+    await remove();
+    return { ok: false, message: `Videos can be up to ${MAX_VIDEO_BYTES / 1024 / 1024}MB. Please trim it or choose a shorter one.` };
+  }
+
+  const row = await prisma.storedFile.create({
+    data: {
+      kind: "video",
+      driver: "supabase",
+      bucket: PUBLIC_BUCKET,
+      path: opts.path,
+      contentType,
+      size,
+      name: opts.name?.slice(0, 200) || null,
+      isPublic: true,
+      ownerId: opts.ownerId,
+    },
+    select: { id: true, driver: true, bucket: true, path: true, isPublic: true },
+  });
+  return { ok: true, file: { id: row.id, url: fileUrl(row) } };
 }

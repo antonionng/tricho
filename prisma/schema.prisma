@@ -316,6 +316,7 @@ model CommunityPost {
   comments     Comment[]
   reactions    Reaction[]
   reports      Report[]
+  media        PostMedia[]
   hiddenAt     DateTime?
   hiddenReason String?
 
@@ -324,6 +325,25 @@ model CommunityPost {
 
   @@index([space, createdAt])
   @@index([chapterId, createdAt])
+}
+
+/// A photo or video attached to a community post, shown in the order it was added.
+model PostMedia {
+  id          String        @id @default(cuid())
+  postId      String
+  post        CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  /// The StoredFile holding it.
+  fileId      String        @unique
+  url         String
+  /// "image" | "video"
+  type        String
+  contentType String
+  width       Int?
+  height      Int?
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+
+  @@index([postId, sortOrder])
 }
 
 model Comment {
@@ -962,7 +982,7 @@ model ProfilePhoto {
 /// An uploaded file. Stored in Supabase Storage when it is configured, otherwise in the database.
 model StoredFile {
   id          String   @id @default(cuid())
-  /// "logo" | "avatar" | "photo" | "cover" | "document"
+  /// "logo" | "avatar" | "photo" | "cover" | "document" | "video"
   kind        String
   /// "supabase" | "db"
   driver      String
