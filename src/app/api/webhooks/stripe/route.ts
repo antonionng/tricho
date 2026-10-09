@@ -23,6 +23,7 @@ import {
   newMemberAlert,
   paymentFailedAlert,
   paymentFailedEmail,
+  renewalPaidAlert,
   welcomeEmail,
 } from "@/lib/mail/templates/billing";
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
@@ -322,6 +323,27 @@ export async function POST(req: Request) {
             data: { role: tier.grantsRole },
           });
         }
+        // Renewals tell the team too. First payments are announced from checkout (or the partner offer) already.
+        if (event.type === "invoice.payment_succeeded") {
+          const invoice = event.data.object as Stripe.Invoice;
+          if (invoice.billing_reason !== "subscription_create" && (invoice.amount_paid ?? 0) > 0 && (await claimOnce(`stripe:${event.id}:owners`))) {
+            const member = await prisma.user.findFirst({ where: { stripeSubscriptionId: subscription.id }, select: { name: true, email: true } });
+            const plan = isPremiumSubscription(priceId, subscription.metadata) ? premiumBusiness.name : (tier?.name ?? "Trichollective");
+            const to = (member?.email || invoice.customer_email || "").toLowerCase();
+            if (to) {
+              await alertOwners(
+                renewalPaidAlert({
+                  name: member?.name || invoice.customer_name || null,
+                  email: to,
+                  plan,
+                  amount: formatMoney(invoice.amount_paid, invoice.currency),
+                  interval: subscription.items.data[0]?.price.recurring?.interval ?? null,
+                })
+              );
+            }
+          }
+        }
+
         // Invite colleagues: a first payment earns the referrer's reward; any payment credits banked rewards. Never throws.
         if (event.type === "invoice.payment_succeeded") {
           await onReferralInvoicePaid(event.data.object as Stripe.Invoice);

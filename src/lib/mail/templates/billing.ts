@@ -211,6 +211,44 @@ export function paymentFailedAlert(p: { name: string | null; email: string; plan
   };
 }
 
+/** A subscription renewed and was paid (monthly or yearly). */
+export function renewalPaidAlert(p: { name: string | null; email: string; plan: PlanName; amount: string | null; interval: string | null }): OwnerAlert {
+  const facts: [string, string][] = [
+    ["Name", p.name || "Not given"],
+    ["Email", p.email],
+    ["Plan", p.plan],
+  ];
+  const interval = intervalLabel(p.interval);
+  if (interval) facts.push(["Billing", interval]);
+  if (p.amount) facts.push(["Paid", p.amount]);
+  return {
+    subject: `Payment received: ${p.name || p.email}, ${p.amount ?? p.plan}`,
+    heading: `${p.name || p.email} has paid ${p.amount ? `${p.amount} for` : "for"} their ${p.plan} renewal.`,
+    facts,
+    cta: { label: "View members", href: "/studio/members" },
+    replyTo: p.email,
+  };
+}
+
+/** An event ticket was paid for. */
+export function ticketSoldAlert(t: { name: string | null; email: string; event: string; quantity: number; amount: string | null; priceType: string }): OwnerAlert {
+  const facts: [string, string][] = [
+    ["Name", t.name || "Not given"],
+    ["Email", t.email],
+    ["Event", t.event],
+    ["Places", String(t.quantity)],
+    ["Price", t.priceType === "member" ? "Member price" : "Guest price"],
+  ];
+  if (t.amount) facts.push(["Paid", t.amount]);
+  return {
+    subject: `Ticket sold: ${t.event}, ${t.amount ?? `${t.quantity} place${t.quantity === 1 ? "" : "s"}`}`,
+    heading: `${t.name || t.email} has bought ${t.quantity === 1 ? "a ticket" : `${t.quantity} tickets`} for ${t.event}.`,
+    facts,
+    cta: { label: "View events", href: "/studio/events" },
+    replyTo: t.email,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Samples for the Studio                                               */
 /* ------------------------------------------------------------------ */
