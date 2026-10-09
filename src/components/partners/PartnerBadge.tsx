@@ -79,15 +79,15 @@ export function PartnerBadge({
     <span
       className={cn(
         "inline-flex items-center whitespace-nowrap rounded-full bg-[#0B0B0B] font-semibold uppercase text-white ring-1 ring-[#D4AF55]/45",
-        size === "sm" ? "gap-1.5 py-0.5 pl-0.5 pr-2.5 text-[9.5px] tracking-[0.14em]" : "gap-2 py-1 pl-1 pr-3 text-[10.5px] tracking-[0.16em]",
+        size === "sm" ? "gap-1.5 py-0.5 pl-0.5 pr-2.5 text-[9px] tracking-[0.12em]" : "gap-1.5 py-0.5 pl-0.5 pr-2.5 text-[9.5px] tracking-[0.12em]",
         className
       )}
     >
-      <PremiumSeal id={id} className={size === "sm" ? "h-5 w-5 shrink-0" : "h-6 w-6 shrink-0"} />
+      <PremiumSeal id={id} className={size === "sm" ? "h-[18px] w-[18px] shrink-0" : "h-5 w-5 shrink-0"} />
       {founding && (
         <>
           <span className="text-[#E2C477]">Founding</span>
-          <span aria-hidden className="h-3 w-px bg-white/30" />
+          <span aria-hidden className="h-2.5 w-px bg-white/30" />
         </>
       )}
       <span>{label}</span>
