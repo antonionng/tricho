@@ -1150,3 +1150,85 @@ model EventTicket {
   @@index([eventId, status])
   @@index([email])
 }
+
+/// A bespoke Premium Business deal agreed by the team (for example a founding rate paid through a
+/// Stripe payment link). The brand opens a private link, reads the offer and the partner terms,
+/// and accepts them, which records who agreed, when and to which version, and opens their page.
+model PartnerOffer {
+  id                   String    @id @default(cuid())
+  /// The secret in the onboarding link.
+  token                String    @unique
+  businessName         String
+  /// One of PARTNER_CATEGORIES, used for the partner page.
+  category             String    @default("Something else")
+  website              String?
+  contactName          String?
+  /// Where the link is sent, and the sign-in email the page is set up for unless they change it.
+  email                String
+  /// Whole pounds per interval, e.g. 1400.
+  priceGBP             Int
+  /// "year" or "month"
+  interval             String    @default("year")
+  /// The price stays the same for as long as they remain a partner without a break.
+  fixedPrice           Boolean   @default(true)
+  isFounding           Boolean   @default(true)
+  /// string[]: what is included, shown as the schedule of the agreement.
+  inclusions           Json
+  // How the onboarding page is styled for this brand.
+  /// "#rrggbb", the brand colour the page is themed with.
+  accentColor          String?
+  tagline              String?
+  /// A stored upload (/api/files/...) or an https link.
+  logoUrl              String?
+  /// A wide product or brand photograph for the cover.
+  heroUrl              String?
+  /// A letter from Karley that opens the page. Paragraphs separated by a blank line.
+  personalNote         String?   @db.Text
+  firstMasterclass     String?
+  firstFeature         String?
+  /// "No. 1 of 6" on the cover, for founding partners.
+  foundingNumber       Int?
+  /// The registered company, prefilled on the signing form.
+  legalNameHint        String?
+  companyNumberHint    String?
+  addressHint          String?
+  /// Anything else agreed, shown under the inclusions.
+  specialTerms         String?   @db.Text
+  paymentUrl           String?
+  paidAt               DateTime?
+  /// "sent" | "accepted" | "withdrawn"
+  status               String    @default("sent")
+  createdBy            String?
+  // Acceptance, as signed.
+  acceptedAt           DateTime?
+  termsVersion         String?
+  signerName           String?
+  signerRole           String?
+  legalName            String?
+  companyNumber        String?
+  address              String?   @db.Text
+  accountEmail         String?
+  acceptedIp           String?
+  userAgent            String?
+  /// The offer and terms exactly as shown when they accepted.
+  snapshot             Json?
+  /// Their name as typed to sign.
+  signature            String?
+  /// The countersigned PDF, stored privately.
+  contractFileId       String?
+  /// SHA-256 of the agreement text in the PDF, so the record can be checked later.
+  contractSha256       String?
+  /// "card" or "invoice"
+  paymentMethod        String?
+  checkoutSessionId    String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  invoiceUrl           String?
+  partnerId            String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([stripeSubscriptionId])
+}
