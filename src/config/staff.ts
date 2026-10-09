@@ -218,6 +218,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/gazette", label: "Trichozette", icon: "gazette", perm: "gazette.view", group: "publish" },
   { href: "/studio/podcast", label: "Podcast", icon: "podcast", perm: "podcast.view", group: "publish" },
   { href: "/studio/events", label: "Events", icon: "events", perm: "events.view", group: "publish" },
+  { href: "/studio/courses", label: "Courses", icon: "verification", perm: "members.view", group: "publish" },
   { href: "/studio/emails", label: "Emails", icon: "emails", perm: "emails.view", group: "publish" },
   { href: "/studio/members", label: "Members", icon: "members", perm: "members.view", group: "people" },
   { href: "/studio/crm", label: "Businesses", icon: "crm", perm: "crm.view", group: "people" },

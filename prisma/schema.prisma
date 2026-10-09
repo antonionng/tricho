@@ -204,6 +204,8 @@ model User {
   rewardsEarned  ReferralReward[]      @relation("rewardReferrer")
   rewardsFrom    ReferralReward[]      @relation("rewardReferred")
   tickets        EventTicket[]
+  enrolments     CourseEnrolment[]
+  certificates   Certificate[]
   auditLogs      AuditLog[]            @relation("auditActor")
   memberNotes    MemberNote[]          @relation("noteSubject")
   notesWritten   MemberNote[]          @relation("noteAuthor")
@@ -1149,6 +1151,100 @@ model EventTicket {
 
   @@index([eventId, status])
   @@index([email])
+}
+
+enum EnrolmentStatus {
+  pending
+  active
+  refunded
+  cancelled
+}
+
+/// A member's place on a course. One row per person per course: a lapsed
+/// checkout is reused when they try again. Course content lives in
+/// src/content/course-lessons, keyed by courseSlug.
+model CourseEnrolment {
+  id                    String          @id @default(cuid())
+  userId                String
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseSlug            String
+  status                EnrolmentStatus @default(pending)
+  /// "member", "guest" or "free".
+  priceType             String          @default("guest")
+  /// Total paid, in the smallest unit.
+  amount                Int             @default(0)
+  currency              String          @default("gbp")
+  stripeSessionId       String?         @unique
+  stripePaymentIntentId String?
+  /// The lesson they last opened, so "Continue" takes them back to it.
+  lastLessonSlug        String?
+  activatedAt           DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  lessons     LessonProgress[]
+  attempts    AssessmentAttempt[]
+  certificate Certificate?
+
+  @@unique([userId, courseSlug])
+  @@index([courseSlug, status])
+  @@index([stripePaymentIntentId])
+}
+
+/// One lesson for one learner: when they finished it, their knowledge check
+/// score and their private notes and reflection, which feed the CPD log.
+model LessonProgress {
+  id          String          @id @default(cuid())
+  enrolmentId String
+  enrolment   CourseEnrolment @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  lessonSlug  String
+  completedAt DateTime?
+  checkScore  Int?
+  checkTotal  Int?
+  notes       String?         @db.Text
+  reflection  String?         @db.Text
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([enrolmentId, lessonSlug])
+}
+
+model AssessmentAttempt {
+  id          String          @id @default(cuid())
+  enrolmentId String
+  enrolment   CourseEnrolment @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  score       Int
+  total       Int
+  passed      Boolean
+  /// The option chosen for each question id.
+  answers     Json
+  createdAt   DateTime        @default(now())
+
+  @@index([enrolmentId, createdAt])
+}
+
+/// A certificate of completion. The id is the public reference printed on it
+/// and checked at /certificates/[id].
+model Certificate {
+  id            String          @id
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrolmentId   String          @unique
+  enrolment     CourseEnrolment @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  courseSlug    String
+  /// Copied at issue, so the certificate stays true if the course changes.
+  courseTitle   String
+  holderName    String
+  hours         Int
+  score         Int
+  total         Int
+  /// Shown as a badge on their profile and directory listing.
+  showOnProfile Boolean         @default(true)
+  issuedAt      DateTime        @default(now())
+  withdrawnAt   DateTime?
+  withdrawnNote String?
+
+  @@unique([userId, courseSlug])
 }
 
 /// A bespoke Premium Business deal agreed by the team (for example a founding rate paid through a

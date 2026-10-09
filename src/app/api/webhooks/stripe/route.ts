@@ -27,6 +27,7 @@ import {
 } from "@/lib/mail/templates/billing";
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
 import { handleTicketWebhook } from "@/lib/tickets";
+import { handleCourseWebhook } from "@/lib/courses";
 import { onReferralCheckout, onReferralInvoicePaid, referralPriorStateSafe } from "@/lib/referrals";
 import { markOfferPaid, offerIdFrom, offerOwnerEmail } from "@/lib/partner-offer-payments";
 
@@ -81,6 +82,14 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("[STRIPE_WEBHOOK_TICKETS]", error);
     return new NextResponse("Ticket handler failed", { status: 500 });
+  }
+
+  // Course places are one-off payments too.
+  try {
+    if (await handleCourseWebhook(event)) return new NextResponse(null, { status: 200 });
+  } catch (error) {
+    console.error("[STRIPE_WEBHOOK_COURSES]", error);
+    return new NextResponse("Course handler failed", { status: 500 });
   }
 
   try {
