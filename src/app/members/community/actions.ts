@@ -11,6 +11,8 @@ import { commentReplyEmail } from "@/lib/mail/templates/members";
 import { postReportedAlert } from "@/lib/mail/templates/owners";
 import { getAllRooms } from "@/lib/rooms";
 import { assessReport, moderateNewContent } from "@/agents/moderation";
+import { createVideoUpload, deleteStoredFile, fileUrl, registerVideoUpload, storeUpload } from "@/lib/storage";
+import { MAX_POST_MEDIA } from "@/lib/files";
 
 export type FormState = { ok?: boolean; error?: string; message?: string; id?: string } | null;
 
@@ -46,6 +48,46 @@ function revalidateFeeds(postId?: string, chapterSlug?: string | null) {
   if (chapterSlug) revalidatePath(`/members/chapters/${chapterSlug}`);
 }
 
+export type MediaUpload = { ok: true; id: string; url: string } | { ok: false; error: string };
+
+/** One photo for a post that's being written. It is resized and stripped of location details like every other photo. */
+export async function uploadPostImage(formData: FormData): Promise<MediaUpload> {
+  const member = await requireMember();
+  if (!member) return { ok: false, error: "Posting is part of membership. Choose a plan to join in." };
+  if ("refused" in member) return { ok: false, error: member.refused ?? "Your account can't post just now." };
+  const upload = await storeUpload({ kind: "photo", file: formData.get("file") as File | null, ownerId: member.userId });
+  if (!upload) return { ok: false, error: "Please choose a photo to add." };
+  if (!upload.ok) return { ok: false, error: upload.message };
+  return { ok: true, id: upload.file.id, url: upload.file.url };
+}
+
+/** A link the browser uploads a video to directly. */
+export async function startVideoUpload(contentType: string, size: number) {
+  const member = await requireMember();
+  if (!member) return { ok: false as const, message: "Posting is part of membership. Choose a plan to join in." };
+  if ("refused" in member) return { ok: false as const, message: member.refused };
+  return createVideoUpload({ contentType, size });
+}
+
+/** Checks and records a video once the browser has finished uploading it. */
+export async function finishVideoUpload(path: string, name: string): Promise<MediaUpload> {
+  const member = await requireMember();
+  if (!member) return { ok: false, error: "Posting is part of membership. Choose a plan to join in." };
+  if ("refused" in member) return { ok: false, error: member.refused ?? "Your account can't post just now." };
+  const result = await registerVideoUpload({ path, ownerId: member.userId, name });
+  return result.ok ? { ok: true, id: result.file.id, url: result.file.url } : { ok: false, error: result.message };
+}
+
+/** A file the member uploaded and then took out of the post before sending it. */
+export async function discardPostMedia(fileId: string) {
+  const member = await requireMember();
+  if (!member || "refused" in member) return;
+  const file = await prisma.storedFile.findFirst({ where: { id: fileId, ownerId: member.userId }, select: { id: true } });
+  if (!file) return;
+  const attached = await prisma.postMedia.findUnique({ where: { fileId }, select: { id: true } }).catch(() => null);
+  if (!attached) await deleteStoredFile(fileId);
+}
+
 export async function createPost(_prev: FormState, formData: FormData): Promise<FormState> {
   const member = await requireMember();
   if (!member) return { error: "Posting is part of membership. Choose a plan to join in." };
@@ -57,8 +99,23 @@ export async function createPost(_prev: FormState, formData: FormData): Promise<
   const title = clean(formData.get("title"), 140);
   const content = clean(formData.get("content"), 5000);
   const wantsChapter = formData.get("chapter") === "on";
+  const mediaIds = [...new Set(formData.getAll("media").map(String))].slice(0, MAX_POST_MEDIA);
 
-  if (content.length < 2) return { error: "Write a little more before posting." };
+  // Only files this member uploaded themselves, for photos and videos, and not already on another post.
+  const files = mediaIds.length
+    ? await prisma.storedFile.findMany({
+        where: { id: { in: mediaIds }, ownerId: userId, kind: { in: ["photo", "video"] } },
+        select: { id: true, kind: true, contentType: true, width: true, height: true, driver: true, bucket: true, path: true, isPublic: true },
+      })
+    : [];
+  const taken = files.length
+    ? await prisma.postMedia.findMany({ where: { fileId: { in: files.map((f) => f.id) } }, select: { fileId: true } }).catch(() => null)
+    : [];
+  if (taken === null) return { error: "Photos and videos can't be added to posts just yet. Remove them to post your words now." };
+  const takenIds = new Set(taken.map((t) => t.fileId));
+  const media = mediaIds.map((id) => files.find((f) => f.id === id && !takenIds.has(id))).filter((f) => !!f);
+
+  if (content.length < 2 && media.length === 0) return { error: "Write a little more, or add a photo or video, before posting." };
   if (!memberCanPost(space, ctx, rooms)) {
     const room = roomById(space, rooms);
     if (room?.archived) return { error: `${room.label} has been archived, so it no longer takes new posts.` };
@@ -77,6 +134,20 @@ export async function createPost(_prev: FormState, formData: FormData): Promise<
     },
     select: { id: true, chapter: { select: { slug: true } } },
   });
+  if (media.length) {
+    await prisma.postMedia.createMany({
+      data: media.map((f, i) => ({
+        postId: post.id,
+        fileId: f.id,
+        url: fileUrl(f),
+        type: f.kind === "video" ? "video" : "image",
+        contentType: f.contentType,
+        width: f.width,
+        height: f.height,
+        sortOrder: i,
+      })),
+    });
+  }
 
   after(() => moderateNewContent({ postId: post.id, text: [title, content].filter(Boolean).join("\n\n"), roomId: space }));
 
