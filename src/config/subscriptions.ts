@@ -175,6 +175,17 @@ export function isPremiumPriceId(priceId: string | null | undefined) {
   return !!priceId && (priceId === premiumBusiness.stripePriceId || priceId === premiumBusiness.stripeFoundingPriceId);
 }
 
+/**
+ * True for a Premium Business subscription: one of the listed prices, or a bespoke price (such as a
+ * founding rate on a Stripe payment link) whose subscription carries the metadata tier "premium".
+ */
+export function isPremiumSubscription(
+  priceId: string | null | undefined,
+  metadata: Record<string, string> | null | undefined
+) {
+  return isPremiumPriceId(priceId) || metadata?.tier === premiumBusiness.id;
+}
+
 /** The Premium Business price for a checkout: the founding rate while founding places remain. */
 export function premiumPriceIdFor(founding: boolean) {
   return (founding && premiumBusiness.stripeFoundingPriceId) || premiumBusiness.stripePriceId;
