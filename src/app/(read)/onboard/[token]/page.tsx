@@ -16,7 +16,8 @@ import { partnerLogoSrc } from "@/lib/partners";
 import { paragraphs, safeHex, textOn, tint } from "@/lib/showcase";
 import { longDate } from "@/lib/mail/templates/directory";
 import { PARTNER_TERMS_UPDATED, partnerTerms } from "@/content/partner-terms";
-import { foundingLabel, groupInclusions, inclusionsFrom, offerPriceLabel, offerPriceNote } from "@/lib/partner-offers";
+import { foundingLabel, groupInclusions, inclusionsFrom, offerPriceLabel, offerPriceNote, readPagePrefill } from "@/lib/partner-offers";
+import { socialLinks } from "@/lib/business-profile";
 import { offerIdFrom } from "@/lib/partner-offer-payments";
 import { activatePaidOffer } from "@/lib/partner-offer-activation";
 import { isCheckoutSessionId } from "@/lib/signin-email";
@@ -102,6 +103,7 @@ export default async function OnboardPage({
   const letter = paragraphs(offer.personalNote);
   const price = offerPriceLabel(offer);
 
+  const prefill = readPagePrefill(offer.pagePrefill);
   const draft: ShowcasePartner = {
     name: offer.businessName,
     slug: slugify(offer.businessName) || "partner",
@@ -118,12 +120,12 @@ export default async function OnboardPage({
     accentColor: offer.accentColor,
     charityNumber: null,
     tagline: offer.tagline,
-    story: null,
-    highlights: null,
-    offerings: null,
+    story: prefill.story,
+    highlights: prefill.highlights.length ? prefill.highlights : null,
+    offerings: prefill.offerings.length ? prefill.offerings : null,
     sections: null,
-    ctaLabel: null,
-    ctaUrl: null,
+    ctaLabel: prefill.ctaLabel,
+    ctaUrl: prefill.ctaUrl,
     videoUrl: null,
   };
 
@@ -289,7 +291,7 @@ export default async function OnboardPage({
               <span className="shrink-0">Draft</span>
             </div>
             <div className="pointer-events-none max-h-[70vh] overflow-hidden" aria-hidden>
-              <ShowcaseProfile partner={draft} photos={[]} socials={[]} preview />
+              <ShowcaseProfile partner={draft} photos={[]} socials={socialLinks(prefill.socials)} preview />
             </div>
           </div>
         </div>

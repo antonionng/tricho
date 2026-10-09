@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { PARTNER_CATEGORIES, partnerLogoSrc, safeHttpUrl } from "@/lib/partners";
-import { safeHex } from "@/lib/showcase";
+import { readHighlights, readOfferings, safeHex } from "@/lib/showcase";
 import { site } from "@/config/site";
 import { cleanEmail } from "@/lib/signin-email";
 
@@ -270,4 +270,33 @@ export function contractText(f: ContractFacts) {
 
 export function sha256(text: string) {
   return createHash("sha256").update(text, "utf8").digest("hex");
+}
+
+export type PagePrefill = {
+  story: string | null;
+  offerings: { title: string; body: string }[];
+  highlights: { value: string; label: string }[];
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  socials: Record<string, string>;
+};
+
+/** The partner page content prepared on an offer, checked like anything a brand saves. */
+export function readPagePrefill(value: unknown): PagePrefill {
+  const v = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const text = (x: unknown, max: number) => (typeof x === "string" && x.trim() ? x.trim().slice(0, max) : null);
+  const socialsIn = (v.socials && typeof v.socials === "object" ? v.socials : {}) as Record<string, unknown>;
+  const socials = Object.fromEntries(
+    Object.entries(socialsIn)
+      .filter(([k, x]) => /^[a-z]{2,12}$/.test(k) && typeof x === "string" && x.trim())
+      .map(([k, x]) => [k, String(x).trim().slice(0, 200)])
+  );
+  return {
+    story: text(v.story, 6000),
+    offerings: readOfferings(v.offerings, 9),
+    highlights: readHighlights(v.highlights, 4),
+    ctaLabel: text(v.ctaLabel, 40),
+    ctaUrl: text(v.ctaUrl, 300) ? safeHttpUrl(text(v.ctaUrl, 300)) : null,
+    socials,
+  };
 }
