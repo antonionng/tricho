@@ -72,6 +72,13 @@ export const site = {
     closes: "the end of the founding period",
   },
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "karley@trichollective.net",
+  /** The legal entity, as registered at Companies House. Used in the terms, privacy notice and contracts. */
+  company: {
+    name: "Trichollective Ltd",
+    number: "17506914",
+    registeredIn: "England and Wales",
+    address: "66 Paul Street, London, EC2A 4NA, United Kingdom",
+  },
   social: [] as { label: string; href: string }[],
 };
 
