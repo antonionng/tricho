@@ -403,31 +403,42 @@ export default async function OnboardPage({
               <Mail className="mt-1 h-5 w-5 shrink-0 text-[var(--c-strong)]" aria-hidden /> Your invoice for {price} has been sent to{" "}
               {offer.accountEmail}, and it can be paid by card or bank transfer within 14 days.
             </p>
-          ) : !signed ? (
-            <p className="flex items-center gap-3 text-[15px] text-ink-2">
-              <Lock className="h-4 w-4" aria-hidden /> Payment opens as soon as the agreement is signed.
-            </p>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8">
-                <h3 className="mag-didone text-3xl">Pay by card now</h3>
-                <p className="text-[15px] leading-relaxed text-ink-2">
-                  Pay {price} securely through Stripe. Your receipt is emailed to you, and your partnership renews each year at the same
-                  price until you cancel.
+            <div className="flex flex-col gap-6">
+              {!signed && (
+                <p className="flex items-center gap-3 text-[15px] text-ink-2">
+                  <Lock className="h-4 w-4 shrink-0" aria-hidden /> Both ways to pay open as soon as the agreement is signed.
                 </p>
-                <OfferCheckout token={token} label={`Pay ${price} by card`} disabled={preview} />
-              </div>
-              <div className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8">
-                <h3 className="mag-didone text-3xl">Pay by invoice</h3>
-                <p className="text-[15px] leading-relaxed text-ink-2">
-                  We email an invoice to {offer.accountEmail} for {offer.legalName ?? offer.businessName}, payable by card or bank transfer
-                  within 14 days. Your partner page stays open while it is due.
-                </p>
-                <form action={requestOfferInvoice.bind(null, token)}>
-                  <Button type="submit" size="xl" variant="outline" disabled={preview} className="h-14 w-full text-base sm:w-auto">
-                    Send us an invoice <ArrowRight />
-                  </Button>
-                </form>
+              )}
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div className={cn("flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8", !signed && "opacity-70")}>
+                  <h3 className="mag-didone text-3xl">Pay by card now</h3>
+                  <p className="text-[15px] leading-relaxed text-ink-2">
+                    Pay {price} securely through Stripe, right here on this page. Your receipt is emailed to you, and your partnership
+                    renews each year at the same price until you cancel.
+                  </p>
+                  {signed ? (
+                    <OfferCheckout token={token} label={`Pay ${price} by card`} disabled={preview} />
+                  ) : (
+                    <LockedButton />
+                  )}
+                </div>
+                <div className={cn("flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8", !signed && "opacity-70")}>
+                  <h3 className="mag-didone text-3xl">Pay by invoice</h3>
+                  <p className="text-[15px] leading-relaxed text-ink-2">
+                    We email an invoice to {offer.accountEmail ?? "you"} for {offer.legalName ?? offer.legalNameHint ?? offer.businessName},
+                    payable by card or bank transfer within 14 days. Your partner page stays open while it is due.
+                  </p>
+                  {signed ? (
+                    <form action={requestOfferInvoice.bind(null, token)}>
+                      <Button type="submit" size="xl" variant="outline" disabled={preview} className="h-14 w-full text-base sm:w-auto">
+                        Send us an invoice <ArrowRight />
+                      </Button>
+                    </form>
+                  ) : (
+                    <LockedButton />
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -436,9 +447,9 @@ export default async function OnboardPage({
 
       {/* VI. Welcome */}
       <section id="welcome" className="scroll-mt-14 bg-ink text-paper">
-        <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-20 sm:px-6 md:py-28">
+        <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-20 sm:px-6 md:py-28">
           <p className="mag-caps text-[11px] text-paper/70">Chapter VI</p>
-          <h2 className="mag-didone text-[3rem] font-medium leading-[0.98] tracking-tight sm:text-7xl">
+          <h2 className="mag-didone max-w-4xl text-[3rem] font-medium leading-[0.98] tracking-tight sm:text-7xl">
             {settled ? (
               <>
                 Welcome to the collective, <em className="italic">{offer.businessName}</em>.
@@ -493,5 +504,14 @@ export default async function OnboardPage({
         </div>
       </section>
     </div>
+  );
+}
+
+/** Where a payment button will be, before the agreement is signed. */
+function LockedButton() {
+  return (
+    <span className="inline-flex h-14 items-center gap-2 self-start rounded-full border border-dashed border-ink/30 px-6 text-sm text-ink-2">
+      <Lock className="h-4 w-4" aria-hidden /> Opens once you sign
+    </span>
   );
 }
