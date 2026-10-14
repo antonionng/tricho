@@ -419,7 +419,10 @@
 }
 .mag-didone {
   font-family: var(--font-bodoni), "Didot", "Bodoni 72", serif;
-  font-optical-sizing: auto;
+  /* Bodoni's display optical sizes thin the hairlines until they vanish on screen.
+     A text optical size keeps every stroke visible at headline sizes. */
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 18;
 }
 .mag-serif {
   font-family: var(--font-serif-body), Georgia, serif;
