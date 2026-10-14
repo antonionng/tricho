@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
-import { FOCUS_LABEL, PUBLIC_PREVIEW_PAGES, type Edition } from "@/content/gazette";
+import { FOCUS_LABEL, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_OPEN, type Edition } from "@/content/gazette";
 import { Cover } from "./Cover";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
@@ -49,8 +49,10 @@ export function ArchiveShelf({
               room, and what it means for your practice.
             </p>
             <p className="mag-serif mt-4 text-[16px] leading-[1.6] text-white/60">
-              A retrospective series published in 2026. Every fact is sourced. The opening pages of each edition
-              are free to read; members have the full library, with quizzes and practical education throughout.
+              A retrospective series published in 2026. Every fact is sourced.{" "}
+              {TRICHOZETTE_OPEN
+                ? "Every edition is free to read, with quizzes and practical education throughout."
+                : "The opening pages of each edition are free to read; members have the full library, with quizzes and practical education throughout."}
             </p>
           </div>
         </div>
