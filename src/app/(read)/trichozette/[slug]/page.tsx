@@ -23,7 +23,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${e.title}: Trichozette, ${editionLabel(e)}`,
     description: e.standfirst,
     path: `/trichozette/${e.slug}`,
-    og: { title: e.title, sub: e.fade, eyebrow: `Edition ${String(e.number).padStart(2, "0")}`, img: coverImage(e).src, variant: "cover" },
+    og: {
+      title: e.title,
+      sub: e.fade,
+      eyebrow: `Edition ${String(e.number).padStart(2, "0")}`,
+      img: coverImage(e).src,
+      variant: "cover",
+      by: e.supportedBy?.name,
+    },
     type: "article",
     published: e.published,
   });

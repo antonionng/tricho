@@ -8,7 +8,7 @@ import { editionLabel, pageKicker, pageTitle, type Edition, type Page } from "@/
 import { Body, Kicker } from "./Prose";
 import { Gallery } from "./Gallery";
 import { People } from "./People";
-import { Partners } from "./Partners";
+import { BroughtBy, Partners } from "./Partners";
 import { PartnerFeature } from "./PartnerFeature";
 import { JoinCta } from "./JoinCta";
 import { creditLine } from "@/content/images";
@@ -360,10 +360,18 @@ export function ScrollEdition({
             <p className="mag-didone max-w-2xl italic leading-[1.2] text-white/85" style={{ fontSize: "clamp(20px, 3.4svh, 32px)" }}>
               {edition.fade}
             </p>
-            <a href="#contents" className="mag-caps hidden shrink-0 items-center gap-2 text-[10px] text-white/80 sm:inline-flex">
-              Scroll to read <ArrowDown className="h-4 w-4 animate-bounce" />
-            </a>
+            <div className="hidden shrink-0 flex-col items-end gap-6 sm:flex">
+              {edition.supportedBy && <BroughtBy by={edition.supportedBy} light />}
+              <a href="#contents" className="mag-caps inline-flex items-center gap-2 text-[10px] text-white/80">
+                Scroll to read <ArrowDown className="h-4 w-4 animate-bounce" />
+              </a>
+            </div>
           </div>
+          {edition.supportedBy && (
+            <div className="mt-6 sm:hidden">
+              <BroughtBy by={edition.supportedBy} light />
+            </div>
+          )}
         </div>
       </ParallaxImage>
 
@@ -374,6 +382,14 @@ export function ScrollEdition({
             <Rise className="lg:col-span-4">
               <h2 className="mag-didone text-[64px] font-medium leading-[0.85] tracking-[-0.02em] sm:text-[96px]">Contents</h2>
               <p className="mag-didone mt-6 text-[21px] italic leading-[1.35] text-black/75">{edition.standfirst}</p>
+              {edition.supportedBy && (
+                <div className="mt-10 border-t border-black/15 pt-6">
+                  <BroughtBy by={edition.supportedBy} />
+                  <p className="mag-serif mt-4 text-[14px] italic leading-[1.55] text-black/60">
+                    {edition.supportedBy.name} supports this edition. Our editorial team chose and wrote everything in it, apart from the labelled partner features.
+                  </p>
+                </div>
+              )}
             </Rise>
             <ol className="lg:col-span-8">
               {[...edition.pages.map((p, i) => ({ kicker: pageKicker(p), title: pageTitle(p), href: `#feature-${i}`, locked: false })), ...lockedTitles.map((l) => ({ ...l, href: "#members", locked: true }))].map((c, i) => (
