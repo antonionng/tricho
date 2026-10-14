@@ -1403,10 +1403,14 @@ model Course {
   status             CourseState      @default(draft)
   publishedVersionId String?          @unique
   createdById        String?
+  /// A team member who built or tailored the course for its educator.
+  builtById          String?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   versions CourseVersion[]
+  aiDrafts AiDraftRun[]
+  requests CourseRequest[]
 
   @@index([status])
   @@index([educatorId])
@@ -1479,8 +1483,9 @@ model EducatorProfile {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
-  courses Course[]
-  sales   CourseSale[]
+  courses  Course[]
+  sales    CourseSale[]
+  requests CourseRequest[]
 
   @@index([status])
 }
@@ -1549,4 +1554,64 @@ model LedgerEntry {
 
   @@unique([type, stripeObjectId])
   @@index([saleId])
+}
+
+/// One AI draft of a course from the author's outline, notes and PDFs. It
+/// runs in steps (the plan, each lesson, then the assessment) and saves after
+/// each one, so a run that times out carries on where it stopped.
+model AiDraftRun {
+  id         String    @id @default(cuid())
+  courseId   String
+  course     Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId     String
+  /// "running", "done" or "failed".
+  status     String    @default("running")
+  /// The outline, notes and uploaded file ids the author gave.
+  input      Json
+  /// The lesson plan, once written.
+  plan       Json?
+  /// Steps finished: the plan, then each lesson, then the assessment.
+  step       Int       @default(0)
+  total      Int       @default(0)
+  error      String?
+  /// Only one request works on a run at a time.
+  leaseUntil DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([courseId])
+}
+
+enum CourseRequestStatus {
+  new
+  scoping
+  building
+  with_educator
+  done
+  declined
+}
+
+/// An educator asking the Trichollective team to build or tailor a course for them.
+model CourseRequest {
+  id           String              @id @default(cuid())
+  educatorId   String
+  educator     EducatorProfile     @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  title        String
+  brief        String              @db.Text
+  audience     String              @default("")
+  timeline     String              @default("")
+  /// StoredFile ids of the notes, slides or handouts they sent.
+  fileIds      String[]            @default([])
+  status       CourseRequestStatus @default(new)
+  assignedToId String?
+  /// For the team only.
+  notes        String?             @db.Text
+  courseId     String?
+  course       Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([educatorId])
 }

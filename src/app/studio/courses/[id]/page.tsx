@@ -7,7 +7,10 @@ import { CourseBuilder } from "@/components/courses/builder/CourseBuilder";
 import { loadBuilderCourse } from "@/lib/course-builder";
 import { coverImages, draftImageUrls } from "@/lib/course-builder-assets";
 import { studioPage } from "../../_lib/guard";
-import { saveCourseDraftAction, setCourseListedAction, submitCourseAction, uploadCourseFileAction } from "../actions";
+import { saveCourseDraftAction, setCourseListedAction, startStudioDraftAction, submitCourseAction, uploadCourseFileAction } from "../actions";
+import { prisma } from "@/lib/prisma";
+import { DraftRunner } from "@/components/courses/builder/DraftRunner";
+import { DraftWithAI } from "@/components/courses/builder/DraftWithAI";
 
 export default async function StudioCourseBuilderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ notice?: string; tone?: string }> }) {
   const { id } = await params;
@@ -19,6 +22,8 @@ export default async function StudioCourseBuilderPage({ params, searchParams }: 
   const canEdit = staff.perms.has("courses.edit");
   const canReview = staff.perms.has("courses.review");
   const imageUrls = await draftImageUrls(course.content);
+  const run = await prisma.aiDraftRun.findFirst({ where: { courseId: course.id }, orderBy: { createdAt: "desc" }, select: { id: true, status: true, step: true, total: true } });
+  const drafting = run?.status === "running";
 
   return (
     <div className="space-y-6">
@@ -74,7 +79,11 @@ export default async function StudioCourseBuilderPage({ params, searchParams }: 
         </div>
       </section>
 
+      {drafting && run && <DraftRunner runId={run.id} step={run.step} total={run.total} />}
+      {!drafting && canEdit && course.content.lessons.length === 0 && <DraftWithAI courseId={course.id} action={startStudioDraftAction} />}
+
       <CourseBuilder
+        key={`${run?.id ?? "none"}-${run?.step ?? 0}-${run?.status ?? ""}`}
         courseId={course.id}
         slug={course.slug}
         initialMeta={course.meta}
@@ -84,8 +93,8 @@ export default async function StudioCourseBuilderPage({ params, searchParams }: 
         initialImageUrls={imageUrls}
         save={saveCourseDraftAction}
         upload={uploadCourseFileAction}
-        readOnly={!canEdit}
-        submit={canEdit && !course.pending ? submitCourseAction : undefined}
+        readOnly={!canEdit || drafting}
+        submit={canEdit && !course.pending && !drafting ? submitCourseAction : undefined}
       />
     </div>
   );

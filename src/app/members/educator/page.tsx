@@ -12,7 +12,7 @@ import { totals } from "@/lib/revenue-split";
 import { formatMoney } from "@/lib/mail/templates/billing";
 import { cn } from "@/lib/utils";
 import { requireEducator } from "./_data";
-import { createEducatorCourseAction, saveEducatorProfileAction } from "./actions";
+import { createEducatorCourseAction, requestTailoredCourseAction, saveEducatorProfileAction } from "./actions";
 
 export const metadata = { title: "Educator" };
 
@@ -30,6 +30,17 @@ const ERRORS: Record<string, string> = {
   status: "You can't start a new course while your Educator membership isn't active.",
   connect: "We couldn't open Stripe just now. Please try again in a moment.",
   payments: "Payments aren't switched on yet, so payouts can't be set up.",
+  request: "Please give the course a title and a few sentences on what it should cover.",
+  upload: "One of the files couldn't be uploaded. Please attach PDFs up to 9MB each.",
+};
+
+const REQUEST_STATUS: Record<string, string> = {
+  new: "Received",
+  scoping: "We're working out the plan",
+  building: "We're building it",
+  with_educator: "Ready for you to review",
+  done: "Done",
+  declined: "Not going ahead",
 };
 
 export default async function EducatorDashboardPage({ searchParams }: { searchParams: Promise<{ joined?: string; saved?: string; error?: string; connected?: string }> }) {
@@ -86,6 +97,7 @@ export default async function EducatorDashboardPage({ searchParams }: { searchPa
   for (const x of sales) earnedBy.set(x.courseSlug, (earnedBy.get(x.courseSlug) ?? 0) + x.educatorAmount - x.reversedAmount);
   const titleOf = new Map(courses.map((c) => [c.slug, c.title]));
   const canSell = educatorCanSell(profile);
+  const requests = await prisma.courseRequest.findMany({ where: { educatorId: profile.id }, orderBy: { createdAt: "desc" }, select: { id: true, title: true, status: true, createdAt: true, courseId: true } });
   const approvedNotSelling = courses.some((c) => c.status === "published") && !canSell && profile.status === "approved";
 
   return (
@@ -106,7 +118,11 @@ export default async function EducatorDashboardPage({ searchParams }: { searchPa
       />
 
       {joined && <p role="status" className="mb-6 rounded-2xl bg-positive/10 px-5 py-4 text-[15px]"><strong>Welcome to the Educator programme.</strong> Your membership has started, and we&apos;ve emailed you what happens next.</p>}
-      {saved && <p role="status" className="mb-6 rounded-2xl bg-positive/10 px-5 py-4 text-[15px]">Your profile is saved.</p>}
+      {saved && (
+        <p role="status" className="mb-6 rounded-2xl bg-positive/10 px-5 py-4 text-[15px]">
+          {saved === "request" ? "Your request is with the team. We'll reply within a few working days." : "Your profile is saved."}
+        </p>
+      )}
       {error && ERRORS[error] && <p role="alert" className="mb-6 rounded-2xl bg-destructive/5 px-5 py-4 text-[15px] text-destructive">{ERRORS[error]}</p>}
 
       {connected && (
@@ -209,6 +225,60 @@ export default async function EducatorDashboardPage({ searchParams }: { searchPa
         )}
         {blocker && profile.status === "pending_review" && (
           <p className="mt-3 text-sm text-muted-foreground">You can write as much as you like now. {blocker}</p>
+        )}
+      </section>
+
+      <section id="tailored" className="mb-10 scroll-mt-20">
+        <SectionLabel>Have the team build a course with you</SectionLabel>
+        {requests.length > 0 && (
+          <ul className="mb-4 flex flex-col divide-y divide-rule overflow-hidden rounded-2xl border border-rule bg-card">
+            {requests.map((r) => (
+              <li key={r.id} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  <span className="block font-medium">{r.title}</span>
+                  <span className="block text-sm text-muted-foreground">Sent {longDate(r.createdAt)}</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <Pill tone={r.status === "with_educator" ? "ink" : "default"}>{REQUEST_STATUS[r.status] ?? r.status}</Pill>
+                  {r.courseId && (
+                    <Link href={`/members/educator/courses/${r.courseId}`} className="text-sm font-medium underline underline-offset-4">
+                      Open the course
+                    </Link>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {active && (
+          <details className="rounded-2xl border border-rule bg-card">
+            <summary className="cursor-pointer p-5 font-medium">Tell us about the course you&apos;d like</summary>
+            <form action={requestTailoredCourseAction} className="flex flex-col gap-4 border-t border-rule p-5">
+              <p className="text-[15px] leading-relaxed text-ink-2">
+                Send us your notes, slides or the talk you give, and the team will turn them into a course with you. You review every lesson before it goes for review, and it&apos;s sold under your name.
+              </p>
+              <Field label="Working title">
+                <input name="title" required minLength={3} className={cn(fieldClass, "h-12")} />
+              </Field>
+              <Field label="What should it cover?" hint="The topics, what learners should be able to do by the end, and anything it must include.">
+                <textarea name="brief" required minLength={30} rows={5} className={cn(fieldClass, "min-h-32 resize-y py-3")} />
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Who it's for">
+                  <input name="audience" className={cn(fieldClass, "h-12")} />
+                </Field>
+                <Field label="When you'd like it">
+                  <input name="timeline" placeholder="For example, before the spring conference" className={cn(fieldClass, "h-12")} />
+                </Field>
+              </div>
+              <Field label="Your material (optional)" hint="Up to five PDFs, 9MB each.">
+                <input type="file" name="files" accept="application/pdf" multiple className="text-[14px]" />
+              </Field>
+              <SubmitButton className="self-start" pending="Sending…">
+                Send to the team
+              </SubmitButton>
+            </form>
+          </details>
         )}
       </section>
 

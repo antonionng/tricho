@@ -279,3 +279,15 @@ export async function registerVideoUpload(opts: { path: string; ownerId: string;
   });
   return { ok: true, file: { id: row.id, url: fileUrl(row) } };
 }
+
+/** The bytes of a stored file, wherever it lives, e.g. to pass a PDF to the AI. Null if it can't be read. */
+export async function readStoredFile(id: string): Promise<{ bytes: Uint8Array; contentType: string; name: string | null } | null> {
+  const file = await prisma.storedFile.findUnique({ where: { id } });
+  if (!file) return null;
+  if (file.driver !== "supabase") return file.data ? { bytes: new Uint8Array(file.data), contentType: file.contentType, name: file.name } : null;
+  const url = file.isPublic ? fileUrl(file) : await signedUrl(file, 120);
+  if (!url) return null;
+  const res = await fetch(url).catch(() => null);
+  if (!res?.ok) return null;
+  return { bytes: new Uint8Array(await res.arrayBuffer()), contentType: file.contentType, name: file.name };
+}

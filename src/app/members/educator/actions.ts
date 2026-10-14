@@ -8,6 +8,7 @@ import { storeUpload } from "@/lib/storage";
 import { createCourse, saveDraft, submitForReview, type SaveResult } from "@/lib/course-builder";
 import { submitCoursesBlocker } from "@/lib/educator-rules";
 import { alertOwners } from "@/lib/mail/send";
+import { startDraftFromForm } from "@/lib/course-draft-start";
 
 /**
  * The educator portal's actions. Each one loads the signed-in person's own
@@ -98,4 +99,47 @@ export async function submitEducatorCourseAction(form: FormData) {
   });
   revalidatePath("/members/educator");
   redirect(`/members/educator/courses/${id}?notice=${encodeURIComponent(`Version ${result.number} is with the team for review. We'll email you when it's done.`)}`);
+}
+
+export async function startEducatorDraftAction(form: FormData) {
+  const id = clean(form, "id", 40);
+  const ctx = await myCourse(id);
+  if (!ctx) redirect("/members/educator");
+  const result = await startDraftFromForm(form, { courseId: ctx.course.id, title: ctx.course.title, userId: ctx.userId, unlimited: false });
+  if (!result.ok) redirect(`/members/educator/courses/${id}?notice=${encodeURIComponent(result.error)}&tone=danger`);
+  redirect(`/members/educator/courses/${id}`);
+}
+
+/** Asks the team to build or tailor a course with the educator, from their brief and material. */
+export async function requestTailoredCourseAction(form: FormData) {
+  const ctx = await me();
+  if (!ctx) redirect("/educators");
+  if (ctx.profile.status === "rejected" || ctx.profile.status === "suspended") redirect("/members/educator?error=status");
+  const title = clean(form, "title", 160);
+  const brief = clean(form, "brief", 6000);
+  if (title.length < 3 || brief.length < 30) redirect("/members/educator?error=request#tailored");
+  const fileIds: string[] = [];
+  for (const file of form.getAll("files").slice(0, 5)) {
+    if (!(file instanceof File) || file.size === 0) continue;
+    const stored = await storeUpload({ kind: "document", file, ownerId: ctx.userId, isPublic: false });
+    if (stored && !stored.ok) redirect(`/members/educator?error=upload#tailored`);
+    if (stored?.ok) fileIds.push(stored.file.id);
+  }
+  const request = await prisma.courseRequest.create({
+    data: { educatorId: ctx.profile.id, title, brief, audience: clean(form, "audience", 300), timeline: clean(form, "timeline", 200), fileIds },
+    select: { id: true },
+  });
+  await alertOwners({
+    subject: `Tailored course request: ${title}`,
+    heading: `${ctx.profile.displayName} would like the team to build "${title}" with them.`,
+    body: brief.slice(0, 1200),
+    facts: [
+      ["Audience", clean(form, "audience", 300) || "Not given"],
+      ["Timeline", clean(form, "timeline", 200) || "Not given"],
+      ["Files", String(fileIds.length)],
+    ],
+    cta: { label: "Open the request in Studio", href: `/studio/educators/requests#r-${request.id}` },
+  });
+  revalidatePath("/members/educator");
+  redirect("/members/educator?saved=request#tailored");
 }
