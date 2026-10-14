@@ -7,7 +7,11 @@ import { loadBuilderCourse } from "@/lib/course-builder";
 import { coverImages, draftImageUrls } from "@/lib/course-builder-assets";
 import { submitCoursesBlocker } from "@/lib/educator-rules";
 import { requireEducator, ownedCourse } from "../../_data";
-import { saveEducatorDraftAction, submitEducatorCourseAction, uploadEducatorFileAction } from "../../actions";
+import { saveEducatorDraftAction, startEducatorDraftAction, submitEducatorCourseAction, uploadEducatorFileAction } from "../../actions";
+import { prisma } from "@/lib/prisma";
+import { DraftRunner } from "@/components/courses/builder/DraftRunner";
+import { DraftWithAI } from "@/components/courses/builder/DraftWithAI";
+import { DAILY_DRAFTS } from "@/agents/course-drafter";
 
 export const metadata = { title: "Course builder" };
 
@@ -23,6 +27,8 @@ export default async function EducatorCourseBuilderPage({ params, searchParams }
   const blocker = submitCoursesBlocker(profile);
   const canEdit = profile.status !== "rejected" && profile.status !== "suspended";
   const imageUrls = await draftImageUrls(course.content);
+  const run = await prisma.aiDraftRun.findFirst({ where: { courseId: course.id }, orderBy: { createdAt: "desc" }, select: { id: true, status: true, step: true, total: true } });
+  const drafting = run?.status === "running";
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8 lg:px-10">
@@ -63,7 +69,16 @@ export default async function EducatorCourseBuilderPage({ params, searchParams }
         )}
       </div>
 
+      {drafting && run && <DraftRunner runId={run.id} step={run.step} total={run.total} />}
+      {run?.status === "failed" && course.content.assessment.length === 0 && (
+        <p className="mb-6 rounded-2xl bg-paper-2 px-5 py-4 text-[15px]">The AI draft stopped part of the way through. Everything it wrote is below for you to carry on with.</p>
+      )}
+      {!drafting && canEdit && course.content.lessons.length === 0 && (
+        <DraftWithAI courseId={course.id} action={startEducatorDraftAction} limitNote={`You can start ${DAILY_DRAFTS} drafts a day.`} />
+      )}
+
       <CourseBuilder
+        key={`${run?.id ?? "none"}-${run?.step ?? 0}-${run?.status ?? ""}`}
         courseId={course.id}
         slug={course.slug}
         initialMeta={course.meta}
@@ -73,8 +88,8 @@ export default async function EducatorCourseBuilderPage({ params, searchParams }
         initialImageUrls={imageUrls}
         save={saveEducatorDraftAction}
         upload={uploadEducatorFileAction}
-        readOnly={!canEdit}
-        submit={!blocker && !course.pending && canEdit ? submitEducatorCourseAction : undefined}
+        readOnly={!canEdit || drafting}
+        submit={!blocker && !course.pending && canEdit && !drafting ? submitEducatorCourseAction : undefined}
       />
     </div>
   );
