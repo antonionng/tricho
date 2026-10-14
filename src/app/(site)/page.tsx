@@ -28,7 +28,7 @@ import { DirectorySearch } from "@/components/site/DirectorySearch";
 import { images, img } from "@/content/images";
 import { getEditions } from "@/content/gazette/loader";
 import { Cover } from "@/components/gazette/Cover";
-import { PartnerStrip } from "@/components/site/PartnerStrip";
+import { PremiumPartnerCarousel } from "@/components/site/PremiumPartnerCarousel";
 import { ProudSupporters } from "@/components/site/ProudSupporters";
 import { ParallaxImage } from "@/components/gazette/Parallax";
 import { coverImage } from "@/components/gazette/art";
@@ -181,6 +181,9 @@ export default async function HomePage() {
           </Container>
         </div>
       </section>
+
+      {/* Premium partners, straight under the hero */}
+      <PremiumPartnerCarousel />
 
       {/* 2. Proof strip — live numbers only, and the origin story */}
       <section className="border-b border-rule">
@@ -385,7 +388,6 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      <PartnerStrip />
       <ProudSupporters />
 
       {/* 6. Courses */}

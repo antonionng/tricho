@@ -64,6 +64,36 @@ const postInclude = (userId?: string) =>
 
 type RawPost = Prisma.CommunityPostGetPayload<{ include: ReturnType<typeof postInclude> }>;
 
+export type PostMediaItem = {
+  id: string;
+  url: string;
+  type: "image" | "video";
+  width: number | null;
+  height: number | null;
+};
+
+/**
+ * Photos and videos for a set of posts, keyed by post. Loaded on their own so the
+ * feed still works, without media, if the PostMedia migration hasn't run yet.
+ */
+export async function mediaForPosts(postIds: string[]): Promise<Map<string, PostMediaItem[]>> {
+  const byPost = new Map<string, PostMediaItem[]>();
+  if (postIds.length === 0) return byPost;
+  const rows = await prisma.postMedia
+    .findMany({
+      where: { postId: { in: postIds } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, postId: true, url: true, type: true, width: true, height: true },
+    })
+    .catch(() => []);
+  for (const { postId, ...m } of rows) {
+    const list = byPost.get(postId) ?? [];
+    list.push({ ...m, type: m.type === "video" ? "video" : "image" });
+    byPost.set(postId, list);
+  }
+  return byPost;
+}
+
 export type FeedPost = {
   id: string;
   title: string | null;
@@ -85,9 +115,10 @@ export type FeedPost = {
   comments: number;
   useful: number;
   reacted: boolean;
+  media: PostMediaItem[];
 };
 
-function toFeedPost(p: RawPost, allRooms: Room[]): FeedPost {
+function toFeedPost(p: RawPost, allRooms: Room[], media: PostMediaItem[]): FeedPost {
   const space = normalizeSpace(p.space, allRooms);
   return {
     id: p.id,
@@ -109,6 +140,7 @@ function toFeedPost(p: RawPost, allRooms: Room[]): FeedPost {
     comments: p._count.comments,
     useful: p._count.reactions,
     reacted: Array.isArray(p.reactions) ? p.reactions.length > 0 : false,
+    media,
   };
 }
 
@@ -146,7 +178,8 @@ export async function getPosts({
     take,
     include: postInclude(userId),
   });
-  return posts.map((p) => toFeedPost(p, allRooms));
+  const media = await mediaForPosts(posts.map((p) => p.id));
+  return posts.map((p) => toFeedPost(p, allRooms, media.get(p.id) ?? []));
 }
 
 /** The Today feed: every space the member can read, newest first. */

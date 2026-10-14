@@ -419,7 +419,10 @@
 }
 .mag-didone {
   font-family: var(--font-bodoni), "Didot", "Bodoni 72", serif;
-  font-optical-sizing: auto;
+  /* Bodoni's display optical sizes thin the hairlines until they vanish on screen.
+     A text optical size keeps every stroke visible at headline sizes. */
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 18;
 }
 .mag-serif {
   font-family: var(--font-serif-body), Georgia, serif;
@@ -462,4 +465,20 @@
 }
 .mag-pocket .mag-body p {
   font-size: 19px;
+}
+
+/* ---------- Premium partners carousel (home) ---------- */
+@keyframes partner-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.partner-marquee-track { animation: partner-marquee 40s linear infinite; }
+.partner-marquee {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .partner-marquee { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  .partner-marquee-track { animation: none; }
+  .partner-marquee-track > li[aria-hidden] { display: none; }
 }

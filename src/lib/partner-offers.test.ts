@@ -154,3 +154,27 @@ describe("onboarding page and contract", async () => {
     expect(parseAcceptance(get({ ...base, signature: "" })).ok).toBe(false);
   });
 });
+
+describe("partner page prefill", async () => {
+  const { readPagePrefill } = await import("@/lib/partner-offers");
+
+  it("keeps only safe, well-formed content", () => {
+    const p = readPagePrefill({
+      story: "  Our story.  ",
+      offerings: [{ title: "Cap", body: "Hands-free." }, { body: "no title" }],
+      highlights: [{ value: "272", label: "Laser diodes" }],
+      ctaLabel: "Visit",
+      ctaUrl: "javascript:alert(1)",
+      socials: { instagram: "livdoruk", "bad key!": "x" },
+    });
+    expect(p.story).toBe("Our story.");
+    expect(p.offerings).toEqual([{ title: "Cap", body: "Hands-free." }]);
+    expect(p.highlights).toHaveLength(1);
+    expect(p.ctaUrl).toBeNull();
+    expect(p.socials).toEqual({ instagram: "livdoruk" });
+  });
+
+  it("is empty for an offer without a prefill", () => {
+    expect(readPagePrefill(null)).toMatchObject({ story: null, offerings: [], socials: {} });
+  });
+});
