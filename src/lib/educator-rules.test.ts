@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { educatorSlugBase, hasEducatorAccess, sharePctFor, submitCoursesBlocker } from "./educator-rules";
+import { educatorCanSell, educatorSlugBase, hasEducatorAccess, sharePctFor, submitCoursesBlocker } from "./educator-rules";
 
 const now = new Date("2026-10-14T12:00:00Z");
 const future = new Date("2027-10-14T12:00:00Z");
@@ -40,5 +40,16 @@ describe("slug", () => {
   it("makes a tidy address", () => {
     expect(educatorSlugBase("Dr Áine O'Brien")).toBe("dr-aine-o-brien");
     expect(educatorSlugBase("!!!")).toBe("educator");
+  });
+});
+
+describe("educatorCanSell", () => {
+  const ok = { status: "approved" as const, currentPeriodEnd: future, stripeAccountId: "acct_1", transfersActive: true };
+  it("needs approval, a paid-up membership and a Stripe account that can receive money", () => {
+    expect(educatorCanSell(ok, now)).toBe(true);
+    expect(educatorCanSell({ ...ok, transfersActive: false }, now)).toBe(false);
+    expect(educatorCanSell({ ...ok, stripeAccountId: null }, now)).toBe(false);
+    expect(educatorCanSell({ ...ok, status: "pending_review" }, now)).toBe(false);
+    expect(educatorCanSell({ ...ok, currentPeriodEnd: past }, now)).toBe(false);
   });
 });

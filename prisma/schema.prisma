@@ -1209,6 +1209,7 @@ model CourseEnrolment {
   lessons     LessonProgress[]
   attempts    AssessmentAttempt[]
   certificate Certificate?
+  sale        CourseSale?
 
   @@unique([userId, courseSlug])
   @@index([courseSlug, status])
@@ -1465,6 +1466,13 @@ model EducatorProfile {
   cancelAtPeriodEnd    Boolean        @default(false)
   termsVersion         String?
   termsAcceptedAt      DateTime?
+  /// Their Stripe Connect Express account, which receives their share of each sale.
+  stripeAccountId      String?        @unique
+  /// Stripe can send money to the account. Courses go on sale only while this is true.
+  transfersActive      Boolean        @default(false)
+  payoutsEnabled       Boolean        @default(false)
+  detailsSubmitted     Boolean        @default(false)
+  connectUpdatedAt     DateTime?
   reviewNote           String?
   reviewedById         String?
   reviewedAt           DateTime?
@@ -1472,6 +1480,73 @@ model EducatorProfile {
   updatedAt            DateTime       @updatedAt
 
   courses Course[]
+  sales   CourseSale[]
 
   @@index([status])
+}
+
+enum SaleStatus {
+  paid
+  partially_refunded
+  refunded
+  disputed
+}
+
+/// One paid course place: what the learner paid and how it was split. Written
+/// when Stripe confirms the payment, and updated by refunds and disputes.
+model CourseSale {
+  id                    String           @id @default(cuid())
+  enrolmentId           String           @unique
+  enrolment             CourseEnrolment  @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  courseSlug            String
+  versionId             String?
+  /// Empty for Trichollective's own courses.
+  educatorId            String?
+  educator              EducatorProfile? @relation(fields: [educatorId], references: [id], onDelete: SetNull)
+  priceType             String
+  currency              String           @default("gbp")
+  /// What the learner paid, in pence.
+  gross                 Int
+  /// The educator's percentage when the sale was made.
+  sharePct              Int              @default(0)
+  /// Kept by Trichollective (Stripe's application fee), in pence.
+  platformAmount        Int
+  /// Transferred to the educator, in pence.
+  educatorAmount        Int
+  /// Stripe's processing fee, paid by Trichollective, in pence. Empty until known.
+  stripeFee             Int?
+  stripePaymentIntentId String?          @unique
+  stripeChargeId        String?          @unique
+  stripeTransferId      String?
+  status                SaleStatus       @default(paid)
+  refundedAmount        Int              @default(0)
+  /// How much of the educator's share has been taken back by refunds.
+  reversedAmount        Int              @default(0)
+  refundedAt            DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  entries LedgerEntry[]
+
+  @@index([educatorId, createdAt])
+  @@index([courseSlug])
+}
+
+/// Money movements for a sale, never edited. Amounts are signed, in pence,
+/// from Trichollective's point of view. The Stripe object id stops a retried
+/// webhook from recording the same movement twice.
+model LedgerEntry {
+  id             String     @id @default(cuid())
+  saleId         String
+  sale           CourseSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  /// "sale", "educator_share", "stripe_fee", "refund", "share_reversed", "dispute".
+  type           String
+  amount         Int
+  currency       String     @default("gbp")
+  stripeObjectId String
+  note           String?
+  createdAt      DateTime   @default(now())
+
+  @@unique([type, stripeObjectId])
+  @@index([saleId])
 }

@@ -5,6 +5,7 @@ import { deliverOnce } from "@/lib/mail/send";
 import { formatMoney } from "@/lib/mail/templates/billing";
 import { courseCertificateEmail, courseEnrolledEmail } from "@/lib/mail/templates/courses";
 import { certificateReference } from "@/lib/course-rules";
+import { recordDispute, recordRefund, recordSale } from "@/lib/course-ledger";
 import { getContent, getCourse, type CatalogueCourse } from "@/lib/course-catalogue";
 import type { Question } from "@/content/course-types";
 
@@ -198,6 +199,16 @@ export async function handleCourseCheckoutCompleted(session: Stripe.Checkout.Ses
       ...(session.currency ? { currency: session.currency } : {}),
     },
   });
+  if (paymentIntent) {
+    await recordSale({
+      enrolmentId: enrolment.id,
+      courseSlug: enrolment.courseSlug,
+      versionId: enrolment.versionId,
+      priceType: enrolment.priceType,
+      paymentIntentId: paymentIntent,
+      metadata: session.metadata,
+    });
+  }
   await welcome(enrolment.id);
   refresh(enrolment.courseSlug);
   return { ok: true as const, enrolmentId, already: updated.count === 0 };
@@ -256,11 +267,21 @@ export async function handleCourseWebhook(event: Stripe.Event): Promise<boolean>
     }
     case "charge.refunded": {
       try {
+        // Every refund, full or partial, goes in the ledger; a full refund also closes the place.
+        await recordRefund(event.data.object as Stripe.Charge);
         await handleCourseRefund(event.data.object as Stripe.Charge);
       } catch (error) {
         console.error("[COURSES] refund handling failed", error);
       }
       return false;
+    }
+    case "charge.dispute.created": {
+      try {
+        return await recordDispute(event.data.object as Stripe.Dispute);
+      } catch (error) {
+        console.error("[COURSES] dispute handling failed", error);
+        return false;
+      }
     }
     default:
       return false;
