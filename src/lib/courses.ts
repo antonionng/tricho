@@ -140,6 +140,7 @@ export async function maybeIssueCertificate(enrolmentId: string) {
           holderName: enrolment.user.name?.trim() || "Trichollective member",
           hours: course.hours,
           versionId: enrolment.versionId,
+          educatorName: course.educator?.name ?? null,
           score: best.score,
           total: best.total,
         },

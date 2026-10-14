@@ -205,6 +205,7 @@ model User {
   rewardsFrom    ReferralReward[]      @relation("rewardReferred")
   tickets        EventTicket[]
   enrolments     CourseEnrolment[]
+  educator       EducatorProfile?
   certificates   Certificate[]
   auditLogs      AuditLog[]            @relation("auditActor")
   memberNotes    MemberNote[]          @relation("noteSubject")
@@ -1376,32 +1377,33 @@ enum CourseVersionStatus {
 /// src/content). The draft is the working copy; learners only ever see the
 /// approved version that publishedVersionId points to.
 model Course {
-  id                 String      @id @default(cuid())
-  slug               String      @unique
+  id                 String           @id @default(cuid())
+  slug               String           @unique
   /// The educator who owns it. Empty for courses Trichollective owns.
   educatorId         String?
+  educator           EducatorProfile? @relation(fields: [educatorId], references: [id], onDelete: SetNull)
   title              String
-  summary            String      @default("")
-  audience           String      @default("")
+  summary            String           @default("")
+  audience           String           @default("")
   /// "cosmetic", "clinical", "medical" or "everyone".
-  discipline         String      @default("everyone")
-  format             String      @default("")
-  hours              Int         @default(1)
+  discipline         String           @default("everyone")
+  format             String           @default("")
+  hours              Int              @default(1)
   /// Whole pounds.
-  priceGBP           Int         @default(0)
-  memberPriceGBP     Int         @default(0)
+  priceGBP           Int              @default(0)
+  memberPriceGBP     Int              @default(0)
   /// An editorial image from src/content/images.
   imageKey           String
-  outcomes           String[]    @default([])
+  outcomes           String[]         @default([])
   /// The educator's share of each sale, in percent. Empty uses the educator's rate.
   sharePct           Int?
   /// CourseContent: lessons and the final assessment, as edited.
   draft              Json
-  status             CourseState @default(draft)
-  publishedVersionId String?     @unique
+  status             CourseState      @default(draft)
+  publishedVersionId String?          @unique
   createdById        String?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   versions CourseVersion[]
 
@@ -1428,4 +1430,48 @@ model CourseVersion {
 
   @@unique([courseId, number])
   @@index([status, submittedAt])
+}
+
+enum EducatorStatus {
+  pending_review
+  approved
+  rejected
+  suspended
+  lapsed
+}
+
+/// An Educator member: someone who pays the yearly Educator membership to write
+/// and sell courses. They pay first; the team approves them afterwards, and
+/// only an approved educator can send a course for review.
+model EducatorProfile {
+  id                   String         @id @default(cuid())
+  userId               String         @unique
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The public page, /educators/[slug].
+  slug                 String         @unique
+  displayName          String
+  headline             String         @default("")
+  bio                  String         @default("") @db.Text
+  credentials          String         @default("") @db.Text
+  topics               String[]       @default([])
+  website              String?
+  photoFileId          String?
+  status               EducatorStatus @default(pending_review)
+  /// The educator's share of each course sale, in percent.
+  sharePct             Int            @default(70)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?        @unique
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean        @default(false)
+  termsVersion         String?
+  termsAcceptedAt      DateTime?
+  reviewNote           String?
+  reviewedById         String?
+  reviewedAt           DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  courses Course[]
+
+  @@index([status])
 }

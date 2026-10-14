@@ -112,6 +112,7 @@ export const primaryNav: {
         { label: "Guides", href: "/guides", description: "Plain-English guides to hair and scalp care." },
         { label: "Glossary", href: "/glossary", description: "The terms clients and colleagues use, explained." },
         { label: "Certification", href: "/certification", description: "What our certificates mean and how to check one." },
+        { label: "Teach as an Educator", href: "/educators", description: "Sell your own courses and keep 70% of every sale." },
       ],
     },
   },
@@ -163,6 +164,7 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "Founding membership", href: "/founding" },
       { label: "Courses", href: "/learn" },
+      { label: "Teach as an Educator", href: "/educators" },
       { label: "Certification", href: "/certification" },
       { label: "Get listed", href: "/directory/list" },
       { label: "Sign in", href: "/login" },

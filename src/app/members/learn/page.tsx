@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Award, Newspaper, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Award, GraduationCap, Newspaper, Sparkles } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
@@ -53,6 +53,7 @@ export default async function LearnPage() {
     )
   ).flatMap((m) => (m ? [m] : []));
   const courses = await listCourses();
+  const educator = await prisma.educatorProfile.findUnique({ where: { userId }, select: { id: true } }).catch(() => null);
   const enrolledSlugs = new Set(mine.map((m) => m.course.slug));
   const earned = mine.filter((m) => m.e.certificate && !m.e.certificate.withdrawnAt);
   const cpdHours = earned.reduce((sum, m) => sum + m.e.certificate!.hours, 0);
@@ -99,6 +100,21 @@ export default async function LearnPage() {
         </Link>
       </div>
       )}
+
+      <Link
+        href={educator ? "/members/educator" : "/educators"}
+        className="group mb-10 flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
+      >
+        <GraduationCap className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.6]" />
+        <span className="min-w-0">
+          <span className="block font-semibold">{educator ? "Your educator dashboard" : "Teach on Trichollective"}</span>
+          <span className="mt-1 block text-sm leading-relaxed text-ink-2">
+            {educator
+              ? "Write your courses, send them for review and see how your learners are getting on."
+              : "Build your own course, sell it to practitioners across every discipline and keep 70% of every sale."}
+          </span>
+        </span>
+      </Link>
 
       {mine.length > 0 && (
         <section className="mb-12">

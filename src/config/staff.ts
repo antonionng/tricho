@@ -230,6 +230,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/community", label: "Community", icon: "community", perm: "community.view", group: "people" },
   { href: "/studio/verification", label: "Verification", icon: "verification", perm: "verification.review", group: "people" },
   { href: "/studio/enquiries", label: "Enquiries", icon: "enquiries", perm: "enquiries.view", group: "people" },
+  { href: "/studio/educators", label: "Educators", icon: "members", perm: "courses.view", group: "people" },
   { href: "/studio/referrals", label: "Referrals", icon: "referrals", perm: "referrals.view", group: "growth" },
   { href: "/studio/retention", label: "Retention", icon: "retention", perm: "retention.view", group: "growth" },
   { href: "/studio/subscribers", label: "Subscribers", icon: "subscribers", perm: "subscribers.view", group: "growth" },
