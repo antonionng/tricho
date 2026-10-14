@@ -18,6 +18,8 @@ import { startConversation } from "../actions";
 import { referralBlocker } from "@/lib/client-referrals";
 import { loadRecipient } from "../../referrals/_data";
 import { shortName } from "@/lib/names";
+import { profileCertificates } from "@/lib/courses";
+import { CourseBadges } from "@/components/courses/CourseBadges";
 
 export const metadata = { title: "People" };
 
@@ -87,6 +89,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const headline = profile?.headline || listing?.headline;
   const place = [profile?.city || profile?.location, profile?.country].filter(Boolean).join(", ");
   const qualifications = readQualifications(profile?.qualifications);
+  const badges = await profileCertificates(person.id);
   const socials = readSocials(profile?.socials);
   const socialLinks = SOCIAL_KEYS.filter((k) => socials[k]).map((k) => ({ key: k, url: socials[k]!, label: SOCIAL_NETWORKS[k].label }));
   const address = profile?.showAddress
@@ -138,6 +141,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           {profile?.yearsInPractice != null && profile.yearsInPractice > 0 && (
             <Detail label="Experience">
               {profile.yearsInPractice} {profile.yearsInPractice === 1 ? "year" : "years"} in practice
+            </Detail>
+          )}
+          {badges.length > 0 && (
+            <Detail label="Courses completed">
+              <CourseBadges badges={badges} className="mt-1" />
             </Detail>
           )}
           {qualifications.length > 0 && (
