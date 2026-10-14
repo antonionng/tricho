@@ -4,44 +4,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Lock } from "lucide-react";
-import { editionLabel, pageKicker, pageTitle, type Block, type Edition, type Page } from "@/content/gazette";
-import { BlockView } from "./Blocks";
+import { editionLabel, pageKicker, pageTitle, type Edition, type Page } from "@/content/gazette";
+import { Body, Kicker } from "./Prose";
+import { Gallery } from "./Gallery";
+import { People } from "./People";
+import { Partners } from "./Partners";
+import { PartnerFeature } from "./PartnerFeature";
+import { JoinCta } from "./JoinCta";
+import { creditLine } from "@/content/images";
 import { ParallaxImage, Rise } from "./Parallax";
 import { artFor, coverImage, img } from "./art";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
 
 const DISCIPLINE = { cosmetic: "Cosmetic", clinical: "Clinical · Trichology", medical: "Medical" } as const;
-
-/* ------------------------------------------------------------------ */
-/* Body copy                                                           */
-/* ------------------------------------------------------------------ */
-function Body({ blocks, drop = true, wide = false }: { blocks: Block[]; drop?: boolean; wide?: boolean }) {
-  const capIndex = drop ? blocks.findIndex((b) => b.type === "p") : -1;
-  return (
-    <div className="mag-body mag-web">
-      {blocks.map((b, i) =>
-        b.type === "pull" ? (
-          <Rise key={i} className={cn("my-14", wide ? "" : "lg:-mx-24 xl:-mx-40")}>
-            <blockquote className="text-center">
-              <span className="mag-didone block text-[72px] leading-[0.4]">&ldquo;</span>
-              <p className="mag-didone mt-4 text-[34px] italic leading-[1.08] tracking-[-0.01em] sm:text-[46px]">{b.text}</p>
-              <span className="mx-auto mt-6 block h-px w-14 bg-black" />
-            </blockquote>
-          </Rise>
-        ) : (
-          <div key={i} className="flow-root">
-            <BlockView block={b} drop={i === capIndex} />
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-function Kicker({ children, light }: { children: React.ReactNode; light?: boolean }) {
-  return <p className={cn("mag-caps text-[10px] sm:text-[11px]", light ? "text-white/80" : "text-black/60")}>{children}</p>;
-}
 
 /* ------------------------------------------------------------------ */
 /* Sections                                                            */
@@ -69,7 +45,7 @@ function ArticleHero({ edition, page, index }: { edition: Edition; page: Extract
               {page.standfirst}
             </p>
           </Rise>
-          <p className="mag-caps mt-8 text-[9px] text-white/55">Photograph {art.credit} / Unsplash</p>
+          <p className="mag-caps mt-8 text-[9px] text-white/55">{creditLine(art)}</p>
         </div>
       </ParallaxImage>
       <div className="bg-[#fbfaf7] px-5 py-20 sm:px-10 md:py-28">
@@ -90,7 +66,7 @@ function ArticleSplit({ edition, page, index }: { edition: Edition; page: Extrac
         {/* The photograph stays put while the story scrolls past it. */}
         <div className="relative h-[80svh] lg:sticky lg:top-0 lg:h-[100svh]">
           <Image src={img(art, 1600)} alt={art.alt} fill sizes="(min-width:1024px) 50vw, 100vw" className="mag-bw object-cover" />
-          <p className="mag-caps absolute bottom-6 left-6 text-[9px] text-white/70">Photograph {art.credit} / Unsplash</p>
+          <p className="mag-caps absolute bottom-6 left-6 text-[9px] text-white/70">{creditLine(art)}</p>
         </div>
         <div className="px-5 py-16 sm:px-10 lg:px-16 lg:py-28">
           <Rise>
@@ -139,7 +115,7 @@ function Spread({ edition, page, index }: { edition: Edition; page: Extract<Page
         <Rise className="absolute inset-x-0 bottom-0 px-5 pb-14 text-white sm:px-10 lg:px-16">
           <span className="mb-6 block h-px w-14 bg-white" />
           <p className="mag-didone max-w-4xl text-[30px] italic leading-[1.15] sm:text-[44px]">{page.caption}</p>
-          <p className="mag-caps mt-6 text-[9px] text-white/55">Photograph {art.credit} / Unsplash</p>
+          <p className="mag-caps mt-6 text-[9px] text-white/55">{creditLine(art)}</p>
         </Rise>
       </ParallaxImage>
     </section>
@@ -269,6 +245,16 @@ function Section({ edition, page, index, articleCount }: { edition: Edition; pag
       return <Perspectives edition={edition} page={page} index={index} />;
     case "news":
       return <Dispatches page={page} index={index} />;
+    case "gallery":
+      return <Gallery page={page} index={index} />;
+    case "people":
+      return <People page={page} index={index} />;
+    case "partners":
+      return <Partners page={page} index={index} />;
+    case "partner":
+      return <PartnerFeature page={page} index={index} />;
+    case "cta":
+      return <JoinCta page={page} index={index} />;
   }
 }
 
