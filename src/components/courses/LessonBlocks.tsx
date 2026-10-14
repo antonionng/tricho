@@ -1,6 +1,7 @@
-import { AlertTriangle, Lightbulb, MessageSquareQuote, ShieldAlert, Users } from "lucide-react";
+import { AlertTriangle, FileDown, Lightbulb, MessageSquareQuote, ShieldAlert, Users } from "lucide-react";
 import type { CalloutTone, LessonBlock } from "@/content/course-types";
 import { cn } from "@/lib/utils";
+import { videoEmbedUrl } from "@/lib/video-embed";
 import { CopyTemplate } from "./CopyTemplate";
 
 const CALLOUT: Record<CalloutTone, { icon: typeof Lightbulb; label: string; className: string }> = {
@@ -10,18 +11,25 @@ const CALLOUT: Record<CalloutTone, { icon: typeof Lightbulb; label: string; clas
   scope: { icon: Users, label: "Scope of practice", className: "border-positive/30 bg-positive/5" },
 };
 
-/** Renders a lesson's teaching content in the house reading style. */
-export function LessonBlocks({ blocks }: { blocks: LessonBlock[] }) {
+type FileContext = {
+  /** Public addresses of uploaded images, by file id. */
+  imageUrls?: Record<string, string>;
+  /** Builds the link to a handout, which checks the learner has a place. */
+  fileHref?: (fileId: string) => string;
+};
+
+/** Renders a lesson's teaching content in the house reading style. Works on the server and in the course builder's preview. */
+export function LessonBlocks({ blocks, imageUrls, fileHref }: { blocks: LessonBlock[] } & FileContext) {
   return (
     <div className="flex flex-col gap-6 text-[17px] leading-[1.7] text-ink">
       {blocks.map((block, i) => (
-        <Block key={i} block={block} index={i} />
+        <Block key={i} block={block} index={i} imageUrls={imageUrls} fileHref={fileHref} />
       ))}
     </div>
   );
 }
 
-function Block({ block, index }: { block: LessonBlock; index: number }) {
+function Block({ block, index, imageUrls, fileHref }: { block: LessonBlock; index: number } & FileContext) {
   switch (block.type) {
     case "p":
       return <p>{block.text}</p>;
@@ -150,5 +158,51 @@ function Block({ block, index }: { block: LessonBlock; index: number }) {
       );
     case "template":
       return <CopyTemplate id={`template-${index}`} title={block.title} body={block.body} />;
+    case "video": {
+      const src = videoEmbedUrl(block);
+      if (!src) return null;
+      return (
+        <figure className="flex flex-col gap-2">
+          <div className="relative aspect-video overflow-hidden rounded-2xl bg-ink">
+            <iframe
+              src={src}
+              title={block.caption || "Lesson video"}
+              className="absolute inset-0 h-full w-full"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+          </div>
+          {block.caption && <figcaption className="text-[13px] text-muted-foreground">{block.caption}</figcaption>}
+        </figure>
+      );
+    }
+    case "image": {
+      const src = imageUrls?.[block.fileId];
+      if (!src) return null;
+      return (
+        <figure className="flex flex-col gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- stored uploads, already resized */}
+          <img src={src} alt={block.alt} className="w-full rounded-2xl border border-rule bg-paper-2" loading="lazy" />
+          {block.caption && <figcaption className="text-[13px] text-muted-foreground">{block.caption}</figcaption>}
+        </figure>
+      );
+    }
+    case "file":
+      return (
+        <a
+          href={fileHref ? fileHref(block.fileId) : "#"}
+          target="_blank"
+          rel="noopener"
+          className="flex items-center gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
+        >
+          <FileDown className="h-6 w-6 shrink-0 stroke-[1.5]" aria-hidden />
+          <span className="min-w-0">
+            <span className="block font-semibold leading-snug">{block.title}</span>
+            <span className="block text-[14px] text-ink-2">{block.description || "Download the PDF"}</span>
+          </span>
+        </a>
+      );
   }
 }

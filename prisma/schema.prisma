@@ -305,16 +305,16 @@ model DirectoryListing {
 }
 
 model CommunityPost {
-  id           String     @id @default(cuid())
+  id           String      @id @default(cuid())
   title        String?
-  content      String     @db.Text
+  content      String      @db.Text
   category     String
-  space        String     @default("everyone")
-  pinned       Boolean    @default(false)
+  space        String      @default("everyone")
+  pinned       Boolean     @default(false)
   chapterId    String?
-  chapter      Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  chapter      Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   authorId     String
-  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments     Comment[]
   reactions    Reaction[]
   reports      Report[]
@@ -1198,6 +1198,8 @@ model CourseEnrolment {
   stripePaymentIntentId String?
   /// The lesson they last opened, so "Continue" takes them back to it.
   lastLessonSlug        String?
+  /// For courses built in the course builder: the approved version they're studying.
+  versionId             String?
   activatedAt           DateTime?
   completedAt           DateTime?
   createdAt             DateTime        @default(now())
@@ -1258,6 +1260,9 @@ model Certificate {
   hours         Int
   score         Int
   total         Int
+  /// For courses built in the course builder: the version they passed, and who wrote it.
+  versionId     String?
+  educatorName  String?
   /// Shown as a badge on their profile and directory listing.
   showOnProfile Boolean         @default(true)
   issuedAt      DateTime        @default(now())
@@ -1350,4 +1355,77 @@ model PartnerOffer {
   @@index([status, createdAt])
   @@index([email])
   @@index([stripeSubscriptionId])
+}
+
+enum CourseState {
+  draft
+  in_review
+  published
+  unlisted
+}
+
+enum CourseVersionStatus {
+  submitted
+  approved
+  changes_requested
+  rejected
+  superseded
+}
+
+/// A course written in the course builder (courses written in code live in
+/// src/content). The draft is the working copy; learners only ever see the
+/// approved version that publishedVersionId points to.
+model Course {
+  id                 String      @id @default(cuid())
+  slug               String      @unique
+  /// The educator who owns it. Empty for courses Trichollective owns.
+  educatorId         String?
+  title              String
+  summary            String      @default("")
+  audience           String      @default("")
+  /// "cosmetic", "clinical", "medical" or "everyone".
+  discipline         String      @default("everyone")
+  format             String      @default("")
+  hours              Int         @default(1)
+  /// Whole pounds.
+  priceGBP           Int         @default(0)
+  memberPriceGBP     Int         @default(0)
+  /// An editorial image from src/content/images.
+  imageKey           String
+  outcomes           String[]    @default([])
+  /// The educator's share of each sale, in percent. Empty uses the educator's rate.
+  sharePct           Int?
+  /// CourseContent: lessons and the final assessment, as edited.
+  draft              Json
+  status             CourseState @default(draft)
+  publishedVersionId String?     @unique
+  createdById        String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  versions CourseVersion[]
+
+  @@index([status])
+  @@index([educatorId])
+}
+
+/// A snapshot of a course sent for review. Never edited after it's submitted.
+model CourseVersion {
+  id            String              @id @default(cuid())
+  courseId      String
+  course        Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  number        Int
+  /// The course details at submission: title, summary, prices, outcomes and so on.
+  meta          Json
+  /// CourseContent at submission.
+  content       Json
+  status        CourseVersionStatus @default(submitted)
+  submittedById String?
+  submittedAt   DateTime            @default(now())
+  reviewNote    String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+
+  @@unique([courseId, number])
+  @@index([status, submittedAt])
 }

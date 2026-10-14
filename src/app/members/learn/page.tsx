@@ -7,7 +7,7 @@ import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
-import { courseBySlug, courses } from "@/content/courses";
+import { getContent, getCourse, listCourses } from "@/lib/course-catalogue";
 import { progressOf } from "@/lib/courses";
 import { ProgressRing } from "@/components/courses/ProgressRing";
 import { images, img } from "@/content/images";
@@ -44,9 +44,15 @@ export default async function LearnPage() {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       })
     : [];
-  const mine = enrolments
-    .map((e) => ({ e, course: courseBySlug(e.courseSlug), progress: progressOf(e.courseSlug, e.lessons, e.lastLessonSlug) }))
-    .filter((m): m is typeof m & { course: NonNullable<typeof m.course> } => !!m.course);
+  const mine = (
+    await Promise.all(
+      enrolments.map(async (e) => {
+        const [course, content] = await Promise.all([getCourse(e.courseSlug), getContent(e.courseSlug, e.versionId)]);
+        return course ? { e, course, progress: progressOf(content?.lessons ?? [], e.lessons, e.lastLessonSlug) } : null;
+      })
+    )
+  ).flatMap((m) => (m ? [m] : []));
+  const courses = await listCourses();
   const enrolledSlugs = new Set(mine.map((m) => m.course.slug));
   const earned = mine.filter((m) => m.e.certificate && !m.e.certificate.withdrawnAt);
   const cpdHours = earned.reduce((sum, m) => sum + m.e.certificate!.hours, 0);

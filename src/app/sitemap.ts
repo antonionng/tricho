@@ -5,7 +5,7 @@ import { absoluteUrl } from "@/lib/seo";
 import { guides } from "@/content/guides";
 import { getAllEditions } from "@/content/gazette/loader";
 import { glossary } from "@/content/glossary";
-import { courses } from "@/content/courses";
+import { listCourses } from "@/lib/course-catalogue";
 import { CHAPTERS } from "@/content/chapters";
 import { DISCIPLINES } from "@/content/disciplines";
 import { cityKey, listingCityPairs } from "@/lib/directory";
@@ -52,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...guides.map((g) => ({ url: absoluteUrl(`/guides/${g.slug}`), lastModified: new Date(g.updated ?? g.published), priority: 0.8 })),
     ...allEditions.map((e) => ({ url: absoluteUrl(`/trichozette/${e.slug}`), lastModified: new Date(e.published), priority: 0.7 })),
     ...glossary.map((t) => ({ url: absoluteUrl(`/glossary/${t.slug}`), priority: 0.5 })),
-    ...courses.map((c) => ({ url: absoluteUrl(`/courses/${c.slug}`), priority: 0.7 })),
+    ...(await listCourses()).map((c) => ({ url: absoluteUrl(`/courses/${c.slug}`), priority: 0.7 })),
     ...CHAPTERS.map((c) => ({ url: absoluteUrl(`/chapters/${c.slug}`), priority: 0.6 })),
     ...DISCIPLINES.map((d) => ({ url: absoluteUrl(`/directory/${d.slug}`), priority: 0.8 })),
     ...pairs.map((p) => ({ url: absoluteUrl(`/directory/${p.discipline}/${cityKey(p.city)}`), priority: 0.7 })),

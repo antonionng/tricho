@@ -66,3 +66,47 @@ export function courseCertificateEmail(p: { name: string | null; course: Course;
     },
   };
 }
+
+export function courseReviewEmail(p: {
+  name: string | null;
+  title: string;
+  slug: string;
+  number: number;
+  decision: "approve" | "changes" | "reject";
+  note: string;
+  /** Where the author edits the course. */
+  builderHref: string;
+}): Email {
+  const note = p.note.trim();
+  const copy = {
+    approve: {
+      subject: `${p.title} is approved and live`,
+      heading: `${p.title} has been approved, and it's now on sale.`,
+      lead: `Version ${p.number} of your course passed review. Learners can enrol from the course page straight away.`,
+      cta: { label: "See the course page", href: `/courses/${p.slug}` },
+    },
+    changes: {
+      subject: `A few changes for ${p.title}`,
+      heading: `${p.title} needs a few changes before it can go live.`,
+      lead: `Thank you for sending version ${p.number} for review. The reviewer has asked for some changes, set out below. Make them in the course builder and send it again when you're ready.`,
+      cta: { label: "Open the course builder", href: p.builderHref },
+    },
+    reject: {
+      subject: `${p.title} wasn't approved`,
+      heading: `We weren't able to approve ${p.title}.`,
+      lead: `Thank you for sending version ${p.number} for review. The reviewer has explained why below. If you'd like to talk it through, reply to this email.`,
+      cta: { label: "Open the course builder", href: p.builderHref },
+    },
+  }[p.decision];
+  return {
+    subject: copy.subject,
+    content: {
+      preheader: copy.lead,
+      eyebrow: "Course review",
+      heading: copy.heading,
+      body: [`Hello ${firstNameOf(p.name)},`, copy.lead, note ? `## The reviewer's note\n\n${note}` : ""].filter(Boolean).join("\n\n"),
+      cta: copy.cta,
+      reason: `You receive this because you sent ${p.title} for review.`,
+    },
+  };
+}

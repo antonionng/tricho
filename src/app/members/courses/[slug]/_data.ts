@@ -2,8 +2,8 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { courseBySlug } from "@/content/courses";
-import { lessonsOf, progressOf } from "@/lib/courses";
+import { getContent, getCourse } from "@/lib/course-catalogue";
+import { progressOf } from "@/lib/courses";
 
 /**
  * Everything a learner page needs. Signed-out visitors go to sign in; anyone
@@ -15,9 +15,8 @@ export async function loadLearner(slug: string, next: string) {
   const userId = session?.user?.id;
   if (!userId) redirect(`/login?next=${encodeURIComponent(next)}`);
 
-  const course = courseBySlug(slug);
-  const content = lessonsOf(slug);
-  if (!course || !content) notFound();
+  const course = await getCourse(slug);
+  if (!course) notFound();
 
   const [enrolment, user] = await Promise.all([
     prisma.courseEnrolment.findUnique({
@@ -31,9 +30,12 @@ export async function loadLearner(slug: string, next: string) {
     prisma.user.findUnique({ where: { id: userId }, select: { staffRole: true, role: true, name: true } }),
   ]);
   const isStaff = !!user?.staffRole || user?.role === "admin";
+  // Learners stay on the version they enrolled on; everyone else sees the current one.
+  const content = await getContent(slug, enrolment?.versionId);
+  if (!content) notFound();
   const status = enrolment?.status ?? null;
   const active = status === "active" || isStaff;
-  const progress = progressOf(slug, enrolment?.lessons ?? [], enrolment?.lastLessonSlug);
+  const progress = progressOf(content.lessons, enrolment?.lessons ?? [], enrolment?.lastLessonSlug);
 
   return { userId, name: user?.name ?? null, course, content, enrolment, status, active, isStaff, progress };
 }

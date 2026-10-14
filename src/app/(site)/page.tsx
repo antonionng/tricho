@@ -34,7 +34,7 @@ import { ParallaxImage } from "@/components/gazette/Parallax";
 import { coverImage } from "@/components/gazette/art";
 import { gazetteFonts } from "@/components/gazette/fonts";
 import { DISCIPLINES } from "@/content/disciplines";
-import { courses } from "@/content/courses";
+import { listCourses } from "@/lib/course-catalogue";
 import { homeFaqs } from "@/content/faqs";
 import { flagshipTier, subscriptionTiers, FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { getPublicStats, STAT_THRESHOLDS } from "@/lib/stats";
@@ -60,6 +60,7 @@ const pillars = [
 ];
 
 export default async function HomePage() {
+  const courses = await listCourses();
   const [stats, editions] = await Promise.all([getPublicStats(), getEditions()]);
   const freeOffer = freeListingOfferLive();
   const proof = [

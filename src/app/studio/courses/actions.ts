@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/staff";
 import { studioAction } from "../_lib/guard";
+import { storeUpload } from "@/lib/storage";
+import { createCourse, reviewVersion, saveDraft, setListed, submitForReview, type SaveResult } from "@/lib/course-builder";
+import { DECISION_LABEL } from "@/lib/course-review";
 
 /**
  * Withdraws a certificate (it then shows as withdrawn on its public page and
@@ -32,4 +35,81 @@ export async function setCertificateWithdrawnAction(form: FormData) {
   revalidatePath(`/members/people/${certificate.userId}`);
   revalidatePath("/directory", "layout");
   redirect(`/studio/courses?notice=${encodeURIComponent(withdraw ? `Certificate ${id} is withdrawn.` : `Certificate ${id} is restored.`)}`);
+}
+
+/** Starts a new course in the builder. Courses made here belong to Trichollective. */
+export async function createCourseAction(form: FormData) {
+  const staff = await studioAction("courses.edit");
+  const result = await createCourse({ title: String(form.get("title") ?? ""), createdById: staff.userId });
+  if (!result.ok) redirect(`/studio/courses?notice=${encodeURIComponent(result.error)}&tone=danger`);
+  await audit(staff, { action: "course.create", targetType: "course", targetId: result.id, summary: `Started a new course, "${String(form.get("title")).trim()}".` });
+  redirect(`/studio/courses/${result.id}`);
+}
+
+/** Saves the builder's draft. Called from the builder, not a form. */
+export async function saveCourseDraftAction(id: string, payload: { meta: unknown; content: unknown }): Promise<SaveResult> {
+  try {
+    await studioAction("courses.edit");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "You can't edit courses." };
+  }
+  return saveDraft(id, payload);
+}
+
+export type UploadState = { ok: true; fileId: string; url: string; name: string } | { ok: false; error: string };
+
+/** A PDF handout (private, served only to learners) or an image (public) for a lesson. */
+export async function uploadCourseFileAction(form: FormData): Promise<UploadState> {
+  let staff;
+  try {
+    staff = await studioAction("courses.edit");
+  } catch {
+    return { ok: false, error: "You can't edit courses." };
+  }
+  const file = form.get("file");
+  const asImage = form.get("as") === "image";
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Please choose a file." };
+  const stored = await storeUpload({ kind: asImage ? "photo" : "document", file, ownerId: staff.userId, isPublic: asImage });
+  if (!stored) return { ok: false, error: "Please choose a file." };
+  if (!stored.ok) return { ok: false, error: stored.message };
+  return { ok: true, fileId: stored.file.id, url: stored.file.url, name: file.name };
+}
+
+export async function submitCourseAction(form: FormData) {
+  const staff = await studioAction("courses.edit");
+  const id = String(form.get("id") ?? "").slice(0, 40);
+  const result = await submitForReview(id, staff.userId);
+  if (!result.ok) redirect(`/studio/courses/${id}?notice=${encodeURIComponent(result.error)}&tone=danger`);
+  await audit(staff, { action: "course.submit", targetType: "course", targetId: id, summary: `Sent version ${result.number} of a course for review.` });
+  revalidatePath("/studio/courses");
+  redirect(`/studio/courses/${id}?notice=${encodeURIComponent(`Version ${result.number} is waiting for review.`)}`);
+}
+
+export async function reviewCourseAction(form: FormData) {
+  const staff = await studioAction("courses.review");
+  const versionId = String(form.get("versionId") ?? "").slice(0, 40);
+  const decision = String(form.get("decision") ?? "");
+  if (decision !== "approve" && decision !== "changes" && decision !== "reject") redirect("/studio/courses/review");
+  const result = await reviewVersion({ versionId, decision, note: String(form.get("note") ?? "").slice(0, 4000), reviewerId: staff.userId });
+  if (!result.ok) redirect(`/studio/courses/review/${versionId}?notice=${encodeURIComponent(result.error)}&tone=danger`);
+  await audit(staff, {
+    action: `course.${decision}`,
+    targetType: "course",
+    targetId: result.course.id,
+    summary: `${decision === "approve" ? "Approved" : decision === "changes" ? "Asked for changes to" : "Rejected"} version ${result.number} of "${result.course.title}".`,
+    after: { version: result.number, course: result.outcome.course },
+  });
+  revalidatePath("/studio/courses");
+  redirect(`/studio/courses/review?notice=${encodeURIComponent(`"${result.course.title}" was ${DECISION_LABEL[decision]}.`)}`);
+}
+
+export async function setCourseListedAction(form: FormData) {
+  const staff = await studioAction("courses.review");
+  const id = String(form.get("id") ?? "").slice(0, 40);
+  const listed = form.get("listed") === "1";
+  const result = await setListed(id, listed);
+  if (!result.ok) redirect(`/studio/courses/${id}?notice=${encodeURIComponent(result.error)}&tone=danger`);
+  await audit(staff, { action: listed ? "course.list" : "course.unlist", targetType: "course", targetId: id, summary: listed ? "Put a course back on sale." : "Took a course off sale; its learners keep access." });
+  revalidatePath("/studio/courses");
+  redirect(`/studio/courses/${id}?notice=${encodeURIComponent(listed ? "The course is on sale again." : "The course is off sale. Its learners keep access.")}`);
 }

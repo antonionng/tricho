@@ -22,6 +22,9 @@ export const PERMISSIONS = [
   "community.rooms",
   "events.view",
   "events.edit",
+  "courses.view",
+  "courses.edit",
+  "courses.review",
   "gazette.view",
   "gazette.edit",
   "gazette.publish",
@@ -68,6 +71,8 @@ export const ROLE_PERMISSIONS: Record<StaffRoleId, readonly Permission[]> = {
     "events.view",
     "agents.view",
     "crm.view",
+    "courses.view",
+    "courses.edit",
   ],
   events: ["overview.view", "inbox.view", "events.view", "events.edit", "emails.view"],
   moderator: [
@@ -109,7 +114,7 @@ export const STAFF_ROLE_PHRASE: Record<StaffRoleId, string> = {
 
 export const STAFF_ROLE_DESCRIPTION: Record<StaffRoleId, string> = {
   owner: "Owners can do everything in Studio, including choosing who is on the team and what each person can do.",
-  editor: "Editors write and publish Trichozette editions, podcast episodes, newsletters and announcements.",
+  editor: "Editors write and publish Trichozette editions, podcast episodes, newsletters and announcements, and build courses.",
   events: "Events staff create and publish events, and approve the announcement emails that go with them.",
   moderator: "Moderators look after the community, review reports and listings, and can suspend members who break the rules.",
   support: "Support can see every part of Studio to help members, but cannot change anything or export personal data.",
@@ -218,7 +223,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/gazette", label: "Trichozette", icon: "gazette", perm: "gazette.view", group: "publish" },
   { href: "/studio/podcast", label: "Podcast", icon: "podcast", perm: "podcast.view", group: "publish" },
   { href: "/studio/events", label: "Events", icon: "events", perm: "events.view", group: "publish" },
-  { href: "/studio/courses", label: "Courses", icon: "verification", perm: "members.view", group: "publish" },
+  { href: "/studio/courses", label: "Courses", icon: "verification", perm: "courses.view", group: "publish" },
   { href: "/studio/emails", label: "Emails", icon: "emails", perm: "emails.view", group: "publish" },
   { href: "/studio/members", label: "Members", icon: "members", perm: "members.view", group: "people" },
   { href: "/studio/crm", label: "Businesses", icon: "crm", perm: "crm.view", group: "people" },

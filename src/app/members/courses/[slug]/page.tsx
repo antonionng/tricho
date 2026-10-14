@@ -7,7 +7,7 @@ import { Pill } from "@/components/site/primitives";
 import { Card, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { ProgressRing } from "@/components/courses/ProgressRing";
 import { longDate } from "@/components/members/format";
-import { courseBySlug } from "@/content/courses";
+import { getCourse } from "@/lib/course-catalogue";
 import { PASS_MARK } from "@/lib/courses";
 import { cn } from "@/lib/utils";
 import { loadLearner } from "./_data";
@@ -16,7 +16,7 @@ type Params = { slug: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: courseBySlug(slug)?.title ?? "Course" };
+  return { title: (await getCourse(slug))?.title ?? "Course" };
 }
 
 export default async function CourseHomePage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<{ enrolled?: string }> }) {

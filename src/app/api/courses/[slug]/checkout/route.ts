@@ -5,7 +5,7 @@ import { stripe } from "@/lib/stripe";
 import { site } from "@/config/site";
 import { checkoutTermsText } from "@/lib/legal";
 import { getMembershipByEmail } from "@/lib/subscription";
-import { courseBySlug } from "@/content/courses";
+import { getCourse } from "@/lib/course-catalogue";
 import { CHECKOUT_EXPIRES_MINUTES, coursePrice, enrolFree } from "@/lib/courses";
 
 export const runtime = "nodejs";
@@ -35,7 +35,7 @@ async function buyer() {
 
 export async function GET(_req: Request, { params }: Params) {
   const { slug } = await params;
-  const course = courseBySlug(slug);
+  const course = await getCourse(slug);
   if (!course) return error("We couldn't find that course.", 404);
   const who = await buyer();
   const price = coursePrice(course, !!who?.isMember);
@@ -61,8 +61,9 @@ export async function GET(_req: Request, { params }: Params) {
 export async function POST(_req: Request, { params }: Params) {
   try {
     const { slug } = await params;
-    const course = courseBySlug(slug);
+    const course = await getCourse(slug);
     if (!course) return error("We couldn't find that course.", 404);
+    if (course.status === "closed") return error("This course isn't taking new enrolments.", 400);
     if (course.status !== "open") return error("This course hasn't opened yet. Register your interest and we'll tell you the day it does.", 400);
 
     const who = await buyer();
@@ -85,8 +86,8 @@ export async function POST(_req: Request, { params }: Params) {
     // One row per person per course: a lapsed or refunded checkout is reused.
     const enrolment = await prisma.courseEnrolment.upsert({
       where: { userId_courseSlug: { userId: who.userId, courseSlug: course.slug } },
-      create: { userId: who.userId, courseSlug: course.slug, status: "pending", priceType: price.priceType, amount: price.amountPence, currency: "gbp" },
-      update: { status: "pending", priceType: price.priceType, amount: price.amountPence, currency: "gbp", stripeSessionId: null, stripePaymentIntentId: null },
+      create: { userId: who.userId, courseSlug: course.slug, versionId: course.versionId, status: "pending", priceType: price.priceType, amount: price.amountPence, currency: "gbp" },
+      update: { status: "pending", versionId: course.versionId, priceType: price.priceType, amount: price.amountPence, currency: "gbp", stripeSessionId: null, stripePaymentIntentId: null },
       select: { id: true },
     });
 

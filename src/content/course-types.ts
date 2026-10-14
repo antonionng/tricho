@@ -29,7 +29,15 @@ export type LessonBlock =
   | { type: "table"; caption: string; head: string[]; rows: string[][] }
   | { type: "terms"; items: { term: string; meaning: string }[] }
   /** A template the learner can copy, such as a referral letter or a checklist. */
-  | { type: "template"; title: string; body: string };
+  | { type: "template"; title: string; body: string }
+  /** A video hosted by the educator on Vimeo or YouTube, embedded in the lesson. */
+  | { type: "video"; provider: VideoProvider; id: string; caption?: string }
+  /** An uploaded image. `fileId` is a StoredFile id. */
+  | { type: "image"; fileId: string; alt: string; caption?: string }
+  /** An uploaded PDF, such as a handout, served only to learners with a place. */
+  | { type: "file"; fileId: string; title: string; description?: string };
+
+export type VideoProvider = "vimeo" | "youtube";
 
 export type Lesson = {
   slug: string;
