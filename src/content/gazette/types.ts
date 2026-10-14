@@ -84,6 +84,8 @@ export type Page =
       facts?: { label: string; value: string }[];
       /** A plain statement of any connection between the partner and Trichollective. */
       disclosure?: string;
+      /** The label on the page. Defaults to "Partner feature"; charities use "Charity feature" and are never labelled sponsored. */
+      label?: string;
     }
   /** Join as a member or list a business. Shown to everyone, including readers without membership. */
   | { kind: "cta"; kicker: string; title: string; intro: string; blocks: Block[]; offers: ("member" | "business")[] };
