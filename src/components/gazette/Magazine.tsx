@@ -199,10 +199,10 @@ function UnitView({ unit }: { unit: Unit }) {
     case "news":
       return (
         <article className="mb-5 border-t border-black pt-3">
-          <p className="mag-caps text-[8.5px] text-black/55">
+          <p className="mag-caps text-[9px] leading-relaxed text-black/70">
             {unit.item.date.split("-").reverse().join(".")} · {unit.item.source}
           </p>
-          <p className="mag-didone mt-2 text-[20px] leading-[1.12]">{unit.item.headline}</p>
+          <p className="mag-serif mt-2 text-[16.5px] font-semibold leading-[1.3]">{unit.item.headline}</p>
           <p className="mag-serif mt-2 text-[13.5px] leading-[1.55] text-justify">{unit.item.summary}</p>
           <p className="mag-serif mt-2 text-[13.5px] italic leading-[1.5]">{unit.item.whyItMatters}</p>
           <a href={unit.item.url} target="_blank" rel="noopener nofollow" className="mag-caps mt-2 inline-block text-[8.5px] underline underline-offset-4">

@@ -211,10 +211,11 @@ function Dispatches({ page, index }: { page: Extract<Page, { kind: "news" }>; in
           {page.items.map((n, i) => (
             <Rise key={n.id} delay={i * 60}>
               <article className={cn("h-full border-b border-black/20 py-8 md:px-6", i % 3 !== 0 && "lg:border-l", i % 2 !== 0 && "md:border-l lg:border-l-0", i % 3 !== 0 && "lg:border-l")}>
-                <p className="mag-caps text-[9px] text-black/50">
+                <p className="mag-caps text-[10px] leading-relaxed text-black/70">
                   {n.date.split("-").reverse().join(".")} · {n.source}
                 </p>
-                <h3 className="mag-didone mt-3 text-[26px] leading-[1.08]">{n.headline}</h3>
+                {/* News headlines are long sentences, so they use the reading serif: Bodoni's hairlines break up at this size. */}
+                <h3 className="mag-serif mt-3 text-[21px] font-semibold leading-[1.28] tracking-[-0.005em]">{n.headline}</h3>
                 <p className="mag-serif mt-4 text-[16px] leading-[1.6] text-black/80">{n.summary}</p>
                 <p className="mag-serif mt-4 border-l border-black pl-4 text-[15px] italic leading-[1.55]">{n.whyItMatters}</p>
                 <a href={n.url} target="_blank" rel="noopener nofollow" className="mag-caps mt-5 inline-flex items-center gap-1.5 text-[9px] underline underline-offset-4">
