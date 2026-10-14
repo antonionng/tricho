@@ -502,7 +502,7 @@ export const editionsC: Edition[] = [
           },
           { type: "p", text: "Karley" },
         ],
-        offers: ["member", "business"],
+        offers: ["account", "member", "business"],
       },
     ],
     sources: [

@@ -10,7 +10,7 @@ import { Gallery } from "./Gallery";
 import { People } from "./People";
 import { BroughtBy, Partners } from "./Partners";
 import { PartnerFeature } from "./PartnerFeature";
-import { JoinCta } from "./JoinCta";
+import { JoinCta, OfferCards } from "./JoinCta";
 import { creditLine } from "@/content/images";
 import { ParallaxImage, Rise } from "./Parallax";
 import { artFor, coverImage, img } from "./art";
@@ -230,7 +230,7 @@ function Dispatches({ page, index }: { page: Extract<Page, { kind: "news" }>; in
   );
 }
 
-function Section({ edition, page, index, articleCount }: { edition: Edition; page: Page; index: number; articleCount: number }) {
+function Section({ edition, page, index, articleCount, signedIn }: { edition: Edition; page: Page; index: number; articleCount: number; signedIn: boolean }) {
   switch (page.kind) {
     case "article":
       return articleCount % 2 === 0 ? <ArticleHero edition={edition} page={page} index={index} /> : <ArticleSplit edition={edition} page={page} index={index} />;
@@ -255,7 +255,7 @@ function Section({ edition, page, index, articleCount }: { edition: Edition; pag
     case "partner":
       return <PartnerFeature page={page} index={index} />;
     case "cta":
-      return <JoinCta page={page} index={index} />;
+      return <JoinCta page={page} index={index} slug={edition.slug} signedIn={signedIn} />;
   }
 }
 
@@ -412,7 +412,7 @@ export function ScrollEdition({
       {/* Features */}
       {edition.pages.map((page, i) => {
         const n = page.kind === "article" ? articles++ : articles;
-        return <Section key={i} edition={edition} page={page} index={i} articleCount={n} />;
+        return <Section key={i} edition={edition} page={page} index={i} articleCount={n} signedIn={signedIn} />;
       })}
 
       {/* Sources */}
@@ -435,43 +435,52 @@ export function ScrollEdition({
         </section>
       )}
 
-      {/* Members gate */}
+      {/* The gate: how much is left, what it is, and the ways in, in one place. */}
       {lockedTitles.length > 0 && (
         <section id="members" className="relative scroll-mt-14 bg-[#0a0a0a] text-white">
           <div className="pointer-events-none absolute inset-x-0 -top-64 h-64 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
-          <div className="mx-auto grid max-w-7xl gap-14 px-5 py-28 sm:px-10 md:py-36 lg:grid-cols-12">
-            <Rise className="lg:col-span-6">
-              <Kicker light>{GATE.kicker}</Kicker>
-              <h2 className="mag-didone mt-6 text-[64px] font-medium leading-[0.88] tracking-[-0.02em] sm:text-[104px]">
-                The story
-                <br />
-                <span className="font-normal italic">continues.</span>
-              </h2>
-              <p className="mag-serif mt-8 max-w-lg text-[19px] leading-[1.6] text-white/75">{GATE.lead}</p>
-              <div className="mt-10 flex flex-wrap items-center gap-6">
-                <Link href={GATE.href(edition.slug)} className="inline-flex h-14 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-medium text-black transition-opacity hover:opacity-90">
-                  {GATE.label} <ArrowRight className="h-4 w-4" />
-                </Link>
+          <div className="mx-auto max-w-7xl px-5 py-24 sm:px-10 md:py-32">
+            <div className="grid gap-14 lg:grid-cols-12">
+              <Rise className="lg:col-span-6">
+                <Kicker light>{GATE.kicker}</Kicker>
+                <h2 className="mag-didone mt-6 text-[52px] font-medium leading-[0.95] tracking-[-0.02em] sm:text-[80px]">
+                  {lockedTitles.length === 1 ? "There is " : "There are "}
+                  <span className="font-normal italic">
+                    {lockedTitles.length} more {lockedTitles.length === 1 ? "feature" : "features"}
+                  </span>{" "}
+                  in this edition.
+                </h2>
+                <p className="mag-serif mt-8 max-w-lg text-[19px] leading-[1.6] text-white/75">{GATE.lead}</p>
                 {!signedIn && (
-                  <Link href={`/login?next=/trichozette/${edition.slug}`} className="mag-caps text-[10px] underline underline-offset-4">
-                    Sign in
-                  </Link>
+                  <p className="mag-caps mt-8 text-[10px] text-white/60">
+                    Already have an account?{" "}
+                    <Link href={`/login?next=/trichozette/${edition.slug}`} className="text-white underline underline-offset-4">
+                      Sign in
+                    </Link>
+                  </p>
                 )}
+              </Rise>
+              <div className="lg:col-span-6">
+                <p className="mag-caps text-[10px] text-white/60">Still to read</p>
+                <ol className="mt-4 border-t border-white/25">
+                  {lockedTitles.map((l, i) => (
+                    <Rise key={l.title} delay={i * 40}>
+                      <li className="grid grid-cols-[2.5rem_1fr_auto] items-baseline gap-3 border-b border-white/15 py-3.5">
+                        <span className="mag-didone text-[22px] leading-none text-white/45">{String(edition.pages.length + i + 1).padStart(2, "0")}</span>
+                        <span>
+                          <span className="mag-caps block text-[9px] text-white/45">{l.kicker}</span>
+                          <span className="mag-didone mt-1 block text-[21px] italic leading-tight">{l.title}</span>
+                        </span>
+                        <Lock className="h-3.5 w-3.5 text-white/35" />
+                      </li>
+                    </Rise>
+                  ))}
+                </ol>
               </div>
-            </Rise>
-            <ol className="lg:col-span-5 lg:col-start-8 border-t border-white/25">
-              {lockedTitles.map((l, i) => (
-                <Rise key={l.title} delay={i * 50}>
-                  <li className="flex items-baseline gap-4 border-b border-white/15 py-4">
-                    <Lock className="h-3.5 w-3.5 shrink-0 translate-y-0.5 text-white/40" />
-                    <span>
-                      <span className="mag-caps block text-[9px] text-white/45">{l.kicker}</span>
-                      <span className="mag-didone mt-1 block text-[24px] italic leading-tight">{l.title}</span>
-                    </span>
-                  </li>
-                </Rise>
-              ))}
-            </ol>
+            </div>
+            <div className="mt-20">
+              <OfferCards offers={GATE.offers} slug={edition.slug} onDark />
+            </div>
           </div>
         </section>
       )}

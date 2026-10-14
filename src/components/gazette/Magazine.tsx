@@ -59,7 +59,7 @@ type Unit =
   | { t: "exhibitor"; entry: PartnerEntry; sponsor?: boolean }
   | { t: "link"; label: string; url: string }
   | { t: "note"; text: string }
-  | { t: "offer"; kind: "member" | "business" };
+  | { t: "offer"; kind: "account" | "member" | "business" };
 
 type Header = { kicker: string; title: string; standfirst?: string; tone: "article" | "section" | "letter" };
 
@@ -171,6 +171,7 @@ function planPage(edition: Edition, page: Page, index: number): Plan {
 }
 
 const OFFER = {
+  account: { title: "Create a free account and read every edition in full.", href: "/signup", label: "trichollective.net/signup" },
   member: { title: "Join as a member and keep the conversation going between events.", href: "/founding", label: "trichollective.net/founding" },
   business: { title: "List your clinic or brand where professionals look for referrals.", href: "/for-business", label: "trichollective.net/for-business" },
 } as const;
@@ -254,7 +255,7 @@ function UnitView({ unit }: { unit: Unit }) {
       const o = OFFER[unit.kind];
       return (
         <Link href={o.href} className={cn("mb-4 block p-4", unit.kind === "member" ? "bg-black text-white" : "border border-black")}>
-          <p className="mag-caps text-[8px] opacity-60">{unit.kind === "member" ? "For practitioners" : "For clinics, salons and brands"}</p>
+          <p className="mag-caps text-[8px] opacity-60">{unit.kind === "account" ? "Free for every professional" : unit.kind === "member" ? "Membership" : "For clinics, salons and brands"}</p>
           <p className="mag-didone mt-2 text-[21px] leading-[1.08]">{o.title}</p>
           <p className="mag-caps mt-3 text-[8px] underline underline-offset-4">{o.label}</p>
         </Link>
@@ -523,10 +524,12 @@ export function SheetView({
         <Frame side={side} edition={edition} dark geo={geo}>
           <div className="absolute top-[110px] bottom-[80px] flex flex-col" style={{ left: geo.padX + 6, right: geo.padX + 6 }}>
             <p className="mag-caps text-[10px] text-white/60">{GATE.kicker}</p>
-            <p className={cn("mag-didone mt-6 font-medium leading-[0.9] tracking-[-0.02em]", geo.pocket ? "text-[62px]" : "text-[76px]")}>
-              The story
-              <br />
-              <span className="italic font-normal">continues.</span>
+            <p className={cn("mag-didone mt-6 font-medium leading-[0.95] tracking-[-0.02em]", geo.pocket ? "text-[48px]" : "text-[56px]")}>
+              {lockedTitles.length === 1 ? "There is " : "There are "}
+              <span className="italic font-normal">
+                {lockedTitles.length} more {lockedTitles.length === 1 ? "feature" : "features"}
+              </span>{" "}
+              in this edition.
             </p>
             <p className="mag-serif mt-8 max-w-[520px] text-[18px] leading-[1.55] text-white/80">{GATE.lead}</p>
             <ol className="mt-8 flex flex-col border-t border-white/25">

@@ -27,6 +27,7 @@ export const GATE =
         href: (slug: string) => `/founding?next=/trichozette/${slug}`,
         short: "for members",
         kicker: "Members only",
+        offers: ["member", "business"] as const,
       }
     : {
         lead: "Create a free Trichollective account to read every edition of Trichozette in full, including the archive from 2023 to 2026, with a new edition each month.",
@@ -34,4 +35,5 @@ export const GATE =
         href: (slug: string) => `/signup?next=/trichozette/${slug}`,
         short: "with a free account",
         kicker: "Free with an account",
+        offers: ["account", "member", "business"] as const,
       };

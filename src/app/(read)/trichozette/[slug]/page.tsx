@@ -44,10 +44,10 @@ export default async function EditionPage({ params }: { params: Promise<{ slug: 
   const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
   const full = canReadInFull(ctx);
 
-  // Members-only pages never leave the server for non-members: only their titles do.
-  // Invitations to join are for everyone, so "cta" pages follow the preview.
+  // Gated pages never leave the server for readers without access: only their titles do.
+  // The gate carries the ways to join, so the edition's own join page isn't listed among them.
   const rest = edition.pages.slice(PUBLIC_PREVIEW_PAGES);
-  const visiblePages = full ? edition.pages : [...edition.pages.slice(0, PUBLIC_PREVIEW_PAGES), ...rest.filter((p) => p.kind === "cta")];
+  const visiblePages = full ? edition.pages : edition.pages.slice(0, PUBLIC_PREVIEW_PAGES);
   const lockedTitles = full
     ? []
     : rest.filter((p) => p.kind !== "cta").map((p) => ({ kicker: pageKicker(p), title: pageTitle(p) }));
