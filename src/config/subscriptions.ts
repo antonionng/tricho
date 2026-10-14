@@ -161,6 +161,32 @@ export const premiumBusiness = {
   ],
 };
 
+/**
+ * Educator membership: for practitioners who teach. It is a separate yearly
+ * subscription, not one of the member plans, so it never replaces a plan the
+ * person already pays for. Educators pay first and are approved afterwards.
+ */
+export const educatorMembership = {
+  id: "educator" as const,
+  name: "Educator",
+  annualPrice: 500,
+  stripePriceId: process.env.STRIPE_PRICE_ID_EDUCATOR,
+  /** The educator's default share of each course sale, in percent. */
+  defaultSharePct: 70,
+  audience: "For trichologists, clinicians and experienced practitioners who teach",
+  summary:
+    "Build your own courses on Trichollective, sell them to practitioners across every discipline and keep 70% of every sale, paid straight to your bank account.",
+  features: [
+    "Everything in Professional membership, for as long as you are an Educator",
+    "A course builder for lessons, case studies, video, handouts, knowledge checks and a final assessment",
+    "Every course is reviewed by the Trichollective team before it goes on sale, so learners can trust it",
+    "70% of every course sale goes to you, paid out by Stripe to your bank account",
+    "A certificate of completion for each learner, with your name on it and a link anyone can check",
+    "Your own educator page listing your courses, with sales, learners and earnings in your dashboard",
+    "The option to have the Trichollective team build or tailor a course with you",
+  ],
+};
+
 /** Individual founding offer: the first members to join keep the founding price while they stay. */
 export const FOUNDING_MEMBER_PLACES = 200;
 
@@ -171,6 +197,11 @@ export function tierById(id: string | null | undefined) {
 }
 
 /** True for either Premium Business price. */
+/** True for the Educator membership price, which must never be read as a member plan. */
+export function isEducatorPriceId(priceId: string | null | undefined) {
+  return !!priceId && priceId === educatorMembership.stripePriceId;
+}
+
 export function isPremiumPriceId(priceId: string | null | undefined) {
   return !!priceId && (priceId === premiumBusiness.stripePriceId || priceId === premiumBusiness.stripeFoundingPriceId);
 }
@@ -197,6 +228,7 @@ export function premiumPriceIdFor(founding: boolean) {
  */
 export function tierByPriceId(priceId: string | null | undefined) {
   if (!priceId) return undefined;
+  if (isEducatorPriceId(priceId)) return undefined;
   if (isPremiumPriceId(priceId)) return tierById("business");
   return subscriptionTiers.find(
     (t) =>

@@ -82,6 +82,7 @@ export default async function CertificatePage({ params }: { params: Promise<Para
             hours={certificate.hours}
             issuedAt={certificate.issuedAt}
             reviewer={course.reviewer ? `${course.reviewer.name}, ${course.reviewer.credentials}` : null}
+            educator={certificate.educatorName}
             withdrawn={withdrawn}
           />
 

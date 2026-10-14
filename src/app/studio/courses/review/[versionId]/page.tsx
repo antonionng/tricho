@@ -136,24 +136,38 @@ export default async function ReviewVersionPage({ params, searchParams }: { para
       </article>
 
       {waiting && (
-        <form action={reviewCourseAction} className="sticky bottom-4 space-y-3 rounded-2xl border border-rule bg-card p-5 shadow-sm">
-          <input type="hidden" name="versionId" value={version.id} />
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium">Note to the author</span>
-            <textarea name="note" rows={3} className="rounded-xl border border-rule bg-paper px-3 py-2" placeholder="Needed if you ask for changes or reject it. Say exactly what to change and why." />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button name="decision" value="approve" type="submit" className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-ink/85">
+        <section className="grid gap-4 rounded-2xl border border-rule bg-card p-5 sm:grid-cols-[auto_1fr] sm:items-start">
+          <form action={reviewCourseAction}>
+            <input type="hidden" name="versionId" value={version.id} />
+            <input type="hidden" name="decision" value="approve" />
+            <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85">
               Approve and publish
             </button>
-            <button name="decision" value="changes" type="submit" className="rounded-full border border-ink/20 px-4 py-2 text-sm font-medium hover:border-ink">
-              Ask for changes
+          </form>
+          <form action={reviewCourseAction} className="flex flex-col gap-3 sm:border-l sm:border-rule sm:pl-4">
+            <input type="hidden" name="versionId" value={version.id} />
+            <fieldset className="flex flex-wrap gap-4 text-sm">
+              <legend className="sr-only">Decision</legend>
+              <label className="flex items-center gap-1.5">
+                <input type="radio" name="decision" value="changes" defaultChecked /> Ask for changes
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="radio" name="decision" value="reject" /> Reject
+              </label>
+            </fieldset>
+            <textarea
+              name="note"
+              rows={3}
+              required
+              minLength={10}
+              className="rounded-xl border border-rule bg-paper px-3 py-2 text-sm"
+              placeholder="Say exactly what to change and why. The author sees this note."
+            />
+            <button type="submit" className="self-start rounded-full border border-ink/20 px-4 py-2 text-sm font-medium hover:border-ink">
+              Send to the author
             </button>
-            <button name="decision" value="reject" type="submit" className="rounded-full px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/5">
-              Reject
-            </button>
-          </div>
-        </form>
+          </form>
+        </section>
       )}
     </div>
   );
