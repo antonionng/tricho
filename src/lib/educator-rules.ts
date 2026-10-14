@@ -45,3 +45,15 @@ export function educatorSlugBase(name: string) {
       .slice(0, 50) || "educator"
   );
 }
+
+/**
+ * An educator's courses can be sold only while they're approved, paid up and
+ * able to receive their share. Otherwise the course is shown as not taking
+ * enrolments, and nobody is charged for a share we couldn't pay.
+ */
+export function educatorCanSell(
+  e: (Educator & { stripeAccountId: string | null; transfersActive: boolean }) | null | undefined,
+  now = new Date()
+) {
+  return !!e && e.status === "approved" && isPaidUp(e, now) && !!e.stripeAccountId && e.transfersActive;
+}

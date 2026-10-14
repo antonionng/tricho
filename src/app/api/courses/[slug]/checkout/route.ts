@@ -7,6 +7,7 @@ import { checkoutTermsText } from "@/lib/legal";
 import { getMembershipByEmail } from "@/lib/subscription";
 import { getCourse } from "@/lib/course-catalogue";
 import { CHECKOUT_EXPIRES_MINUTES, coursePrice, enrolFree } from "@/lib/courses";
+import { splitSale } from "@/lib/revenue-split";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,7 +92,15 @@ export async function POST(_req: Request, { params }: Params) {
       select: { id: true },
     });
 
-    const metadata = { kind: "course", enrolmentId: enrolment.id, courseSlug: course.slug };
+    // An educator's course: their share goes straight to their Stripe account, and Trichollective keeps the rest as the application fee.
+    if (course.educatorId && !course.payout) return error("This course isn't taking new enrolments at the moment.", 400);
+    const split = course.payout ? splitSale(price.amountPence, course.payout.sharePct) : null;
+    const metadata = {
+      kind: "course",
+      enrolmentId: enrolment.id,
+      courseSlug: course.slug,
+      ...(course.payout && split ? { educatorId: course.payout.educatorId, sharePct: String(split.sharePct) } : {}),
+    };
     try {
       const checkout = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -115,7 +124,13 @@ export async function POST(_req: Request, { params }: Params) {
         custom_text: checkoutTermsText("course"),
         expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_MINUTES * 60,
         metadata,
-        payment_intent_data: { metadata, description: `Online course: ${course.title}`.slice(0, 250) },
+        payment_intent_data: {
+          metadata,
+          description: `Online course: ${course.title}`.slice(0, 250),
+          ...(course.payout && split
+            ? { application_fee_amount: split.platformAmount, transfer_data: { destination: course.payout.accountId } }
+            : {}),
+        },
         success_url: `${site.url}${learn}?enrolled=1`,
         cancel_url: `${site.url}/courses/${course.slug}?checkout=cancelled#enrol`,
       });
