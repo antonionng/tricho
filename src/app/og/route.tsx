@@ -20,9 +20,13 @@ async function font(weight: number) {
   }
 }
 
-/** Only our own image host, so the route can't be used to proxy arbitrary images. */
-function safeImage(src: string | null) {
+/** Our own photography in public/, e.g. the event photos behind a Trichozette cover. JPEG or PNG only (Satori can't read WebP). */
+const LOCAL_IMAGE = /^\/(gazette|partners)\/[a-z0-9-]+(\/[a-z0-9-]+)*\.(jpe?g|png)$/;
+
+/** Only our own image hosts, so the route can't be used to proxy arbitrary images. */
+function safeImage(src: string | null, origin: string) {
   if (!src) return null;
+  if (LOCAL_IMAGE.test(src)) return `${origin}${src}`;
   try {
     const u = new URL(src);
     return u.protocol === "https:" && u.hostname === "images.unsplash.com" ? src : null;
@@ -35,7 +39,7 @@ function safeImage(src: string | null) {
  * Branded share images, 1200×630.
  *   /og?title=…&eyebrow=…&sub=…            text card (paper)
  *   /og?…&img=<unsplash>&variant=photo      title left, photograph bleeding off the right (the poster)
- *   /og?…&img=<unsplash>&variant=cover      Trichozette cover (dark, full-bleed photo)
+ *   /og?…&img=<unsplash or /gazette/…>&variant=cover      Trichozette cover (dark, full-bleed photo)
  *   /og?…&img=<unsplash>&variant=profile    directory profile with portrait
  */
 export async function GET(req: Request) {
@@ -43,7 +47,7 @@ export async function GET(req: Request) {
   const title = (q.get("title") || "A stronger hair industry, together").slice(0, 110);
   const eyebrow = (q.get("eyebrow") || "Trichollective Online").slice(0, 60).toUpperCase();
   const sub = q.get("sub")?.slice(0, 140) ?? null;
-  const img = safeImage(q.get("img"));
+  const img = safeImage(q.get("img"), new URL(req.url).origin);
   const variant = (q.get("variant") as "text" | "photo" | "cover" | "profile") || (img ? "photo" : "text");
 
   const [bold, medium] = await Promise.all([font(700), font(500)]);
