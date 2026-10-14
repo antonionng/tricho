@@ -155,6 +155,81 @@ export const editionsC: Edition[] = [
         ],
       },
       {
+        kind: "partner",
+        kicker: "Little Lady Locks",
+        label: "Charity feature",
+        title: "Every child deserves to feel like themselves again.",
+        standfirst:
+          "Ashley Marie Higgins told Trichollective Ireland why she founded Little Lady Locks, the Manchester charity that fits wigs and hair systems free of charge for children and young people up to 18, wherever they live in the UK.",
+        partner: {
+          name: "Little Lady Locks",
+          slug: "little-lady-locks",
+          logo: "/partners/little-lady-locks/logo.png",
+          invertLogo: true,
+          url: "https://www.littleladylocks.com/",
+          ctaLabel: "Visit littleladylocks.com",
+        },
+        theme: { paper: "#fdf7f9", ink: "#33192a", accent: "#f4b6cc" },
+        blocks: [
+          {
+            type: "p",
+            text: "Ashley spent years working as a hair loss specialist, and her adult clients kept telling her the same thing. Losing their hair as children had led to bullying, and there had been almost no help for them at the time.",
+          },
+          {
+            type: "p",
+            text: "In 2018 she fitted hair systems for two girls, Harper and Ruba, aged five and fifteen. Seeing how much it changed their lives, she founded Little Lady Locks in Manchester so that no child would have to go without.",
+          },
+          {
+            type: "p",
+            text: "Today the charity fits wigs and hair systems for children and young people up to the age of 18, free of charge. Behind that work are children and families facing experiences that can affect confidence, friendships and everyday life.",
+          },
+          { type: "pull", text: "No child should have to go without." },
+          {
+            type: "p",
+            text: "Ashley, thank you for sharing something you have poured so much care into, and for helping us understand the importance of support for children and their families.",
+          },
+          { type: "h", text: "What the charity provides" },
+          {
+            type: "list",
+            items: [
+              "Custom human-hair wigs: full lace wigs made from donated hair and matched to the child's own colour and texture.",
+              "Hair systems and toppers: partial wigs, toppers and integration pieces for children with patchy or thinning hair.",
+              "Hair systems for boys: short, natural systems that give boys a cut that looks just like their friends'.",
+              "Headbands, hats and turbans: headbands with hair attached, beanies and soft turbans for chemotherapy and early hair loss.",
+              "Fitting and aftercare: a fitting, a care kit and a new piece and accessory every twelve months as the child grows.",
+            ],
+          },
+          { type: "h", text: "How your salon or clinic can help" },
+          {
+            type: "p",
+            text: "Hair Fairies are hair professionals who collect hair for Little Lady Locks and tell their clients about the charity. It costs nothing, and it gives every client who is having a long cut a way to change a child's life.",
+          },
+          {
+            type: "checklist",
+            title: "Become a Hair Fairy",
+            items: [
+              "Email the charity with your name, your role, your clinic or salon name and address, your logo and your social handles.",
+              "Collect hair from clients who are cutting at least 7 inches, and human-hair extensions of 14 inches or more.",
+              "Send your first donation and receive your Hair Fairy pack, with a certificate, a membership number and promotional material.",
+              "Appear on the Hair Fairy locator, so families and donors near you can find you.",
+            ],
+          },
+          {
+            type: "callout",
+            title: "Before you send a ponytail",
+            text: "Natural hair must be at least 7 inches, completely dry and tied into ponytails with hair bobbles. Extensions must be human hair, at least 14 inches and brushed free of tangles. Synthetic, matted or very damaged hair can't be used. Include a donation form so the donor receives a certificate.",
+          },
+        ],
+        facts: [
+          { label: "Children helped every month", value: "20" },
+          { label: "To make and fit one custom wig", value: "£500" },
+          { label: "Ponytails to make a single wig", value: "12" },
+          { label: "Cost to every family, every time", value: "£0" },
+        ],
+        disclosure:
+          "Little Lady Locks is a charity partner of Trichollective. Ashley Marie Higgins was named Woman of the Year 2025 for her work with the charity.",
+      },
+      {
         kind: "people",
         kicker: "Our speakers",
         title: "Eight speakers shared the knowledge that connects our professions.",

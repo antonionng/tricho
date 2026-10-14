@@ -159,7 +159,7 @@ function planPage(edition: Edition, page: Page, index: number): Plan {
           { t: "link", label: page.partner.ctaLabel, url: page.partner.url },
           ...(page.disclosure ? [{ t: "note", text: page.disclosure } as Unit] : []),
         ],
-        running: `Partner feature · ${page.partner.name}`,
+        running: `${page.label ?? "Partner feature"} · ${page.partner.name}`,
       };
     case "cta":
       return {
@@ -472,7 +472,7 @@ export function SheetView({
         <div className="relative h-full w-full" style={{ background: t.ink, color: t.paper, backgroundImage: `radial-gradient(ellipse 70% 50% at 85% 10%, ${t.accent}26, transparent 70%)` }}>
           <div className="absolute flex flex-col" style={{ left: geo.padX, right: geo.padX, top: 46, bottom: 46 }}>
             <div className="flex items-center justify-between">
-              <span className="mag-caps rounded-full px-2.5 py-1 text-[8px]" style={{ background: t.accent, color: t.onAccent ?? t.ink }}>Partner feature</span>
+              <span className="mag-caps rounded-full px-2.5 py-1 text-[8px]" style={{ background: t.accent, color: t.onAccent ?? t.ink }}>{sheet.page.label ?? "Partner feature"}</span>
               <span className="mag-caps text-[8px] opacity-70">{editionLabel(edition)}</span>
             </div>
             <div className="mt-10 flex h-12 items-center">

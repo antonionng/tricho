@@ -40,11 +40,11 @@ export function PartnerFeature({ page, index }: { page: Extract<Page, { kind: "p
         <div className="mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-24 sm:px-10 md:pt-32 lg:grid-cols-12 lg:items-end lg:pb-24">
           <Rise className={cn(photo ? "lg:col-span-7" : "lg:col-span-10")}>
             <div className="flex flex-wrap items-center gap-4">
-              <span className="mag-caps rounded-full bg-[var(--pf-accent)] px-3 py-1.5 text-[9px] text-[var(--pf-on-accent)]">Partner feature</span>
+              <span className="mag-caps rounded-full bg-[var(--pf-accent)] px-3 py-1.5 text-[9px] text-[var(--pf-on-accent)]">{page.label ?? "Partner feature"}</span>
               <span className="mag-caps text-[9px] opacity-70">{page.kicker}</span>
             </div>
-            <div className="mt-10 flex h-14 items-center">
-              <Mark entry={p} invert={p.invertLogo} />
+            <div className="mt-10 flex min-h-14 items-center">
+              <Mark entry={p} invert={p.invertLogo} large={!!p.logo} />
             </div>
             <h2 className={cn("mt-8 leading-[0.95]", head)} style={{ fontSize: "clamp(44px, 7vw, 96px)" }}>
               {page.title}
