@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { EditionView } from "@/components/gazette/EditionView";
 import { coverLinesFor } from "@/components/gazette/Cover";
 import { coverImage } from "@/components/gazette/art";
-import { editionLabel, allEditions, pageKicker, pageTitle, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { editionLabel, allEditions, pageKicker, pageTitle, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_OPEN } from "@/content/gazette";
 import { getArchive, getEditionBySlug, getEditions } from "@/content/gazette/loader";
 import { getMemberContext } from "@/lib/member";
 import { withPartnerLogos } from "@/lib/gazette-partners";
@@ -42,7 +42,7 @@ export default async function EditionPage({ params }: { params: Promise<{ slug: 
   const edition = await withPartnerLogos(found);
 
   const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
-  const full = ctx.allowed;
+  const full = TRICHOZETTE_OPEN || ctx.allowed;
 
   // Members-only pages never leave the server for non-members: only their titles do.
   // Invitations to join are for everyone, so "cta" pages follow the preview.
@@ -74,12 +74,10 @@ export default async function EditionPage({ params }: { params: Promise<{ slug: 
             description: edition.standfirst,
             datePublished: edition.published,
             url: absoluteUrl(`/trichozette/${edition.slug}`),
-            isAccessibleForFree: false,
-            hasPart: {
-              "@type": "WebPageElement",
-              isAccessibleForFree: false,
-              cssSelector: "[data-sheet]",
-            },
+            isAccessibleForFree: TRICHOZETTE_OPEN,
+            ...(TRICHOZETTE_OPEN
+              ? {}
+              : { hasPart: { "@type": "WebPageElement", isAccessibleForFree: false, cssSelector: "[data-sheet]" } }),
             isPartOf: { "@type": "Periodical", name: "Trichozette", publisher: { "@type": "Organization", name: site.name } },
           },
           breadcrumbLd([

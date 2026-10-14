@@ -126,3 +126,9 @@ export type Edition = {
 
 /** Pages the public may read before the membership gate (after cover + contents). */
 export const PUBLIC_PREVIEW_PAGES = 2;
+
+/**
+ * While true, every edition is free to read in full, so editions can be shared with the whole
+ * audience. Set it to false to bring back the members gate after the preview pages.
+ */
+export const TRICHOZETTE_OPEN = true;
