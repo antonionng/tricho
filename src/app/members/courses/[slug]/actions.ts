@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { grade, lessonsOf, maybeIssueCertificate, progressOf } from "@/lib/courses";
+import { grade, maybeIssueCertificate, progressOf } from "@/lib/courses";
+import { getContent } from "@/lib/course-catalogue";
 
 /**
  * Learner actions. Each one checks the signed-in person has an active place
@@ -27,12 +28,13 @@ export type CheckResult =
 
 /** Marks a lesson's knowledge check. Answering it completes the lesson, whatever the score. */
 export async function submitCheck(slug: string, lessonSlug: string, answers: Record<string, number>): Promise<CheckResult> {
-  const lesson = lessonsOf(slug)?.lessons.find((l) => l.slug === lessonSlug);
+  const enrolment = await activeEnrolment(slug);
+  // Marked against the version they're studying, so an update can't change their questions mid-lesson.
+  const lesson = (await getContent(slug, enrolment?.versionId))?.lessons.find((l) => l.slug === lessonSlug);
   if (!lesson) return { ok: false, error: "We couldn't find that lesson." };
   const graded = grade(lesson.check, answers);
   if (graded.results.some((r) => r.chosen == null)) return { ok: false, error: "Please answer every question first." };
 
-  const enrolment = await activeEnrolment(slug);
   if (!enrolment) return { ok: true, score: graded.score, total: graded.total, results: graded.results, saved: false, note: PREVIEW };
 
   const existing = await prisma.lessonProgress.findUnique({ where: { enrolmentId_lessonSlug: { enrolmentId: enrolment.id, lessonSlug } } });
@@ -52,9 +54,9 @@ export async function submitCheck(slug: string, lessonSlug: string, answers: Rec
 
 /** Saves a learner's private notes and reflection for one lesson. */
 export async function saveNotes(slug: string, lessonSlug: string, fields: { notes?: string; reflection?: string }) {
-  if (!lessonsOf(slug)?.lessons.some((l) => l.slug === lessonSlug)) return { ok: false as const };
   const enrolment = await activeEnrolment(slug);
   if (!enrolment) return { ok: false as const };
+  if (!(await getContent(slug, enrolment.versionId))?.lessons.some((l) => l.slug === lessonSlug)) return { ok: false as const };
   const clean = (v: string | undefined) => (typeof v === "string" ? v.slice(0, 20_000) : undefined);
   const data = { notes: clean(fields.notes), reflection: clean(fields.reflection) };
   await prisma.lessonProgress.upsert({
@@ -75,13 +77,13 @@ export type AssessmentResult =
  * retake still tests understanding rather than memory of the answer key.
  */
 export async function submitAssessment(slug: string, answers: Record<string, number>): Promise<AssessmentResult> {
-  const content = lessonsOf(slug);
-  if (!content) return { ok: false, error: "We couldn't find that course." };
   const enrolment = await activeEnrolment(slug);
   if (!enrolment) return { ok: false, error: "You need a place on this course to take the assessment." };
+  const content = await getContent(slug, enrolment.versionId);
+  if (!content) return { ok: false, error: "We couldn't find that course." };
 
   const lessons = await prisma.lessonProgress.findMany({ where: { enrolmentId: enrolment.id }, select: { lessonSlug: true, completedAt: true } });
-  const progress = progressOf(slug, lessons);
+  const progress = progressOf(content.lessons, lessons);
   if (progress.done < progress.total) return { ok: false, error: "Finish every lesson first, then come back to the assessment." };
 
   const graded = grade(content.assessment, answers);

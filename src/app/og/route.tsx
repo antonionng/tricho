@@ -20,9 +20,13 @@ async function font(weight: number) {
   }
 }
 
-/** Only our own image host, so the route can't be used to proxy arbitrary images. */
-function safeImage(src: string | null) {
+/** Our own photography in public/, e.g. the event photos behind a Trichozette cover. JPEG or PNG only (Satori can't read WebP). */
+const LOCAL_IMAGE = /^\/(gazette|partners)\/[a-z0-9-]+(\/[a-z0-9-]+)*\.(jpe?g|png)$/;
+
+/** Only our own image hosts, so the route can't be used to proxy arbitrary images. */
+function safeImage(src: string | null, origin: string) {
   if (!src) return null;
+  if (LOCAL_IMAGE.test(src)) return `${origin}${src}`;
   try {
     const u = new URL(src);
     return u.protocol === "https:" && u.hostname === "images.unsplash.com" ? src : null;
@@ -35,7 +39,7 @@ function safeImage(src: string | null) {
  * Branded share images, 1200×630.
  *   /og?title=…&eyebrow=…&sub=…            text card (paper)
  *   /og?…&img=<unsplash>&variant=photo      title left, photograph bleeding off the right (the poster)
- *   /og?…&img=<unsplash>&variant=cover      Trichozette cover (dark, full-bleed photo)
+ *   /og?…&img=<unsplash or /gazette/…>&variant=cover      Trichozette cover (dark, full-bleed photo)
  *   /og?…&img=<unsplash>&variant=profile    directory profile with portrait
  */
 export async function GET(req: Request) {
@@ -43,7 +47,8 @@ export async function GET(req: Request) {
   const title = (q.get("title") || "A stronger hair industry, together").slice(0, 110);
   const eyebrow = (q.get("eyebrow") || "Trichollective Online").slice(0, 60).toUpperCase();
   const sub = q.get("sub")?.slice(0, 140) ?? null;
-  const img = safeImage(q.get("img"));
+  const by = q.get("by")?.slice(0, 40).toUpperCase() ?? null;
+  const img = safeImage(q.get("img"), new URL(req.url).origin);
   const variant = (q.get("variant") as "text" | "photo" | "cover" | "profile") || (img ? "photo" : "text");
 
   const [bold, medium] = await Promise.all([font(700), font(500)]);
@@ -78,7 +83,7 @@ export async function GET(req: Request) {
     body = (
       <div style={{ display: "flex", width: "100%", height: "100%", background: INK, position: "relative", fontFamily: family }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`${img}?w=1200&h=630&fit=crop&q=70`} width={1200} height={630} style={{ position: "absolute", inset: 0, objectFit: "cover", opacity: 0.55 }} alt="" />
+        <img src={`${img}?w=1200&h=630&fit=crop&q=70`} width={1200} height={630} style={{ position: "absolute", inset: 0, objectFit: "cover", opacity: 0.55, filter: "grayscale(1) contrast(1.08)" }} alt="" />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(11,11,11,0.7) 0%, rgba(11,11,11,0.15) 45%, rgba(11,11,11,0.85) 100%)" }} />
         <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "60px 72px", width: "100%", color: PAPER }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -91,6 +96,13 @@ export async function GET(req: Request) {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontSize: titleSize, fontWeight: 700, letterSpacing: -3, lineHeight: 1 }}>{title}</div>
             {sub && <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: -1, opacity: 0.65, lineHeight: 1.15 }}>{sub}</div>}
+            {by && (
+              <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 14, fontSize: 15, letterSpacing: 6, fontWeight: 500 }}>
+                <div style={{ width: 40, height: 1, background: "rgba(244,243,240,0.7)" }} />
+                <span style={{ opacity: 0.75 }}>BROUGHT TO YOU BY</span>
+                <span style={{ fontWeight: 700 }}>{by}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

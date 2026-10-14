@@ -2,7 +2,7 @@
 
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { courseBySlug } from "@/content/courses";
+import { getCourse } from "@/lib/course-catalogue";
 import { deliver } from "@/lib/mail/send";
 import { subscribeEmail } from "@/lib/mail/templates/leads";
 
@@ -32,7 +32,8 @@ export async function subscribe(_prev: SubscribeState, formData: FormData): Prom
 
   const isRequest = source === "starter-guide" || source.startsWith("course:");
   if (!alreadySubscribed || isRequest) {
-    const { subject, content } = subscribeEmail(source, (slug) => courseBySlug(slug)?.title);
+    const course = source.startsWith("course:") ? await getCourse(source.slice("course:".length)) : null;
+    const { subject, content } = subscribeEmail(source, () => course?.title);
     after(() => deliver(email, subject, content, { list: "updates", tag: `subscribe-${source.split(":")[0]}` }));
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkUpload, fileUrl, sniffType, storagePath } from "./files";
+import { checkUpload, fileUrl, sniffType, sniffVideo, storagePath } from "./files";
 
 const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0]);
@@ -49,5 +49,20 @@ describe("storage paths and links", () => {
     );
     expect(fileUrl({ ...base, driver: "supabase", isPublic: false }, "https://abc.supabase.co")).toBe("/api/files/f1");
     expect(fileUrl({ ...base, driver: "db", isPublic: true }, "https://abc.supabase.co")).toBe("/api/files/f1");
+  });
+});
+
+describe("sniffVideo", () => {
+  const bytes = (...parts: (string | number[])[]) =>
+    new Uint8Array(parts.flatMap((p) => (typeof p === "string" ? [...p].map((c) => c.charCodeAt(0)) : p)));
+
+  it("recognises MP4, MOV and WebM from their first bytes", () => {
+    expect(sniffVideo(bytes([0, 0, 0, 24], "ftypisom"))).toBe("video/mp4");
+    expect(sniffVideo(bytes([0, 0, 0, 20], "ftypqt  "))).toBe("video/quicktime");
+    expect(sniffVideo(bytes([0x1a, 0x45, 0xdf, 0xa3, 0, 0]))).toBe("video/webm");
+  });
+
+  it("refuses anything else, such as a renamed image", () => {
+    expect(sniffVideo(bytes([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]))).toBeNull();
   });
 });

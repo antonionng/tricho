@@ -28,13 +28,13 @@ import { DirectorySearch } from "@/components/site/DirectorySearch";
 import { images, img } from "@/content/images";
 import { getEditions } from "@/content/gazette/loader";
 import { Cover } from "@/components/gazette/Cover";
-import { PartnerStrip } from "@/components/site/PartnerStrip";
+import { PremiumPartnerCarousel } from "@/components/site/PremiumPartnerCarousel";
 import { ProudSupporters } from "@/components/site/ProudSupporters";
 import { ParallaxImage } from "@/components/gazette/Parallax";
 import { coverImage } from "@/components/gazette/art";
 import { gazetteFonts } from "@/components/gazette/fonts";
 import { DISCIPLINES } from "@/content/disciplines";
-import { courses } from "@/content/courses";
+import { listCourses } from "@/lib/course-catalogue";
 import { homeFaqs } from "@/content/faqs";
 import { flagshipTier, subscriptionTiers, FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { getPublicStats, STAT_THRESHOLDS } from "@/lib/stats";
@@ -60,6 +60,7 @@ const pillars = [
 ];
 
 export default async function HomePage() {
+  const courses = await listCourses();
   const [stats, editions] = await Promise.all([getPublicStats(), getEditions()]);
   const freeOffer = freeListingOfferLive();
   const proof = [
@@ -181,6 +182,9 @@ export default async function HomePage() {
           </Container>
         </div>
       </section>
+
+      {/* Premium partners, straight under the hero */}
+      <PremiumPartnerCarousel />
 
       {/* 2. Proof strip — live numbers only, and the origin story */}
       <section className="border-b border-rule">
@@ -385,7 +389,6 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      <PartnerStrip />
       <ProudSupporters />
 
       {/* 6. Courses */}

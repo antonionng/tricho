@@ -10,21 +10,23 @@ import { Breadcrumbs } from "@/components/editorial/PageHero";
 import { CertificatePreview } from "@/components/editorial/CertificatePreview";
 import { Syllabus } from "@/components/editorial/Syllabus";
 import { images, img } from "@/content/images";
-import { courseBySlug, courses, type Course } from "@/content/courses";
+import { courses as staticCourses } from "@/content/courses";
+import { getCourse, listCourses, type CatalogueCourse } from "@/lib/course-catalogue";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
 type Params = { slug: string };
 
 export function generateStaticParams(): Params[] {
-  return courses.map((c) => ({ slug: c.slug }));
+  return staticCourses.map((c) => ({ slug: c.slug }));
 }
 
-export const dynamicParams = false;
+// Courses built on the site are rendered on first visit and refreshed when a new version is approved.
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
-  const course = courseBySlug(slug);
+  const course = await getCourse(slug);
   if (!course) return {};
   return pageMetadata({
     title: course.title,
@@ -35,11 +37,12 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 }
 
 /** Only claim a review once a named reviewer has signed the course off. */
-function reviewLine(c: Course) {
-  return c.reviewer ? `Reviewed by ${c.reviewer.name}, ${c.reviewer.credentials}.` : null;
+function reviewLine(c: CatalogueCourse) {
+  if (c.reviewer) return `Reviewed by ${c.reviewer.name}, ${c.reviewer.credentials}.`;
+  return c.source === "db" ? "Read in full and approved by Trichollective before it went on sale." : null;
 }
 
-function courseLd(c: Course) {
+function courseLd(c: CatalogueCourse) {
   const url = absoluteUrl(`/courses/${c.slug}`);
   return {
     "@context": "https://schema.org",
@@ -69,14 +72,14 @@ function courseLd(c: Course) {
       price: c.priceGBP,
       priceCurrency: "GBP",
       availability:
-        c.status === "open" ? "https://schema.org/InStock" : "https://schema.org/PreOrder",
+        c.status === "open" ? "https://schema.org/InStock" : c.status === "closed" ? "https://schema.org/Discontinued" : "https://schema.org/PreOrder",
     },
   };
 }
 
 export default async function CoursePage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const course = courseBySlug(slug);
+  const course = await getCourse(slug);
   if (!course) notFound();
 
   const image = images[course.imageKey];
@@ -86,7 +89,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
     { name: "Learn", path: "/learn" },
     { name: course.title, path: `/courses/${course.slug}` },
   ];
-  const others = courses.filter((c) => c.slug !== course.slug).slice(0, 2);
+  const others = (await listCourses()).filter((c) => c.slug !== course.slug).slice(0, 2);
 
   return (
     <>
@@ -99,7 +102,7 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
               <div className="flex flex-wrap gap-2">
                 <Pill>{course.hours} hours</Pill>
                 <Pill>Online</Pill>
-                {comingSoon ? <Pill>Opening soon</Pill> : <Pill tone="positive">Open now</Pill>}
+                {comingSoon ? <Pill>Opening soon</Pill> : course.status === "closed" ? <Pill>Not taking enrolments</Pill> : <Pill tone="positive">Open now</Pill>}
               </div>
               <h1 className="display text-[2.5rem] leading-[0.98] sm:text-6xl lg:text-[4.25rem]">
                 {course.title}
@@ -184,6 +187,10 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
                       We&apos;ll only email you about this course and our monthly newsletter.
                     </p>
                   </div>
+                ) : course.status === "closed" ? (
+                  <p className="rounded-xl bg-paper-2 px-4 py-3 text-[15px] leading-relaxed">
+                    This course isn&apos;t taking new enrolments at the moment. If you already have a place, you can carry on from your Learn page.
+                  </p>
                 ) : (
                   <EnrolButton slug={course.slug} priceGBP={course.priceGBP} memberPriceGBP={course.memberPriceGBP} />
                 )}

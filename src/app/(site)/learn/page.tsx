@@ -6,7 +6,7 @@ import { ArrowLink, Container, Pill, Section, SectionHeader } from "@/components
 import { Reveal } from "@/components/site/Reveal";
 import { PageHero } from "@/components/editorial/PageHero";
 import { images, img } from "@/content/images";
-import { courses } from "@/content/courses";
+import { listCourses } from "@/lib/course-catalogue";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -30,7 +30,11 @@ const disciplineLabel = {
   everyone: "Every discipline",
 } as const;
 
-export default function LearnPage() {
+// Courses built on the site appear once approved.
+export const revalidate = 300;
+
+export default async function LearnPage() {
+  const courses = await listCourses();
   const openCount = courses.filter((c) => c.status === "open").length;
 
   return (

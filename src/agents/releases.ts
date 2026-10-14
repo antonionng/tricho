@@ -1,6 +1,5 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { courses } from "@/content/courses";
 import type { Edition } from "@/content/gazette";
 import {
   articlesAnnouncement,
@@ -107,8 +106,9 @@ export const releasesAgent: AgentDefinition = {
     const { getEditions } = await import("@/content/gazette/loader");
     for (const group of newEditions(await getEditions(), now, known)) await add(editionsAnnouncement(group));
 
-    /* 2. Courses, once they open. The catalogue has no publication date, so opening is the release. */
-    for (const c of courses) if (c.status === "open") await add(courseAnnouncement(c));
+    /* 2. Courses, once they open (including courses built on the site, once approved). Opening is the release. */
+    const { listCourses } = await import("@/lib/course-catalogue");
+    for (const c of await listCourses()) if (c.status === "open") await add(courseAnnouncement(c));
 
     /* 3. Upcoming events published or changed in the window. Studio announces new ones straight away too. */
     const events = await prisma.event.findMany({

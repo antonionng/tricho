@@ -4,15 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { deliverOnce } from "@/lib/mail/send";
 import { formatMoney } from "@/lib/mail/templates/billing";
 import { courseCertificateEmail, courseEnrolledEmail } from "@/lib/mail/templates/courses";
-import { courseBySlug, type Course } from "@/content/courses";
 import { certificateReference } from "@/lib/course-rules";
-import { courseContent } from "@/content/course-lessons";
+import { getContent, getCourse, type CatalogueCourse } from "@/lib/course-catalogue";
 import type { Question } from "@/content/course-types";
 
 /**
  * Courses: buying a place, working through the lessons, the final assessment
- * and the certificate. Course content is static (src/content/course-lessons);
- * everything about a learner lives in CourseEnrolment and its children.
+ * and the certificate. Courses come from the catalogue (src/lib/course-catalogue.ts),
+ * whether written in code or built on the site; everything about a learner
+ * lives in CourseEnrolment and its children.
  *
  * Rules:
  *  - A place is tied to an account, so buyers sign in first.
@@ -24,15 +24,6 @@ import type { Question } from "@/content/course-types";
 
 export { CHECKOUT_EXPIRES_MINUTES, PASS_MARK, certificateReference, coursePrice, grade, isCertificateReference } from "@/lib/course-rules";
 export type { CoursePriceType, Graded } from "@/lib/course-rules";
-
-/** The lessons and assessment for a course, or null if it has none yet. */
-export function lessonsOf(slug: string) {
-  return courseContent[slug] ?? null;
-}
-
-export function totalMinutes(slug: string) {
-  return lessonsOf(slug)?.lessons.reduce((sum, l) => sum + l.minutes, 0) ?? 0;
-}
 
 /** Questions without their answers, safe to send to the browser. */
 export function publicQuestions(questions: Question[]) {
@@ -48,12 +39,12 @@ export type Progress = {
   complete: Set<string>;
 };
 
+/** How far a learner has got, given the course's lessons and their progress rows. */
 export function progressOf(
-  slug: string,
+  all: { slug: string }[],
   lessons: { lessonSlug: string; completedAt: Date | null }[],
   lastLessonSlug?: string | null
 ): Progress {
-  const all = lessonsOf(slug)?.lessons ?? [];
   const complete = new Set(lessons.filter((l) => l.completedAt).map((l) => l.lessonSlug));
   const done = all.filter((l) => complete.has(l.slug)).length;
   const firstOpen = all.find((l) => !complete.has(l.slug))?.slug ?? null;
@@ -78,13 +69,13 @@ function refresh(slug: string) {
 }
 
 /** Gives a place on a free course straight away. Safe to repeat. */
-export async function enrolFree(userId: string, course: Course) {
+export async function enrolFree(userId: string, course: CatalogueCourse) {
   const existing = await prisma.courseEnrolment.findUnique({ where: { userId_courseSlug: { userId, courseSlug: course.slug } } });
   if (existing?.status === "active") return existing;
   const enrolment = await prisma.courseEnrolment.upsert({
     where: { userId_courseSlug: { userId, courseSlug: course.slug } },
-    create: { userId, courseSlug: course.slug, status: "active", priceType: "free", amount: 0, activatedAt: new Date() },
-    update: { status: "active", priceType: "free", amount: 0, activatedAt: new Date() },
+    create: { userId, courseSlug: course.slug, versionId: course.versionId, status: "active", priceType: "free", amount: 0, activatedAt: new Date() },
+    update: { status: "active", versionId: course.versionId, priceType: "free", amount: 0, activatedAt: new Date() },
   });
   await welcome(enrolment.id);
   refresh(course.slug);
@@ -97,12 +88,13 @@ async function welcome(enrolmentId: string) {
     where: { id: enrolmentId },
     include: { user: { select: { name: true, email: true } } },
   });
-  const course = enrolment && courseBySlug(enrolment.courseSlug);
+  const course = enrolment && (await getCourse(enrolment.courseSlug));
   if (!enrolment || !course || !enrolment.user.email) return;
+  const content = await getContent(course.slug, enrolment.versionId);
   const email = courseEnrolledEmail({
     name: enrolment.user.name,
     course,
-    lessons: lessonsOf(course.slug)?.lessons.length ?? course.syllabus.length,
+    lessons: content?.lessons.length ?? course.syllabus.length,
     amount: enrolment.amount > 0 ? formatMoney(enrolment.amount, enrolment.currency) : null,
   });
   const sent = await deliverOnce(`course-enrolled:${enrolment.id}`, enrolment.user.email, email.subject, email.content, { tag: "course" });
@@ -129,9 +121,10 @@ export async function maybeIssueCertificate(enrolmentId: string) {
   });
   if (!enrolment || enrolment.status !== "active") return null;
   if (enrolment.certificate) return enrolment.certificate;
-  const course = courseBySlug(enrolment.courseSlug);
+  const course = await getCourse(enrolment.courseSlug);
+  const content = course && (await getContent(course.slug, enrolment.versionId));
   const best = enrolment.attempts[0];
-  const progress = progressOf(enrolment.courseSlug, enrolment.lessons);
+  const progress = progressOf(content?.lessons ?? [], enrolment.lessons);
   if (!course || !best || progress.total === 0 || progress.done < progress.total) return null;
 
   let certificate = null;
@@ -146,6 +139,7 @@ export async function maybeIssueCertificate(enrolmentId: string) {
           courseTitle: course.title,
           holderName: enrolment.user.name?.trim() || "Trichollective member",
           hours: course.hours,
+          versionId: enrolment.versionId,
           score: best.score,
           total: best.total,
         },

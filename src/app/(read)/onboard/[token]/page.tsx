@@ -16,8 +16,10 @@ import { partnerLogoSrc } from "@/lib/partners";
 import { paragraphs, safeHex, textOn, tint } from "@/lib/showcase";
 import { longDate } from "@/lib/mail/templates/directory";
 import { PARTNER_TERMS_UPDATED, partnerTerms } from "@/content/partner-terms";
-import { foundingLabel, groupInclusions, inclusionsFrom, offerPriceLabel, offerPriceNote } from "@/lib/partner-offers";
-import { markOfferPaid, offerIdFrom } from "@/lib/partner-offer-payments";
+import { foundingLabel, groupInclusions, inclusionsFrom, offerPriceLabel, offerPriceNote, readPagePrefill } from "@/lib/partner-offers";
+import { socialLinks } from "@/lib/business-profile";
+import { offerIdFrom } from "@/lib/partner-offer-payments";
+import { activatePaidOffer } from "@/lib/partner-offer-activation";
 import { isCheckoutSessionId } from "@/lib/signin-email";
 import { continueAfterCheckout } from "@/app/(site)/welcome/actions";
 import { cn } from "@/lib/utils";
@@ -48,7 +50,7 @@ async function confirmCardPayment(offer: { id: string; paidAt: Date | null; acco
     const s = await stripe.checkout.sessions.retrieve(sessionId);
     const paid = s.status === "complete" && (s.payment_status === "paid" || s.payment_status === "no_payment_required");
     if (!paid || offerIdFrom(s.metadata) !== offer.id) return null;
-    await markOfferPaid({
+    await activatePaidOffer({
       offerId: offer.id,
       subscriptionId: typeof s.subscription === "string" ? s.subscription : (s.subscription?.id ?? null),
       customerId: typeof s.customer === "string" ? s.customer : (s.customer?.id ?? null),
@@ -78,7 +80,7 @@ export default async function OnboardPage({
   const signed = offer.status === "accepted";
   const withdrawn = offer.status === "withdrawn";
   const invoiced = !paidAt && offer.paymentMethod === "invoice" && !!offer.stripeSubscriptionId;
-  const settled = !!paidAt || invoiced;
+  const settled = !!paidAt;
   const cardSession = paidAt && isCheckoutSessionId(sp.session_id) ? sp.session_id : null;
 
   const accent = safeHex(offer.accentColor, "#0B0B0B");
@@ -101,6 +103,7 @@ export default async function OnboardPage({
   const letter = paragraphs(offer.personalNote);
   const price = offerPriceLabel(offer);
 
+  const prefill = readPagePrefill(offer.pagePrefill);
   const draft: ShowcasePartner = {
     name: offer.businessName,
     slug: slugify(offer.businessName) || "partner",
@@ -117,13 +120,14 @@ export default async function OnboardPage({
     accentColor: offer.accentColor,
     charityNumber: null,
     tagline: offer.tagline,
-    story: null,
-    highlights: null,
-    offerings: null,
+    story: prefill.story,
+    highlights: prefill.highlights.length ? prefill.highlights : null,
+    offerings: prefill.offerings.length ? prefill.offerings : null,
     sections: null,
-    ctaLabel: null,
-    ctaUrl: null,
+    ctaLabel: prefill.ctaLabel,
+    ctaUrl: prefill.ctaUrl,
     videoUrl: null,
+    isFounding: offer.isFounding,
   };
 
   const chapters = [
@@ -205,7 +209,7 @@ export default async function OnboardPage({
                   `Dear ${first},`,
                   `Thank you for choosing to build ${site.name} with us from the very beginning. Our members are cosmetic, clinical and medical hair and scalp professionals, and they are the people their clients ask about what really works.`,
                   `As a founding partner, ${offer.businessName} will teach in our member library, write in every edition of Trichozette and meet practitioners in person at our conferences. Everything we publish with you is labelled, reviewed and written to inform, which is why members trust it.`,
-                  "This page sets out what we agreed. When you are ready, sign the agreement and choose how you would like to pay, and your partner page opens straight away.",
+                  "This page sets out what we agreed. When you are ready, sign the agreement and choose how you would like to pay. Your partner page opens as soon as your payment is received.",
                 ]
             ).map((p, i) => (
               <p key={i} className={i === (letter.length ? 0 : 1) ? "mag-drop" : undefined}>
@@ -278,7 +282,7 @@ export default async function OnboardPage({
             <p className={chapterLabel}>Chapter III</p>
             <h2 className={h2}>Your page, already drafted.</h2>
             <p className="text-[15px] leading-relaxed text-ink-2">
-              This is a first look at your Premium partner page. Once you sign, a short guided setup helps you add your story,
+              This is a first look at your Premium partner page. Once it opens, a short guided setup helps you add your story,
               products, up to 16 photos, a video and your team.
             </p>
           </div>
@@ -288,7 +292,7 @@ export default async function OnboardPage({
               <span className="shrink-0">Draft</span>
             </div>
             <div className="pointer-events-none max-h-[70vh] overflow-hidden" aria-hidden>
-              <ShowcaseProfile partner={draft} photos={[]} socials={[]} preview />
+              <ShowcaseProfile partner={draft} photos={[]} socials={socialLinks(prefill.socials)} preview />
             </div>
           </div>
         </div>
@@ -345,11 +349,11 @@ export default async function OnboardPage({
               </p>
             ) : signed ? (
               <div className="flex flex-col gap-6 rounded-3xl border border-rule bg-card p-6 sm:p-10">
-                <span className="grid h-11 w-11 place-items-center rounded-full bg-[var(--c-accent)] text-[var(--c-on)]">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-ink text-paper">
                   <Check className="h-5 w-5" aria-hidden />
                 </span>
                 <div className="flex flex-col gap-1 border-b border-ink/40 pb-2">
-                  <span className="mag-didone truncate text-5xl italic text-[var(--c-strong)]">{offer.signature ?? offer.signerName}</span>
+                  <span className="mag-didone truncate text-5xl italic text-ink">{offer.signature ?? offer.signerName}</span>
                 </div>
                 <p className="text-[15px] leading-relaxed text-ink-2">
                   Signed by <strong className="font-semibold text-ink">{offer.signerName}</strong>, {offer.signerRole}, for {offer.legalName}
@@ -367,7 +371,7 @@ export default async function OnboardPage({
               <div className="rounded-3xl border border-rule bg-card p-6 sm:p-10">
                 <h3 className="mag-didone mb-2 text-3xl">Sign for {offer.businessName}</h3>
                 <p className="mb-8 text-[15px] leading-relaxed text-ink-2">
-                  Once you sign, your partner page opens straight away and we email you a countersigned copy of the agreement as a PDF.
+                  Once you sign, we email you a countersigned copy of the agreement as a PDF and you can pay straight away. Your partner page opens as soon as your payment is received.
                 </p>
                 <AcceptForm
                   token={token}
@@ -395,39 +399,50 @@ export default async function OnboardPage({
           </div>
           {paidAt ? (
             <p className="flex items-center gap-3 text-lg">
-              <Check className="h-5 w-5 text-[var(--c-strong)]" aria-hidden /> Your payment of {price} was received on {longDate(paidAt)}. Thank
+              <Check className="h-5 w-5 text-ink" aria-hidden /> Your payment of {price} was received on {longDate(paidAt)}. Thank
               you.
             </p>
           ) : invoiced ? (
             <p className="flex items-start gap-3 text-lg">
-              <Mail className="mt-1 h-5 w-5 shrink-0 text-[var(--c-strong)]" aria-hidden /> Your invoice for {price} has been sent to{" "}
-              {offer.accountEmail}, and it can be paid by card or bank transfer within 14 days.
-            </p>
-          ) : !signed ? (
-            <p className="flex items-center gap-3 text-[15px] text-ink-2">
-              <Lock className="h-4 w-4" aria-hidden /> Payment opens as soon as the agreement is signed.
+              <Mail className="mt-1 h-5 w-5 shrink-0 text-ink" aria-hidden /> Your invoice for {price} has been sent to{" "}
+              {offer.accountEmail}. It can be paid by card or bank transfer, and your partner page opens as soon as it is paid.
             </p>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8">
-                <h3 className="mag-didone text-3xl">Pay by card now</h3>
-                <p className="text-[15px] leading-relaxed text-ink-2">
-                  Pay {price} securely through Stripe. Your receipt is emailed to you, and your partnership renews each year at the same
-                  price until you cancel.
+            <div className="flex flex-col gap-6">
+              {!signed && (
+                <p className="flex items-center gap-3 text-[15px] text-ink-2">
+                  <Lock className="h-4 w-4 shrink-0" aria-hidden /> Both ways to pay open as soon as the agreement is signed.
                 </p>
-                <OfferCheckout token={token} label={`Pay ${price} by card`} disabled={preview} />
-              </div>
-              <div className="flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8">
-                <h3 className="mag-didone text-3xl">Pay by invoice</h3>
-                <p className="text-[15px] leading-relaxed text-ink-2">
-                  We email an invoice to {offer.accountEmail} for {offer.legalName ?? offer.businessName}, payable by card or bank transfer
-                  within 14 days. Your partner page stays open while it is due.
-                </p>
-                <form action={requestOfferInvoice.bind(null, token)}>
-                  <Button type="submit" size="xl" variant="outline" disabled={preview} className="h-14 w-full text-base sm:w-auto">
-                    Send us an invoice <ArrowRight />
-                  </Button>
-                </form>
+              )}
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div className={cn("flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8", !signed && "opacity-70")}>
+                  <h3 className="mag-didone text-3xl">Pay by card now</h3>
+                  <p className="text-[15px] leading-relaxed text-ink-2">
+                    Pay {price} securely through Stripe, right here on this page. Your partner page opens the moment your payment goes
+                    through, and your receipt is emailed to you.
+                  </p>
+                  {signed ? (
+                    <OfferCheckout token={token} label={`Pay ${price} by card`} disabled={preview} />
+                  ) : (
+                    <LockedButton />
+                  )}
+                </div>
+                <div className={cn("flex flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8", !signed && "opacity-70")}>
+                  <h3 className="mag-didone text-3xl">Pay by invoice</h3>
+                  <p className="text-[15px] leading-relaxed text-ink-2">
+                    We email an invoice to {offer.accountEmail ?? "you"} for {offer.legalName ?? offer.legalNameHint ?? offer.businessName},
+                    payable by card or bank transfer. Your partner page opens as soon as it is paid.
+                  </p>
+                  {signed ? (
+                    <form action={requestOfferInvoice.bind(null, token)}>
+                      <Button type="submit" size="xl" variant="outline" disabled={preview} className="h-14 w-full text-base sm:w-auto">
+                        Send us an invoice <ArrowRight />
+                      </Button>
+                    </form>
+                  ) : (
+                    <LockedButton />
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -436,13 +451,15 @@ export default async function OnboardPage({
 
       {/* VI. Welcome */}
       <section id="welcome" className="scroll-mt-14 bg-ink text-paper">
-        <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-20 sm:px-6 md:py-28">
+        <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-20 sm:px-6 md:py-28">
           <p className="mag-caps text-[11px] text-paper/70">Chapter VI</p>
-          <h2 className="mag-didone text-[3rem] font-medium leading-[0.98] tracking-tight sm:text-7xl">
+          <h2 className="mag-didone max-w-4xl text-[3rem] font-medium leading-[0.98] tracking-tight sm:text-7xl">
             {settled ? (
               <>
                 Welcome to the collective, <em className="italic">{offer.businessName}</em>.
               </>
+            ) : signed ? (
+              "Your welcome is one payment away."
             ) : (
               "Your welcome is one signature away."
             )}
@@ -459,9 +476,9 @@ export default async function OnboardPage({
               </li>
             ))}
           </ol>
-          {signed && (
+          {signed && (paidAt || offer.invoiceUrl) && (
             <div className="flex flex-wrap gap-3">
-              {cardSession ? (
+              {!paidAt ? null : cardSession ? (
                 <form action={continueAfterCheckout.bind(null, cardSession, SETUP, SIGN_IN)}>
                   <Button type="submit" size="xl" className="h-14 bg-paper text-base text-ink hover:bg-paper/90">
                     Set up your partner page <ArrowRight />
@@ -493,5 +510,14 @@ export default async function OnboardPage({
         </div>
       </section>
     </div>
+  );
+}
+
+/** Where a payment button will be, before the agreement is signed. */
+function LockedButton() {
+  return (
+    <span className="inline-flex h-14 items-center gap-2 self-start rounded-full border border-dashed border-ink/30 px-6 text-sm text-ink-2">
+      <Lock className="h-4 w-4" aria-hidden /> Opens once you sign
+    </span>
   );
 }

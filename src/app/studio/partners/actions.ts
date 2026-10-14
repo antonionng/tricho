@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { partnerCapError, partnerLogoSrc } from "@/lib/partners";
-import { PARTNER_KINDS } from "@/lib/showcase";
+import { PARTNER_KINDS, partnerAllowance } from "@/lib/showcase";
+import { deliver } from "@/lib/mail/send";
+import { pageAccessEmail } from "@/lib/mail/templates/page-access";
+import { site } from "@/config/site";
 import { isShowcaseStep, saveShowcaseStep, SHOWCASE_STEPS } from "@/lib/showcase-save";
 import { studioAction } from "../_lib/guard";
 import { audit } from "@/lib/staff";
@@ -270,4 +273,61 @@ export async function setPartnerPublishedAction(form: FormData) {
   revalidatePath("/directory");
   revalidatePath("/");
   redirect(withParams(`/studio/partners/${id}`, { step: "preview", notice: publish ? `${page.name} is live.` : `${page.name} is hidden.` }));
+}
+
+/**
+ * Gives someone access to a page and emails them how to sign in and edit it. The email address
+ * becomes the page's "Managed by" owner, so signing in with it opens Your business for this page.
+ * "Resend" sends the same email again to the current owner without changing anything.
+ */
+export async function givePageAccessAction(form: FormData) {
+  const staff = await studioAction("partners.manage");
+  const id = s(form, "id", 64);
+  const email = s(form, "email", 160).toLowerCase();
+  const back = (notice: string, tone?: "danger") =>
+    redirect(withParams(`/studio/partners/${id}`, { step: s(form, "step", 20) || undefined, notice, tone }));
+
+  const page = await prisma.partner.findUnique({ where: { id } });
+  if (!page) redirect("/studio/partners");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back("Please check the email address.", "danger");
+
+  if (email !== page.ownerEmail) {
+    const other = await prisma.partner.findUnique({ where: { ownerEmail: email }, select: { name: true } });
+    if (other) back(`${email} already looks after ${other.name}. Each email address can look after one page.`, "danger");
+    await prisma.partner.update({
+      where: { id },
+      data: { ownerEmail: email, contactEmail: page.contactEmail ?? email },
+    });
+    await prisma.organisation.updateMany({ where: { partnerId: id }, data: { accountEmail: email } });
+  }
+
+  const photos = await prisma.profilePhoto.count({ where: { partnerId: id } });
+  const mail = pageAccessEmail({
+    pageName: page.name,
+    kind: page.kind,
+    email,
+    pagePath: `/partners/${page.slug}`,
+    published: page.published && !page.hidden,
+    photos,
+    photoLimit: partnerAllowance(page).photos,
+    video: partnerAllowance(page).video,
+  });
+  const sent = await deliver(email, mail.subject, mail.content, { replyTo: site.contactEmail, tag: "page-access" });
+
+  await audit(staff, {
+    action: email === page.ownerEmail ? "partner.access_resent" : "partner.access_given",
+    targetType: "partner",
+    targetId: id,
+    summary: `${email === page.ownerEmail ? "Resent the access email for" : "Gave access to"} ${page.name}'s page to ${email}${sent ? "" : " (the email could not be sent)"}.`,
+    before: { ownerEmail: page.ownerEmail },
+    after: { ownerEmail: email },
+  });
+  revalidatePath("/studio/partners");
+  revalidatePath(`/studio/partners/${id}`);
+  back(
+    sent
+      ? `${email} can now sign in and edit ${page.name}'s page, and we have emailed them how.`
+      : `${email} can now sign in and edit ${page.name}'s page, but the email didn't send. Please check the address or try Resend.`,
+    sent ? undefined : "danger"
+  );
 }

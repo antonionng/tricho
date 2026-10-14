@@ -68,14 +68,14 @@ describe("Stripe charges built from an offer", () => {
     expect(params.success_url).toBeUndefined();
   });
 
-  it("bills by invoice due in 14 days, and sends it", async () => {
+  it("bills by invoice and sends it at once", async () => {
     customersCreate.mockResolvedValue({ id: "cus_1" });
     subscriptionsCreate.mockResolvedValue({ id: "sub_1", latest_invoice: { id: "in_1", status: "draft" } });
     finalizeInvoice.mockResolvedValue({ id: "in_1", status: "open", hosted_invoice_url: "https://invoice.stripe.com/i/1" });
     sendInvoice.mockResolvedValue({});
     const result = await createOfferInvoice({ ...offer, stripeCustomerId: null }, { name: "ACB Commerce Ltd", address: "124 City Road\nLondon" });
     const sub = subscriptionsCreate.mock.calls[0][0];
-    expect(sub).toMatchObject({ customer: "cus_1", collection_method: "send_invoice", days_until_due: 14 });
+    expect(sub).toMatchObject({ customer: "cus_1", collection_method: "send_invoice", days_until_due: 7 });
     expect(sub.items[0].price_data.unit_amount).toBe(140000);
     expect(sub.metadata.offerId).toBe("cmoffer1234567");
     expect(customersCreate.mock.calls[0][0]).toMatchObject({ email: "ann@livdor.com", name: "ACB Commerce Ltd" });

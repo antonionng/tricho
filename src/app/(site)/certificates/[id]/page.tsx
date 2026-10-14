@@ -6,7 +6,8 @@ import { ArrowLink, Container, Eyebrow } from "@/components/site/primitives";
 import { Breadcrumbs } from "@/components/editorial/PageHero";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
-import { courseBySlug, courses } from "@/content/courses";
+import { courses } from "@/content/courses";
+import { getCourse } from "@/lib/course-catalogue";
 import { prisma } from "@/lib/prisma";
 import { isCertificateReference } from "@/lib/course-rules";
 import { CertificateCard } from "@/components/courses/CertificateCard";
@@ -58,7 +59,7 @@ export default async function CertificateVerifyPage({ params }: { params: Promis
   ];
 
   if (certificate) {
-    const course = courseBySlug(certificate.courseSlug);
+    const course = await getCourse(certificate.courseSlug);
     const withdrawn = !!certificate.withdrawnAt;
     return (
       <>

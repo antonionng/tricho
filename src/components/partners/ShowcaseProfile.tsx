@@ -6,6 +6,7 @@ import { employmentLabel } from "@/lib/jobs";
 import { Container } from "@/components/site/primitives";
 import { bodoni } from "@/components/gazette/fonts";
 import { PhotoGallery, type GalleryPhoto } from "@/components/partners/PhotoGallery";
+import { PartnerBadge } from "@/components/partners/PartnerBadge";
 import { displayHost, partnerLogoSrc, partnerTierLabel, safeHttpUrl } from "@/lib/partners";
 import {
   paragraphs,
@@ -45,6 +46,7 @@ export type ShowcasePartner = Pick<
   | "ctaLabel"
   | "ctaUrl"
   | "videoUrl"
+  | "isFounding"
 >;
 
 const display = "font-[family-name:var(--font-bodoni)] font-medium tracking-tight";
@@ -139,12 +141,15 @@ export function ShowcaseProfile({
                 </span>
               ) : (
                 <>
-                  {!gifted && (
-                    <span className={cn(eyebrow, "rounded-full bg-[var(--c-on)] px-3 py-1.5 text-[10px] text-[var(--c-accent)]")}>
-                      {partnerTierLabel(partner.tier, partner.kind)}
-                    </span>
-                  )}
-                  <span className={cn(eyebrow, "rounded-full border border-current/30 px-3 py-1.5 text-[10px] opacity-90")}>
+                  {!gifted &&
+                    (partner.tier === "premium" ? (
+                      <PartnerBadge size="lg" founding={partner.isFounding} />
+                    ) : (
+                      <span className={cn(eyebrow, "rounded-full bg-[var(--c-on)] px-3 py-1.5 text-[10px] text-[var(--c-accent)]")}>
+                        {partnerTierLabel(partner.tier, partner.kind)}
+                      </span>
+                    ))}
+                  <span className={cn(eyebrow, "self-center rounded-full border border-current/30 px-3 py-1.5 text-[10px] opacity-90")}>
                     {partner.category}
                   </span>
                 </>

@@ -7,6 +7,7 @@ import { samples as members } from "./templates/members";
 import { samples as tickets } from "./templates/tickets";
 import { samples as releases } from "./templates/releases";
 import { samples as owners } from "./templates/owners";
+import { samples as pageAccess } from "./templates/page-access";
 
 /** Every email the platform sends, grouped the way the Studio shows them. */
 const people = (list: EmailSample[]) => list.filter((s) => s.audience !== "owners");
@@ -17,6 +18,7 @@ export const emailGroups: { title: string; intro: string; samples: EmailSample[]
   { title: "Directory", intro: "Sent to practitioners as their listing is checked, goes live and receives enquiries.", samples: people(directory) },
   { title: "Membership and payments", intro: "Sent when someone pays, when a payment fails and when a membership ends.", samples: people(billing) },
   { title: "Invite colleagues", intro: "Sent to a member when a colleague who joined with their code makes a first payment and earns them a free month.", samples: people(referrals) },
+  { title: "Business pages", intro: "Sent to the person who looks after a business, charity or gifted page when the team gives them access.", samples: pageAccess },
   { title: "Members", intro: "Sent to members about replies, messages and the events they have booked.", samples: people(members) },
   { title: "Event tickets", intro: "Sent to anyone who buys a ticket for an event on Trichollective, member or guest.", samples: people(tickets) },
   { title: "New releases", intro: "Sent to members and subscribers when Karley approves an announcement in the inbox.", samples: people(releases) },
