@@ -340,15 +340,18 @@ export function ScrollEdition({
         >
           Trichozette
         </h1>
-        <div className="absolute left-5 top-[48%] hidden w-[30vw] max-w-sm flex-col gap-6 text-white sm:flex sm:left-10">
-          {coverLines.map((l, i) => (
-            <div key={l} className="animate-rise" style={{ animationDelay: `${300 + i * 120}ms` }}>
-              <p className="mag-caps text-[10px] text-white/70">{i === 0 ? "Inside" : "Plus"}</p>
-              <p className="mag-didone mt-1.5 text-[26px] italic leading-[1.05]">{l}</p>
-            </div>
-          ))}
-        </div>
         <div className="absolute inset-x-0 bottom-0 px-5 pb-10 text-white sm:px-10 sm:pb-14">
+          {/* Cover lines sit in the same flow as the title, so long lines can never run into it. */}
+          {coverLines.length > 0 && (
+            <div className="mb-10 hidden max-w-6xl gap-x-10 border-t border-white/30 pt-5 [text-shadow:0_1px_14px_rgba(0,0,0,0.55)] sm:grid sm:grid-cols-3 [@media(max-height:720px)]:hidden">
+              {coverLines.map((l, i) => (
+                <div key={l} className="animate-rise" style={{ animationDelay: `${300 + i * 120}ms` }}>
+                  <p className="mag-caps text-[10px] text-white/70">{i === 0 ? "Inside" : "Plus"}</p>
+                  <p className="mag-didone mt-2 line-clamp-3 text-[21px] italic leading-[1.15] lg:text-[23px]">{l}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="mag-caps text-[10px] text-white/75">{edition.theme}</p>
           <p className="mag-didone mt-3 font-medium leading-[0.86] tracking-[-0.025em]" style={{ fontSize: "min(14vw, 11svh)" }}>
             {edition.title}
