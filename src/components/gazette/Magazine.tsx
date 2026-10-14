@@ -524,10 +524,12 @@ export function SheetView({
         <Frame side={side} edition={edition} dark geo={geo}>
           <div className="absolute top-[110px] bottom-[80px] flex flex-col" style={{ left: geo.padX + 6, right: geo.padX + 6 }}>
             <p className="mag-caps text-[10px] text-white/60">{GATE.kicker}</p>
-            <p className={cn("mag-didone mt-6 font-medium leading-[0.9] tracking-[-0.02em]", geo.pocket ? "text-[62px]" : "text-[76px]")}>
-              The story
-              <br />
-              <span className="italic font-normal">continues.</span>
+            <p className={cn("mag-didone mt-6 font-medium leading-[0.95] tracking-[-0.02em]", geo.pocket ? "text-[48px]" : "text-[56px]")}>
+              {lockedTitles.length === 1 ? "There is " : "There are "}
+              <span className="italic font-normal">
+                {lockedTitles.length} more {lockedTitles.length === 1 ? "feature" : "features"}
+              </span>{" "}
+              in this edition.
             </p>
             <p className="mag-serif mt-8 max-w-[520px] text-[18px] leading-[1.55] text-white/80">{GATE.lead}</p>
             <ol className="mt-8 flex flex-col border-t border-white/25">

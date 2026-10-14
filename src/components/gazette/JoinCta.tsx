@@ -57,7 +57,6 @@ function offerFor(kind: Offer, slug: string) {
 /** Ways in: a free account, membership and a business page. Signed-in readers already have an account, so they skip that card. */
 export function JoinCta({ page, index, slug, signedIn }: { page: Extract<Page, { kind: "cta" }>; index: number; slug: string; signedIn: boolean }) {
   const offers = page.offers.filter((o) => !(o === "account" && signedIn));
-  const three = offers.length > 2;
   return (
     <section id={`feature-${index}`} className="scroll-mt-14 bg-[#efeee9] px-5 py-24 sm:px-10 md:py-32">
       <div className="mx-auto max-w-7xl">
@@ -72,50 +71,64 @@ export function JoinCta({ page, index, slug, signedIn }: { page: Extract<Page, {
           </div>
         </div>
 
-        <div className={cn("mt-16 grid gap-6", three ? "lg:grid-cols-3" : "lg:grid-cols-2")}>
-          {offers.map((kind, i) => {
-            const o = offerFor(kind, slug);
-            const dark = o.tone === "ink";
-            return (
-              <Rise key={kind} delay={i * 100}>
-                <article
-                  className={cn(
-                    "flex h-full flex-col p-8",
-                    three ? "sm:p-10" : "sm:p-12",
-                    dark ? "bg-[#0a0a0a] text-white" : o.tone === "stone" ? "border border-black/25 bg-[#f6f5f1]" : "border border-black bg-[#fbfaf7]"
-                  )}
-                >
-                  <p className={cn("mag-caps text-[10px]", dark ? "text-white/60" : "text-black/55")}>{o.label}</p>
-                  <h3 className={cn("mag-didone mt-5 leading-[1.02]", three ? "text-[32px] sm:text-[36px]" : "text-[34px] sm:text-[44px]")}>{o.title}</h3>
-                  <p className={cn("mag-serif mt-5 text-[17px] italic leading-[1.5]", dark ? "text-white/75" : "text-black/70")}>{o.price}</p>
-                  <ul className={cn("mt-8 border-t", dark ? "border-white/20" : "border-black/15")}>
-                    {o.points.map((pt) => (
-                      <li key={pt} className={cn("flex gap-3 border-b py-3.5 mag-serif text-[16px] leading-[1.5]", dark ? "border-white/15 text-white/85" : "border-black/10 text-black/85")}>
-                        <Check className="mt-1 h-4 w-4 shrink-0" />
-                        {pt}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto flex flex-wrap items-center gap-x-6 gap-y-4 pt-10">
-                    <Link
-                      href={o.primary.href}
-                      className={cn(
-                        "inline-flex h-14 items-center gap-2 rounded-full px-7 text-[15px] font-medium transition-opacity hover:opacity-90",
-                        dark ? "bg-white text-black" : "bg-black text-white"
-                      )}
-                    >
-                      {o.primary.label} <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    <Link href={o.secondary.href} className="mag-caps text-[10px] underline underline-offset-4">
-                      {o.secondary.label}
-                    </Link>
-                  </div>
-                </article>
-              </Rise>
-            );
-          })}
+        <div className="mt-16">
+          <OfferCards offers={offers} slug={slug} />
         </div>
       </div>
     </section>
+  );
+}
+
+/** The ways in, as cards. Used on the join page and inside the gate, where they sit on black (`onDark`). */
+export function OfferCards({ offers, slug, onDark = false }: { offers: readonly Offer[]; slug: string; onDark?: boolean }) {
+  const three = offers.length > 2;
+  return (
+    <div className={cn("grid gap-6", three ? "lg:grid-cols-3" : "lg:grid-cols-2")}>
+      {offers.map((kind, i) => {
+        const o = offerFor(kind, slug);
+        const dark = o.tone === "ink";
+        return (
+          <Rise key={kind} delay={i * 100}>
+            <article
+              className={cn(
+                "flex h-full flex-col p-8",
+                three ? "sm:p-10" : "sm:p-12",
+                dark
+                  ? cn("bg-[#0a0a0a] text-white", onDark && "border border-white/25 bg-[#141414]")
+                  : o.tone === "stone"
+                    ? "border border-black/25 bg-[#f6f5f1] text-black"
+                    : "border border-black bg-[#fbfaf7] text-black"
+              )}
+            >
+              <p className={cn("mag-caps text-[10px]", dark ? "text-white/60" : "text-black/55")}>{o.label}</p>
+              <h3 className={cn("mag-didone mt-5 leading-[1.02]", three ? "text-[32px] sm:text-[36px]" : "text-[34px] sm:text-[44px]")}>{o.title}</h3>
+              <p className={cn("mag-serif mt-5 text-[17px] italic leading-[1.5]", dark ? "text-white/75" : "text-black/70")}>{o.price}</p>
+              <ul className={cn("mt-8 border-t", dark ? "border-white/20" : "border-black/15")}>
+                {o.points.map((pt) => (
+                  <li key={pt} className={cn("flex gap-3 border-b py-3.5 mag-serif text-[16px] leading-[1.5]", dark ? "border-white/15 text-white/85" : "border-black/10 text-black/85")}>
+                    <Check className="mt-1 h-4 w-4 shrink-0" />
+                    {pt}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-auto flex flex-wrap items-center gap-x-6 gap-y-4 pt-10">
+                <Link
+                  href={o.primary.href}
+                  className={cn(
+                    "inline-flex h-14 items-center gap-2 rounded-full px-7 text-[15px] font-medium transition-opacity hover:opacity-90",
+                    dark ? "bg-white text-black" : "bg-black text-white"
+                  )}
+                >
+                  {o.primary.label} <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href={o.secondary.href} className="mag-caps text-[10px] underline underline-offset-4">
+                  {o.secondary.label}
+                </Link>
+              </div>
+            </article>
+          </Rise>
+        );
+      })}
+    </div>
   );
 }
