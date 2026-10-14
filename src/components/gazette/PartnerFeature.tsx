@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { creditLine, images, img } from "@/content/images";
+import { creditLine, images, img, type BrandImage } from "@/content/images";
 import type { Page } from "@/content/gazette";
 import { Body } from "./Prose";
 import { Rise } from "./Parallax";
@@ -23,7 +23,7 @@ const DEFAULT = { paper: "#fbfaf7", ink: "#0a0a0a", accent: "#d8d2c4", sans: fal
 export function PartnerFeature({ page, index }: { page: Extract<Page, { kind: "partner" }>; index: number }) {
   const t = { ...DEFAULT, ...page.theme };
   const head = t.sans ? "font-[family-name:var(--font-inter)] font-semibold tracking-[-0.035em]" : "mag-didone font-medium tracking-[-0.02em]";
-  const photo = page.imageKey ? images[page.imageKey] : null;
+  const photo: BrandImage | null = page.imageKey ? images[page.imageKey] : null;
   const p = page.partner;
 
   return (
@@ -56,7 +56,8 @@ export function PartnerFeature({ page, index }: { page: Extract<Page, { kind: "p
           {photo && (
             <Rise delay={120} className="lg:col-span-5">
               <figure>
-                <div className="relative aspect-[4/5] overflow-hidden">
+                {/* Keep the photograph's own shape, so nobody at the edge of a landscape shot is cropped out. */}
+                <div className="relative overflow-hidden" style={{ aspectRatio: photo.width && photo.height ? `${photo.width} / ${photo.height}` : "4 / 5" }}>
                   <Image src={img(photo, 1200)} alt={photo.alt} fill sizes="(min-width:1024px) 40vw, 100vw" className="object-cover" />
                 </div>
                 <figcaption className="mag-caps mt-3 text-[8.5px] opacity-60">{creditLine(photo)}</figcaption>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
-import { FOCUS_LABEL, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_OPEN, type Edition } from "@/content/gazette";
+import { FOCUS_LABEL, GATE, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_ACCESS, type Edition } from "@/content/gazette";
 import { Cover } from "./Cover";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
@@ -50,9 +50,11 @@ export function ArchiveShelf({
             </p>
             <p className="mag-serif mt-4 text-[16px] leading-[1.6] text-white/60">
               A retrospective series published in 2026. Every fact is sourced.{" "}
-              {TRICHOZETTE_OPEN
+              {TRICHOZETTE_ACCESS === "open"
                 ? "Every edition is free to read, with quizzes and practical education throughout."
-                : "The opening pages of each edition are free to read; members have the full library, with quizzes and practical education throughout."}
+                : TRICHOZETTE_ACCESS === "accounts"
+                  ? "The opening pages of each edition are free to read; a free account opens the full library, with quizzes and practical education throughout."
+                  : "The opening pages of each edition are free to read; members have the full library, with quizzes and practical education throughout."}
             </p>
           </div>
         </div>
@@ -94,7 +96,7 @@ export function ArchiveShelf({
                             <>{e.pages.length} features</>
                           ) : (
                             <>
-                              <Lock className="h-3 w-3" /> {PUBLIC_PREVIEW_PAGES} free, {e.pages.length - PUBLIC_PREVIEW_PAGES} for members
+                              <Lock className="h-3 w-3" /> {PUBLIC_PREVIEW_PAGES} free, {e.pages.length - PUBLIC_PREVIEW_PAGES} {GATE.short}
                             </>
                           )}
                         </p>

@@ -414,6 +414,15 @@ export const images = {
     width: 1200,
     height: 1600,
   },
+  ire13: {
+    src: "/gazette/ireland-2026/livdor-stand.jpg",
+    alt: "Adam from LIVDOR stands beside the LIVDOR stand, with laser caps on display heads and a LIVDOR banner",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1280,
+    height: 960,
+  },
   /* Supplied by partners for their features. */
   livdorCap: {
     src: "/partners/livdor/laser-cap.jpg",

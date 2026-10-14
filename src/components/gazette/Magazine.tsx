@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { creditLine, images, img, type BrandImage } from "@/content/images";
-import { editionLabel, pageKicker, pageTitle, type Block, type Edition, type Page, type PartnerEntry, type Person } from "@/content/gazette";
+import { editionLabel, GATE, pageKicker, pageTitle, type Block, type Edition, type Page, type PartnerEntry, type Person } from "@/content/gazette";
 import { initials } from "./People";
 import { Mark } from "./Partners";
 import type { NewsItem } from "@/content/news";
@@ -522,16 +522,13 @@ export function SheetView({
       return (
         <Frame side={side} edition={edition} dark geo={geo}>
           <div className="absolute top-[110px] bottom-[80px] flex flex-col" style={{ left: geo.padX + 6, right: geo.padX + 6 }}>
-            <p className="mag-caps text-[10px] text-white/60">Members only</p>
+            <p className="mag-caps text-[10px] text-white/60">{GATE.kicker}</p>
             <p className={cn("mag-didone mt-6 font-medium leading-[0.9] tracking-[-0.02em]", geo.pocket ? "text-[62px]" : "text-[76px]")}>
               The story
               <br />
               <span className="italic font-normal">continues.</span>
             </p>
-            <p className="mag-serif mt-8 max-w-[520px] text-[18px] leading-[1.55] text-white/80">
-              Members read every edition of Trichozette in full, with a new edition each month, Karley&apos;s
-              column and the news that matters to your practice.
-            </p>
+            <p className="mag-serif mt-8 max-w-[520px] text-[18px] leading-[1.55] text-white/80">{GATE.lead}</p>
             <ol className="mt-8 flex flex-col border-t border-white/25">
               {lockedTitles.slice(0, 7).map((l) => (
                 <li key={l.title} className="flex items-baseline gap-4 border-b border-white/15 py-2.5">
@@ -541,8 +538,8 @@ export function SheetView({
               ))}
             </ol>
             <div className="mt-auto flex items-center gap-6">
-              <Link href="/founding" className="inline-flex h-14 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-medium text-black">
-                Become a founding member <ArrowRight className="h-4 w-4" />
+              <Link href={GATE.href(edition.slug)} className="inline-flex h-14 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-medium text-black">
+                {GATE.label} <ArrowRight className="h-4 w-4" />
               </Link>
               {!signedIn && (
                 <Link href={`/login?next=/trichozette/${edition.slug}`} className="mag-caps text-[10px] underline underline-offset-4">
