@@ -230,7 +230,7 @@ function Dispatches({ page, index }: { page: Extract<Page, { kind: "news" }>; in
   );
 }
 
-function Section({ edition, page, index, articleCount }: { edition: Edition; page: Page; index: number; articleCount: number }) {
+function Section({ edition, page, index, articleCount, signedIn }: { edition: Edition; page: Page; index: number; articleCount: number; signedIn: boolean }) {
   switch (page.kind) {
     case "article":
       return articleCount % 2 === 0 ? <ArticleHero edition={edition} page={page} index={index} /> : <ArticleSplit edition={edition} page={page} index={index} />;
@@ -255,7 +255,7 @@ function Section({ edition, page, index, articleCount }: { edition: Edition; pag
     case "partner":
       return <PartnerFeature page={page} index={index} />;
     case "cta":
-      return <JoinCta page={page} index={index} />;
+      return <JoinCta page={page} index={index} slug={edition.slug} signedIn={signedIn} />;
   }
 }
 
@@ -412,7 +412,7 @@ export function ScrollEdition({
       {/* Features */}
       {edition.pages.map((page, i) => {
         const n = page.kind === "article" ? articles++ : articles;
-        return <Section key={i} edition={edition} page={page} index={i} articleCount={n} />;
+        return <Section key={i} edition={edition} page={page} index={i} articleCount={n} signedIn={signedIn} />;
       })}
 
       {/* Sources */}

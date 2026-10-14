@@ -59,7 +59,7 @@ type Unit =
   | { t: "exhibitor"; entry: PartnerEntry; sponsor?: boolean }
   | { t: "link"; label: string; url: string }
   | { t: "note"; text: string }
-  | { t: "offer"; kind: "member" | "business" };
+  | { t: "offer"; kind: "account" | "member" | "business" };
 
 type Header = { kicker: string; title: string; standfirst?: string; tone: "article" | "section" | "letter" };
 
@@ -171,6 +171,7 @@ function planPage(edition: Edition, page: Page, index: number): Plan {
 }
 
 const OFFER = {
+  account: { title: "Create a free account and read every edition in full.", href: "/signup", label: "trichollective.net/signup" },
   member: { title: "Join as a member and keep the conversation going between events.", href: "/founding", label: "trichollective.net/founding" },
   business: { title: "List your clinic or brand where professionals look for referrals.", href: "/for-business", label: "trichollective.net/for-business" },
 } as const;
@@ -254,7 +255,7 @@ function UnitView({ unit }: { unit: Unit }) {
       const o = OFFER[unit.kind];
       return (
         <Link href={o.href} className={cn("mb-4 block p-4", unit.kind === "member" ? "bg-black text-white" : "border border-black")}>
-          <p className="mag-caps text-[8px] opacity-60">{unit.kind === "member" ? "For practitioners" : "For clinics, salons and brands"}</p>
+          <p className="mag-caps text-[8px] opacity-60">{unit.kind === "account" ? "Free for every professional" : unit.kind === "member" ? "Membership" : "For clinics, salons and brands"}</p>
           <p className="mag-didone mt-2 text-[21px] leading-[1.08]">{o.title}</p>
           <p className="mag-caps mt-3 text-[8px] underline underline-offset-4">{o.label}</p>
         </Link>
