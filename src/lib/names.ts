@@ -10,3 +10,10 @@ export function shortName(name: string | null | undefined, fallback = "") {
   }
   return parts[0];
 }
+
+/** A name typed into a form, tidied, or null if it is too short to be one. */
+export function cleanName(v: unknown) {
+  if (typeof v !== "string") return null;
+  const n = v.replace(/\s+/g, " ").trim().slice(0, 80);
+  return n.length >= 2 ? n : null;
+}

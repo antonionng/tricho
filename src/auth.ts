@@ -13,6 +13,7 @@ import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib
 import { cookies } from "next/headers";
 import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
 import { checkoutSignInUser } from "@/lib/signin-email";
+import { takeSignupName } from "@/lib/signup-name";
 
 /** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
 async function recordSignupSource(userId: string | undefined) {
@@ -123,10 +124,21 @@ export const {
     async createUser({ user }) {
       await recordSignupSource(user.id);
       if (!user.email) return;
-      const { subject, content } = welcomeFreeAccountEmail({ name: user.name });
+      // An email link brings no name, so use the one typed on /signup.
+      let name = user.name;
+      try {
+        const typed = await takeSignupName(user.email);
+        if (typed && !name && user.id) {
+          await prisma.user.update({ where: { id: user.id }, data: { name: typed } });
+          name = typed;
+        }
+      } catch (error) {
+        console.error("[SIGNUP_NAME]", error);
+      }
+      const { subject, content } = welcomeFreeAccountEmail({ name });
       await Promise.all([
         deliver(user.email, subject, content, { tag: "welcome-free" }),
-        alertOwners(newAccountAlert({ name: user.name, email: user.email })),
+        alertOwners(newAccountAlert({ name, email: user.email })),
       ]);
     },
   },

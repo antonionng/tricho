@@ -6,6 +6,8 @@ import { isDevOrDemo, isPreviewDemo } from "@/lib/env";
 import { cookies } from "next/headers";
 import { cleanEmail, SIGNIN_EMAIL_COOKIE, signinEmailCookieOptions } from "@/lib/signin-email";
 import { EmailLinkForm, type EmailLinkState } from "@/components/auth/EmailLinkForm";
+import { cleanName } from "@/lib/names";
+import { rememberSignupName } from "@/lib/signup-name";
 
 const googleEnabled = !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 const resendEnabled = !!process.env.AUTH_RESEND_KEY;
@@ -62,7 +64,10 @@ export function SignInOptions({
             "use server";
             const email = cleanEmail(formData.get("email"));
             if (!email) return { sent: null, error: "Please enter a valid email address." };
+            const name = mode === "signup" ? cleanName(formData.get("name")) : null;
+            if (mode === "signup" && !name) return { sent: null, error: "Please enter your name." };
             try {
+              if (name) await rememberSignupName(email, name);
               const url = await signIn("resend", { email, redirectTo, redirect: false });
               if (typeof url === "string" && url.includes("error=")) throw new Error(url);
               // Remembered briefly (httpOnly, never in a URL) so /login/check-email can show it and resend.

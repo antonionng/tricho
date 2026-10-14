@@ -25,6 +25,7 @@ export function EmailLinkForm({
   // The result the visitor chose to move past with "Use a different email".
   const [dismissed, setDismissed] = useState<EmailLinkState | null>(null);
   const [email, setEmail] = useState(defaultEmail ?? "");
+  const [name, setName] = useState("");
   const sent = state.sent && state !== dismissed ? state.sent : null;
 
   if (sent) {
@@ -40,6 +41,7 @@ export function EmailLinkForm({
         </p>
         <form action={formAction} className="flex flex-col gap-3 pt-1 sm:flex-row">
           <input type="hidden" name="email" value={sent} />
+          {mode === "signup" && <input type="hidden" name="name" value={name} />}
           <Button type="submit" variant="outline" size="lg" disabled={pending} aria-busy={pending} className="w-full sm:w-auto">
             {pending ? "Sending the link…" : "Send the link again"}
           </Button>
@@ -62,6 +64,24 @@ export function EmailLinkForm({
 
   return (
     <form action={formAction} className="space-y-3">
+      {mode === "signup" && (
+        <>
+          <Label htmlFor="name">Your name</Label>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            required
+            minLength={2}
+            maxLength={80}
+            autoComplete="name"
+            placeholder="First and last name"
+            className="h-12 text-base"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </>
+      )}
       <Label htmlFor="email">Email address</Label>
       <Input
         id="email"
