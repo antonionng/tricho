@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { NewsletterForm } from "@/components/site/NewsletterForm";
 import { Cover } from "@/components/gazette/Cover";
 import { TiltCover } from "@/components/gazette/TiltCover";
-import { editionLabel, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_OPEN } from "@/content/gazette";
+import { canReadInFull, editionLabel, GATE, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_ACCESS } from "@/content/gazette";
 import { getArchive, getEditions } from "@/content/gazette/loader";
 import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
 import { PartnerStrip } from "@/components/site/PartnerStrip";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 export const metadata = pageMetadata({
   title: "Trichozette: the Trichollective magazine",
   description:
-    `Trichozette, the Trichollective magazine: sourced news, the cosmetic, clinical and medical view of each topic, Karley's column and a four-year archive from 2023 to 2026. ${TRICHOZETTE_OPEN ? "Every edition is free to read." : "Preview any edition free."}`,
+    `Trichozette, the Trichollective magazine: sourced news, the cosmetic, clinical and medical view of each topic, Karley's column and a four-year archive from 2023 to 2026. ${TRICHOZETTE_ACCESS === "open" ? "Every edition is free to read." : TRICHOZETTE_ACCESS === "accounts" ? "Read every edition free with a Trichollective account." : "Preview any edition free."}`,
   path: "/trichozette",
     og: { title: "Trichozette", sub: "Three professional perspectives on every topic.", eyebrow: "The Trichollective magazine", img: images.ed02.src, variant: "cover" },
 });
@@ -25,6 +25,7 @@ export const metadata = pageMetadata({
 export default async function GazettePage({ searchParams }: { searchParams: Promise<{ theme?: string; field?: string }> }) {
   const { theme, field } = await searchParams;
   const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
+  const reads = canReadInFull(ctx);
   const [latest, ...rest] = editions;
   const themes = [...new Set(editions.map((e) => e.theme))];
   const shown = theme ? editions.filter((e) => e.theme === theme) : rest;
@@ -48,14 +49,18 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button asChild size="xl">
                   <Link href={`/trichozette/${latest.slug}`}>
-                    {ctx.allowed || TRICHOZETTE_OPEN ? "Read the edition" : "Preview the edition"} <ArrowRight />
+                    {reads ? "Read the edition" : "Preview the edition"} <ArrowRight />
                   </Link>
                 </Button>
                 {!ctx.allowed && (
                   <p className="text-sm text-muted-foreground">
-                    {TRICHOZETTE_OPEN
+                    {TRICHOZETTE_ACCESS === "open"
                       ? "Every edition is free to read and share."
-                      : "Read the opening pages free. Members read every edition in full."}
+                      : reads
+                        ? "Your account reads every edition in full."
+                        : TRICHOZETTE_ACCESS === "accounts"
+                          ? "Read the opening pages free. Create a free account to read every edition in full."
+                          : "Read the opening pages free. Members read every edition in full."}
                   </p>
                 )}
               </div>
@@ -112,13 +117,13 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
                   <p className="mt-1 font-semibold leading-snug">{e.title}</p>
                   <p className="mt-1 text-sm text-ink-2 line-clamp-2">{e.standfirst}</p>
                   <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                    {ctx.allowed || TRICHOZETTE_OPEN ? (
+                    {reads ? (
                       <>
-                        {e.pages.length + 2} pages{!ctx.allowed && " · Free to read"}
+                        {e.pages.length + 2} pages{TRICHOZETTE_ACCESS === "open" && !ctx.allowed && " · Free to read"}
                       </>
                     ) : (
                       <>
-                        <Lock className="h-3 w-3" /> {PUBLIC_PREVIEW_PAGES + 2} free pages · {e.pages.length - PUBLIC_PREVIEW_PAGES} for members
+                        <Lock className="h-3 w-3" /> {PUBLIC_PREVIEW_PAGES + 2} free pages · {e.pages.length - PUBLIC_PREVIEW_PAGES} {GATE.short}
                       </>
                     )}
                   </p>
@@ -129,7 +134,7 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
         </Container>
       </Section>
 
-      <ArchiveShelf archive={archive} field={field} member={ctx.allowed || TRICHOZETTE_OPEN} />
+      <ArchiveShelf archive={archive} field={field} member={reads} />
 
       <PartnerStrip />
 
@@ -138,7 +143,7 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
           <Container className="grid gap-12 py-20 md:py-24 lg:grid-cols-12">
             <div className="lg:col-span-7 flex flex-col gap-6">
               <p className="label text-paper/60">Membership</p>
-              {TRICHOZETTE_OPEN ? (
+              {TRICHOZETTE_ACCESS !== "members" ? (
                 <>
                   <h2 className="display text-4xl sm:text-5xl">
                     Join the conversations each edition starts,

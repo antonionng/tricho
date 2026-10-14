@@ -350,7 +350,7 @@ export const editionsC: Edition[] = [
           "Amy and Adam joined us in Ireland to talk delegates through the technology, the evidence behind it and what it takes to introduce it into a business.",
         partner: { name: "LIVDOR", slug: "livdor", url: "https://www.livdor.com", ctaLabel: "Visit livdor.com" },
         theme: { paper: "#f4f3f0", ink: "#0f1e35", accent: "#e0463e", onAccent: "#ffffff" },
-        imageKey: "livdorCap",
+        imageKey: "ire13",
         blocks: [
           {
             type: "p",

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Lock } from "lucide-react";
-import { editionLabel, pageKicker, pageTitle, type Edition, type Page } from "@/content/gazette";
+import { editionLabel, GATE, pageKicker, pageTitle, type Edition, type Page } from "@/content/gazette";
 import { Body, Kicker } from "./Prose";
 import { Gallery } from "./Gallery";
 import { People } from "./People";
@@ -441,19 +441,16 @@ export function ScrollEdition({
           <div className="pointer-events-none absolute inset-x-0 -top-64 h-64 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
           <div className="mx-auto grid max-w-7xl gap-14 px-5 py-28 sm:px-10 md:py-36 lg:grid-cols-12">
             <Rise className="lg:col-span-6">
-              <Kicker light>Members only</Kicker>
+              <Kicker light>{GATE.kicker}</Kicker>
               <h2 className="mag-didone mt-6 text-[64px] font-medium leading-[0.88] tracking-[-0.02em] sm:text-[104px]">
                 The story
                 <br />
                 <span className="font-normal italic">continues.</span>
               </h2>
-              <p className="mag-serif mt-8 max-w-lg text-[19px] leading-[1.6] text-white/75">
-                Members read every edition of Trichozette in full, with a new edition each month, Karley&apos;s column,
-                the Three Perspectives and the news that matters to your practice.
-              </p>
+              <p className="mag-serif mt-8 max-w-lg text-[19px] leading-[1.6] text-white/75">{GATE.lead}</p>
               <div className="mt-10 flex flex-wrap items-center gap-6">
-                <Link href="/founding" className="inline-flex h-14 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-medium text-black transition-opacity hover:opacity-90">
-                  Become a founding member <ArrowRight className="h-4 w-4" />
+                <Link href={GATE.href(edition.slug)} className="inline-flex h-14 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-medium text-black transition-opacity hover:opacity-90">
+                  {GATE.label} <ArrowRight className="h-4 w-4" />
                 </Link>
                 {!signedIn && (
                   <Link href={`/login?next=/trichozette/${edition.slug}`} className="mag-caps text-[10px] underline underline-offset-4">
