@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { img, type BrandImage } from "@/content/images";
-import { editionLabel, pageKicker, pageTitle, type Block, type Edition, type Page } from "@/content/gazette";
+import { creditLine, images, img, type BrandImage } from "@/content/images";
+import { editionLabel, pageKicker, pageTitle, type Block, type Edition, type Page, type PartnerEntry, type Person } from "@/content/gazette";
+import { initials } from "./People";
+import { Mark } from "./Partners";
 import type { NewsItem } from "@/content/news";
 import { BlockView } from "./Blocks";
 import { Cover } from "./Cover";
@@ -52,7 +54,12 @@ type Unit =
   | { t: "sub"; label: string; heading: string }
   | { t: "glance"; label: string; value: string }
   | { t: "news"; item: NewsItem }
-  | { t: "signoff"; text: string };
+  | { t: "signoff"; text: string }
+  | { t: "person"; person: Person; n: number }
+  | { t: "exhibitor"; entry: PartnerEntry; sponsor?: boolean }
+  | { t: "link"; label: string; url: string }
+  | { t: "note"; text: string }
+  | { t: "offer"; kind: "member" | "business" };
 
 type Header = { kicker: string; title: string; standfirst?: string; tone: "article" | "section" | "letter" };
 
@@ -61,6 +68,8 @@ export type Sheet =
   | { k: "contents" }
   | { k: "opener"; page: Extract<Page, { kind: "article" }>; image: BrandImage }
   | { k: "image"; page: Extract<Page, { kind: "image" }> }
+  | { k: "gallery"; page: Extract<Page, { kind: "gallery" }>; photos: Extract<Page, { kind: "gallery" }>["photos"]; first: boolean }
+  | { k: "partner"; page: Extract<Page, { kind: "partner" }>; image: BrandImage | null }
   | { k: "flow"; header?: Header; cols: Unit[][]; running: string }
   | { k: "gate" };
 
@@ -93,7 +102,7 @@ function blocksToUnits(blocks: Block[], drop = true): Unit[] {
   return units;
 }
 
-type Plan = { opener?: Sheet; header?: Header; units: Unit[]; single?: Sheet; running: string };
+type Plan = { opener?: Sheet; header?: Header; units: Unit[]; single?: Sheet; singles?: Sheet[]; running: string };
 
 function planPage(edition: Edition, page: Page, index: number): Plan {
   const running = pageKicker(page);
@@ -123,8 +132,48 @@ function planPage(edition: Edition, page: Page, index: number): Plan {
         running,
       };
     }
+    case "gallery": {
+      // Two photographs under the title, then four to a page.
+      const chunks = [page.photos.slice(0, 2)];
+      for (let i = 2; i < page.photos.length; i += 4) chunks.push(page.photos.slice(i, i + 4));
+      return { singles: chunks.map((photos, i) => ({ k: "gallery" as const, page, photos, first: i === 0 })), units: [], running };
+    }
+    case "people":
+      return {
+        header: { kicker: page.kicker, title: page.title, standfirst: page.intro, tone: "section" },
+        units: page.people.map((person, i) => ({ t: "person", person, n: i + 1 })),
+        running,
+      };
+    case "partners":
+      return {
+        header: { kicker: page.kicker, title: page.title, standfirst: page.intro, tone: "section" },
+        units: [{ t: "exhibitor", entry: page.sponsor, sponsor: true }, ...page.exhibitors.map((entry): Unit => ({ t: "exhibitor", entry }))],
+        running,
+      };
+    case "partner":
+      return {
+        opener: { k: "partner", page, image: page.imageKey ? images[page.imageKey] : null },
+        units: [
+          // The facts panel repeats the story on screen; in print the story stands alone.
+          ...blocksToUnits(page.blocks),
+          { t: "link", label: page.partner.ctaLabel, url: page.partner.url },
+          ...(page.disclosure ? [{ t: "note", text: page.disclosure } as Unit] : []),
+        ],
+        running: `Partner feature · ${page.partner.name}`,
+      };
+    case "cta":
+      return {
+        header: { kicker: page.kicker, title: page.title, standfirst: page.intro, tone: "section" },
+        units: [...blocksToUnits(page.blocks, false), ...page.offers.map((kind): Unit => ({ t: "offer", kind }))],
+        running,
+      };
   }
 }
+
+const OFFER = {
+  member: { title: "Join as a member and keep the conversation going between events.", href: "/founding", label: "trichollective.net/founding" },
+  business: { title: "List your clinic or brand where professionals look for referrals.", href: "/for-business", label: "trichollective.net/for-business" },
+} as const;
 
 /* ------------------------------------------------------------------ */
 /* Rendering pieces                                                    */
@@ -163,6 +212,54 @@ function UnitView({ unit }: { unit: Unit }) {
       );
     case "signoff":
       return <p className="mag-didone mt-4 text-right text-[19px] italic">{unit.text}</p>;
+    case "person":
+      return (
+        <div className="mb-4 flex gap-3 border-t border-black pt-3">
+          <span aria-hidden className="mag-didone grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black text-[17px] italic">
+            {initials(unit.person.name)}
+          </span>
+          <div>
+            <p className="mag-didone text-[20px] leading-[1.05]">{unit.person.name}</p>
+            <p className="mag-serif mt-0.5 text-[12.5px] italic leading-snug text-black/70">
+              {unit.person.role}
+              {unit.person.org ? `, ${unit.person.org}` : ""}
+            </p>
+            {unit.person.highlight && <p className="mag-caps mt-1.5 inline-block bg-black px-1.5 py-0.5 text-[7.5px] text-white">{unit.person.highlight}</p>}
+            <p className="mag-serif mt-1.5 text-[13.5px] leading-[1.5]">{unit.person.note}</p>
+          </div>
+        </div>
+      );
+    case "exhibitor":
+      return (
+        <div className={cn("mb-4 border-t pt-3", unit.sponsor ? "border-t-2 border-black" : "border-black/40")}>
+          <p className="mag-caps text-[8.5px] text-black/55">{unit.sponsor ? "Event sponsor" : unit.entry.people ? `Exhibitor · with ${unit.entry.people}` : "Exhibitor"}</p>
+          <div className="mt-2 flex h-9 items-center [&_img]:max-h-9 [&_span]:text-[26px]">
+            <Mark entry={unit.entry} />
+          </div>
+          <p className="mag-serif mt-2 text-[13.5px] leading-[1.5]">{unit.entry.note}</p>
+          <a href={unit.entry.url} target="_blank" rel="noopener" className="mag-caps mt-1.5 inline-block text-[8px] underline underline-offset-4">
+            {unit.entry.url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+          </a>
+        </div>
+      );
+    case "link":
+      return (
+        <a href={unit.url} target="_blank" rel="noopener" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-black px-4 py-2 text-[12px] font-medium text-white">
+          {unit.label} <ArrowRight className="h-3 w-3" />
+        </a>
+      );
+    case "note":
+      return <p className="mag-serif mt-4 border-l-2 border-black pl-3 text-[12.5px] italic leading-[1.5] text-black/75">{unit.text}</p>;
+    case "offer": {
+      const o = OFFER[unit.kind];
+      return (
+        <Link href={o.href} className={cn("mb-4 block p-4", unit.kind === "member" ? "bg-black text-white" : "border border-black")}>
+          <p className="mag-caps text-[8px] opacity-60">{unit.kind === "member" ? "For practitioners" : "For clinics, salons and brands"}</p>
+          <p className="mag-didone mt-2 text-[21px] leading-[1.08]">{o.title}</p>
+          <p className="mag-caps mt-3 text-[8px] underline underline-offset-4">{o.label}</p>
+        </Link>
+      );
+    }
   }
 }
 
@@ -338,7 +435,64 @@ export function SheetView({
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pb-[46px] pt-[160px] text-white" style={{ paddingLeft: geo.padX, paddingRight: geo.padX }}>
             <span className="mb-4 block h-px w-12 bg-white" />
             <p className="mag-didone max-w-[560px] text-[28px] italic leading-[1.2]">{sheet.page.caption}</p>
-            <p className="mag-caps mt-4 text-[8px] text-white/60">Photograph {im.credit} / Unsplash</p>
+            <p className="mag-caps mt-4 text-[8px] text-white/60">{creditLine(im)}</p>
+          </div>
+        </div>
+      );
+    }
+
+    case "gallery": {
+      const cells = sheet.photos.length;
+      return (
+        <Frame side={side} edition={edition} folio={folio} running={sheet.page.kicker} geo={geo}>
+          <div className="absolute flex flex-col" style={{ left: geo.padX, right: geo.padX, top: geo.padTop, height: geo.bodyH }}>
+            {sheet.first && <HeaderView h={{ kicker: sheet.page.kicker, title: sheet.page.title, standfirst: sheet.page.intro, tone: "section" }} pocket={geo.pocket} />}
+            <div className={cn("grid min-h-0 flex-1 gap-4", cells > 1 && !geo.pocket && "grid-cols-2", cells > 2 && "grid-rows-2", geo.pocket && cells > 2 && "grid-cols-2")}>
+              {sheet.photos.map((ph) => {
+                const im = images[ph.imageKey] as BrandImage;
+                return (
+                  <figure key={ph.imageKey} className="flex min-h-0 flex-col">
+                    <div className="relative min-h-0 flex-1">
+                      <Image src={img(im, 900)} alt={im.alt} fill sizes="25vw" className="mag-bw object-cover" />
+                    </div>
+                    <figcaption className="mag-serif mt-2 text-[11.5px] italic leading-snug text-black/75">{ph.caption}</figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          </div>
+        </Frame>
+      );
+    }
+
+    case "partner": {
+      const t = { paper: "#fbfaf7", ink: "#0a0a0a", accent: "#d8d2c4", ...sheet.page.theme };
+      const p = sheet.page.partner;
+      return (
+        <div className="relative h-full w-full" style={{ background: t.ink, color: t.paper, backgroundImage: `radial-gradient(ellipse 70% 50% at 85% 10%, ${t.accent}26, transparent 70%)` }}>
+          <div className="absolute flex flex-col" style={{ left: geo.padX, right: geo.padX, top: 46, bottom: 46 }}>
+            <div className="flex items-center justify-between">
+              <span className="mag-caps rounded-full px-2.5 py-1 text-[8px]" style={{ background: t.accent, color: t.onAccent ?? t.ink }}>Partner feature</span>
+              <span className="mag-caps text-[8px] opacity-70">{editionLabel(edition)}</span>
+            </div>
+            <div className="mt-10 flex h-12 items-center">
+              <Mark entry={p} invert={p.invertLogo} />
+            </div>
+            <h2
+              className={cn("mt-7 leading-[0.95]", t.sans ? "font-[family-name:var(--font-inter)] font-semibold tracking-[-0.035em]" : "mag-didone font-medium tracking-[-0.02em]", geo.pocket ? "text-[48px]" : "text-[58px]")}
+            >
+              {sheet.page.title}
+            </h2>
+            <p className={cn("mt-4 leading-[1.35] opacity-85", t.sans ? "text-[18px]" : "mag-didone text-[20px] italic")}>{sheet.page.standfirst}</p>
+            {sheet.image && (
+              <div className="relative mt-8 min-h-0 flex-1">
+                <Image src={img(sheet.image, 1200)} alt={sheet.image.alt} fill sizes="50vw" className="object-cover" />
+              </div>
+            )}
+            <p className="mag-caps mt-3 text-[7.5px] opacity-60">
+              {sheet.page.kicker}
+              {sheet.image ? ` · ${creditLine(sheet.image)}` : ""}
+            </p>
           </div>
         </div>
       );
@@ -424,6 +578,10 @@ export function usePagination(edition: Edition, hasGate: boolean, geo: Geo | nul
         starts.push(sheets.length);
         if (plan.single) {
           sheets.push(plan.single);
+          return;
+        }
+        if (plan.singles) {
+          sheets.push(...plan.singles);
           return;
         }
         if (plan.opener) sheets.push(plan.opener);

@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { images } from "@/content/images";
 import type { NewsItem } from "@/content/news";
-import type { Block, Edition, ImageKey, Page } from "./types";
+import type { Block, BuiltInOnlyKind, Edition, ImageKey, Page } from "./types";
 
 export const IMAGE_KEYS = Object.keys(images) as [ImageKey, ...ImageKey[]];
 export const ImageKeySchema = z.enum(IMAGE_KEYS);
@@ -106,7 +106,7 @@ export const PAGE_SCHEMAS = {
   perspectives: PerspectivesPageSchema,
 } as const;
 
-export type EditablePage = Exclude<Page, { kind: "news" }>;
+export type EditablePage = Exclude<Page, { kind: "news" | BuiltInOnlyKind }>;
 export type EditableKind = EditablePage["kind"];
 export const EDITABLE_KINDS = Object.keys(PAGE_SCHEMAS) as EditableKind[];
 
