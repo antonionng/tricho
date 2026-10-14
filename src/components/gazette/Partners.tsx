@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import type { Page, PartnerEntry } from "@/content/gazette";
+import type { Edition, Page, PartnerEntry } from "@/content/gazette";
 import { Kicker } from "./Prose";
 import { Rise } from "./Parallax";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,28 @@ export function Mark({ entry, large, invert }: { entry: Pick<PartnerEntry, "name
       />
     );
   return <span className={cn("mag-didone font-medium leading-none tracking-[-0.01em]", large ? "text-[44px] sm:text-[72px]" : "text-[34px]")}>{entry.name}</span>;
+}
+
+/** "Brought to you by", with the supporting partner's logo, linking to their partner page or site. */
+export function BroughtBy({ by, light }: { by: NonNullable<Edition["supportedBy"]>; light?: boolean }) {
+  const body = (
+    <>
+      <span className={cn("mag-caps text-[9px]", light ? "text-white/75" : "text-black/55")}>Brought to you by</span>
+      <span className="flex h-10 items-center [&_img]:max-h-10 [&_span]:text-[28px]">
+        <Mark entry={by} />
+      </span>
+    </>
+  );
+  const cls = "inline-flex flex-col items-start gap-2 transition-opacity hover:opacity-85";
+  return by.href ? (
+    <Link href={by.href} className={cls}>
+      {body}
+    </Link>
+  ) : (
+    <a href={by.url} target="_blank" rel="noopener" className={cls}>
+      {body}
+    </a>
+  );
 }
 
 function host(url: string) {

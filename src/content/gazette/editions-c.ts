@@ -15,6 +15,7 @@ export const editionsC: Edition[] = [
     standfirst:
       "On Monday 5 October 2026, cosmetic, clinical and medical professionals met at the Manor House, Killashee Hotel, in Naas, County Kildare. Here are the day in pictures, the people who shared their knowledge, the brands that supported it and what happens next.",
     coverImageKey: "ire11",
+    supportedBy: { name: "LIVDOR", slug: "livdor", url: "https://www.livdor.com" },
     coverTone: "dark",
     audience: ["cosmetic", "clinical", "medical"],
     published: "2026-10-14",

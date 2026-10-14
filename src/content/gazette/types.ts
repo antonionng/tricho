@@ -115,6 +115,11 @@ export type Edition = {
   period?: string;
   /** For archive editions: which field it covers, or "review" for the year overall. */
   focus?: "review" | "cosmetic" | "clinical" | "medical";
+  /**
+   * A Premium partner who supports this edition, shown as "Brought to you by" on the cover,
+   * the contents and the share card. Logo and partner-page link are filled from the Partner table.
+   */
+  supportedBy?: { name: string; slug?: string; url: string; logo?: string; href?: string };
   /** Sources behind every factual claim. Shown at the end of the edition. */
   sources?: { label: string; url: string }[];
 };
