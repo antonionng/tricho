@@ -13,6 +13,7 @@ import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib
 import { cookies } from "next/headers";
 import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
 import { checkoutSignInUser } from "@/lib/signin-email";
+import { confirmLinkFor } from "@/lib/signin-link";
 
 /** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
 async function recordSignupSource(userId: string | undefined) {
@@ -43,8 +44,9 @@ if (process.env.AUTH_RESEND_KEY) {
       apiKey: process.env.AUTH_RESEND_KEY,
       from: process.env.AUTH_EMAIL_FROM || "Trichollective <onboarding@resend.dev>",
       // Branded magic link. Throws on failure so NextAuth shows the sign-in error.
+      // It opens a confirm page first, so mail scanners can't use up the token.
       async sendVerificationRequest({ identifier, url }) {
-        const { subject, content } = signInLinkEmail({ url });
+        const { subject, content } = signInLinkEmail({ url: confirmLinkFor(url) });
         const { html, text } = renderEmail(content);
         await sendEmail({ to: identifier, subject, html, text, tag: "sign-in" });
       },
