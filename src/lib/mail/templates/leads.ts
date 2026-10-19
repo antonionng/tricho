@@ -9,6 +9,7 @@ import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import type { EmailContent } from "../layout";
 import type { OwnerAlert } from "../send";
 import type { EmailSample } from "../catalogue";
+import { confirmLinkFor } from "@/lib/signin-link";
 
 export type Email = { subject: string; content: EmailContent };
 
@@ -417,7 +418,7 @@ const sampleEnquiry: PartnerEnquiry = {
 };
 
 export const samples: EmailSample[] = [
-  sample("sign-in-link", "Sign-in link", "Sent when someone asks to sign in with their email address.", "everyone", signInLinkEmail({ url: `${site.url}/api/auth/callback/resend?token=sample` })),
+  sample("sign-in-link", "Sign-in link", "Sent when someone asks to sign in with their email address.", "everyone", signInLinkEmail({ url: confirmLinkFor(`${site.url}/api/auth/callback/resend?token=sample`) })),
   sample("welcome-free-account", "Welcome to a free account", "Sent when someone creates a free account by signing in for the first time.", "practitioners", welcomeFreeAccountEmail({ name: "Niamh Walsh" })),
   ownerSample("alert-new-account", "New free account", "Sent to the owners when someone creates a free account.", newAccountAlert({ name: "Niamh Walsh", email: "niamh@example.com" })),
   sample("starter-guide", "Starter guide", "Sent when someone asks for the starter guide.", "public", starterGuideEmail()),
