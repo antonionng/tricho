@@ -34,6 +34,8 @@ export type EmailContent = {
   secondary?: { label: string; href: string };
   /** A black-and-white editorial image above the heading. */
   image?: EmailImage;
+  /** A short one-time code shown large, used by the sign-in email. */
+  code?: string;
   /** Label/value rows, used by owner alerts and receipts. */
   facts?: [string, string][];
   /** Sign-off line. Defaults to "Karley and the Trichollective team". */
@@ -97,6 +99,9 @@ function textVersion(c: EmailContent) {
   const parts = [c.heading, "", c.body.trim()];
   if (c.facts?.length) parts.push("", ...c.facts.map(([k, v]) => `${k}: ${v}`));
   if (c.cta) parts.push("", `${c.cta.label}: ${absoluteUrl(c.cta.href)}`);
+  if (c.code) {
+    parts.push("", `Your sign-in code: ${c.code}`, "If the button does not open your account, type this code on the sign-in page.");
+  }
   if (c.secondary) parts.push(`${c.secondary.label}: ${absoluteUrl(c.secondary.href)}`);
   if (c.signoff !== null) parts.push("", c.signoff ?? `${site.founder} and the Trichollective team`);
   parts.push("", "--", "Trichollective, the private home for hair and scalp professionals.", site.url);
@@ -125,6 +130,13 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
   const secondary = c.secondary
     ? `<p style="margin:14px 0 0;font-size:14px"><a href="${esc(absoluteUrl(c.secondary.href))}" style="color:${C.ink};text-decoration:underline">${esc(c.secondary.label)}</a></p>`
     : "";
+  const code = c.code
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 8px"><tr><td style="background:${C.paper};border:1px solid ${C.rule};border-radius:16px;padding:18px 16px;text-align:center">
+        <p style="margin:0 0 8px;font-family:${SANS};font-size:11px;letter-spacing:0.18em;text-transform:uppercase;font-weight:700;color:${C.muted}">Your sign-in code</p>
+        <p style="margin:0 0 10px;font-family:${SANS};font-size:32px;line-height:1;letter-spacing:0.28em;font-weight:700;color:${C.ink}">${esc(c.code)}</p>
+        <p style="margin:0;font-family:${SANS};font-size:14px;line-height:1.5;color:${C.ink2}">If the button does not open your account, type this code on the sign-in page.</p>
+      </td></tr></table>`
+    : "";
 
   const footerLinks = [
     ["Trichozette", "/trichozette"],
@@ -152,6 +164,7 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
     ${bodyToHtml(c.body)}
     ${facts}
     ${cta}
+    ${code}
     ${secondary}
     ${signoff ? `<p style="margin:28px 0 0;color:${C.ink}">${esc(signoff)}</p>` : ""}
   </td></tr></table>
