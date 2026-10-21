@@ -2,28 +2,39 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
-import { Empty, NoAccess, PageHeader, Section, Stat, Tag, dateTime } from "@/components/studio/ui";
+import { Empty, NoAccess, Notice, PageHeader, Section, Stat, Tag, dateTime } from "@/components/studio/ui";
 import { loadAttendees } from "@/lib/tickets";
 import { studioPage } from "../../../_lib/guard";
+import { emailMembersStartingAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
+// Sending to every member is paced, so the action may take a while.
+export const maxDuration = 300;
 
 function money(pence: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 }
 
-export default async function AttendeesPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AttendeesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ notice?: string; tone?: string }>;
+}) {
   const { id } = await params;
+  const { notice, tone } = await searchParams;
   const staff = await studioPage(`/studio/events/${id}/attendees`, "events.view");
   if (!staff) return <NoAccess what="events" />;
 
   const event = await prisma.event.findUnique({
     where: { id },
-    select: { id: true, title: true, startsAt: true, capacity: true, sellTickets: true },
+    select: { id: true, title: true, startsAt: true, endsAt: true, capacity: true, sellTickets: true, online: true, joinUrl: true, published: true },
   });
   if (!event) notFound();
 
   const attendees = await loadAttendees(event.id);
+  const notOver = (event.endsAt ?? event.startsAt).getTime() > new Date().getTime();
   const paid = attendees.filter((a) => a.status === "Paid");
   const sold = paid.reduce((n, a) => n + a.quantity, 0);
   const revenue = paid.reduce((n, a) => n + (a.amount ?? 0), 0);
@@ -48,6 +59,30 @@ export default async function AttendeesPage({ params }: { params: Promise<{ id: 
           </>
         }
       />
+
+      {notice && <Notice tone={tone === "danger" ? "danger" : "default"}>{notice}</Notice>}
+
+      {staff.perms.has("events.edit") && event.published && notOver && (
+        <Section title="Tell every member it is starting">
+          <form action={emailMembersStartingAction} className="flex flex-col gap-4 rounded-2xl border border-rule bg-card p-5">
+            <input type="hidden" name="eventId" value={event.id} />
+            <p className="text-sm leading-relaxed text-ink-2">
+              Send every active member an email saying {event.title} is about to start
+              {event.online ? ", with the Google Meet link" : ""}. It goes to paid, complimentary and business-seat members,
+              and to anyone Stripe shows as paying. Each member receives it once, however many times this is pressed.
+            </p>
+            {event.online && !event.joinUrl && (
+              <Notice tone="danger">Add the Google Meet link to the event before sending.</Notice>
+            )}
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input type="checkbox" name="confirm" className="h-4 w-4" /> Yes, email every member now
+            </label>
+            <div>
+              <Button type="submit">Email all members</Button>
+            </div>
+          </form>
+        </Section>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat label="Coming" value={event.capacity ? `${coming} of ${event.capacity}` : coming} note="Ticket places plus saved places." />

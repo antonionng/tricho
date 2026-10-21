@@ -19,7 +19,6 @@ import {
 } from "@/components/editorial/events";
 import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { getMemberContext } from "@/lib/member";
-import { isMasterclassEventKind } from "@/lib/masterclass-access";
 import { prisma } from "@/lib/prisma";
 import { googleCalendarHref } from "@/lib/calendar-links";
 import { absoluteUrl } from "@/lib/mail/layout";
@@ -77,8 +76,7 @@ export default async function MemberEventPage({
     .filter((u) => u.accessStatus === "active")
     .sort((a, b) => Number(b.id === userId) - Number(a.id === userId));
   const attending = going || hasTicket;
-  const includedAsMember = !isMasterclassEventKind(event.kind) || ctx.professional;
-  // The joining link is only ever shown to people who are going, including an existing Community booking.
+  // The joining link is only ever shown to members who are going.
   const joinUrl = attending && event.online ? event.joinUrl : null;
   const gcal = googleCalendarHref({ ...event, joinUrl, pageUrl: absoluteUrl(`/members/events/${event.slug}`) });
   const paragraphs = (event.body ?? "")
@@ -144,13 +142,7 @@ export default async function MemberEventPage({
             <dt className="sr-only">Places</dt>
             <Users className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
             <dd>
-              {event.kind === "masterclass"
-                ? event.memberPriceGBP > 0
-                  ? `${formatPrice(event.memberPriceGBP)} for Professional members`
-                  : "Included with Professional"
-                : event.memberPriceGBP > 0
-                  ? `${formatPrice(event.memberPriceGBP)} for members`
-                  : "Free for members"}
+              {event.memberPriceGBP > 0 ? `${formatPrice(event.memberPriceGBP)} for members` : "Free for members"}
               {event.sellTickets && event.priceGBP > 0 ? `, ${formatPrice(event.priceGBP)} for guests` : ""}
               {left != null && left > 0 && !past ? `. ${left} ${left === 1 ? "place" : "places"} left.` : "."}
             </dd>
@@ -158,14 +150,7 @@ export default async function MemberEventPage({
         </dl>
         {!past && (
           <div className="border-t border-rule pt-5">
-            <EventActions
-              event={event}
-              going={going}
-              hasTicket={hasTicket}
-              full={full}
-              started={started}
-              includedAsMember={includedAsMember}
-            />
+            <EventActions event={event} going={going} hasTicket={hasTicket} full={full} started={started} />
             {hasTicket && (
               <p className="text-sm leading-relaxed text-ink-2">Your ticket is confirmed, and the details have been sent to your email.</p>
             )}

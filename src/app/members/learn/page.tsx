@@ -1,12 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Award, Newspaper, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Award, FileText, Newspaper, Sparkles } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { getMemberContext } from "@/lib/member";
-import { isMasterclassRecording } from "@/lib/masterclass-access";
 import { prisma } from "@/lib/prisma";
 import { courseBySlug, courses } from "@/content/courses";
 import { progressOf } from "@/lib/courses";
@@ -46,7 +45,6 @@ export default async function LearnPage() {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       })
     : [];
-  const library = ctx.professional ? pieces : pieces.filter((p) => !isMasterclassRecording(p));
   const mine = enrolments
     .map((e) => ({ e, course: courseBySlug(e.courseSlug), progress: progressOf(e.courseSlug, e.lessons, e.lastLessonSlug) }))
     .filter((m): m is typeof m & { course: NonNullable<typeof m.course> } => !!m.course);
@@ -55,7 +53,7 @@ export default async function LearnPage() {
   const cpdHours = earned.reduce((sum, m) => sum + m.e.certificate!.hours, 0);
   const preferred = ctx.profession || "everyone";
   const rank = (a: string) => (a === preferred ? 0 : a === "everyone" ? 1 : 2);
-  const sorted = [...library].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
+  const sorted = [...pieces].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
   const sortedCourses = [...courses].sort(
     (a, b) => Number(b.discipline === ctx.profession) - Number(a.discipline === ctx.profession)
   );
@@ -69,7 +67,7 @@ export default async function LearnPage() {
       />
 
       {ctx.allowed && (
-      <div className="mb-10 grid gap-3 sm:grid-cols-2">
+      <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/members/trichozette"
           className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
@@ -91,6 +89,18 @@ export default async function LearnPage() {
             <span className="block font-semibold">Assistant</span>
             <span className="mt-1 block text-sm leading-relaxed text-ink-2">
               Ask a question about hair and scalp practice and get a careful, considered answer straight away.
+            </span>
+          </span>
+        </Link>
+        <Link
+          href="/members/resources"
+          className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
+        >
+          <FileText className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.6]" />
+          <span className="min-w-0">
+            <span className="block font-semibold">Resources</span>
+            <span className="mt-1 block text-sm leading-relaxed text-ink-2">
+              Print consultation records, referral letters and client handouts written for the consultation room.
             </span>
           </span>
         </Link>

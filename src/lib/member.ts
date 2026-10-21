@@ -7,6 +7,7 @@ import {
   type MembershipStatus,
 } from "@/lib/subscription";
 import { prisma } from "@/lib/prisma";
+import { syncMembershipFromStripe } from "@/lib/stripe-sync";
 import type { ProfessionId } from "@/config/rooms";
 import { canPostInRoom, type Room, type RoomId } from "@/config/rooms";
 import type { StaffRoleId } from "@/config/staff";
@@ -32,8 +33,12 @@ export async function getMemberContext() {
     };
   }
 
-  const [membership, user] = await Promise.all([
-    getMembershipByEmail(session.user.email),
+  let membership = await getMembershipByEmail(session.user.email);
+  // Paid, but the webhook never recorded it: find the subscription in Stripe and record it now.
+  if (!membership.isActive && !devMembershipUnlock() && (await syncMembershipFromStripe(session.user.email))) {
+    membership = await getMembershipByEmail(session.user.email);
+  }
+  const [user] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {

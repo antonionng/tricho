@@ -151,8 +151,8 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
                     <span className="opacity-60">with colleagues across every discipline.</span>
                   </h2>
                   <p className="text-lg leading-relaxed text-paper/75">
-                    Membership includes the community, the monthly case round and member prices on courses and
-                    conferences. Professional adds live masterclasses with recordings, the referral network and a CPD log.
+                    Membership includes the community, monthly live masterclasses, the referral network and member
+                    prices on courses and conferences.
                   </p>
                 </>
               ) : (
@@ -164,8 +164,7 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
                   </h2>
                   <p className="text-lg leading-relaxed text-paper/75">
                     Membership includes the whole Trichozette library and every new edition, plus the community,
-                    the monthly case round and member prices on courses and conferences. Live masterclasses and
-                    recordings come with Professional.
+                    monthly live masterclasses and member prices on courses and conferences.
                   </p>
                 </>
               )}

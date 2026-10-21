@@ -21,7 +21,7 @@ export const revalidate = 300;
 
 export const metadata = pageMetadata({
   title: "Events: gatherings, masterclasses and case rounds",
-  description: `Meet the colleagues you refer to at conferences in England, Ireland and Los Angeles, join the monthly case round, and learn at live masterclasses on the Professional plan, with guest tickets when an event has one.`,
+  description: `Meet the colleagues you refer to at conferences in England, Ireland and Los Angeles, and learn at monthly live masterclasses and case rounds, recorded for members.`,
   path: "/events",
     og: { title: "Meet the colleagues you refer to,", sub: "and learn from a specialist every month.", eyebrow: "Events", img: images.ed27.src, variant: "photo" },
 });
@@ -71,8 +71,7 @@ export default async function EventsPage() {
             {site.name} began as a gathering at {site.originPlace}, and launches online at{" "}
             {site.launch.title} on 5 October. Next, {site.next.city} ({site.next.status.toLowerCase()}). Between
             conferences there are live masterclasses and case rounds online, with recordings, and meetups in
-            each chapter. Case rounds are included with every membership. Live masterclasses and recordings
-            come with Professional, and anyone else can buy a guest ticket when an event has one.
+            each chapter. Members hear about every event first and pay less for tickets.
           </p>
         }
         image={images.ed27}

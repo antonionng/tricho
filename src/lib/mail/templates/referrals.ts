@@ -52,7 +52,7 @@ export function referralBankedEmail(r: RewardFacts): Email {
         `Hello ${firstNameOf(r.name)},`,
         `${who} joined Trichollective with your invitation code and their first payment has now cleared. Thank you for bringing another hair and scalp professional into the community.`,
         "You have earned one month of membership free. Because you do not have a paid membership yet, we are keeping it for you, and it comes off your bill automatically as soon as you join.",
-        "Membership gives you the community, the monthly case round and member prices on courses and conferences, and Professional adds live masterclasses with recordings, the Case Room, the referral network and a CPD log that fills itself in.",
+        "Membership gives you the community, monthly masterclasses and member prices on courses and conferences, and Professional adds the Case Room, the referral network and a CPD log that fills itself in.",
       ].join("\n\n"),
       cta: { label: "Choose your membership", href: "/pricing" },
       secondary: { label: "See your invitations", href: "/members/refer" },

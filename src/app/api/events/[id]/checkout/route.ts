@@ -5,7 +5,6 @@ import { stripe } from "@/lib/stripe";
 import { site } from "@/config/site";
 import { checkoutTermsText } from "@/lib/legal";
 import { getMembershipByEmail } from "@/lib/subscription";
-import { includedAsMemberForEvent } from "@/lib/masterclass-access";
 import {
   CHECKOUT_EXPIRES_MINUTES,
   MAX_GUEST_TICKETS,
@@ -27,9 +26,8 @@ export const dynamic = "force-dynamic";
  *  - GET returns what this visitor would pay, so the button can show the
  *    member price to members and a short name-and-email form to guests.
  *  - POST holds the seats and starts a one-off Stripe Checkout payment.
- * Signed-in members who are included for this event buy one ticket at the
- * member price; everyone else (including Community on a masterclass) may buy
- * up to four at the guest price. Emails are never put in URLs.
+ * Signed-in active members buy one ticket at the member price; everyone else
+ * may buy up to four at the guest price. Emails are never put in URLs.
  */
 
 type Params = { params: Promise<{ id: string }> };
@@ -38,7 +36,6 @@ const eventSelect = {
   id: true,
   slug: true,
   title: true,
-  kind: true,
   startsAt: true,
   capacity: true,
   priceGBP: true,
@@ -53,18 +50,12 @@ async function loadEvent(id: string) {
   return event;
 }
 
-async function buyer(kind: string) {
+async function buyer() {
   const session = await auth();
   const email = session?.user?.email?.toLowerCase();
   if (!session?.user?.id || !email) return null;
   const membership = await getMembershipByEmail(email);
-  const role = session.user.role ?? null;
-  return {
-    userId: session.user.id,
-    email,
-    name: session.user.name ?? null,
-    isMember: includedAsMemberForEvent(kind, membership, role),
-  };
+  return { userId: session.user.id, email, name: session.user.name ?? null, isMember: membership.isActive };
 }
 
 function error(message: string, status: number) {
@@ -76,7 +67,7 @@ export async function GET(_req: Request, { params }: Params) {
   const event = await loadEvent(id);
   if (!event) return error("Tickets for this event are not sold on Trichollective.", 404);
 
-  const who = await buyer(event.kind);
+  const who = await buyer();
   const isMember = !!who?.isMember;
   const price = ticketPrice(event, isMember);
   const usage = await seatUsage(event.id);
@@ -114,7 +105,7 @@ export async function POST(req: Request, { params }: Params) {
     if (!event) return error("Tickets for this event are not sold on Trichollective.", 404);
     if (event.startsAt.getTime() <= Date.now()) return error("This event has already started, so tickets are no longer on sale.", 400);
 
-    const who = await buyer(event.kind);
+    const who = await buyer();
     const isMember = !!who?.isMember;
     const price = ticketPrice(event, isMember);
     if (price.amountPence <= 0) {

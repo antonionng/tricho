@@ -34,17 +34,12 @@ export function BuyTicket({
   eventId,
   slug,
   memberPriceGBP,
-  kind,
-  gated = false,
   returnTo,
   compact = false,
 }: {
   eventId: string;
   slug: string;
   memberPriceGBP: number;
-  kind?: string;
-  /** True when this event is a masterclass and the visitor is not included as a member. */
-  gated?: boolean;
   returnTo?: "members";
   compact?: boolean;
 }) {
@@ -113,19 +108,7 @@ export function BuyTicket({
       </span>
     );
   }
-  const masterclassGuest = (gated || kind === "masterclass") && !quote.member;
   if (quote.amountPence <= 0) {
-    if (masterclassGuest) {
-      return note(
-        <>
-          Live masterclasses are included with{" "}
-          <Link href="/pricing#professional" className="underline underline-offset-4">
-            Professional
-          </Link>
-          . This event has no guest ticket just now, so upgrade to join as a member.
-        </>
-      );
-    }
     return note(
       <>
         This event is free for members.{" "}
@@ -136,6 +119,7 @@ export function BuyTicket({
       </>
     );
   }
+
   const max = Math.max(1, Math.min(quote.maxQuantity, quote.seatsLeft ?? quote.maxQuantity));
   const label = `Buy ${quantity > 1 ? `${quantity} tickets` : "a ticket"} for ${money(quote.amountPence * quantity)}`;
   const quantityPicker = max > 1 && (
@@ -166,21 +150,11 @@ export function BuyTicket({
         </div>
         {quote.member
           ? note("You pay the member price because you are signed in as a member. Payment is handled securely by Stripe.")
-          : masterclassGuest
-            ? note(
-                <>
-                  Live masterclasses are included with{" "}
-                  <Link href="/pricing#professional" className="underline underline-offset-4">
-                    Professional
-                  </Link>
-                  . You can buy a guest ticket here, or upgrade to join as a member. Payment is handled securely by Stripe.
-                </>
-              )
-            : note(
-                memberPriceGBP < quote.amountPence / 100
-                  ? `Members pay ${memberPriceGBP === 0 ? "nothing" : `£${memberPriceGBP}`} for this event. Payment is handled securely by Stripe.`
-                  : "Payment is handled securely by Stripe."
-              )}
+          : note(
+              memberPriceGBP < quote.amountPence / 100
+                ? `Members pay ${memberPriceGBP === 0 ? "nothing" : `£${memberPriceGBP}`} for this event. Payment is handled securely by Stripe.`
+                : "Payment is handled securely by Stripe."
+            )}
         {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
       </div>
     );
@@ -205,25 +179,14 @@ export function BuyTicket({
       {note(
         <>
           Payment is handled securely by Stripe, and your ticket is sent to the email above.{" "}
-          {masterclassGuest ? (
+          {memberPriceGBP * 100 < quote.amountPence && (
             <>
-              Professional members {memberPriceGBP === 0 ? "join at no extra cost" : `pay £${memberPriceGBP}`}. Community
-              members can buy a guest ticket or{" "}
-              <Link href="/pricing#professional" className="underline underline-offset-4">
-                upgrade to Professional
+              Members pay {memberPriceGBP === 0 ? "nothing" : `£${memberPriceGBP}`} when they{" "}
+              <Link href={`/login?next=${encodeURIComponent(returnTo === "members" ? "/members/events" : `/events/${slug}`)}`} className="underline underline-offset-4">
+                sign in first
               </Link>
               .
             </>
-          ) : (
-            memberPriceGBP * 100 < quote.amountPence && (
-              <>
-                Members pay {memberPriceGBP === 0 ? "nothing" : `£${memberPriceGBP}`} when they{" "}
-                <Link href={`/login?next=${encodeURIComponent(returnTo === "members" ? "/members/events" : `/events/${slug}`)}`} className="underline underline-offset-4">
-                  sign in first
-                </Link>
-                .
-              </>
-            )
           )}
         </>
       )}
