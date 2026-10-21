@@ -277,13 +277,13 @@ export default async function HomePage() {
                 eyebrow="What members get"
                 title="Membership puts peer review, CPD"
                 fade="and a referral network in one place."
-                body="Post a case for a second opinion, watch a masterclass recording between clients, and pass a client to the right discipline without hunting for a name. A live masterclass and a case round run every month, with recordings."
+                body="Post a case for a second opinion, watch a masterclass recording between clients, and pass a client to the right discipline without hunting for a name. A case round runs every month for members, and Professional members also get a live masterclass with recordings."
               />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule">
                 {[
                   { icon: MessagesSquare, t: "The community", d: "Ask the space for your field, meet colleagues in your country chapter and message anyone directly." },
                   { icon: Newspaper, t: "Trichozette", d: "Sourced news, and the cosmetic, clinical and medical view of the same topic side by side." },
-                  { icon: CalendarDays, t: "Live masterclasses and case rounds", d: "Monthly, and recorded, so you can catch up between appointments." },
+                  { icon: CalendarDays, t: "Live masterclasses and case rounds", d: "A case round each month for every member, and a live masterclass with recordings on Professional." },
                   { icon: BookOpen, t: "Courses and CPD", d: "Certificates anyone can verify online, and a CPD log that records your learning for you." },
                   { icon: Search, t: "The directory and referrals", d: "Be found by people searching in your area, and refer clients to the right colleague." },
                 ].map(({ icon: Icon, t, d }) => (

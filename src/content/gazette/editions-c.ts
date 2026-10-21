@@ -477,7 +477,7 @@ export const editionsC: Edition[] = [
               "Ask colleagues across every discipline in the members' community spaces.",
               "Be found in the directory by clients and by other professionals looking for someone to refer to.",
               "Read every edition of Trichozette in full, including the archive from 2023 to 2026.",
-              "Learn at monthly masterclasses and case rounds, with recordings to watch between clients.",
+              "Join the monthly case round with colleagues, and learn at live masterclasses on the Professional plan, with recordings to watch between clients.",
             ],
           },
         ],

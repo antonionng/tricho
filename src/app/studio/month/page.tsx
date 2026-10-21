@@ -84,7 +84,7 @@ export default async function MonthPage({ searchParams }: { searchParams: Promis
     {
       done: publishedEvents.some((e) => e.kind === "masterclass"),
       label: "The monthly masterclass is scheduled",
-      help: "Members are promised a live masterclass each month.",
+      help: "Professional members are promised a live masterclass each month.",
       href: "/studio/events?new=1",
     },
   ];
