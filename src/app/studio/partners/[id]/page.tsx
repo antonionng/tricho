@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowUpRight, Check } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/studio/SubmitButton";
-import { Notice, NoAccess, Tag } from "@/components/studio/ui";
+import { Notice, NoAccess, Tag, fieldClass } from "@/components/studio/ui";
 import { PhotoManager } from "@/components/forms/PhotoManager";
 import { ShowcaseFields } from "@/components/partners/ShowcaseFields";
 import { ShowcaseProfile } from "@/components/partners/ShowcaseProfile";
@@ -15,8 +15,9 @@ import { partnerAllowance, readOfferings, readSections } from "@/lib/showcase";
 import { isShowcaseStep, SHOWCASE_STEPS } from "@/lib/showcase-save";
 import { socialLinks } from "@/lib/business-profile";
 import { cn } from "@/lib/utils";
+import { site } from "@/config/site";
 import { studioPage } from "../../_lib/guard";
-import { saveShowcaseStudioAction, setPartnerPublishedAction } from "../actions";
+import { givePageAccessAction, saveShowcaseStudioAction, setPartnerPublishedAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,32 @@ export default async function StudioPartnerEditor({
       </div>
 
       {sp.notice && <Notice tone={sp.tone === "danger" ? "danger" : "default"}>{sp.notice}</Notice>}
+
+      <section aria-labelledby="owner-access" className="max-w-3xl rounded-2xl border border-rule bg-card p-5 sm:p-6">
+        <h2 id="owner-access" className="text-base font-semibold">Owner access</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {page.ownerEmail
+            ? `${page.ownerEmail} can sign in and edit this page from Your business. Resend the email if they can't find it, or enter a different address to hand the page to someone else.`
+            : "Enter the email of the person who will look after this page. They can then sign in with it, with no password, and edit everything themselves. We email them how to sign in and edit the page."}
+        </p>
+        <form action={givePageAccessAction} className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <input type="hidden" name="id" value={page.id} />
+          <input type="hidden" name="step" value={step} />
+          <input
+            type="email"
+            name="email"
+            required
+            defaultValue={page.ownerEmail ?? ""}
+            placeholder="name@business.com"
+            aria-label="Owner's email address"
+            className={cn(fieldClass, "sm:max-w-sm")}
+          />
+          <SubmitButton pendingLabel="Sending…">{page.ownerEmail ? "Save and send the access email" : "Give access and send the email"}</SubmitButton>
+        </form>
+        <p className="mt-2 text-xs text-muted-foreground">
+          The email explains how to sign in and edit each part of the page. Replies come to {site.contactEmail}.
+        </p>
+      </section>
 
       <nav aria-label="Page editor steps">
         <ol className="flex flex-wrap gap-2">

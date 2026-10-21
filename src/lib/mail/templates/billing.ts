@@ -27,11 +27,12 @@ function intervalLabel(interval: string | null | undefined) {
 const FIRST_STEPS: Record<string, string[]> = {
   Community: [
     "- Say hello in Introductions and meet the members of your country chapter",
-    "- Book your place at the next live masterclass or case round",
+    "- Book your place at the next case round or conference",
     "- Read the latest Trichozette edition in full",
   ],
   Professional: [
     "- Add your photo, headline and services to your directory profile",
+    "- Book your place at the next live masterclass",
     "- Bring an anonymised case to the Case Room for peer review",
     "- Find colleagues for referrals across cosmetic, clinical and medical practice",
     "- Watch your CPD log fill in as you learn",
@@ -208,6 +209,44 @@ export function paymentFailedAlert(p: { name: string | null; email: string; plan
     facts,
     cta: { label: "View members", href: "/studio/members" },
     replyTo: p.email,
+  };
+}
+
+/** A subscription renewed and was paid (monthly or yearly). */
+export function renewalPaidAlert(p: { name: string | null; email: string; plan: PlanName; amount: string | null; interval: string | null }): OwnerAlert {
+  const facts: [string, string][] = [
+    ["Name", p.name || "Not given"],
+    ["Email", p.email],
+    ["Plan", p.plan],
+  ];
+  const interval = intervalLabel(p.interval);
+  if (interval) facts.push(["Billing", interval]);
+  if (p.amount) facts.push(["Paid", p.amount]);
+  return {
+    subject: `Payment received: ${p.name || p.email}, ${p.amount ?? p.plan}`,
+    heading: `${p.name || p.email} has paid ${p.amount ? `${p.amount} for` : "for"} their ${p.plan} renewal.`,
+    facts,
+    cta: { label: "View members", href: "/studio/members" },
+    replyTo: p.email,
+  };
+}
+
+/** An event ticket was paid for. */
+export function ticketSoldAlert(t: { name: string | null; email: string; event: string; quantity: number; amount: string | null; priceType: string }): OwnerAlert {
+  const facts: [string, string][] = [
+    ["Name", t.name || "Not given"],
+    ["Email", t.email],
+    ["Event", t.event],
+    ["Places", String(t.quantity)],
+    ["Price", t.priceType === "member" ? "Member price" : "Guest price"],
+  ];
+  if (t.amount) facts.push(["Paid", t.amount]);
+  return {
+    subject: `Ticket sold: ${t.event}, ${t.amount ?? `${t.quantity} place${t.quantity === 1 ? "" : "s"}`}`,
+    heading: `${t.name || t.email} has bought ${t.quantity === 1 ? "a ticket" : `${t.quantity} tickets`} for ${t.event}.`,
+    facts,
+    cta: { label: "View events", href: "/studio/events" },
+    replyTo: t.email,
   };
 }
 

@@ -36,7 +36,7 @@ import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 export const metadata = pageMetadata({
   title: `How the community works`,
   description:
-    "See how Trichollective members get a second opinion in the private Case Room, refer clients across cosmetic, clinical and medical practice, and learn in monthly masterclasses and case rounds.",
+    "See how Trichollective members get a second opinion in the private Case Room, refer clients across cosmetic, clinical and medical practice, join the monthly case round, and learn in live masterclasses on the Professional plan.",
   path: "/community",
     og: { title: "Bring your hardest cases to colleagues", sub: "who have seen them before.", eyebrow: "The community", img: images.ed14.src, variant: "photo" },
 });
@@ -285,23 +285,24 @@ export default function CommunityPage() {
                 eyebrow="Live"
                 title="Learn from a specialist live each month,"
                 fade="or watch the recording between clients."
+                body="Case rounds are included with every membership. Live masterclasses and their recordings come with Professional, and Community members can still buy a guest ticket when an event has one."
               />
               <ul className="flex flex-col divide-y divide-rule border-y border-rule">
                 {[
                   {
                     icon: CalendarDays,
                     t: "A monthly masterclass",
-                    d: "A practitioner or specialist teaches one subject in depth, with time for your questions.",
+                    d: "Included with Professional. A practitioner or specialist teaches one subject in depth, with time for your questions.",
                   },
                   {
                     icon: Microscope,
                     t: "Case rounds",
-                    d: "Verified professionals walk through anonymised cases together, practising differential thinking as each discipline adds what it sees.",
+                    d: "Included with every membership. Colleagues walk through anonymised cases together, practising differential thinking as each discipline adds what it sees.",
                   },
                   {
                     icon: PlayCircle,
                     t: "Recordings",
-                    d: "Every session is recorded and kept in the library, so you can watch when your diary allows.",
+                    d: "Masterclass recordings stay in the Professional library, so you can watch when your diary allows.",
                   },
                 ].map(({ icon: Icon, t, d }) => (
                   <li key={t} className="flex gap-4 py-5">

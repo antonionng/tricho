@@ -8,6 +8,7 @@ const db = {
   rsvpCreateMany: vi.fn(),
   rsvpDeleteMany: vi.fn(),
   deliverOnce: vi.fn(),
+  alertOwners: vi.fn(),
 };
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -25,7 +26,10 @@ vi.mock("@/lib/prisma", () => ({
     },
   },
 }));
-vi.mock("@/lib/mail/send", () => ({ deliverOnce: (...a: unknown[]) => db.deliverOnce(...a) }));
+vi.mock("@/lib/mail/send", () => ({
+  deliverOnce: (...a: unknown[]) => db.deliverOnce(...a),
+  alertOwners: (...a: unknown[]) => db.alertOwners(...a),
+}));
 
 import type Stripe from "stripe";
 import {
@@ -150,6 +154,9 @@ describe("handleTicketCheckoutCompleted", () => {
     expect(ref).toBe("ticket-confirmed:t1");
     expect(to).toBe("niamh@example.com");
     expect(subject).toContain("Scalp masterclass");
+    // The team is told about the sale.
+    expect(db.alertOwners).toHaveBeenCalledTimes(1);
+    expect(db.alertOwners.mock.calls[0][0].subject).toContain("Ticket sold");
   });
 
   it("is idempotent: a retried event changes nothing and the email is deduplicated by ref", async () => {
@@ -157,6 +164,8 @@ describe("handleTicketCheckoutCompleted", () => {
     const r = await handleTicketCheckoutCompleted(session);
     expect(r).toMatchObject({ ok: true, already: true });
     expect(db.deliverOnce.mock.calls[0][0]).toBe("ticket-confirmed:t1");
+    // A retried event never alerts the team twice.
+    expect(db.alertOwners).not.toHaveBeenCalled();
   });
 
   it("does not create an RSVP for a guest", async () => {

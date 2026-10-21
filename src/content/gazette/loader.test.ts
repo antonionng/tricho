@@ -73,7 +73,7 @@ describe("mergeEditions", () => {
   });
 
   it("sorts new monthly editions first and files archive editions separately", () => {
-    const fresh = rowToEdition(row({ number: 9 }), quiet)!;
+    const fresh = rowToEdition(row({ number: Math.max(...editions.map((e) => e.number)) + 1 }), quiet)!;
     const look = rowToEdition(row({ slug: "look-back", series: "archive", period: "2027", focus: "review", number: 202701 }), quiet)!;
     const merged = mergeEditions(staticAll, [fresh, look]);
     expect(merged.editions[0].slug).toBe("studio-edition");

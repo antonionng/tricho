@@ -9,6 +9,7 @@ import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import type { EmailContent } from "../layout";
 import type { OwnerAlert } from "../send";
 import type { EmailSample } from "../catalogue";
+import { confirmLinkFor } from "@/lib/signin-link";
 
 export type Email = { subject: string; content: EmailContent };
 
@@ -19,20 +20,24 @@ const hello = (name?: string | null) => (firstName(name) ? `Hello ${firstName(na
 // Sign-in and new accounts
 // ---------------------------------------------------------------------------
 
-/** The magic link. Sent by NextAuth's email provider. */
-export function signInLinkEmail({ url }: { url: string }): Email {
+/** The magic link and typed code. Sent by NextAuth's email provider. */
+export function signInLinkEmail({ url, code }: { url: string; code?: string }): Email {
   return {
     subject: "Your link to sign in to Trichollective",
     content: {
-      preheader: "Use this link to sign in. It works once and expires in 24 hours.",
+      preheader: code
+        ? `Your sign-in code is ${code}. It works once and expires in 24 hours.`
+        : "Use this link to sign in. It works once and expires in 24 hours.",
       eyebrow: "Sign in",
       heading: "Here is your link to sign in to Trichollective.",
       body: [
         "Press the button below and you will be signed in on this device. There is no password to remember.",
-        "The link works once and expires in 24 hours. If it has expired, you can ask for a new one from the sign-in page.",
+        "If you are on an iPhone and the button does not open your account, type the sign-in code on the sign-in page. The code works on any phone or computer.",
+        "The link and the code work once and expire in 24 hours. If they have expired, you can ask for a new one from the sign-in page.",
         "If you didn't ask for this, you can ignore this email. Nobody can sign in without access to your inbox.",
       ].join("\n\n"),
       cta: { label: "Sign in", href: url },
+      code,
       signoff: null,
       reason: "You receive this because someone asked to sign in to Trichollective with this email address.",
     },
@@ -417,7 +422,7 @@ const sampleEnquiry: PartnerEnquiry = {
 };
 
 export const samples: EmailSample[] = [
-  sample("sign-in-link", "Sign-in link", "Sent when someone asks to sign in with their email address.", "everyone", signInLinkEmail({ url: `${site.url}/api/auth/callback/resend?token=sample` })),
+  sample("sign-in-link", "Sign-in link", "Sent when someone asks to sign in with their email address.", "everyone", signInLinkEmail({ url: confirmLinkFor(`${site.url}/api/auth/callback/resend?token=482917&email=niamh@example.com&callbackUrl=/members`), code: "482917" })),
   sample("welcome-free-account", "Welcome to a free account", "Sent when someone creates a free account by signing in for the first time.", "practitioners", welcomeFreeAccountEmail({ name: "Niamh Walsh" })),
   ownerSample("alert-new-account", "New free account", "Sent to the owners when someone creates a free account.", newAccountAlert({ name: "Niamh Walsh", email: "niamh@example.com" })),
   sample("starter-guide", "Starter guide", "Sent when someone asks for the starter guide.", "public", starterGuideEmail()),

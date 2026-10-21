@@ -34,7 +34,7 @@ export default async function CheckEmailPage({ searchParams }: { searchParams: P
             ) : (
               "We have sent a sign-in link to your email address."
             )}{" "}
-            Open your email app and tap the link to sign in.
+            Open your email app and tap the button, or type the 6-digit code from the email.
           </p>
         </div>
 
@@ -51,9 +51,9 @@ export default async function CheckEmailPage({ searchParams }: { searchParams: P
             </p>
           )}
           <ul className="space-y-3 text-[15px] leading-relaxed text-ink-2">
-            <li>The link works once and expires after 24 hours, so there is no password to remember.</li>
+            <li>The button and the 6-digit code both work once and expire after 24 hours, so there is no password to remember.</li>
             <li>If it has not arrived within a couple of minutes, please check your spam, junk or promotions folder.</li>
-            <li>Open the link on this device if you can, so you go straight into your account.</li>
+            <li>On an iPhone, Gmail or Mail sometimes opens the button in a different browser. If the page asks for a code, type the one from the email.</li>
           </ul>
           <div className="flex flex-col gap-3 pt-1">
             {email && (

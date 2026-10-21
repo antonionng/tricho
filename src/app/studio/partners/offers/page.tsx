@@ -30,7 +30,7 @@ export default async function StudioPartnerOffersPage({
     <div className="space-y-10">
       <PageHeader
         title="Premium offers"
-        intro="For a Premium deal agreed by hand, such as a founding rate. Create the offer here, then send the brand its private link. On one page in their own colours, they read your note and what is included, sign the agreement, pay by card or ask for an invoice, and their partner page opens straight away. The signed PDF is kept here."
+        intro="For a Premium deal agreed by hand, such as a founding rate. Create the offer here, then send the brand its private link. On one page in their own colours, they read your note and what is included, sign the agreement, pay by card or ask for an invoice, and their partner page opens as soon as the payment arrives. The signed PDF is kept here."
         actions={
           !showForm && (
             <Button asChild>

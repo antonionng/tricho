@@ -52,7 +52,7 @@ export function OfferCheckout({ token, label, disabled }: { token: string; label
           size="xl"
           onClick={start}
           disabled={disabled || state === "loading"}
-          className="h-14 w-full bg-[var(--c-accent)] text-base text-[var(--c-on)] hover:bg-[var(--c-accent)]/90 sm:w-auto sm:self-start"
+          className="h-14 w-full text-base sm:w-auto sm:self-start"
         >
           <CreditCard /> {state === "loading" ? "Opening secure payment" : label} <ArrowRight />
         </Button>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { NewsletterForm } from "@/components/site/NewsletterForm";
 import { Cover } from "@/components/gazette/Cover";
 import { TiltCover } from "@/components/gazette/TiltCover";
-import { editionLabel, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { canReadInFull, editionLabel, GATE, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_ACCESS } from "@/content/gazette";
 import { getArchive, getEditions } from "@/content/gazette/loader";
 import { ArchiveShelf } from "@/components/gazette/ArchiveShelf";
 import { PartnerStrip } from "@/components/site/PartnerStrip";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 export const metadata = pageMetadata({
   title: "Trichozette: the Trichollective magazine",
   description:
-    "Trichozette, the Trichollective magazine: sourced news, the cosmetic, clinical and medical view of each topic, Karley's column and a four-year archive from 2023 to 2026. Preview any edition free.",
+    `Trichozette, the Trichollective magazine: sourced news, the cosmetic, clinical and medical view of each topic, Karley's column and a four-year archive from 2023 to 2026. ${TRICHOZETTE_ACCESS === "open" ? "Every edition is free to read." : TRICHOZETTE_ACCESS === "accounts" ? "Read every edition free with a Trichollective account." : "Preview any edition free."}`,
   path: "/trichozette",
     og: { title: "Trichozette", sub: "Three professional perspectives on every topic.", eyebrow: "The Trichollective magazine", img: images.ed02.src, variant: "cover" },
 });
@@ -25,6 +25,7 @@ export const metadata = pageMetadata({
 export default async function GazettePage({ searchParams }: { searchParams: Promise<{ theme?: string; field?: string }> }) {
   const { theme, field } = await searchParams;
   const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
+  const reads = canReadInFull(ctx);
   const [latest, ...rest] = editions;
   const themes = [...new Set(editions.map((e) => e.theme))];
   const shown = theme ? editions.filter((e) => e.theme === theme) : rest;
@@ -48,12 +49,18 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button asChild size="xl">
                   <Link href={`/trichozette/${latest.slug}`}>
-                    {ctx.allowed ? "Read the edition" : "Preview the edition"} <ArrowRight />
+                    {reads ? "Read the edition" : "Preview the edition"} <ArrowRight />
                   </Link>
                 </Button>
                 {!ctx.allowed && (
                   <p className="text-sm text-muted-foreground">
-                    Read the opening pages free. Members read every edition in full.
+                    {TRICHOZETTE_ACCESS === "open"
+                      ? "Every edition is free to read and share."
+                      : reads
+                        ? "Your account reads every edition in full."
+                        : TRICHOZETTE_ACCESS === "accounts"
+                          ? "Read the opening pages free. Create a free account to read every edition in full."
+                          : "Read the opening pages free. Members read every edition in full."}
                   </p>
                 )}
               </div>
@@ -110,11 +117,13 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
                   <p className="mt-1 font-semibold leading-snug">{e.title}</p>
                   <p className="mt-1 text-sm text-ink-2 line-clamp-2">{e.standfirst}</p>
                   <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                    {ctx.allowed ? (
-                      <>{e.pages.length + 2} pages</>
+                    {reads ? (
+                      <>
+                        {e.pages.length + 2} pages{TRICHOZETTE_ACCESS === "open" && !ctx.allowed && " · Free to read"}
+                      </>
                     ) : (
                       <>
-                        <Lock className="h-3 w-3" /> {PUBLIC_PREVIEW_PAGES + 2} free pages · {e.pages.length - PUBLIC_PREVIEW_PAGES} for members
+                        <Lock className="h-3 w-3" /> {PUBLIC_PREVIEW_PAGES + 2} free pages · {e.pages.length - PUBLIC_PREVIEW_PAGES} {GATE.short}
                       </>
                     )}
                   </p>
@@ -125,7 +134,7 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
         </Container>
       </Section>
 
-      <ArchiveShelf archive={archive} field={field} member={ctx.allowed} />
+      <ArchiveShelf archive={archive} field={field} member={reads} />
 
       <PartnerStrip />
 
@@ -134,15 +143,32 @@ export default async function GazettePage({ searchParams }: { searchParams: Prom
           <Container className="grid gap-12 py-20 md:py-24 lg:grid-cols-12">
             <div className="lg:col-span-7 flex flex-col gap-6">
               <p className="label text-paper/60">Membership</p>
-              <h2 className="display text-4xl sm:text-5xl">
-                Read every edition in full,
-                <br />
-                <span className="opacity-60">including the archive from 2023 to 2026.</span>
-              </h2>
-              <p className="text-lg leading-relaxed text-paper/75">
-                Membership includes the whole Trichozette library and every new edition, plus the community,
-                monthly live masterclasses and member prices on courses and conferences.
-              </p>
+              {TRICHOZETTE_ACCESS !== "members" ? (
+                <>
+                  <h2 className="display text-4xl sm:text-5xl">
+                    Join the conversations each edition starts,
+                    <br />
+                    <span className="opacity-60">with colleagues across every discipline.</span>
+                  </h2>
+                  <p className="text-lg leading-relaxed text-paper/75">
+                    Membership includes the community, the monthly case round and member prices on courses and
+                    conferences. Professional adds live masterclasses with recordings, the referral network and a CPD log.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="display text-4xl sm:text-5xl">
+                    Read every edition in full,
+                    <br />
+                    <span className="opacity-60">including the archive from 2023 to 2026.</span>
+                  </h2>
+                  <p className="text-lg leading-relaxed text-paper/75">
+                    Membership includes the whole Trichozette library and every new edition, plus the community,
+                    the monthly case round and member prices on courses and conferences. Live masterclasses and
+                    recordings come with Professional.
+                  </p>
+                </>
+              )}
               <div>
                 <Button asChild size="lg" variant="paper">
                   <Link href="/founding">

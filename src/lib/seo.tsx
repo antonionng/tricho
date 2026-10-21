@@ -29,6 +29,8 @@ export type OgOptions = {
   /** An images.unsplash.com URL (no query string). */
   img?: string;
   variant?: "text" | "photo" | "cover" | "profile";
+  /** For Trichozette covers: the partner the edition is brought to you by. */
+  by?: string;
   alt?: string;
 };
 
@@ -39,6 +41,7 @@ export function ogImageUrl(o: OgOptions & { title: string }) {
   if (o.eyebrow) q.set("eyebrow", o.eyebrow);
   if (o.img) q.set("img", o.img.split("?")[0]);
   if (o.variant) q.set("variant", o.variant);
+  if (o.by) q.set("by", o.by);
   return `/og?${q}`;
 }
 

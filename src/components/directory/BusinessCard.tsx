@@ -2,13 +2,14 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Partner } from "@prisma/client";
 import { partnerLogoSrc, partnerTierLabel } from "@/lib/partners";
+import { PartnerBadge } from "@/components/partners/PartnerBadge";
 import { safeHex, tint } from "@/lib/showcase";
 
 /** A brand, clinic or charity page in the directory: its cover (or colour), logo, name and summary. */
 export function BusinessCard({
   partner,
 }: {
-  partner: Pick<Partner, "slug" | "name" | "tier" | "kind" | "category" | "tagline" | "blurb" | "logoUrl" | "coverUrl" | "accentColor">;
+  partner: Pick<Partner, "slug" | "name" | "tier" | "kind" | "category" | "tagline" | "blurb" | "logoUrl" | "coverUrl" | "accentColor"> & { isFounding?: boolean };
 }) {
   const cover = partnerLogoSrc(partner.coverUrl);
   const logo = partnerLogoSrc(partner.logoUrl);
@@ -21,7 +22,9 @@ export function BusinessCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
         )}
-        {partner.kind !== "gifted" && (
+        {partner.kind !== "gifted" && !charity && partner.tier === "premium" ? (
+          <PartnerBadge size="sm" founding={partner.isFounding} className="absolute left-4 top-4" />
+        ) : partner.kind !== "gifted" && (
         <span
           className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
           style={{ backgroundColor: charity ? accent : "#0B0B0B", color: "#FFFFFF" }}

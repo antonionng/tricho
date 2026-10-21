@@ -6,6 +6,7 @@ import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { getMemberContext } from "@/lib/member";
+import { isMasterclassRecording } from "@/lib/masterclass-access";
 import { prisma } from "@/lib/prisma";
 import { courseBySlug, courses } from "@/content/courses";
 import { progressOf } from "@/lib/courses";
@@ -38,12 +39,14 @@ export default async function LearnPage() {
     return <Paywall title="Learn" body="The library and member prices on courses are part of membership." />;
   }
 
+  // Course buyers without a membership see their courses, not the library.
   const pieces = ctx.allowed
     ? await prisma.educationPiece.findMany({
         where: { published: true },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       })
     : [];
+  const library = ctx.professional ? pieces : pieces.filter((p) => !isMasterclassRecording(p));
   const mine = enrolments
     .map((e) => ({ e, course: courseBySlug(e.courseSlug), progress: progressOf(e.courseSlug, e.lessons, e.lastLessonSlug) }))
     .filter((m): m is typeof m & { course: NonNullable<typeof m.course> } => !!m.course);
@@ -52,7 +55,7 @@ export default async function LearnPage() {
   const cpdHours = earned.reduce((sum, m) => sum + m.e.certificate!.hours, 0);
   const preferred = ctx.profession || "everyone";
   const rank = (a: string) => (a === preferred ? 0 : a === "everyone" ? 1 : 2);
-  const sorted = [...pieces].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
+  const sorted = [...library].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
   const sortedCourses = [...courses].sort(
     (a, b) => Number(b.discipline === ctx.profession) - Number(a.discipline === ctx.profession)
   );
