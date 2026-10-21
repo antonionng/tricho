@@ -215,9 +215,8 @@ export default function LearnPage() {
               <span className="text-fade">as a member.</span>
             </h2>
             <p className="lede max-w-xl">
-              Membership brings lower course prices, some courses at no extra cost, and the monthly case
-              round with the rest of the {site.name} community. Professional members also join a live
-              masterclass each month, with recordings to watch later.
+              Membership brings lower course prices, some courses at no extra cost, and a live masterclass
+              and case round every month with the rest of the {site.name} community, recorded for later.
             </p>
             <Button asChild size="xl">
               <Link href="/pricing">

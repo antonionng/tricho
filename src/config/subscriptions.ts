@@ -39,7 +39,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     eur: { price: 10, foundingPrice: 7, annualPrice: 100, foundingAnnualPrice: 70 },
     audience: "For head spa therapists, stylists, barbers, aestheticians, beauty and nail therapists, and students building their scope of practice",
     summary:
-      "Ask colleagues across every discipline, join the monthly case round and pay less for courses and conferences.",
+      "Ask colleagues across every discipline, learn from monthly masterclasses and pay less for courses and conferences.",
     grantsRole: "individual",
     stripePriceId: process.env.STRIPE_PRICE_ID_COMMUNITY,
     stripeAnnualPriceId: process.env.STRIPE_PRICE_ID_COMMUNITY_ANNUAL,
@@ -48,9 +48,10 @@ export const subscriptionTiers: SubscriptionTier[] = [
     features: [
       "Ask questions in every open space, meet your country chapter and message any member directly",
       "Read every Trichozette edition in full, including the archive from 2023 to 2026, plus the podcast and newsletter",
-      "Join the monthly case round with colleagues across disciplines",
+      "Learn at a live masterclass and case round each month, with recordings to watch between clients",
       "Pay member prices on courses and conferences",
       "Save with member perks from partner brands",
+      "Download printable practice resources: consultation records, a referral guide and letter, a hair pull test record and client handouts",
     ],
   },
   {
@@ -73,7 +74,6 @@ export const subscriptionTiers: SubscriptionTier[] = [
     legacyPriceIds: [process.env.STRIPE_PRICE_ID_MEMBER],
     features: [
       "Everything in Community",
-      "Learn at a live masterclass each month, with recordings to watch between clients",
       "Be found in the directory with a full profile, including a cover photo and up to 6 photos of your practice, and receive enquiries from the public directly",
       "Show a verified badge once we have checked your training and registration by hand",
       "Get peer review on anonymised cases in the Case Room",

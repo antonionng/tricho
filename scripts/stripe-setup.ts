@@ -37,7 +37,7 @@ type PriceSpec = { env: string; lookup: string; gbp: number; eur?: number; inter
 const PLANS: { product: string; description: string; prices: PriceSpec[] }[] = [
   {
     product: "Trichollective Community",
-    description: "The Trichollective community, Trichozette, the monthly case round and member prices.",
+    description: "The Trichollective community, Trichozette, masterclasses and member prices.",
     prices: [
       { env: "STRIPE_PRICE_ID_COMMUNITY", lookup: "tc_community_month", gbp: 900, eur: 1000, interval: "month", nickname: "Community, monthly" },
       { env: "STRIPE_PRICE_ID_COMMUNITY_FOUNDING", lookup: "tc_community_founding_month", gbp: 600, eur: 700, interval: "month", nickname: "Community, founding" },
@@ -47,7 +47,7 @@ const PLANS: { product: string; description: string; prices: PriceSpec[] }[] = [
   },
   {
     product: "Trichollective Professional",
-    description: "Everything in Community, plus live masterclasses with recordings, a full directory profile, enquiries, the Case Room, referrals and the Assistant.",
+    description: "Everything in Community, plus a full directory profile, enquiries, the Case Room, referrals and the Assistant.",
     prices: [
       { env: "STRIPE_PRICE_ID_PROFESSIONAL", lookup: "tc_professional_month", gbp: 1900, eur: 2200, interval: "month", nickname: "Professional, monthly" },
       { env: "STRIPE_PRICE_ID_PROFESSIONAL_FOUNDING", lookup: "tc_professional_founding_month", gbp: 1400, eur: 1600, interval: "month", nickname: "Professional, founding" },

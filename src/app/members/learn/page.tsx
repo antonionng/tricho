@@ -1,12 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Newspaper, Sparkles } from "lucide-react";
+import { ArrowUpRight, FileText, Newspaper, Sparkles } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { getMemberContext } from "@/lib/member";
-import { isMasterclassRecording } from "@/lib/masterclass-access";
 import { prisma } from "@/lib/prisma";
 import { courses } from "@/content/courses";
 import { images, img } from "@/content/images";
@@ -30,10 +29,9 @@ export default async function LearnPage() {
     where: { published: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
-  const library = ctx.professional ? pieces : pieces.filter((p) => !isMasterclassRecording(p));
   const preferred = ctx.profession || "everyone";
   const rank = (a: string) => (a === preferred ? 0 : a === "everyone" ? 1 : 2);
-  const sorted = [...library].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
+  const sorted = [...pieces].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
   const sortedCourses = [...courses].sort(
     (a, b) => Number(b.discipline === ctx.profession) - Number(a.discipline === ctx.profession)
   );
@@ -46,7 +44,7 @@ export default async function LearnPage() {
         lede="Short, careful pieces you can use this week, and courses written with practitioners from each discipline."
       />
 
-      <div className="mb-10 grid gap-3 sm:grid-cols-2">
+      <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/members/trichozette"
           className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
@@ -68,6 +66,18 @@ export default async function LearnPage() {
             <span className="block font-semibold">Assistant</span>
             <span className="mt-1 block text-sm leading-relaxed text-ink-2">
               Ask a question about hair and scalp practice and get a careful, considered answer straight away.
+            </span>
+          </span>
+        </Link>
+        <Link
+          href="/members/resources"
+          className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
+        >
+          <FileText className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.6]" />
+          <span className="min-w-0">
+            <span className="block font-semibold">Resources</span>
+            <span className="mt-1 block text-sm leading-relaxed text-ink-2">
+              Print consultation records, referral letters and client handouts written for the consultation room.
             </span>
           </span>
         </Link>
