@@ -51,6 +51,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
       "Learn at a live masterclass and case round each month, with recordings to watch between clients",
       "Pay member prices on courses and conferences",
       "Save with member perks from partner brands",
+      "Download printable practice resources: consultation records, a referral guide and letter, a hair pull test record and client handouts",
     ],
   },
   {
