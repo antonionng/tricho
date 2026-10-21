@@ -7,7 +7,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: "What do I get when I join?",
-    a: "Colleagues to ask in spaces for each part of the field and in your country chapter, a live masterclass and case round each month with recordings, Trichozette and its archive, and member prices on courses and conferences. The Professional plan adds a public directory profile with enquiries sent to you, the Case Room, the referral network, the Assistant and a CPD log that records your learning automatically.",
+    a: "Colleagues to ask in spaces for each part of the field and in your country chapter, the monthly case round, Trichozette and its archive, and member prices on courses and conferences. The Professional plan adds a live masterclass each month with recordings, a public directory profile with enquiries sent to you, the Case Room, the referral network, the Assistant and a CPD log that records your learning automatically.",
   },
   {
     q: "How is this different from a Facebook group?",
@@ -38,7 +38,7 @@ export const pricingFaqs: Faq[] = [
   },
   {
     q: "Which plan should I choose?",
-    a: "Choose Community if you want colleagues to ask, monthly masterclasses and member prices on learning. Choose Professional if you see clients and want to be found in the directory, receive enquiries, bring cases to the Case Room and use the referral network. Choose Business for a clinic, salon or brand.",
+    a: "Choose Community if you want colleagues to ask, the monthly case round and member prices on learning. Choose Professional if you see clients and want the live monthly masterclass and recordings, to be found in the directory, receive enquiries, bring cases to the Case Room and use the referral network. Choose Business for a clinic, salon or brand.",
   },
   {
     q: "What is the founding price?",

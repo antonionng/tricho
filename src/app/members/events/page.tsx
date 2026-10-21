@@ -11,6 +11,7 @@ import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { eventDay, timeOfDay } from "@/components/members/format";
 import { EVENT_KIND_LABEL, formatPrice } from "@/components/editorial/events";
 import { getMemberContext } from "@/lib/member";
+import { isMasterclassEventKind } from "@/lib/masterclass-access";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
 
@@ -94,6 +95,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             const full = e.sellTickets ? left === 0 : e.capacity != null && e.rsvps.length >= e.capacity;
             const local = !!ctx.chapterId && e.chapterId === ctx.chapterId;
             const attendees = e.rsvps.map((r) => r.user).filter((u) => u.accessStatus === "active");
+            const includedAsMember = !isMasterclassEventKind(e.kind) || ctx.professional;
             return (
               <li key={e.id} className="relative flex gap-4 rounded-2xl border border-rule bg-card p-4 sm:gap-5 sm:p-5">
                 <div className="grid h-16 w-14 shrink-0 place-items-center rounded-2xl bg-paper-2 text-center leading-none sm:h-20 sm:w-16">
@@ -121,7 +123,15 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                       {e.online ? <Video className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
                       {e.online ? "Online" : [e.venue, e.city].filter(Boolean).join(", ") || "Venue to be confirmed"}
                     </span>
-                    <span>{e.memberPriceGBP > 0 ? `${formatPrice(e.memberPriceGBP)} for members` : "Free for members"}</span>
+                    <span>
+                      {isMasterclassEventKind(e.kind)
+                        ? e.memberPriceGBP > 0
+                          ? `${formatPrice(e.memberPriceGBP)} for Professional members`
+                          : "Included with Professional"
+                        : e.memberPriceGBP > 0
+                          ? `${formatPrice(e.memberPriceGBP)} for members`
+                          : "Free for members"}
+                    </span>
                     {e.sellTickets && e.priceGBP > 0 && <span>{formatPrice(e.priceGBP)} for guests</span>}
                     {left != null && left > 0 && <span>{left} {left === 1 ? "place" : "places"} left</span>}
                   </p>
@@ -136,6 +146,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                       hasTicket={hasTicket}
                       full={full}
                       started={e.startsAt < now}
+                      includedAsMember={includedAsMember}
                     />
                     <Link
                       href={`/members/events/${e.slug}`}

@@ -72,7 +72,7 @@ export function LaunchLanding({
     {
       icon: MessagesSquare,
       t: "Ask colleagues across every discipline, on any day of the year.",
-      d: "Head spa therapists, stylists, trichologists, nurses and doctors share what they know in one private community, with a live masterclass and case round every month.",
+      d: "Head spa therapists, stylists, trichologists, nurses and doctors share what they know in one private community, with a case round every month and a live masterclass on Professional.",
     },
     {
       icon: Stethoscope,

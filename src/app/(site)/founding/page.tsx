@@ -158,7 +158,7 @@ export default async function FoundingPage() {
             eyebrow="What founding members get"
             title="Join first and you pay less, for as long as you stay,"
             fade="and help decide what we build next."
-            body="Every member gets the community, Trichozette, live masterclasses and member prices. Founding members also get these."
+            body="Every member gets the community, Trichozette, the monthly case round and member prices. Professional members also join the live monthly masterclass, with recordings. Founding members also get these."
           />
           <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-rule bg-rule sm:grid-cols-2">
             {benefits.map(({ icon: Icon, t, d }, i) => (

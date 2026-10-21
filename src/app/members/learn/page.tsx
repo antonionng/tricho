@@ -6,6 +6,7 @@ import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { getMemberContext } from "@/lib/member";
+import { isMasterclassRecording } from "@/lib/masterclass-access";
 import { prisma } from "@/lib/prisma";
 import { courses } from "@/content/courses";
 import { images, img } from "@/content/images";
@@ -29,9 +30,10 @@ export default async function LearnPage() {
     where: { published: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
+  const library = ctx.professional ? pieces : pieces.filter((p) => !isMasterclassRecording(p));
   const preferred = ctx.profession || "everyone";
   const rank = (a: string) => (a === preferred ? 0 : a === "everyone" ? 1 : 2);
-  const sorted = [...pieces].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
+  const sorted = [...library].sort((a, b) => rank(a.audience) - rank(b.audience) || a.sortOrder - b.sortOrder);
   const sortedCourses = [...courses].sort(
     (a, b) => Number(b.discipline === ctx.profession) - Number(a.discipline === ctx.profession)
   );

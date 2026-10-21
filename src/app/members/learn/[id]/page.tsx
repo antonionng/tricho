@@ -3,10 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/site/primitives";
-import { Paywall } from "@/components/members/Paywall";
+import { Paywall, ProfessionalUpsell } from "@/components/members/Paywall";
 import { MemberPage } from "@/components/members/MemberPage";
 import { PlainTextBody } from "@/components/members/PlainTextBody";
 import { getMemberContext } from "@/lib/member";
+import { isMasterclassRecording } from "@/lib/masterclass-access";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Learn" };
@@ -19,6 +20,25 @@ export default async function LearnPiecePage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const piece = await prisma.educationPiece.findUnique({ where: { id } });
   if (!piece || !piece.published) notFound();
+  if (isMasterclassRecording(piece) && !ctx.professional) {
+    return (
+      <MemberPage size="narrow">
+        <Link href="/members/learn" className="-ml-2 inline-flex h-10 items-center gap-1.5 rounded-full px-2 text-sm text-ink-2 hover:text-ink">
+          <ArrowLeft className="h-4 w-4" /> Learn
+        </Link>
+        <h1 className="display mt-4 mb-8 text-[2.4rem] sm:text-5xl">{piece.title}</h1>
+        <ProfessionalUpsell
+          title="Masterclass recordings come with Professional"
+          body="Live monthly masterclasses and their recordings are included from Professional up. Community members can still buy a guest ticket for a live session when the event has one."
+          points={[
+            "A live masterclass each month, with time for questions",
+            "Recordings to watch between clients",
+            "Hours added to your CPD log automatically",
+          ]}
+        />
+      </MemberPage>
+    );
+  }
 
   const prompt = encodeURIComponent(
     `Help me apply this Trichollective piece in practice: "${piece.title}". Summary: ${piece.summary}`

@@ -27,11 +27,12 @@ function intervalLabel(interval: string | null | undefined) {
 const FIRST_STEPS: Record<string, string[]> = {
   Community: [
     "- Say hello in Introductions and meet the members of your country chapter",
-    "- Book your place at the next live masterclass or case round",
+    "- Book your place at the next case round or conference",
     "- Read the latest Trichozette edition in full",
   ],
   Professional: [
     "- Add your photo, headline and services to your directory profile",
+    "- Book your place at the next live masterclass",
     "- Bring an anonymised case to the Case Room for peer review",
     "- Find colleagues for referrals across cosmetic, clinical and medical practice",
     "- Watch your CPD log fill in as you learn",
