@@ -126,3 +126,42 @@ export async function writeEventBodyAction(form: FormData) {
     })
   );
 }
+
+/**
+ * Email every active member that an event is about to start, with the joining link. Each member
+ * gets it once per event however many times this is pressed, and the send is paced for the
+ * email provider. The member list includes anyone Stripe shows as paying.
+ */
+export async function emailMembersStartingAction(form: FormData) {
+  const staff = await requirePermission("events.edit");
+  const id = s(form, "eventId", 100);
+  const back = (notice: string, tone?: string) =>
+    redirect(`/studio/events/${id}/attendees?${new URLSearchParams({ notice, ...(tone ? { tone } : {}) })}`);
+  if (form.get("confirm") !== "on") back("Tick the box to confirm before sending to every member.", "danger");
+
+  const event = await prisma.event.findUnique({ where: { id } });
+  if (!event || !event.published) back("Only a published event can be sent to members.", "danger");
+  if (event!.online && !event!.joinUrl) back("Add the Google Meet link to the event first, so the email can carry it.", "danger");
+
+  const { activeMemberRecipients } = await import("@/lib/member-recipients");
+  const { deliverOnce } = await import("@/lib/mail/send");
+  const { eventStartingEmail } = await import("@/lib/mail/templates/members");
+  const recipients = await activeMemberRecipients();
+  const paced = !!process.env.AUTH_RESEND_KEY;
+  let sent = 0;
+  for (const r of recipients) {
+    const { subject, content } = eventStartingEmail({ name: r.name, event: event! });
+    if (await deliverOnce(`event-starting:${event!.id}:${r.email}`, r.email, subject, content, { tag: "event-starting" })) sent++;
+    if (paced) await new Promise((done) => setTimeout(done, 250));
+  }
+  await audit(staff, {
+    action: "event.email_members_starting",
+    targetType: "event",
+    targetId: event!.id,
+    summary: `Emailed ${sent} of ${recipients.length} members that "${event!.title}" is starting.`,
+  });
+  const skipped = recipients.length - sent;
+  back(
+    `Sent to ${sent} ${sent === 1 ? "member" : "members"}.${skipped > 0 ? ` ${skipped} had already received it or could not be sent.` : ""}`
+  );
+}
