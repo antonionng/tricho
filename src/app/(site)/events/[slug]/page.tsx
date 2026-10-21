@@ -197,9 +197,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                       <p className="label text-muted-foreground">Tickets</p>
                       <p className="display mt-2 text-5xl">{formatPrice(event.memberPriceGBP)}</p>
                       <p className="text-[15px] text-ink-2">
-                        {event.kind === "masterclass"
-                          ? `for Professional members, and ${event.priceGBP === 0 ? "free" : formatPrice(event.priceGBP)} for guests and Community members.`
-                          : `for members, and ${event.priceGBP === 0 ? "free" : formatPrice(event.priceGBP)} for guests.`}
+                        for members, and {event.priceGBP === 0 ? "free" : formatPrice(event.priceGBP)} for guests.
                       </p>
                       {left != null && (
                         <p className="text-[15px] text-ink-2">
@@ -207,12 +205,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                         </p>
                       )}
                     </div>
-                    <BuyTicket
-                      eventId={event.id}
-                      slug={event.slug}
-                      memberPriceGBP={event.memberPriceGBP}
-                      kind={event.kind}
-                    />
+                    <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} />
                   </div>
                 )}
                 {!isPast && !event.sellTickets && event.ticketUrl && (
@@ -237,16 +230,14 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                       <p className="label text-muted-foreground">Tickets</p>
                       <p className="display mt-2 text-5xl">{formatPrice(event.memberPriceGBP)}</p>
                       <p className="text-[15px] text-ink-2">
-                        {event.kind === "masterclass"
-                          ? `for Professional members · ${formatPrice(event.priceGBP)} for guests and Community members`
-                          : `for members · ${formatPrice(event.priceGBP)} otherwise`}
+                        for members · {formatPrice(event.priceGBP)} otherwise
                       </p>
                     </div>
                     {/* Phase 2: replace the mailto with Stripe ticketing and member RSVPs (EventRsvp). */}
                     <div className="flex flex-col gap-4">
                       <Button asChild size="lg" className="w-full">
-                        <Link href={event.kind === "masterclass" ? "/pricing#professional" : "/pricing"}>
-                          {event.kind === "masterclass" ? "See Professional" : "Members pay less"} <ArrowRight />
+                        <Link href="/pricing">
+                          Members pay less <ArrowRight />
                         </Link>
                       </Button>
                       <a

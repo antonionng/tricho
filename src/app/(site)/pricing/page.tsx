@@ -42,8 +42,7 @@ const comparison: { group: string; rows: { label: string; values: [Cell, Cell, C
       { label: "Open spaces, your country chapter and direct messages", values: [false, true, true, true] },
       { label: "The Case Room, for peer review of anonymised cases", values: [false, false, true, true] },
       { label: "Referral network across cosmetic, clinical and medical practice", values: [false, false, true, true] },
-      { label: "Monthly case round with colleagues", values: [false, true, true, true] },
-      { label: "Monthly live masterclass, with recordings", values: [false, false, true, true] },
+      { label: "Monthly live masterclass and case round, with recordings", values: [false, true, true, true] },
     ],
   },
   {

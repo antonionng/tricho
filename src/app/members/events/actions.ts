@@ -9,7 +9,6 @@ import { getRooms } from "@/lib/rooms";
 import { deliver } from "@/lib/mail/send";
 import { rsvpConfirmedEmail } from "@/lib/mail/templates/members";
 import { seatUsage, seatsLeft } from "@/lib/tickets";
-import { isMasterclassEventKind } from "@/lib/masterclass-access";
 
 export type RsvpResult = { ok: boolean; going?: boolean; error?: string };
 
@@ -23,7 +22,7 @@ export async function toggleRsvp(eventId: string): Promise<RsvpResult> {
 
   const event = await prisma.event.findFirst({
     where: { id: eventId, published: true },
-    select: { id: true, slug: true, kind: true, capacity: true, startsAt: true, sellTickets: true, memberPriceGBP: true, _count: { select: { rsvps: true } } },
+    select: { id: true, slug: true, capacity: true, startsAt: true, sellTickets: true, memberPriceGBP: true, _count: { select: { rsvps: true } } },
   });
   if (!event) return { ok: false, error: "This event is no longer listed." };
 
@@ -38,13 +37,6 @@ export async function toggleRsvp(eventId: string): Promise<RsvpResult> {
     going = false;
   } else {
     if (event.startsAt.getTime() < Date.now()) return { ok: false, error: "This event has already started, so places can no longer be reserved." };
-    // Community members keep any existing place; new free RSVPs for masterclasses are Professional only.
-    if (isMasterclassEventKind(event.kind) && !ctx.professional) {
-      return {
-        ok: false,
-        error: "Live masterclasses are included with Professional. You can buy a guest ticket from the event page, or upgrade to join as a member.",
-      };
-    }
     // When tickets are sold here, members pay through checkout unless the event is free for them.
     if (event.sellTickets && event.memberPriceGBP > 0) return { ok: false, error: "This is a paid event, so please buy a ticket to reserve your place." };
     if (event.sellTickets) {

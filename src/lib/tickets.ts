@@ -9,10 +9,9 @@ import { ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
  * Native event tickets, paid through Stripe Checkout (one-off payments).
  *
  * Rules, kept deliberately simple:
- *  - A signed-in member who is included for this event pays the member price
- *    and buys one ticket. Community members are guests on masterclasses.
- *  - Everyone else (guests, Community on a masterclass, and signed-in accounts
- *    without membership) pays the guest price and may buy up to four tickets.
+ *  - An active member who is signed in pays the member price and buys one ticket.
+ *  - Everyone else (guests, and signed-in accounts without membership) pays the
+ *    guest price and may buy up to four tickets in one order.
  *  - A price of £0 for the buyer means no checkout: members save a free place
  *    with an RSVP instead.
  *  - A pending ticket holds its seats while its Checkout Session is open. The

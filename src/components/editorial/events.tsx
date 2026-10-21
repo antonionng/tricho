@@ -61,11 +61,11 @@ export const EVENT_KINDS_EXPLAINED = [
   },
   {
     title: "Monthly masterclasses",
-    body: "Included with Professional. Learn from a specialist live each month and add the hours to your CPD log, with a recording to watch later if you are with clients. Community members and guests can buy a ticket when the event has one."
+    body: "Learn from a specialist live each month and add the hours to your CPD log, with a recording to watch later if you are with clients."
   },
   {
     title: "Case rounds",
-    body: "Included with every membership. Bring an anonymised case and hear how a trichologist, a doctor and a cosmetic practitioner would each approach it, so you leave with a clearer plan."
+    body: "Bring an anonymised case and hear how a trichologist, a doctor and a cosmetic practitioner would each approach it, so you leave with a clearer plan."
   },
   {
     title: "Chapter meetups",
@@ -172,7 +172,7 @@ export function EventRow({ event, past = false }: { event: PublicEvent; past?: b
         <div className="col-start-2 flex items-center justify-between gap-6 sm:col-start-3 sm:flex-col sm:items-end sm:justify-center sm:gap-1">
           {!past && (
             <p className="text-[14px] text-ink-2">
-              {formatPrice(event.memberPriceGBP)} {event.kind === "masterclass" ? "for Professional members" : "for members"}
+              {formatPrice(event.memberPriceGBP)} for members
               <span className="text-muted-foreground"> · {formatPrice(event.priceGBP)} otherwise</span>
             </p>
           )}

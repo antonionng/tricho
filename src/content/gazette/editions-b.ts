@@ -1371,7 +1371,7 @@ export const editionsB: Edition[] = [
           { type: "h", text: "After the day in Ireland" },
           {
             type: "p",
-            text: "The next conference will be in Los Angeles, with the date to be confirmed. Between events, the platform is where the community carries on: in the spaces, the local chapters, the monthly case rounds, the live masterclasses on Professional and the courses.",
+            text: "The next conference will be in Los Angeles, with the date to be confirmed. Between events, the platform is where the community carries on: in the spaces, the local chapters, the monthly live masterclasses and the courses.",
           },
           {
             type: "callout",
@@ -1628,7 +1628,7 @@ export const editionsB: Edition[] = [
           { type: "h", text: "Learning" },
           {
             type: "p",
-            text: "Courses can be completed at your own pace, and each one finished earns a certificate of completion. Monthly live masterclasses, included with Professional, offer a chance to learn in real time and put questions directly. Trichozette, which you are reading now, sits alongside both.",
+            text: "Courses can be completed at your own pace, and each one finished earns a certificate of completion. Monthly live masterclasses offer a chance to learn in real time and put questions directly. Trichozette, which you are reading now, sits alongside both.",
           },
           {
             type: "callout",
