@@ -165,3 +165,40 @@ export async function emailMembersStartingAction(form: FormData) {
     `Sent to ${sent} ${sent === 1 ? "member" : "members"}.${skipped > 0 ? ` ${skipped} had already received it or could not be sent.` : ""}`
   );
 }
+
+/**
+ * Tell every user about a published masterclass, in the app, and draft the announcement email
+ * if it hasn't been drafted yet. Safe to press again: nobody is notified twice about the same
+ * masterclass, so a second press only reaches people who joined or were missed since.
+ */
+export async function notifyMasterclassAction(form: FormData) {
+  const staff = await requirePermission("events.edit");
+  const id = s(form, "eventId", 100);
+  const back = (notice: string, tone?: string) => redirect(eventsUrl({ notice, tone }));
+
+  const event = await prisma.event.findUnique({ where: { id }, select: { id: true, title: true, kind: true, published: true, startsAt: true } });
+  if (!event || event.kind !== "masterclass") back("Only a masterclass can be announced to everyone this way.", "danger");
+  if (!event!.published || event!.startsAt <= new Date()) back("Publish the masterclass, with a date still to come, before notifying everyone.", "danger");
+
+  const { announceMasterclass } = await import("@/agents/announce");
+  const result = await announceMasterclass(event!.id);
+  if (!result) back("Everyone couldn't be notified just now. Please try again in a moment.", "danger");
+  await audit(staff, {
+    action: "event.announce",
+    targetType: "event",
+    targetId: event!.id,
+    summary: `Told ${result!.notified} more ${result!.notified === 1 ? "person" : "people"} in the app about the masterclass "${event!.title}"${result!.drafted ? " and drafted the announcement email" : ""}.`,
+  });
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/studio", "layout");
+  back(
+    [
+      result!.notified > 0
+        ? `${result!.notified} ${result!.notified === 1 ? "person has" : "people have"} been told in the app.`
+        : "Everyone has already been told in the app.",
+      result!.drafted ? "The announcement email is waiting for your approval in the inbox." : "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+}

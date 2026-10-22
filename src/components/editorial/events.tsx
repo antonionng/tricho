@@ -24,6 +24,8 @@ export const publicEventSelect = {
   capacity: true,
   ticketUrl: true,
   sellTickets: true,
+  presenters: true,
+  sponsor: { select: { name: true, slug: true, published: true } },
   chapter: { select: { slug: true, city: true } },
 } as const;
 
@@ -42,6 +44,8 @@ export type PublicEvent = {
   priceGBP: number;
   memberPriceGBP: number;
   capacity: number | null;
+  presenters?: string | null;
+  sponsor?: { name: string; slug: string; published: boolean } | null;
   chapter: { slug: string; city: string } | null;
 };
 
