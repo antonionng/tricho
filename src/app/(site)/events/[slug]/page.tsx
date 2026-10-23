@@ -23,6 +23,7 @@ import { seatUsage, seatsLeft } from "@/lib/tickets";
 import { prisma } from "@/lib/prisma";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
+import { isReviewLink } from "@/lib/review";
 
 export const revalidate = 300;
 
@@ -32,13 +33,18 @@ const getEvent = cache(async (slug: string) => {
   try {
     return await prisma.event.findFirst({
       where: { slug, published: true },
-      select: publicEventSelect,
+      select: { ...publicEventSelect, published: true },
     });
   } catch (err) {
     console.error("[events] failed to load event", slug, err);
     return null;
   }
 });
+
+/** For a private review link: the event whether or not it is published yet. */
+async function getEventForReview(slug: string) {
+  return prisma.event.findFirst({ where: { slug }, select: { ...publicEventSelect, published: true } }).catch(() => null);
+}
 
 export async function generateStaticParams(): Promise<Params[]> {
   try {
@@ -66,9 +72,16 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   });
 }
 
-export default async function EventPage({ params }: { params: Promise<Params> }) {
+export default async function EventPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<Params>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
-  const event = await getEvent(slug);
+  const review = await isReviewLink(searchParams);
+  const event = review ? await getEventForReview(slug) : await getEvent(slug);
   if (!event) notFound();
 
   const isPast = (event.endsAt ?? event.startsAt) < new Date();
@@ -102,6 +115,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                 <Pill>{EVENT_KIND_LABEL[event.kind]}</Pill>
                 <Pill>{event.online ? "Online" : event.city ?? "In person"}</Pill>
                 {event.sponsor && <Pill>Sponsored by {event.sponsor.name}</Pill>}
+                {!event.published && <Pill>Draft preview: not published</Pill>}
                 {isPast && <Pill>This event has taken place</Pill>}
               </div>
               <h1 className="display text-[2.5rem] leading-[0.98] sm:text-6xl lg:text-[4.25rem]">
