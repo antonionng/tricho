@@ -65,6 +65,10 @@ export type EventInput = {
   published: boolean;
   /** Sell tickets on Trichollective through Stripe. When on, any external ticket link is cleared. */
   sellTickets: boolean;
+  /** Who presents it, e.g. "Adam Bond (LIVDOR) and Karley Weir". */
+  presenters: string | null;
+  /** The sponsoring partner's id, when the event is sponsored. */
+  sponsorPartnerId: string | null;
 };
 
 export type RequiredEventField = "title" | "kind" | "summary" | "startsAt";
@@ -114,6 +118,8 @@ export function validateEventInput(raw: Raw): EventValidation {
     ticketUrl: sellTickets ? null : cleanUrl(text(raw, "ticketUrl", 500)),
     published: flag(raw, "published"),
     sellTickets,
+    presenters: text(raw, "presenters", 200) || null,
+    sponsorPartnerId: text(raw, "sponsorPartnerId", 64) || null,
   };
 
   const missing: RequiredEventField[] = [];
