@@ -2,10 +2,11 @@ import "server-only";
 import { timingSafeEqual } from "node:crypto";
 
 /**
- * Private review links. Where REVIEW_TOKEN is set (preview deployments), adding
- * `?review=<REVIEW_TOKEN>` to an edition or event address shows the whole edition, or an
- * event that isn't published yet, to whoever holds the link. Where it isn't set, nothing
- * changes and pages never read the query string, so cached pages stay cached.
+ * Private review links for Trichozette. Where REVIEW_TOKEN is set (preview deployments),
+ * adding `?review=<REVIEW_TOKEN>` to an edition's address shows the whole edition to whoever
+ * holds the link. Where it isn't set, nothing changes and the query string is never read.
+ * Only use it on pages that already render per request (the edition reader does), because
+ * reading the query string on a cached page breaks it.
  */
 export function reviewEnabled() {
   return (process.env.REVIEW_TOKEN ?? "").length >= 24;
