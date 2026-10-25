@@ -142,8 +142,10 @@ export function eventAnnouncement(e: EmailEvent & { kind?: string }): Announceme
   const pricing =
     guest === 0 && member === 0
       ? "It is free to attend."
-      : member < guest
-        ? `Members pay ${price(member)} and guests pay ${price(guest)}.`
+      : member === 0
+        ? `It is free for members, and guests pay ${price(guest)}.`
+        : member < guest
+          ? `Members pay ${price(member)} and guests pay ${price(guest)}.`
         : `Places cost ${price(guest)}.`;
   const where = e.online ? "online" : `at ${eventWhere(e)}`;
   const facts: [string, string][] = [
@@ -163,6 +165,41 @@ export function eventAnnouncement(e: EmailEvent & { kind?: string }): Announceme
     href,
     image,
     cta: { label: "See the event and book", href },
+    facts,
+  };
+}
+
+export const MASTERCLASS_CTA = "Buy a ticket, or sign up as a member to join and watch live";
+
+/**
+ * A new masterclass, for everyone on the updates list. Sponsored masterclasses say so in
+ * the eyebrow, the body and the facts, because sponsored content is always labelled.
+ */
+export function masterclassAnnouncement(
+  e: EmailEvent & { kind?: string; presenters?: string | null; sponsorName?: string | null }
+): Announcement {
+  const base = eventAnnouncement({ ...e, kind: "masterclass" });
+  const presenters = e.presenters?.trim() || null;
+  const sponsor = e.sponsorName?.trim() || null;
+  const facts: [string, string][] = [
+    ...(base.facts ?? []),
+    ...(presenters ? ([["Presenters", presenters]] as [string, string][]) : []),
+    ...(sponsor ? ([["Sponsored by", sponsor]] as [string, string][]) : []),
+  ];
+  const pricing = base.body.split("\n\n").slice(1).join("\n\n");
+  return {
+    ...base,
+    subject: `New masterclass: ${e.title}`,
+    eyebrow: sponsor ? `Masterclass, sponsored by ${sponsor}` : "New masterclass",
+    heading: `${e.title}: a live masterclass on ${eventDay(e.startsAt)}.`,
+    body: [
+      ...(sponsor ? [`Sponsored by ${sponsor}. Like every Trichollective masterclass, it teaches rather than sells.`] : []),
+      e.summary,
+      ...(presenters ? [`Presented by ${presenters}.`] : []),
+      pricing,
+      "The session is recorded for the member library.",
+    ].join("\n\n"),
+    cta: { label: MASTERCLASS_CTA, href: base.href },
     facts,
   };
 }

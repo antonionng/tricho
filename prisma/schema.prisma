@@ -529,6 +529,8 @@ model Notification {
   title     String
   href      String?
   readAt    DateTime?
+  /// One notification per ref, e.g. "masterclass:{eventId}:{userId}", so retries never repeat one.
+  refKey    String?   @unique
   createdAt DateTime  @default(now())
 
   @@index([userId, createdAt])
@@ -617,6 +619,13 @@ model Event {
   published      Boolean       @default(false)
   /// Sell tickets on Trichollective through Stripe instead of an external link.
   sellTickets    Boolean       @default(false)
+  /// Who presents it, e.g. "Adam Bond (LIVDOR) and Karley Weir". Shown on the event and in its announcement.
+  presenters     String?
+  /// The partner who sponsors it. A sponsored event is always labelled "Sponsored by".
+  sponsorPartnerId String?
+  sponsor        Partner?      @relation("EventSponsor", fields: [sponsorPartnerId], references: [id], onDelete: SetNull)
+  /// When everyone was first told about this masterclass, so saving or republishing never notifies twice.
+  announcedAt    DateTime?
   chapterId      String?
   chapter        Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   rsvps          EventRsvp[]
@@ -626,6 +635,7 @@ model Event {
   updatedAt DateTime @updatedAt
 
   @@index([published, startsAt])
+  @@index([sponsorPartnerId])
 }
 
 model EventRsvp {
@@ -748,6 +758,8 @@ model Partner {
   organisation  Organisation?
   stats         PartnerStat[]
   jobs          Job[]
+  /// Masterclasses and other events this partner sponsors.
+  sponsoredEvents Event[] @relation("EventSponsor")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 

@@ -6,6 +6,7 @@ import { editionLabel, allEditions, canReadInFull, pageKicker, pageTitle, PUBLIC
 import { getArchive, getEditionBySlug, getEditions } from "@/content/gazette/loader";
 import { getMemberContext } from "@/lib/member";
 import { withPartnerLogos } from "@/lib/gazette-partners";
+import { isReviewLink } from "@/lib/review";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -36,13 +37,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   });
 }
 
-export default async function EditionPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function EditionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const found = await getEditionBySlug((await params).slug);
   if (!found) notFound();
   const edition = await withPartnerLogos(found);
 
   const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
-  const full = canReadInFull(ctx);
+  // A private review link shows the whole edition to whoever holds it, signed in or not.
+  const full = canReadInFull(ctx) || (await isReviewLink(searchParams));
 
   // Gated pages never leave the server for readers without access: only their titles do.
   // The gate carries the ways to join, so the edition's own join page isn't listed among them.

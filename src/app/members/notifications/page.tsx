@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bell, Briefcase, GraduationCap, MessageCircle, UserPlus, MessagesSquare, ThumbsUp } from "lucide-react";
-import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { MarkAllRead } from "@/components/members/MarkAllRead";
 import { timeAgo } from "@/components/members/format";
@@ -18,12 +17,13 @@ const ICONS: Record<string, typeof Bell> = {
   useful: ThumbsUp,
   job: Briefcase,
   course: GraduationCap,
+  masterclass: GraduationCap,
 };
 
 export default async function NotificationsPage() {
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/notifications");
-  if (!ctx.allowed) return <Paywall title="Notifications" body="Replies, messages and follows appear here once you're a member." />;
+  // Every account reads its own notifications: free accounts are told about new masterclasses too.
 
   const items = await prisma.notification.findMany({
     where: { userId: ctx.session.user.id },

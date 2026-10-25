@@ -101,6 +101,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
               <div className="flex flex-wrap gap-2">
                 <Pill>{EVENT_KIND_LABEL[event.kind]}</Pill>
                 <Pill>{event.online ? "Online" : event.city ?? "In person"}</Pill>
+                {event.sponsor && <Pill>Sponsored by {event.sponsor.name}</Pill>}
                 {isPast && <Pill>This event has taken place</Pill>}
               </div>
               <h1 className="display text-[2.5rem] leading-[0.98] sm:text-6xl lg:text-[4.25rem]">
@@ -109,6 +110,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                 <span className="text-fade">{formatEventDate(event.startsAt)}</span>
               </h1>
               <p className="lede max-w-2xl">{event.summary}</p>
+              {event.presenters && <p className="text-ink-2">Presented by {event.presenters}.</p>}
             </div>
             <div className="lg:col-span-5">
               <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-paper-2 lg:aspect-[4/5]">
