@@ -59,3 +59,10 @@ describe("masterclassAnnouncement", () => {
     for (const s of [subject, text, html]) expect(s).not.toContain("—");
   });
 });
+
+describe("email images", () => {
+  it("use the full address for our own photographs", () => {
+    const { html } = renderEmail({ preheader: "Hi.", heading: "Hi.", body: "Body.", image: "ire11" });
+    expect(html).toMatch(/src="https?:\/\/[^"]+\/gazette\/ireland-2026\/group-mirror\.jpg"/);
+  });
+});
