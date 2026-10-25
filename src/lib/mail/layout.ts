@@ -91,7 +91,12 @@ export function bodyToHtml(text: string) {
 function imageOf(img: EmailImage) {
   const { src, alt } = typeof img === "string" ? images[img] : img;
   // Unsplash (imgix) renders black and white server-side, so the email matches the site.
-  const url = src.includes("images.unsplash.com") ? `${src}?w=1120&h=640&fit=crop&crop=faces,top&auto=format&q=75&sat=-100` : src;
+  // Our own photographs live in public/, so email clients need the full address.
+  const url = src.includes("images.unsplash.com")
+    ? `${src}?w=1120&h=640&fit=crop&crop=faces,top&auto=format&q=75&sat=-100`
+    : src.startsWith("/")
+      ? absoluteUrl(src)
+      : src;
   return { url, alt };
 }
 
