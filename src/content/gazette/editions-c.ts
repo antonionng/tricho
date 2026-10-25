@@ -54,6 +54,7 @@ export const editionsC: Edition[] = [
           { imageKey: "ire10", caption: "Tina Periclis set out what the evidence does and does not support after cancer-related hair loss." },
           { imageKey: "ire07", caption: "Between sessions, the conversation carried on around every table." },
           { imageKey: "ire01", caption: "Exhibitors walked delegates through their ranges and answered questions in person." },
+          { imageKey: "ire13", caption: "Adam Bond at the LIVDOR stand, where delegates could see the cap and ask about it." },
           { imageKey: "ire12", caption: "Old colleagues and new ones, together in front of the gilt mirror." },
         ],
       },
@@ -344,26 +345,74 @@ export const editionsC: Edition[] = [
       {
         kind: "partner",
         kicker: "LIVDOR",
-        // Placeholder until LIVDOR's own sections and headshot arrive. Written from the programme only.
-        title: "LIVDOR brings low-level laser therapy into the home, and into the consultation.",
+        label: "Sponsored partner feature",
+        // Every quotation is Adam Bond's own written answer or bio (20 and 21 October 2026), trimmed to whole sentences.
+        title: "Adam Bond wants practitioners to ask LIVDOR the hard questions.",
         standfirst:
-          "Amy and Adam joined us in Ireland to talk delegates through the technology, the evidence behind it and what it takes to introduce it into a business.",
+          "Adam Bond founded LIVDOR in early 2025 after his own experience of hair loss. Here, in his own words, he explains how the cap works, who it is and is not for, and how practitioners can set honest expectations with clients.",
         partner: { name: "LIVDOR", slug: "livdor", url: "https://www.livdor.com", ctaLabel: "Visit livdor.com" },
         theme: { paper: "#f4f3f0", ink: "#0f1e35", accent: "#e0463e", onAccent: "#ffffff" },
-        imageKey: "ire13",
+        imageKey: "livdorLifestyleReading",
         blocks: [
           {
             type: "p",
-            text: "LIVDOR makes a laser cap for use at home. It uses low-level laser therapy, or LLLT, delivered through 272 laser diodes at a wavelength of 650 nanometres. The company says the cap is CE-certified, and that LLLT is the same modality that holds FDA clearance in the United States.",
+            text: "Adam Bond is the founder of LIVDOR, a British haircare brand launched in early 2025 following his own experience with hair loss. Having explored clinic treatments himself, he wanted to make laser hair growth technology more accessible for people to use at home. Today, he focuses on developing LIVDOR and building relationships with hair and scalp professionals across the UK and Ireland.",
+          },
+          { type: "h", text: "Where it began" },
+          {
+            type: "p",
+            text: "“I started LIVDOR in early 2025 after looking into treatments for my own hair loss. I'd been to a clinic, but appointments were expensive and difficult to fit around work and family life,” Adam says. “The name is personal too: LIV and DOR come from my daughters' names. 'Liv' is associated with life and renewal, and 'Dor' means gift.”",
           },
           {
             type: "p",
-            text: "At Trichollective Ireland, Amy and Adam gave delegates the chance to see the cap and ask the questions that matter before recommending any device: how it works, what the published evidence shows and what it means for a client's routine.",
+            text: "“I've experienced hair loss myself, and my wife went through it after having our children. So we know how much it can affect your confidence.”",
           },
-          { type: "h", text: "Why this conversation matters" },
+          { type: "h", text: "What the cap does, in plain language" },
           {
             type: "p",
-            text: "As new tools become available, practitioners need the opportunity to learn and make informed decisions. Meeting the people behind a brand turns an introduction into a conversation, where each professional can consider their own clients and their own scope of practice.",
+            text: "“The cap shines low-level red laser light onto the scalp. This type of light is used in photobiomodulation, which aims to influence processes in cells, including those involved in hair-follicle activity. It doesn't burn the scalp or create new follicles. I see it as one possible option for certain types of thinning, once the cause of the hair loss is understood.”",
+          },
+          {
+            type: "p",
+            text: "The LIVDOR Pro 272 uses 272 laser diodes at 650 nanometres, rather than LEDs. “Laser light is more directional, whereas LED light tends to spread out more,” Adam explains. “I wouldn't say the diode count alone tells you whether a cap will work. The wavelength, output, coverage and how it's used all matter.”",
+          },
+          {
+            type: "p",
+            text: "LIVDOR's instructions recommend 30 minutes per session, three times a week, with sessions spread across the week. “Using it more often has not been shown to improve outcomes for this specific cap, so we advise customers to follow the instructions.”",
+          },
+          { type: "h", text: "What the evidence does and does not cover" },
+          {
+            type: "p",
+            text: "“The most convincing published evidence is for androgenetic alopecia, or pattern hair loss,” Adam says. “A 2025 systematic review also highlighted that the evidence is much more limited for other causes, including some forms of scarring hair loss and sudden shedding. I look to controlled trials and systematic reviews rather than isolated before-and-after photographs.”",
+          },
+          {
+            type: "callout",
+            title: "Who it is not for",
+            text: "“I would always want sudden or patchy hair loss, an inflamed or scarred scalp, significant unexplained shedding, or possible underlying medical causes assessed first. People with suspicious scalp lesions, known photosensitivity, photosensitising medication or treatment for cancer should seek appropriate medical advice before use. Product-specific contraindications must follow the device's approved instructions, rather than general assurances from me as a seller.”",
+          },
+          { type: "h", text: "Setting honest expectations" },
+          { type: "pull", text: "I would talk in months, not weeks." },
+          {
+            type: "p",
+            text: "“I would talk in months, not weeks,” Adam says. “We ask people to give the routine at least three months, and for some it may take six months or longer to notice a difference. Sticking with it is important, but we also don't want to promise that everyone will see results.” If somebody stops, he adds, “it would be misleading to describe a few months of light treatment as a permanent cure.”",
+          },
+          {
+            type: "p",
+            text: "For clinics, he describes a practical arrangement: “One way a clinic can introduce LIVDOR is by having a cap available to demonstrate. Clients can see how it fits, ask questions and understand the routine before deciding whether to buy one for home use.”",
+          },
+          { type: "h", text: "Teach, don't sell" },
+          {
+            type: "p",
+            text: "“I'd much rather a practitioner came away understanding the technology and its limitations than feeling they'd sat through a sales presentation,” Adam says. “Brands should help explain their products properly, but they shouldn't try to diagnose hair loss or tell a practitioner what to recommend.”",
+          },
+          {
+            type: "p",
+            text: "His message to every trichologist reading: “Please ask us questions.” A year from now, he would like members “to feel they can pick up the phone to LIVDOR, ask a question and get a straight answer.”",
+          },
+          {
+            type: "callout",
+            title: "Masterclass: Laser, LED and dose: understanding the specifications",
+            text: "Adam Bond (LIVDOR) and Karley Weir co-present LIVDOR's first sponsored masterclass. The date will be announced to every Trichollective account. It is open to every member, and non-members can buy a guest ticket at trichollective.net/events.",
           },
           {
             type: "checklist",
@@ -373,20 +422,29 @@ export const editionsC: Edition[] = [
               "What does the published research show, and in which types of hair loss?",
               "How often, and for how long, is it used, and what happens if a client stops?",
               "Who should not use it, and when should a client see a GP, dermatologist or trichologist first?",
-              "Which certifications does it hold, and in which markets?",
+              "Which certifications does it hold, in which markets, and can the brand show you the documents?",
             ],
           },
           {
             type: "p",
-            text: "Amy and Adam, thank you for giving your time, sharing your knowledge and supporting the vision behind Trichollective.",
+            text: "At Trichollective Ireland, Amy and Adam gave delegates the chance to see the cap and ask the questions that matter before recommending any device: how it works, what the published evidence shows and what it means for a client's routine. Amy and Adam, thank you for giving your time, sharing your knowledge and supporting the vision behind Trichollective.",
           },
         ],
         facts: [
+          { label: "Founder", value: "Adam Bond" },
           { label: "What it is", value: "A laser cap for use at home" },
           { label: "Technology", value: "Low-level laser therapy, 272 diodes at 650nm" },
+          { label: "Routine", value: "30 minutes, three times a week (per LIVDOR's instructions)" },
           { label: "At Trichollective", value: "Exhibitor in Ireland and a Founding Premium Partner" },
           { label: "Instagram", value: "@livdoruk" },
         ],
+        disclosure:
+          "LIVDOR is a Founding Premium Partner of Trichollective and sponsors this feature. Trichollective wrote and edited it and kept editorial control. It describes a product and is not medical advice.",
+      },
+      {
+        kind: "image",
+        imageKey: "livdorLifestyleLaptop",
+        caption: "Adam wanted a cap that is hands-free, so the routine can fit around an ordinary day at home.",
       },
       {
         kind: "partner",

@@ -424,6 +424,24 @@ export const images = {
     height: 960,
   },
   /* Supplied by partners for their features. */
+  livdorLifestyleReading: {
+    src: "/partners/livdor/lifestyle-reading.jpg",
+    alt: "A woman wearing a navy LIVDOR cap reads a magazine at home",
+    credit: "LIVDOR",
+    page: "https://www.livdor.com/",
+    local: true,
+    width: 1600,
+    height: 1986,
+  },
+  livdorLifestyleLaptop: {
+    src: "/partners/livdor/lifestyle-laptop.jpg",
+    alt: "A woman wearing a navy LIVDOR cap works at a laptop at a kitchen counter",
+    credit: "LIVDOR",
+    page: "https://www.livdor.com/",
+    local: true,
+    width: 1080,
+    height: 1080,
+  },
   livdorCap: {
     src: "/partners/livdor/laser-cap.jpg",
     alt: "The LIVDOR laser cap lit red from inside, resting on its carry case beside the battery pack",
