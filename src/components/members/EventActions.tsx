@@ -1,6 +1,8 @@
 import { ArrowUpRight } from "lucide-react";
 import { RsvpButton } from "@/components/members/RsvpButton";
 import { BuyTicket } from "@/components/events/BuyTicket";
+import { memberPriceFor } from "@/components/editorial/events";
+import type { EventKind } from "@prisma/client";
 
 /**
  * How a member books an event: buy a ticket here, reserve a free place, or book
@@ -13,13 +15,14 @@ export function EventActions({
   full,
   started,
 }: {
-  event: { id: string; slug: string; memberPriceGBP: number; sellTickets: boolean; ticketUrl: string | null };
+  event: { id: string; slug: string; kind: EventKind; memberPriceGBP: number; sellTickets: boolean; ticketUrl: string | null };
   going: boolean;
   hasTicket: boolean;
   full: boolean;
   started: boolean;
 }) {
   if (hasTicket) return null;
+  const memberPrice = memberPriceFor(event);
   if (started) {
     return going ? null : (
       <span className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm text-muted-foreground">
@@ -27,15 +30,15 @@ export function EventActions({
       </span>
     );
   }
-  if (event.sellTickets && event.memberPriceGBP > 0) {
+  if (event.sellTickets && memberPrice > 0) {
     return full ? (
       <span className="inline-flex h-11 items-center rounded-full border border-rule px-5 text-sm text-muted-foreground">Sold out</span>
     ) : (
-      <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} returnTo="members" compact />
+      <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={memberPrice} returnTo="members" compact />
     );
   }
   // Members pay on an outside ticket page, so the place is booked there rather than here.
-  if (!event.sellTickets && event.ticketUrl && event.memberPriceGBP > 0) {
+  if (!event.sellTickets && event.ticketUrl && memberPrice > 0) {
     return (
       <a
         href={event.ticketUrl}

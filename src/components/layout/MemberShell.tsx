@@ -16,6 +16,7 @@ import {
   Search,
   Sparkles,
   UserRound,
+  FileText,
   Gift,
   HeartHandshake,
   UserPlus,
@@ -40,6 +41,7 @@ const primary: NavItem[] = [
     children: [
       { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
       { href: "/members/assistant", label: "Assistant", icon: Sparkles },
+      { href: "/members/resources", label: "Resources", icon: FileText },
     ],
   },
   { href: "/members/perks", label: "Member perks", icon: Gift },
@@ -112,7 +114,7 @@ export function MemberShell({
       "flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
       active ? "bg-ink text-paper" : "text-ink-2 hover:bg-paper-2 hover:text-ink"
     );
-  const learnOpen = ["/members/learn", "/members/trichozette", "/members/assistant"].some((h) => isActive(h));
+  const learnOpen = ["/members/learn", "/members/trichozette", "/members/assistant", "/members/resources"].some((h) => isActive(h));
 
   return (
     <div className="min-h-screen bg-paper">

@@ -46,6 +46,7 @@ export const revalidate = 600;
 
 export const metadata = pageMetadata({
   title: `${site.name}: hair, scalp and the science of both`,
+  absoluteTitle: true,
   description:
     "The professional community for trichologists, doctors, nurses and scalp care practitioners. Discuss cases with verified colleagues, refer across disciplines, earn CPD and be found by the public.",
   path: "/",

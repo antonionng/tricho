@@ -9,14 +9,7 @@ import { Paywall } from "@/components/members/Paywall";
 import { Card, MemberPage } from "@/components/members/MemberPage";
 import { EventActions } from "@/components/members/EventActions";
 import { TicketReturnBanner } from "@/components/events/BuyTicket";
-import {
-  EVENT_KIND_LABEL,
-  eventPlace,
-  formatEventDate,
-  formatEventTime,
-  formatPrice,
-  publicEventSelect,
-} from "@/components/editorial/events";
+import { EVENT_KIND_LABEL, eventPlace, formatEventDate, formatEventTime, formatPrice, publicEventSelect, memberPriceFor, openToAllMembers } from "@/components/editorial/events";
 import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
@@ -76,8 +69,10 @@ export default async function MemberEventPage({
     .filter((u) => u.accessStatus === "active")
     .sort((a, b) => Number(b.id === userId) - Number(a.id === userId));
   const attending = going || hasTicket;
-  // The joining link is only ever shown to members who are going.
-  const joinUrl = attending && event.online ? event.joinUrl : null;
+  // The joining link is shown to members who are going, and to every member for a masterclass.
+  const openToAll = openToAllMembers(event);
+  const joinUrl = (attending || openToAll) && event.online ? event.joinUrl : null;
+  const memberPrice = memberPriceFor(event);
   const gcal = googleCalendarHref({ ...event, joinUrl, pageUrl: absoluteUrl(`/members/events/${event.slug}`) });
   const paragraphs = (event.body ?? "")
     .split(/\n\s*\n/)
@@ -142,7 +137,7 @@ export default async function MemberEventPage({
             <dt className="sr-only">Places</dt>
             <Users className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
             <dd>
-              {event.memberPriceGBP > 0 ? `${formatPrice(event.memberPriceGBP)} for members` : "Free for members"}
+              {memberPrice > 0 ? `${formatPrice(memberPrice)} for members` : "Free for members"}
               {event.sellTickets && event.priceGBP > 0 ? `, ${formatPrice(event.priceGBP)} for guests` : ""}
               {left != null && left > 0 && !past ? `. ${left} ${left === 1 ? "place" : "places"} left.` : "."}
             </dd>
@@ -154,7 +149,7 @@ export default async function MemberEventPage({
             {hasTicket && (
               <p className="text-sm leading-relaxed text-ink-2">Your ticket is confirmed, and the details have been sent to your email.</p>
             )}
-            {attending && (
+            {(attending || joinUrl) && (
               <div className="mt-5 flex flex-col gap-4">
                 {joinUrl && (
                   <a

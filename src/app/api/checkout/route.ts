@@ -9,6 +9,8 @@ import {
   type BillingInterval,
 } from "@/config/subscriptions";
 import { site } from "@/config/site";
+import { syncMembershipFromStripe } from "@/lib/stripe-sync";
+import { resolveMembership } from "@/lib/subscription";
 import { cleanSource } from "@/lib/source";
 import { checkoutTermsText } from "@/lib/legal";
 import { cookies } from "next/headers";
@@ -73,9 +75,19 @@ export async function POST(req: Request) {
     let buyer: { id: string; email: string | null; stripeCustomerId: string | null; hasPaidBefore: boolean } | null = null;
 
     if (session?.user?.email) {
-      const user = await prisma.user.findUnique({
+      let user = await prisma.user.findUnique({
         where: { email: session.user.email },
       });
+      // Someone who paid but whose account never recorded it: record it, and never charge them twice.
+      if (user && !resolveMembership(user).isActive && (await syncMembershipFromStripe(session.user.email, { fresh: true }))) {
+        user = await prisma.user.findUnique({ where: { email: session.user.email } });
+        if (user && resolveMembership(user).isActive && user.plan === tier.id && !premium) {
+          return NextResponse.json(
+            { error: "You are already a member. Your membership is now showing on your account.", redirect: "/members" },
+            { status: 409 }
+          );
+        }
+      }
       if (user) {
         userId = user.id;
         buyer = {

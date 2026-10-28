@@ -64,6 +64,36 @@ const postInclude = (userId?: string) =>
 
 type RawPost = Prisma.CommunityPostGetPayload<{ include: ReturnType<typeof postInclude> }>;
 
+export type PostMediaItem = {
+  id: string;
+  url: string;
+  type: "image" | "video";
+  width: number | null;
+  height: number | null;
+};
+
+/**
+ * Photos and videos for a set of posts, keyed by post. Loaded on their own so the
+ * feed still works, without media, if the PostMedia migration hasn't run yet.
+ */
+export async function mediaForPosts(postIds: string[]): Promise<Map<string, PostMediaItem[]>> {
+  const byPost = new Map<string, PostMediaItem[]>();
+  if (postIds.length === 0) return byPost;
+  const rows = await prisma.postMedia
+    .findMany({
+      where: { postId: { in: postIds } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, postId: true, url: true, type: true, width: true, height: true },
+    })
+    .catch(() => []);
+  for (const { postId, ...m } of rows) {
+    const list = byPost.get(postId) ?? [];
+    list.push({ ...m, type: m.type === "video" ? "video" : "image" });
+    byPost.set(postId, list);
+  }
+  return byPost;
+}
+
 export type FeedPost = {
   id: string;
   title: string | null;
@@ -85,9 +115,10 @@ export type FeedPost = {
   comments: number;
   useful: number;
   reacted: boolean;
+  media: PostMediaItem[];
 };
 
-function toFeedPost(p: RawPost, allRooms: Room[]): FeedPost {
+function toFeedPost(p: RawPost, allRooms: Room[], media: PostMediaItem[]): FeedPost {
   const space = normalizeSpace(p.space, allRooms);
   return {
     id: p.id,
@@ -109,6 +140,7 @@ function toFeedPost(p: RawPost, allRooms: Room[]): FeedPost {
     comments: p._count.comments,
     useful: p._count.reactions,
     reacted: Array.isArray(p.reactions) ? p.reactions.length > 0 : false,
+    media,
   };
 }
 
@@ -145,42 +177,21 @@ export async function getPosts({
     take,
     include: postInclude(userId),
   });
-  return posts.map((p) => toFeedPost(p, allRooms));
+  const media = await mediaForPosts(posts.map((p) => p.id));
+  return posts.map((p) => toFeedPost(p, allRooms, media.get(p.id) ?? []));
 }
 
-/**
- * The Today feed: pinned first, then recent posts, nudged towards the member's
- * chapter and the spaces their discipline tends to use.
- */
+/** The Today feed: pinned posts from the team first, then everything else newest first. */
 export async function getTodayFeed({
   userId,
   professional,
-  chapterId,
-  profession,
   take = 20,
 }: {
   userId: string;
   professional: boolean;
-  chapterId: string | null;
-  profession: ProfessionId | null;
   take?: number;
 }) {
-  const posts = await getPosts({ userId, professional, take: 60 });
-  const favoured = new Set<RoomId>(profession ? DISCIPLINE_SPACES[profession] : []);
-  const now = Date.now();
-  // Lower is better: age in hours, less a head start for local and relevant posts.
-  const score = (p: FeedPost) => {
-    const hours = (now - p.createdAt.getTime()) / 36e5;
-    const local = chapterId && p.chapterId === chapterId ? 30 : 0;
-    const relevant = favoured.has(p.space) ? 18 : 0;
-    return hours - local - relevant;
-  };
-
-  return posts
-    .map((p) => ({ p, s: score(p) }))
-    .sort((a, b) => Number(b.p.pinned) - Number(a.p.pinned) || a.s - b.s)
-    .slice(0, take)
-    .map(({ p }) => p);
+  return getPosts({ userId, professional, take });
 }
 
 /** Only members with an active membership, or who have finished onboarding. */

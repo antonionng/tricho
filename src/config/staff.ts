@@ -137,6 +137,7 @@ export function draftPermission(kind: string, payload?: unknown): Permission | "
   switch (kind) {
     case "newsletter":
     case "gazette_article":
+    case "blog_idea":
       return "gazette.publish";
     case "announcement":
       if (type === "event") return "events.edit";
@@ -190,6 +191,7 @@ export type NavIcon =
   | "community"
   | "events"
   | "gazette"
+  | "blog"
   | "podcast"
   | "subscribers"
   | "emails"
@@ -216,6 +218,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/inbox", label: "Inbox", icon: "inbox", perm: "inbox.view", badge: true, group: "today" },
   { href: "/studio/month", label: "This month", icon: "month", perm: "inbox.view", group: "today" },
   { href: "/studio/gazette", label: "Trichozette", icon: "gazette", perm: "gazette.view", group: "publish" },
+  { href: "/studio/blog", label: "Blog", icon: "blog", perm: "gazette.view", group: "publish" },
   { href: "/studio/podcast", label: "Podcast", icon: "podcast", perm: "podcast.view", group: "publish" },
   { href: "/studio/events", label: "Events", icon: "events", perm: "events.view", group: "publish" },
   { href: "/studio/courses", label: "Courses", icon: "verification", perm: "members.view", group: "publish" },

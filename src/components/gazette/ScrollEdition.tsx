@@ -4,44 +4,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Lock } from "lucide-react";
-import { editionLabel, pageKicker, pageTitle, type Block, type Edition, type Page } from "@/content/gazette";
-import { BlockView } from "./Blocks";
+import { editionLabel, GATE, pageKicker, pageTitle, type Edition, type Page } from "@/content/gazette";
+import { Body, Kicker } from "./Prose";
+import { Gallery } from "./Gallery";
+import { People } from "./People";
+import { BroughtBy, Partners } from "./Partners";
+import { PartnerFeature } from "./PartnerFeature";
+import { JoinCta, OfferCards } from "./JoinCta";
+import { creditLine } from "@/content/images";
 import { ParallaxImage, Rise } from "./Parallax";
 import { artFor, coverImage, img } from "./art";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
 
 const DISCIPLINE = { cosmetic: "Cosmetic", clinical: "Clinical · Trichology", medical: "Medical" } as const;
-
-/* ------------------------------------------------------------------ */
-/* Body copy                                                           */
-/* ------------------------------------------------------------------ */
-function Body({ blocks, drop = true, wide = false }: { blocks: Block[]; drop?: boolean; wide?: boolean }) {
-  const capIndex = drop ? blocks.findIndex((b) => b.type === "p") : -1;
-  return (
-    <div className="mag-body mag-web">
-      {blocks.map((b, i) =>
-        b.type === "pull" ? (
-          <Rise key={i} className={cn("my-14", wide ? "" : "lg:-mx-24 xl:-mx-40")}>
-            <blockquote className="text-center">
-              <span className="mag-didone block text-[72px] leading-[0.4]">&ldquo;</span>
-              <p className="mag-didone mt-4 text-[34px] italic leading-[1.08] tracking-[-0.01em] sm:text-[46px]">{b.text}</p>
-              <span className="mx-auto mt-6 block h-px w-14 bg-black" />
-            </blockquote>
-          </Rise>
-        ) : (
-          <div key={i} className="flow-root">
-            <BlockView block={b} drop={i === capIndex} />
-          </div>
-        )
-      )}
-    </div>
-  );
-}
-
-function Kicker({ children, light }: { children: React.ReactNode; light?: boolean }) {
-  return <p className={cn("mag-caps text-[10px] sm:text-[11px]", light ? "text-white/80" : "text-black/60")}>{children}</p>;
-}
 
 /* ------------------------------------------------------------------ */
 /* Sections                                                            */
@@ -69,7 +45,7 @@ function ArticleHero({ edition, page, index }: { edition: Edition; page: Extract
               {page.standfirst}
             </p>
           </Rise>
-          <p className="mag-caps mt-8 text-[9px] text-white/55">Photograph {art.credit} / Unsplash</p>
+          <p className="mag-caps mt-8 text-[9px] text-white/55">{creditLine(art)}</p>
         </div>
       </ParallaxImage>
       <div className="bg-[#fbfaf7] px-5 py-20 sm:px-10 md:py-28">
@@ -90,7 +66,7 @@ function ArticleSplit({ edition, page, index }: { edition: Edition; page: Extrac
         {/* The photograph stays put while the story scrolls past it. */}
         <div className="relative h-[80svh] lg:sticky lg:top-0 lg:h-[100svh]">
           <Image src={img(art, 1600)} alt={art.alt} fill sizes="(min-width:1024px) 50vw, 100vw" className="mag-bw object-cover" />
-          <p className="mag-caps absolute bottom-6 left-6 text-[9px] text-white/70">Photograph {art.credit} / Unsplash</p>
+          <p className="mag-caps absolute bottom-6 left-6 text-[9px] text-white/70">{creditLine(art)}</p>
         </div>
         <div className="px-5 py-16 sm:px-10 lg:px-16 lg:py-28">
           <Rise>
@@ -139,7 +115,7 @@ function Spread({ edition, page, index }: { edition: Edition; page: Extract<Page
         <Rise className="absolute inset-x-0 bottom-0 px-5 pb-14 text-white sm:px-10 lg:px-16">
           <span className="mb-6 block h-px w-14 bg-white" />
           <p className="mag-didone max-w-4xl text-[30px] italic leading-[1.15] sm:text-[44px]">{page.caption}</p>
-          <p className="mag-caps mt-6 text-[9px] text-white/55">Photograph {art.credit} / Unsplash</p>
+          <p className="mag-caps mt-6 text-[9px] text-white/55">{creditLine(art)}</p>
         </Rise>
       </ParallaxImage>
     </section>
@@ -235,10 +211,11 @@ function Dispatches({ page, index }: { page: Extract<Page, { kind: "news" }>; in
           {page.items.map((n, i) => (
             <Rise key={n.id} delay={i * 60}>
               <article className={cn("h-full border-b border-black/20 py-8 md:px-6", i % 3 !== 0 && "lg:border-l", i % 2 !== 0 && "md:border-l lg:border-l-0", i % 3 !== 0 && "lg:border-l")}>
-                <p className="mag-caps text-[9px] text-black/50">
+                <p className="mag-caps text-[10px] leading-relaxed text-black/70">
                   {n.date.split("-").reverse().join(".")} · {n.source}
                 </p>
-                <h3 className="mag-didone mt-3 text-[26px] leading-[1.08]">{n.headline}</h3>
+                {/* News headlines are long sentences, so they use the reading serif: Bodoni's hairlines break up at this size. */}
+                <h3 className="mag-serif mt-3 text-[21px] font-semibold leading-[1.28] tracking-[-0.005em]">{n.headline}</h3>
                 <p className="mag-serif mt-4 text-[16px] leading-[1.6] text-black/80">{n.summary}</p>
                 <p className="mag-serif mt-4 border-l border-black pl-4 text-[15px] italic leading-[1.55]">{n.whyItMatters}</p>
                 <a href={n.url} target="_blank" rel="noopener nofollow" className="mag-caps mt-5 inline-flex items-center gap-1.5 text-[9px] underline underline-offset-4">
@@ -253,7 +230,7 @@ function Dispatches({ page, index }: { page: Extract<Page, { kind: "news" }>; in
   );
 }
 
-function Section({ edition, page, index, articleCount }: { edition: Edition; page: Page; index: number; articleCount: number }) {
+function Section({ edition, page, index, articleCount, signedIn }: { edition: Edition; page: Page; index: number; articleCount: number; signedIn: boolean }) {
   switch (page.kind) {
     case "article":
       return articleCount % 2 === 0 ? <ArticleHero edition={edition} page={page} index={index} /> : <ArticleSplit edition={edition} page={page} index={index} />;
@@ -269,6 +246,16 @@ function Section({ edition, page, index, articleCount }: { edition: Edition; pag
       return <Perspectives edition={edition} page={page} index={index} />;
     case "news":
       return <Dispatches page={page} index={index} />;
+    case "gallery":
+      return <Gallery page={page} index={index} />;
+    case "people":
+      return <People page={page} index={index} />;
+    case "partners":
+      return <Partners page={page} index={index} />;
+    case "partner":
+      return <PartnerFeature page={page} index={index} />;
+    case "cta":
+      return <JoinCta page={page} index={index} slug={edition.slug} signedIn={signedIn} />;
   }
 }
 
@@ -353,15 +340,18 @@ export function ScrollEdition({
         >
           Trichozette
         </h1>
-        <div className="absolute left-5 top-[48%] hidden w-[30vw] max-w-sm flex-col gap-6 text-white sm:flex sm:left-10">
-          {coverLines.map((l, i) => (
-            <div key={l} className="animate-rise" style={{ animationDelay: `${300 + i * 120}ms` }}>
-              <p className="mag-caps text-[10px] text-white/70">{i === 0 ? "Inside" : "Plus"}</p>
-              <p className="mag-didone mt-1.5 text-[26px] italic leading-[1.05]">{l}</p>
-            </div>
-          ))}
-        </div>
         <div className="absolute inset-x-0 bottom-0 px-5 pb-10 text-white sm:px-10 sm:pb-14">
+          {/* Cover lines sit in the same flow as the title, so long lines can never run into it. */}
+          {coverLines.length > 0 && (
+            <div className="mb-10 hidden max-w-6xl gap-x-10 border-t border-white/30 pt-5 [text-shadow:0_1px_14px_rgba(0,0,0,0.55)] sm:grid sm:grid-cols-3 [@media(max-height:720px)]:hidden">
+              {coverLines.map((l, i) => (
+                <div key={l} className="animate-rise" style={{ animationDelay: `${300 + i * 120}ms` }}>
+                  <p className="mag-caps text-[10px] text-white/70">{i === 0 ? "Inside" : "Plus"}</p>
+                  <p className="mag-didone mt-2 line-clamp-3 text-[21px] italic leading-[1.15] lg:text-[23px]">{l}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="mag-caps text-[10px] text-white/75">{edition.theme}</p>
           <p className="mag-didone mt-3 font-medium leading-[0.86] tracking-[-0.025em]" style={{ fontSize: "min(14vw, 11svh)" }}>
             {edition.title}
@@ -370,10 +360,18 @@ export function ScrollEdition({
             <p className="mag-didone max-w-2xl italic leading-[1.2] text-white/85" style={{ fontSize: "clamp(20px, 3.4svh, 32px)" }}>
               {edition.fade}
             </p>
-            <a href="#contents" className="mag-caps hidden shrink-0 items-center gap-2 text-[10px] text-white/80 sm:inline-flex">
-              Scroll to read <ArrowDown className="h-4 w-4 animate-bounce" />
-            </a>
+            <div className="hidden shrink-0 flex-col items-end gap-6 sm:flex">
+              {edition.supportedBy && <BroughtBy by={edition.supportedBy} light />}
+              <a href="#contents" className="mag-caps inline-flex items-center gap-2 text-[10px] text-white/80">
+                Scroll to read <ArrowDown className="h-4 w-4 animate-bounce" />
+              </a>
+            </div>
           </div>
+          {edition.supportedBy && (
+            <div className="mt-6 sm:hidden">
+              <BroughtBy by={edition.supportedBy} light />
+            </div>
+          )}
         </div>
       </ParallaxImage>
 
@@ -384,6 +382,14 @@ export function ScrollEdition({
             <Rise className="lg:col-span-4">
               <h2 className="mag-didone text-[64px] font-medium leading-[0.85] tracking-[-0.02em] sm:text-[96px]">Contents</h2>
               <p className="mag-didone mt-6 text-[21px] italic leading-[1.35] text-black/75">{edition.standfirst}</p>
+              {edition.supportedBy && (
+                <div className="mt-10 border-t border-black/15 pt-6">
+                  <BroughtBy by={edition.supportedBy} />
+                  <p className="mag-serif mt-4 text-[14px] italic leading-[1.55] text-black/60">
+                    {edition.supportedBy.name} supports this edition. Our editorial team chose and wrote everything in it, apart from the labelled partner features.
+                  </p>
+                </div>
+              )}
             </Rise>
             <ol className="lg:col-span-8">
               {[...edition.pages.map((p, i) => ({ kicker: pageKicker(p), title: pageTitle(p), href: `#feature-${i}`, locked: false })), ...lockedTitles.map((l) => ({ ...l, href: "#members", locked: true }))].map((c, i) => (
@@ -406,7 +412,7 @@ export function ScrollEdition({
       {/* Features */}
       {edition.pages.map((page, i) => {
         const n = page.kind === "article" ? articles++ : articles;
-        return <Section key={i} edition={edition} page={page} index={i} articleCount={n} />;
+        return <Section key={i} edition={edition} page={page} index={i} articleCount={n} signedIn={signedIn} />;
       })}
 
       {/* Sources */}
@@ -429,46 +435,52 @@ export function ScrollEdition({
         </section>
       )}
 
-      {/* Members gate */}
+      {/* The gate: how much is left, what it is, and the ways in, in one place. */}
       {lockedTitles.length > 0 && (
         <section id="members" className="relative scroll-mt-14 bg-[#0a0a0a] text-white">
           <div className="pointer-events-none absolute inset-x-0 -top-64 h-64 bg-gradient-to-b from-transparent to-[#0a0a0a]" />
-          <div className="mx-auto grid max-w-7xl gap-14 px-5 py-28 sm:px-10 md:py-36 lg:grid-cols-12">
-            <Rise className="lg:col-span-6">
-              <Kicker light>Members only</Kicker>
-              <h2 className="mag-didone mt-6 text-[64px] font-medium leading-[0.88] tracking-[-0.02em] sm:text-[104px]">
-                The story
-                <br />
-                <span className="font-normal italic">continues.</span>
-              </h2>
-              <p className="mag-serif mt-8 max-w-lg text-[19px] leading-[1.6] text-white/75">
-                Members read every edition of Trichozette in full, with a new edition each month, Karley&apos;s column,
-                the Three Perspectives and the news that matters to your practice.
-              </p>
-              <div className="mt-10 flex flex-wrap items-center gap-6">
-                <Link href="/founding" className="inline-flex h-14 items-center gap-2 rounded-full bg-white px-8 text-[15px] font-medium text-black transition-opacity hover:opacity-90">
-                  Become a founding member <ArrowRight className="h-4 w-4" />
-                </Link>
+          <div className="mx-auto max-w-7xl px-5 py-24 sm:px-10 md:py-32">
+            <div className="grid gap-14 lg:grid-cols-12">
+              <Rise className="lg:col-span-6">
+                <Kicker light>{GATE.kicker}</Kicker>
+                <h2 className="mag-didone mt-6 text-[52px] font-medium leading-[0.95] tracking-[-0.02em] sm:text-[80px]">
+                  {lockedTitles.length === 1 ? "There is " : "There are "}
+                  <span className="font-normal italic">
+                    {lockedTitles.length} more {lockedTitles.length === 1 ? "feature" : "features"}
+                  </span>{" "}
+                  in this edition.
+                </h2>
+                <p className="mag-serif mt-8 max-w-lg text-[19px] leading-[1.6] text-white/75">{GATE.lead}</p>
                 {!signedIn && (
-                  <Link href={`/login?next=/trichozette/${edition.slug}`} className="mag-caps text-[10px] underline underline-offset-4">
-                    Sign in
-                  </Link>
+                  <p className="mag-caps mt-8 text-[10px] text-white/60">
+                    Already have an account?{" "}
+                    <Link href={`/login?next=/trichozette/${edition.slug}`} className="text-white underline underline-offset-4">
+                      Sign in
+                    </Link>
+                  </p>
                 )}
+              </Rise>
+              <div className="lg:col-span-6">
+                <p className="mag-caps text-[10px] text-white/60">Still to read</p>
+                <ol className="mt-4 border-t border-white/25">
+                  {lockedTitles.map((l, i) => (
+                    <Rise key={l.title} delay={i * 40}>
+                      <li className="grid grid-cols-[2.5rem_1fr_auto] items-baseline gap-3 border-b border-white/15 py-3.5">
+                        <span className="mag-didone text-[22px] leading-none text-white/45">{String(edition.pages.length + i + 1).padStart(2, "0")}</span>
+                        <span>
+                          <span className="mag-caps block text-[9px] text-white/45">{l.kicker}</span>
+                          <span className="mag-didone mt-1 block text-[21px] italic leading-tight">{l.title}</span>
+                        </span>
+                        <Lock className="h-3.5 w-3.5 text-white/35" />
+                      </li>
+                    </Rise>
+                  ))}
+                </ol>
               </div>
-            </Rise>
-            <ol className="lg:col-span-5 lg:col-start-8 border-t border-white/25">
-              {lockedTitles.map((l, i) => (
-                <Rise key={l.title} delay={i * 50}>
-                  <li className="flex items-baseline gap-4 border-b border-white/15 py-4">
-                    <Lock className="h-3.5 w-3.5 shrink-0 translate-y-0.5 text-white/40" />
-                    <span>
-                      <span className="mag-caps block text-[9px] text-white/45">{l.kicker}</span>
-                      <span className="mag-didone mt-1 block text-[24px] italic leading-tight">{l.title}</span>
-                    </span>
-                  </li>
-                </Rise>
-              ))}
-            </ol>
+            </div>
+            <div className="mt-20">
+              <OfferCards offers={GATE.offers} slug={edition.slug} onDark />
+            </div>
           </div>
         </section>
       )}

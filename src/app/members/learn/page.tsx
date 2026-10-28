@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Award, Newspaper, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Award, FileText, Newspaper, Sparkles } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
@@ -66,7 +66,7 @@ export default async function LearnPage() {
       />
 
       {ctx.allowed && (
-      <div className="mb-10 grid gap-3 sm:grid-cols-2">
+      <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/members/trichozette"
           className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
@@ -88,6 +88,18 @@ export default async function LearnPage() {
             <span className="block font-semibold">Assistant</span>
             <span className="mt-1 block text-sm leading-relaxed text-ink-2">
               Ask a question about hair and scalp practice and get a careful, considered answer straight away.
+            </span>
+          </span>
+        </Link>
+        <Link
+          href="/members/resources"
+          className="group flex items-start gap-4 rounded-2xl border border-rule bg-card p-5 transition-colors hover:border-ink/30"
+        >
+          <FileText className="mt-0.5 h-5 w-5 shrink-0 stroke-[1.6]" />
+          <span className="min-w-0">
+            <span className="block font-semibold">Resources</span>
+            <span className="mt-1 block text-sm leading-relaxed text-ink-2">
+              Print consultation records, referral letters and client handouts written for the consultation room.
             </span>
           </span>
         </Link>

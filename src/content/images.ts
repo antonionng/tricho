@@ -1,4 +1,14 @@
-export type BrandImage = { src: string; alt: string; credit: string; page: string };
+export type BrandImage = {
+  src: string;
+  alt: string;
+  credit: string;
+  page: string;
+  /** Our own photography, served from public/. Not resized by Unsplash and not credited to it. */
+  local?: boolean;
+  /** Pixel size of a local photograph, so galleries can keep its shape. */
+  width?: number;
+  height?: number;
+};
 /** Brand photography, all on images.unsplash.com. Swap for commissioned photography later: one place to change. */
 export const images = {
   heroPortrait: {
@@ -295,8 +305,143 @@ export const images = {
     credit: "Fotos",
     page: "https://unsplash.com/photos/a-woman-holding-a-mans-head-tKq0aDTD-y8",
   },
+  /* Trichollective Ireland, Killashee, 5 October 2026. Our own photography. */
+  ire01: {
+    src: "/gazette/ireland-2026/product-session.jpg",
+    alt: "A speaker in a blue shirt presents a slide titled Our Product Universe to a full room of seated delegates under a crystal chandelier",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire02: {
+    src: "/gazette/ireland-2026/remi-session.jpg",
+    alt: "A speaker gestures beside a projected slide introducing the Remi scalp care range",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire03: {
+    src: "/gazette/ireland-2026/scalp-assessment.jpg",
+    alt: "Three practitioners part and examine a seated woman's hair together during a hands-on scalp assessment",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire04: {
+    src: "/gazette/ireland-2026/scalp-assessment-banner.jpg",
+    alt: "Practitioners lean in to look closely at a seated volunteer's scalp in front of a Hair Scalp and Wig Therapy banner",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire05: {
+    src: "/gazette/ireland-2026/reunion.jpg",
+    alt: "Two delegates with lanyards smile together for a photograph in a room with damask wallpaper",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire06: {
+    src: "/gazette/ireland-2026/kiera-session.jpg",
+    alt: "Delegates at round tables watch a presentation of a slide titled The clinic that never closes",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire07: {
+    src: "/gazette/ireland-2026/table-smiles.jpg",
+    alt: "Delegates seated at a round table with notebooks and water smile towards the camera",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1600,
+    height: 1200,
+  },
+  ire08: {
+    src: "/gazette/ireland-2026/audience-wide.jpg",
+    alt: "A room of delegates at round tables listens to a session, with tall curtains and afternoon light behind them",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1600,
+    height: 1200,
+  },
+  ire09: {
+    src: "/gazette/ireland-2026/audience-window.jpg",
+    alt: "Delegates listen in a room with floral wallpaper as sunlight comes through the window beside them",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1600,
+    height: 1200,
+  },
+  ire10: {
+    src: "/gazette/ireland-2026/oncology-session.jpg",
+    alt: "A speaker presents a slide on recovery products and procedures after cancer-related hair loss",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire11: {
+    src: "/gazette/ireland-2026/group-mirror.jpg",
+    alt: "Seven speakers and organisers stand together, smiling, in front of a gilt mirror",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire12: {
+    src: "/gazette/ireland-2026/group-banner.jpg",
+    alt: "Six delegates with lanyards stand together in front of a gilt mirror and a Hair Scalp and Wig Therapy banner",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1200,
+    height: 1600,
+  },
+  ire13: {
+    src: "/gazette/ireland-2026/livdor-stand.jpg",
+    alt: "Adam from LIVDOR stands beside the LIVDOR stand, with laser caps on display heads and a LIVDOR banner",
+    credit: "Trichollective",
+    page: "https://www.trichollective.net/trichozette/ireland-in-review",
+    local: true,
+    width: 1280,
+    height: 960,
+  },
+  /* Supplied by partners for their features. */
+  livdorCap: {
+    src: "/partners/livdor/laser-cap.jpg",
+    alt: "The LIVDOR laser cap lit red from inside, resting on its carry case beside the battery pack",
+    credit: "LIVDOR",
+    page: "https://www.livdor.com/",
+    local: true,
+    width: 1080,
+    height: 1080,
+  },
 } satisfies Record<string, BrandImage>;
 export const editorialKeys = ["ed01", "ed02", "ed03", "ed04", "ed05", "ed06", "ed07", "ed08", "ed09", "ed10", "ed11", "ed12", "ed13", "ed14", "ed15", "ed16", "ed17", "ed18", "ed19", "ed20", "ed21", "ed22", "ed23", "ed24", "ed25", "ed26", "ed27", "ed28", "ed29", "ed30", "ed31", "ed32", "ed33", "ed34"] as const;
 export function img(image: BrandImage, width = 1200) {
+  // Local photographs are already web-sized; next/image resizes them.
+  if (image.local) return image.src;
   return `${image.src}?w=${width}&q=75&auto=format&fit=crop`;
+}
+
+/** "Photograph Alex Larrondo / Unsplash", or "Photograph Trichollective" for our own. */
+export function creditLine(image: BrandImage) {
+  return image.local ? `Photograph ${image.credit}` : `Photograph ${image.credit} / Unsplash`;
 }

@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, MemberPage, PageHeader, SectionLabel } from "@/components/members/MemberPage";
 import { longDate } from "@/components/members/format";
 import { getMemberContext } from "@/lib/member";
+import { auth } from "@/auth";
+import { syncMembershipFromStripe } from "@/lib/stripe-sync";
 import { prisma } from "@/lib/prisma";
 import { subscriptionTiers, tierById } from "@/config/subscriptions";
 
 export const metadata = { title: "Plan and billing" };
 
 export default async function BillingPage() {
+  // Billing always checks Stripe directly, so a payment the webhook missed shows here at once.
+  const signedIn = await auth();
+  await syncMembershipFromStripe(signedIn?.user?.email, { fresh: true });
   const ctx = await getMemberContext();
   if (!ctx.session?.user?.id) redirect("/login?next=/members/billing");
 

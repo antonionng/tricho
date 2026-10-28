@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { memberPriceFor } from "@/components/editorial/events";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
@@ -40,6 +41,7 @@ const eventSelect = {
   capacity: true,
   priceGBP: true,
   memberPriceGBP: true,
+  kind: true,
   published: true,
   sellTickets: true,
 } as const;
@@ -47,7 +49,8 @@ const eventSelect = {
 async function loadEvent(id: string) {
   const event = await prisma.event.findFirst({ where: { OR: [{ id }, { slug: id }], published: true }, select: eventSelect });
   if (!event || !event.sellTickets) return null;
-  return event;
+  // Masterclasses are free for members, so a member is never charged for one here.
+  return { ...event, memberPriceGBP: memberPriceFor(event) };
 }
 
 async function buyer() {

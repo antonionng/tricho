@@ -9,7 +9,7 @@ import { AttendeeFaces } from "@/components/members/EventAttendees";
 import { TicketReturnBanner } from "@/components/events/BuyTicket";
 import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { eventDay, timeOfDay } from "@/components/members/format";
-import { EVENT_KIND_LABEL, formatPrice } from "@/components/editorial/events";
+import { EVENT_KIND_LABEL, formatPrice, memberPriceFor } from "@/components/editorial/events";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
@@ -121,7 +121,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                       {e.online ? <Video className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
                       {e.online ? "Online" : [e.venue, e.city].filter(Boolean).join(", ") || "Venue to be confirmed"}
                     </span>
-                    <span>{e.memberPriceGBP > 0 ? `${formatPrice(e.memberPriceGBP)} for members` : "Free for members"}</span>
+                    <span>{memberPriceFor(e) > 0 ? `${formatPrice(memberPriceFor(e))} for members` : "Free for members"}</span>
                     {e.sellTickets && e.priceGBP > 0 && <span>{formatPrice(e.priceGBP)} for guests</span>}
                     {left != null && left > 0 && <span>{left} {left === 1 ? "place" : "places"} left</span>}
                   </p>

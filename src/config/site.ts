@@ -1,13 +1,19 @@
+/**
+ * The address search engines should index. The bare domain 308-redirects to www,
+ * so canonical tags, the sitemap and structured data must all use www: a canonical
+ * that redirects tells Google the real page is somewhere it can never land.
+ */
+export function canonicalOrigin(url: string) {
+  return url.replace(/\/+$/, "").replace(/^https?:\/\/trichollective\.net\b/, "https://www.trichollective.net");
+}
+
 export const site = {
   name: "Trichollective",
   wordmarkSub: "Online",
   tagline: "A stronger hair industry, together",
   description:
     "Trichollective is the membership community for cosmetic, clinical and medical hair and scalp professionals: the science, the practice and the people, with courses, a public directory and conferences across Ireland and the UK.",
-  url:
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000",
+  url: canonicalOrigin(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   /** Founder and organiser of the Trichollective conferences. */
   founder: "Karley",
   founderFull: "Karley Weir",
@@ -72,6 +78,13 @@ export const site = {
     closes: "the end of the founding period",
   },
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "karley@trichollective.net",
+  /** The legal entity, as registered at Companies House. Used in the terms, privacy notice and contracts. */
+  company: {
+    name: "Trichollective Ltd",
+    number: "17506914",
+    registeredIn: "England and Wales",
+    address: "66 Paul Street, London, EC2A 4NA, United Kingdom",
+  },
   social: [] as { label: string; href: string }[],
 };
 
@@ -118,7 +131,7 @@ export const primaryNav: {
       items: [
         { label: "All editions", href: "/trichozette", description: "Interactive editions with quizzes and checklists." },
         { label: "Latest news", href: "/news", description: "Regulation, treatments and research, with sources." },
-        { label: "Journal", href: "/journal", description: "Public guides from Trichozette." },
+        { label: "Blog", href: "/blog", description: "Sourced posts on hair, scalp and practice." },
         { label: "Podcast", href: "/podcast", description: "Conversations from the community." },
       ],
     },
@@ -146,7 +159,7 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
       { label: "Events", href: "/events" },
       { label: "Trichozette", href: "/trichozette" },
       { label: "News", href: "/news" },
-      { label: "Journal", href: "/journal" },
+      { label: "Blog", href: "/blog" },
       { label: "Podcast", href: "/podcast" },
       { label: "Pricing", href: "/pricing" },
     ],

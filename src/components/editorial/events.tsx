@@ -45,6 +45,19 @@ export type PublicEvent = {
   chapter: { slug: string; city: string } | null;
 };
 
+/** Masterclasses are open to every member at no charge, whatever member price an event carries. */
+export const MEMBERS_FREE_KINDS: EventKind[] = ["masterclass"];
+
+/** What a member pays for an event: nothing for a masterclass, otherwise the member price. */
+export function memberPriceFor(event: { kind: EventKind; memberPriceGBP: number }) {
+  return MEMBERS_FREE_KINDS.includes(event.kind) ? 0 : event.memberPriceGBP;
+}
+
+/** Whether every member sees the joining link without saying they are going first. */
+export function openToAllMembers(event: { kind: EventKind }) {
+  return MEMBERS_FREE_KINDS.includes(event.kind);
+}
+
 export const EVENT_KIND_LABEL: Record<EventKind, string> = {
   gathering: "Gathering",
   masterclass: "Masterclass",

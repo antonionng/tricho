@@ -1,5 +1,6 @@
 import { editionsA } from "./editions-a";
 import { editionsB } from "./editions-b";
+import { editionsC } from "./editions-c";
 import { archive2023 } from "./archive-2023";
 import { archive2024 } from "./archive-2024";
 import { archive2025 } from "./archive-2025";
@@ -8,6 +9,7 @@ import { news, type NewsItem } from "@/content/news";
 import type { Edition, Page } from "./types";
 
 export * from "./types";
+export * from "./access";
 
 /** Which news topics each edition's "In the news" page draws on. */
 const NEWS_TOPICS: Record<string, NewsItem["topics"]> = {
@@ -19,12 +21,21 @@ const NEWS_TOPICS: Record<string, NewsItem["topics"]> = {
   "the-business-of-scalp-care": ["business", "regulation", "products"],
   "textured-hair-and-traction": ["products", "hair-loss", "research"],
   dublin: ["events", "regulation", "hair-loss", "products"],
+  "ireland-in-review": ["regulation", "hair-loss", "research", "business"],
 };
+
+/** Editions whose news page covers only the month before they were published. */
+const PAST_MONTH_NEWS = new Set(["ireland-in-review"]);
+const DAY = 86_400_000;
 
 /** The news topics an edition draws on: its own list if given, otherwise the built-in map. */
 export function newsFor(e: Edition, topicsOverride?: NewsItem["topics"]): NewsItem[] {
   const topics = topicsOverride ?? NEWS_TOPICS[e.slug] ?? [];
-  const scored = news
+  const recent = PAST_MONTH_NEWS.has(e.slug);
+  const until = Date.parse(e.published);
+  const pool = recent ? news.filter((n) => Date.parse(n.date) <= until && Date.parse(n.date) > until - 35 * DAY) : news;
+  const limit = recent ? 8 : 5;
+  const scored = pool
     .map((n) => ({
       n,
       score:
@@ -39,7 +50,7 @@ export function newsFor(e: Edition, topicsOverride?: NewsItem["topics"]): NewsIt
     const hit = scored.find((x) => x.n.disciplines.includes(d) && !picked.includes(x.n));
     if (hit) picked.push(hit.n);
   }
-  for (const x of scored) if (picked.length < 5 && !picked.includes(x.n)) picked.push(x.n);
+  for (const x of scored) if (picked.length < limit && !picked.includes(x.n)) picked.push(x.n);
   return picked.sort((a, b) => b.date.localeCompare(a.date));
 }
 
@@ -67,7 +78,7 @@ export const byPeriodDesc = (a: Edition, b: Edition) =>
   (b.period ?? "").localeCompare(a.period ?? "") || a.number - b.number;
 
 /** The monthly magazine, newest first. Built-in editions only: server code reads src/content/gazette/loader.ts to include Studio editions. */
-export const editions: Edition[] = [...editionsA, ...editionsB]
+export const editions: Edition[] = [...editionsA, ...editionsB, ...editionsC]
   .map((e) => withNews(e))
   .sort(byNumberDesc);
 
@@ -91,6 +102,11 @@ export function pageTitle(p: Page): string {
     case "interactive":
     case "perspectives":
     case "news":
+    case "gallery":
+    case "people":
+    case "partners":
+    case "partner":
+    case "cta":
       return p.title;
     case "image":
       return p.caption;
@@ -106,6 +122,11 @@ export function pageKicker(p: Page): string {
     case "interactive":
     case "perspectives":
     case "news":
+    case "gallery":
+    case "people":
+    case "partners":
+    case "partner":
+    case "cta":
       return p.kicker;
     case "image":
       return "Photograph";

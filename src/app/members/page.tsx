@@ -43,7 +43,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         profile: true,
       },
     }),
-    getTodayFeed({ userId, professional: ctx.professional, chapterId: ctx.chapterId, profession: ctx.profession }),
+    getTodayFeed({ userId, professional: ctx.professional }),
     prisma.event.findMany({
       where: { published: true, startsAt: { gte: now } },
       orderBy: { startsAt: "asc" },

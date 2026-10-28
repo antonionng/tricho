@@ -135,6 +135,32 @@ export function eventReminderEmail(p: { name: string | null; event: EmailEvent }
   };
 }
 
+/** Sent by the team to every member as an online event is about to begin, with the joining link. */
+export function eventStartingEmail(p: { name: string | null; event: EmailEvent }): Email {
+  const e = p.event;
+  const membersHref = `/members/events/${e.slug}`;
+  return {
+    subject: `Starting soon: ${e.title}`,
+    content: {
+      preheader: e.joinUrl ? "Join on Google Meet with the link inside." : `${eventTime(e.startsAt, e.endsAt)}.`,
+      eyebrow: "Starting soon",
+      image: "gathering",
+      heading: `${e.title} is about to start, and every member is welcome.`,
+      body: [
+        `Hello ${firstNameOf(p.name)},`,
+        e.joinUrl
+          ? `${e.title} begins shortly online. It is free for members, and you don't need to have booked. Use the link below to join on Google Meet.`
+          : `${e.title} begins shortly. It is free for members, and you don't need to have booked. The details are on the event page.`,
+        "If you can't make it this time, the recording will be in the members' area afterwards.",
+      ].join("\n\n"),
+      facts: eventFacts(e),
+      cta: e.joinUrl ? { label: "Join on Google Meet", href: e.joinUrl } : { label: "View the event", href: membersHref },
+      secondary: { label: "View the event", href: membersHref },
+      reason: "You receive this because you are a Trichollective member, and member events are part of your membership.",
+    },
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Activity: replies and messages                                       */
 /* ------------------------------------------------------------------ */

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import type { Partner } from "@prisma/client";
 import { partnerLogoSrc, partnerTierLabel } from "@/lib/partners";
-import { safeHex, tint } from "@/lib/showcase";
+import { partnerAllowance, safeHex, tint } from "@/lib/showcase";
 
 /** A brand, clinic or charity page in the directory: its cover (or colour), logo, name and summary. */
 export function BusinessCard({
@@ -12,7 +12,7 @@ export function BusinessCard({
 }) {
   const cover = partnerLogoSrc(partner.coverUrl);
   const logo = partnerLogoSrc(partner.logoUrl);
-  const accent = safeHex(partner.accentColor);
+  const accent = safeHex(partnerAllowance(partner).colour ? partner.accentColor : null);
   const charity = partner.kind === "charity";
   return (
     <Link href={`/partners/${partner.slug}`} className="group flex h-full flex-col overflow-hidden rounded-3xl border border-rule bg-card transition hover:border-ink/40">

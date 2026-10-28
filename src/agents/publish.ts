@@ -6,6 +6,7 @@ import { deliver, wantsList, type EmailList } from "@/lib/mail/send";
 import type { EmailContent } from "@/lib/mail/layout";
 import { draftEmailContent } from "@/lib/mail/templates/members";
 import { announcementEmail, newsletterEmail } from "@/lib/mail/templates/releases";
+import { freshState, uniqueSlug } from "./blog-writer";
 
 export const SYSTEM_USER_EMAIL = "team@trichollective.local";
 
@@ -110,6 +111,29 @@ export async function publishDraft(id: string): Promise<PublishResult> {
     case "gazette_article": {
       await done();
       return { status: "published", message: "Published to Trichozette." };
+    }
+
+    case "blog_idea": {
+      // Approving an idea starts a post; the writer runs when the editor opens it in Blog studio.
+      const question = str(payload.question) || draft.title;
+      const article = await prisma.blogArticle.create({
+        data: {
+          slug: await uniqueSlug(question),
+          status: "writing",
+          title: draft.title,
+          targetQuery: question,
+          brief: [str(payload.angle), str(payload.why) && `Why now: ${str(payload.why)}`].filter(Boolean).join("\n\n") || null,
+          audience: str(payload.audience) || "both",
+          category: str(payload.category) || "consultations",
+          origin: "agent",
+          tags: [],
+          takeaways: [],
+          sourceUrls: [],
+          ai: freshState() as unknown as Prisma.InputJsonObject,
+        },
+      });
+      await done({ articleId: article.id });
+      return { status: "published", message: `Approved. Open it in Blog studio to watch it being written: /studio/blog/${article.id}` };
     }
 
     case "community_post": {

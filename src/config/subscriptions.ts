@@ -51,6 +51,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
       "Learn at a live masterclass and case round each month, with recordings to watch between clients",
       "Pay member prices on courses and conferences",
       "Save with member perks from partner brands",
+      "Download printable practice resources: consultation records, a referral guide and letter, a hair pull test record and client handouts",
     ],
   },
   {
@@ -98,7 +99,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
       process.env.STRIPE_PRICE_ID_BUSINESS_LUXURY,
     ],
     features: [
-      "Be found in the directory with a full business page in your own colours, with your story, products and services, and up to 8 photos",
+      "Be found in the directory with a full business page with your story, products and services, and up to 8 photos",
       "Give five of your team Professional membership",
       "Advertise roles on the jobs board to trained hair and scalp professionals",
       "Offer members a perk and put your products in front of practitioners",
@@ -173,6 +174,17 @@ export function tierById(id: string | null | undefined) {
 /** True for either Premium Business price. */
 export function isPremiumPriceId(priceId: string | null | undefined) {
   return !!priceId && (priceId === premiumBusiness.stripePriceId || priceId === premiumBusiness.stripeFoundingPriceId);
+}
+
+/**
+ * True for a Premium Business subscription: one of the listed prices, or a bespoke price (such as a
+ * founding rate on a Stripe payment link) whose subscription carries the metadata tier "premium".
+ */
+export function isPremiumSubscription(
+  priceId: string | null | undefined,
+  metadata: Record<string, string> | null | undefined
+) {
+  return isPremiumPriceId(priceId) || metadata?.tier === premiumBusiness.id;
 }
 
 /** The Premium Business price for a checkout: the founding rate while founding places remain. */

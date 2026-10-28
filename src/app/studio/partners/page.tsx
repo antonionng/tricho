@@ -74,7 +74,8 @@ export default async function StudioPartnersPage({
         />
       </div>
       <p className="text-sm text-ink-2">
-        <TextLink href="/studio/inbox?agent=website">Open partner applications in the inbox</TextLink>
+        <TextLink href="/studio/inbox?agent=website">Open partner applications in the inbox</TextLink> ·{" "}
+        <TextLink href="/studio/partners/offers">Send a Premium offer with its onboarding link</TextLink>
       </p>
 
       {showForm && <PartnerForm partner={editing} />}

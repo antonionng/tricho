@@ -31,7 +31,7 @@ export default function TermsPage() {
             account or making a payment, you agree to them.
           </p>
           <p>
-            {site.name} is operated by Trichollective Ltd. You can reach us at {mail}. Our <Link href="/privacy">privacy notice</Link>{" "}
+            {site.name} is operated by {site.company.name}, a company registered in {site.company.registeredIn} with number {site.company.number}, whose registered office is at {site.company.address}. You can reach us at {mail}. Our <Link href="/privacy">privacy notice</Link>{" "}
             explains how we handle personal data, and our <Link href="/cookies">cookie policy</Link> explains
             the small files we store in your browser.
           </p>
@@ -432,9 +432,10 @@ export default function TermsPage() {
           </p>
           <p>
             If any part of these terms is found to be unenforceable, the rest still applies. These terms
-            are governed by the laws of Ireland, and the Irish courts can hear any dispute. If you are a
-            consumer living in the United Kingdom, you also keep the protection of the mandatory laws of
-            the part of the UK where you live, and you can bring a claim in your local courts.
+            are governed by the laws of England and Wales, and the courts of England and Wales can hear
+            any dispute. If you are a consumer living in Ireland, Scotland or Northern Ireland, you also
+            keep the protection of the mandatory consumer laws where you live, and you can bring a claim
+            in your local courts.
           </p>
         </>
       ),
