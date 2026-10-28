@@ -83,6 +83,14 @@ enum EditionStatus {
   withdrawn
 }
 
+enum BlogStatus {
+  /// Being written by the AI writer. Never shown to readers.
+  writing
+  draft
+  published
+  archived
+}
+
 enum EpisodeStatus {
   planning
   draft
@@ -1362,4 +1370,53 @@ model PartnerOffer {
   @@index([status, createdAt])
   @@index([email])
   @@index([stripeSubscriptionId])
+}
+
+/// A blog post written in Studio. Posts in src/content/blog are merged with these on the public site.
+model BlogArticle {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  status      BlogStatus @default(draft)
+  title       String     @default("")
+  description String     @default("")
+  /// A BLOG_CATEGORIES slug from src/content/blog/types.ts.
+  category    String     @default("consultations")
+  /// "public" | "professional" | "both"
+  audience    String     @default("both")
+  tags        String[]
+  /// An authors key from src/content/authors.ts.
+  author      String     @default("editorial")
+  /// An images key from src/content/images.ts.
+  image       String     @default("hairDetail")
+  standfirst  String     @default("") @db.Text
+  answer      String     @default("") @db.Text
+  takeaways   String[]
+  body        String     @default("") @db.Text
+  /// { q, a }[]
+  faqs        Json       @default("[]")
+  /// { label, url }[]
+  sources     Json       @default("[]")
+  /// { guides?: string[], glossary?: string[], discipline?: string }
+  related     Json?
+  /// { name, credentials, reviewedOn } once a named clinician has reviewed it.
+  reviewer    Json?
+  featured    Boolean    @default(false)
+
+  /// The question the post should answer, and the writer's brief.
+  targetQuery String     @default("")
+  brief       String?    @db.Text
+  /// Extra URLs to read before writing, one per line.
+  sourceUrls  String[]
+  /// The AI writer's working state: { step, plan, notes, error, model }.
+  ai          Json?
+  /// "studio" when started by hand, "agent" when approved from an idea in the inbox.
+  origin      String     @default("studio")
+
+  publishedAt DateTime?
+  createdById String?
+  updatedById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, publishedAt])
 }

@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
       { source: "/gazette/:slug", destination: "/trichozette/:slug", permanent: true },
       { source: "/members/gazette/:path*", destination: "/members/trichozette/:path*", permanent: true },
       { source: "/admin/:path*", destination: "/studio/:path*", permanent: false },
+      // The Journal grew into the blog.
+      { source: "/journal", destination: "/blog", permanent: true },
+    ];
+  },
+  // A plain Markdown copy of every post and guide, for AI assistants: /blog/<slug>.md
+  async rewrites() {
+    return [
+      { source: "/blog/:slug([a-z0-9-]+).md", destination: "/md/blog/:slug" },
+      { source: "/guides/:slug([a-z0-9-]+).md", destination: "/md/guides/:slug" },
     ];
   },
   // Brand portal logo uploads are up to 1MB, sent with the rest of the page form.

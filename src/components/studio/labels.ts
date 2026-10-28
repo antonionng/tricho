@@ -7,6 +7,7 @@ export const KIND_LABEL: Record<string, string> = {
   partner_enquiry: "Partner enquiry",
   contact: "Contact message",
   announcement: "New release email",
+  blog_idea: "Blog post idea",
 };
 
 export const kindLabel = (kind: string) => KIND_LABEL[kind] ?? kind.replace(/_/g, " ");
@@ -27,6 +28,8 @@ export function approveLabel(kind: string) {
       return "Approve & post";
     case "email":
       return "Approve & send";
+    case "blog_idea":
+      return "Approve & start writing";
     case "newsletter":
     case "announcement":
       return "Approve & send to everyone…";
