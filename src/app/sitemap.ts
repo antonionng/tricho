@@ -2,9 +2,12 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { liveJobWhere } from "@/lib/jobs";
 import { absoluteUrl } from "@/lib/seo";
+import { images, img } from "@/content/images";
 import { guides } from "@/content/guides";
 import { getAllEditions } from "@/content/gazette/loader";
 import { glossary } from "@/content/glossary";
+import { activeCategories, lastUpdated } from "@/content/blog";
+import { getAllPosts } from "@/lib/blog";
 import { courses } from "@/content/courses";
 import { CHAPTERS } from "@/content/chapters";
 import { DISCIPLINES } from "@/content/disciplines";
@@ -27,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const staticPaths = [
     "/", "/pricing", "/founding", "/community", "/about", "/for-business", "/partners", "/jobs",
-    "/trichozette", "/news", "/learn", "/certification", "/events", "/chapters", "/journal", "/podcast", "/directory",
+    "/trichozette", "/news", "/learn", "/certification", "/events", "/chapters", "/blog", "/podcast", "/directory",
     "/directory/list", "/find", "/guides", "/glossary", "/contact", "/privacy", "/terms", "/cookies",
   ];
 
@@ -46,9 +49,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     safely("jobs", () => prisma.job.findMany({ where: liveJobWhere(), select: { slug: true, updatedAt: true } })),
   ]);
   const allEditions = await getAllEditions();
+  const blogPosts = await getAllPosts();
 
   return [
     ...staticPaths.map((p) => ({ url: absoluteUrl(p), lastModified: now, changeFrequency: "weekly" as const, priority: p === "/" ? 1 : 0.7 })),
+    ...blogPosts.map((p) => ({
+      url: absoluteUrl(`/blog/${p.slug}`),
+      lastModified: new Date(lastUpdated(p)),
+      priority: 0.8,
+      images: [img(images[p.image], 1200)],
+    })),
+    ...activeCategories(blogPosts).map((c) => ({ url: absoluteUrl(`/blog/topic/${c.slug}`), lastModified: now, priority: 0.6 })),
     ...guides.map((g) => ({ url: absoluteUrl(`/guides/${g.slug}`), lastModified: new Date(g.updated ?? g.published), priority: 0.8 })),
     ...allEditions.map((e) => ({ url: absoluteUrl(`/trichozette/${e.slug}`), lastModified: new Date(e.published), priority: 0.7 })),
     ...glossary.map((t) => ({ url: absoluteUrl(`/glossary/${t.slug}`), priority: 0.5 })),

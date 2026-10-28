@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
+  Award,
   BadgeCheck,
   Building2,
   ChevronRight,
@@ -53,6 +54,7 @@ import { PhotoManager } from "@/components/forms/PhotoManager";
 import { Fold, OpenFoldFromHash } from "@/components/members/Fold";
 import { listPhotos } from "@/lib/photos";
 import { PRACTITIONER } from "@/lib/showcase";
+import { setCertificateOnProfile } from "../courses/[slug]/actions";
 
 export const metadata = { title: "Your profile" };
 
@@ -87,6 +89,14 @@ export default async function ProfilePage({
   const userId = ctx.session.user.id;
   const { saved, error, message } = await searchParams;
 
+  // Courses they've completed, for the badges on their profile. Empty before the courses migration has run.
+  const certificates = await prisma.certificate
+    .findMany({
+      where: { userId, withdrawnAt: null },
+      orderBy: { issuedAt: "desc" },
+      select: { id: true, courseSlug: true, courseTitle: true, hours: true, showOnProfile: true },
+    })
+    .catch(() => []);
   const [user, chapters] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -282,6 +292,47 @@ export default async function ProfilePage({
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
       </Card>
+
+      <section id="courses" className="mt-10 scroll-mt-20">
+        <SectionLabel>Courses completed</SectionLabel>
+        <div className="overflow-hidden rounded-2xl border border-rule bg-card">
+          {certificates.length === 0 ? (
+            <Link href="/members/learn" className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-paper-2 sm:px-5">
+              <Award className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-medium">Complete a course to add a badge to your profile.</span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">
+                  Each course you finish shows on your member and directory profiles, linked to a certificate anyone can check.
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          ) : (
+            certificates.map((c) => (
+              <div key={c.id} className="flex flex-col gap-3 border-b border-rule px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <Link href={`/members/courses/${c.courseSlug}/certificate`} className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-paper">
+                    <Award className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-medium leading-snug">{c.courseTitle}</span>
+                    <span className="block text-sm text-muted-foreground">
+                      {c.hours} hours CPD · {c.showOnProfile ? "Showing on your profile" : "Hidden from your profile"}
+                    </span>
+                  </span>
+                </Link>
+                <form action={setCertificateOnProfile}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="show" value={c.showOnProfile ? "0" : "1"} />
+                  <SubmitButton variant="outline" size="sm" pending="Saving…">
+                    {c.showOnProfile ? "Hide badge" : "Show badge"}
+                  </SubmitButton>
+                </form>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       <section className="mt-10">
         <SectionLabel>Your profile</SectionLabel>

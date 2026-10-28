@@ -16,6 +16,7 @@ const ICONS: Record<string, typeof Bell> = {
   follow: UserPlus,
   useful: ThumbsUp,
   job: Briefcase,
+  course: GraduationCap,
   masterclass: GraduationCap,
 };
 

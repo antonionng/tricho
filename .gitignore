@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# local tooling and one-off marketing output
+/output/
+/.claude/worktrees/
+/.claude/settings.local.json
+/.claude/launch.json
