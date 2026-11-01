@@ -2,6 +2,7 @@ import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage }
 import { z } from "zod";
 import { getMemberContext } from "@/lib/member";
 import { searchListings, hasFullProfile } from "@/lib/directory";
+import { aiAvailable, aiModel } from "@/agents/ai";
 import { assistantSystemPrompt, TRICHO_AI_MODEL, type AssistantMode } from "@/lib/ai/prompt";
 
 export const maxDuration = 60;
@@ -16,9 +17,9 @@ export async function POST(req: Request) {
   if (!ctx.allowed || !ctx.professional) {
     return new Response("The Assistant is part of the Professional plan.", { status: 402 });
   }
-  if (!process.env.AI_GATEWAY_API_KEY) {
+  if (!aiAvailable()) {
     return new Response(
-      "The Assistant isn't switched on yet. Set AI_GATEWAY_API_KEY to enable it.",
+      "The Assistant isn't switched on yet. Set OPENAI_API_KEY to enable it.",
       { status: 503 }
     );
   }
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   const mode = MODES.includes(body.mode as AssistantMode) ? (body.mode as AssistantMode) : "referral";
 
   const result = streamText({
-    model: TRICHO_AI_MODEL,
+    model: aiModel(TRICHO_AI_MODEL),
     system: assistantSystemPrompt(mode),
     messages: await convertToModelMessages(body.messages),
     stopWhen: stepCountIs(4),

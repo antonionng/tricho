@@ -28,7 +28,7 @@ export default async function NewBlogPostPage({ searchParams }: { searchParams: 
         title="Write a post with AI"
         intro="Give the writer one real question. It plans the post, reads trusted sources, writes a draft, fact-checks it against those sources and fixes what it finds. It takes two to four minutes, and nothing goes live until you publish it."
       />
-      {!aiAvailable() && <Notice tone="danger">AI_GATEWAY_API_KEY isn&apos;t set, so this will create an empty draft for you to write by hand.</Notice>}
+      {!aiAvailable() && <Notice tone="danger">OPENAI_API_KEY isn&apos;t set, so this will create an empty draft for you to write by hand.</Notice>}
       {sp.notice && <Notice tone="danger">{sp.notice}</Notice>}
 
       <form action={createBlogPost} className="space-y-6">

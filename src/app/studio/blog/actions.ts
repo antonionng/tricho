@@ -163,7 +163,7 @@ export async function archiveBlogPost(id: string) {
 /** Ask the writer for a new version, guided by the editor's note. */
 export async function rewriteBlogPost(id: string, note: string): Promise<SaveResult> {
   const staff = await requirePermission("gazette.edit");
-  if (!aiAvailable()) return { ok: false, message: "The AI writer needs AI_GATEWAY_API_KEY to be set." };
+  if (!aiAvailable()) return { ok: false, message: "The AI writer needs OPENAI_API_KEY to be set." };
   const row = await prisma.blogArticle.findUnique({ where: { id } });
   if (!row) return { ok: false, message: "That post no longer exists." };
   if (row.status === "published") return { ok: false, message: "Unpublish the post first, so readers never see a half-written version." };

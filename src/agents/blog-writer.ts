@@ -15,7 +15,7 @@ import { glossary } from "@/content/glossary";
 import { guides } from "@/content/guides";
 import { images } from "@/content/images";
 import { news } from "@/content/news";
-import { AGENT_MODEL, HOUSE_RULES, aiAvailable, tidy } from "./ai";
+import { AGENT_MODEL, HOUSE_RULES, aiAvailable, aiModel, tidy } from "./ai";
 import { readSource } from "./research";
 
 /** The blog is our best shot at search and AI answers, so it can use a stronger model than the daily agents. */
@@ -56,7 +56,7 @@ async function siteMap() {
 
 async function structured<T>(schema: z.ZodType<T>, system: string, prompt: string): Promise<T> {
   const { output } = await generateText({
-    model: BLOG_MODEL,
+    model: aiModel(BLOG_MODEL),
     system: `${HOUSE_RULES}\n\n${system}`,
     prompt,
     output: Output.object({ schema }),
@@ -348,7 +348,7 @@ export type WriterResult = { ok: boolean; done: boolean; message: string };
  * from the same place next time. A lease on the row stops two runs overlapping.
  */
 export async function runBlogWriter(id: string): Promise<WriterResult> {
-  if (!aiAvailable()) return { ok: false, done: false, message: "The AI writer needs AI_GATEWAY_API_KEY to be set." };
+  if (!aiAvailable()) return { ok: false, done: false, message: "The AI writer needs OPENAI_API_KEY to be set." };
   const started = Date.now();
 
   let row = await prisma.blogArticle.findUnique({ where: { id } });
