@@ -4,7 +4,7 @@ import type { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { readStoredFile } from "@/lib/storage";
-import { aiAvailable, HOUSE_RULES } from "@/agents/ai";
+import { aiAvailable, aiModel, HOUSE_RULES } from "@/agents/ai";
 import type { CourseContent, Lesson } from "@/content/course-types";
 import { emptyCourseContent, parseCourseContent } from "@/content/course-schema";
 import { draftAssessmentSchema, draftLessonSchema, draftPlanSchema, toAssessment, toLesson, type DraftPlan } from "./course-draft-shape";
@@ -19,7 +19,7 @@ import { draftAssessmentSchema, draftLessonSchema, draftPlanSchema, toAssessment
  * page asks again, and the next request carries on from the saved step.
  */
 
-/** Course drafting is quality-sensitive health content, so it uses the most capable model by default. */
+/** Course drafting is quality-sensitive health content, so it uses the most capable model by default. With OPENAI_API_KEY set, aiModel sends it to OpenAI instead. */
 export const COURSE_MODEL = process.env.TRICHO_COURSE_MODEL || "anthropic/claude-opus-5.5";
 /** Drafts an author can start in a day. The team is not limited. */
 export const DAILY_DRAFTS = 5;
@@ -81,7 +81,7 @@ async function sourceMessage(input: DraftInput, ask: string): Promise<ModelMessa
 
 async function structured<T>(schema: z.ZodType<T>, message: ModelMessage): Promise<T> {
   const { output } = await generateText({
-    model: COURSE_MODEL,
+    model: aiModel(COURSE_MODEL),
     system: `${HOUSE_RULES}\n\n${WRITING_GUIDE}`,
     messages: [message],
     output: Output.object({ schema }),
