@@ -102,12 +102,14 @@ export default async function MemberEventPage({
       <header className="mt-4 flex flex-col gap-3">
         <div className="flex flex-wrap gap-1.5">
           <Pill>{EVENT_KIND_LABEL[event.kind]}</Pill>
+          {event.sponsor && <Pill>Sponsored by {event.sponsor.name}</Pill>}
           {local && <Pill tone="ink">Your chapter</Pill>}
           {hasTicket ? <Pill tone="positive">You have a ticket</Pill> : going && <Pill tone="positive">You&apos;re going</Pill>}
           {past && <Pill>This event has taken place</Pill>}
         </div>
         <h1 className="display text-[2.4rem] leading-[1.02] sm:text-5xl">{event.title}</h1>
         <p className="text-[15px] leading-relaxed text-ink-2 sm:text-base">{event.summary}</p>
+        {event.presenters && <p className="text-[15px] text-ink-2">Presented by {event.presenters}.</p>}
       </header>
 
       <Card className="mt-6 flex flex-col gap-5 p-5 sm:p-6">

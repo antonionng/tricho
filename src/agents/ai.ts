@@ -1,8 +1,17 @@
-import { generateText, Output } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { generateText, Output, type LanguageModel } from "ai";
 import type { z } from "zod";
 import { site } from "@/config/site";
 
 export const AGENT_MODEL = process.env.TRICHO_AGENT_MODEL || "anthropic/claude-sonnet-5.5";
+
+/** The OpenAI model every feature uses when OPENAI_API_KEY is set. */
+export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
+
+/** With OPENAI_API_KEY, calls go straight to OpenAI; otherwise through the Vercel AI Gateway. */
+export function aiModel(gatewayId: string): LanguageModel {
+  return process.env.OPENAI_API_KEY ? openai(OPENAI_MODEL) : gatewayId;
+}
 
 export const BANNED_WORDS = ["unlock", "elevate", "seamless", "empower", "journey", "delve"];
 
@@ -26,7 +35,7 @@ House style:
 - Output plain text only. Separate paragraphs with a blank line. Use lines starting with "## " for subheadings. No Markdown bold, italics or links.`;
 
 export function aiAvailable() {
-  return !!process.env.AI_GATEWAY_API_KEY;
+  return !!(process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY);
 }
 
 /** Light clean-up so the output follows the house rules even if the model slips. */
@@ -48,7 +57,7 @@ export async function generate(system: string, prompt: string): Promise<string |
   if (!aiAvailable()) return null;
   try {
     const { text } = await generateText({
-      model: AGENT_MODEL,
+      model: aiModel(AGENT_MODEL),
       system: `${HOUSE_RULES}\n\n${system}`,
       prompt,
     });
@@ -69,7 +78,7 @@ export async function generateStructured<T>(
   if (!aiAvailable()) return null;
   try {
     const { output } = await generateText({
-      model: AGENT_MODEL,
+      model: aiModel(AGENT_MODEL),
       system: `${HOUSE_RULES}\n\n${system}`,
       prompt,
       output: Output.object({ schema }),

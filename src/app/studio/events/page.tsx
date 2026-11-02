@@ -9,7 +9,7 @@ import { Empty, Field, Notice, PageHeader, Section, Tag, dateTime, fieldClass, N
 import { cn } from "@/lib/utils";
 import { studioPage } from "../_lib/guard";
 import { saveEventAction } from "../actions";
-import { draftEventAction, writeEventBodyAction } from "./actions";
+import { draftEventAction, notifyMasterclassAction, writeEventBodyAction } from "./actions";
 import { dateToLondonInput, formValuesFromPayload, missingEventFields, type EventFormValues, type RequiredEventField } from "@/lib/event-input";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export default async function EventsPage({
   const sp = await searchParams;
   const now = new Date();
 
-  const [events, editing, sales] = await Promise.all([
+  const [events, editing, sales, partners] = await Promise.all([
     prisma.event.findMany({
       orderBy: { startsAt: "desc" },
       take: 60,
@@ -33,6 +33,7 @@ export default async function EventsPage({
     }),
     sp.edit ? prisma.event.findUnique({ where: { id: sp.edit } }) : null,
     prisma.eventTicket.groupBy({ by: ["eventId"], where: { status: "paid" }, _sum: { quantity: true, amount: true } }),
+    prisma.partner.findMany({ where: { hidden: false }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   const salesByEvent = new Map(sales.map((r) => [r.eventId, { sold: r._sum.quantity ?? 0, revenue: r._sum.amount ?? 0 }]));
   const prefillDraft =
@@ -74,14 +75,14 @@ export default async function EventsPage({
 
       {showForm && !editing && canEdit && <DescribeEvent />}
 
-      {showForm && <EventForm event={editing} prefill={prefill} />}
+      {showForm && <EventForm event={editing} prefill={prefill} partners={partners} />}
 
       <Section title="Coming up">
-        <EventList events={upcoming} sales={salesByEvent} empty="Nothing coming up. Add an event so members have something to look forward to." />
+        <EventList events={upcoming} sales={salesByEvent} canEdit={canEdit} empty="Nothing coming up. Add an event so members have something to look forward to." />
       </Section>
       {past.length > 0 && (
         <Section title="Past events">
-          <EventList events={past} sales={salesByEvent} empty="" />
+          <EventList events={past} sales={salesByEvent} canEdit={false} empty="" />
         </Section>
       )}
     </div>
@@ -94,7 +95,7 @@ function money(pence: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 }
 
-function EventList({ events, sales, empty }: { events: (Event & { _count: { rsvps: number } })[]; sales: Sales; empty: string }) {
+function EventList({ events, sales, empty, canEdit }: { events: (Event & { _count: { rsvps: number } })[]; sales: Sales; empty: string; canEdit: boolean }) {
   if (!events.length) return <Empty>{empty}</Empty>;
   return (
     <ul className="divide-y divide-rule rounded-2xl border border-rule bg-card">
@@ -127,6 +128,15 @@ function EventList({ events, sales, empty }: { events: (Event & { _count: { rsvp
               {e._count.rsvps} going{e.capacity && !e.sellTickets ? ` of ${e.capacity}` : ""}
             </Tag>
             {e.published ? <Tag tone="positive">Published</Tag> : <Tag tone="warn">Not published</Tag>}
+            {e.kind === "masterclass" && e.announcedAt && <Tag>Everyone told</Tag>}
+            {canEdit && e.kind === "masterclass" && e.published && (
+              <form action={notifyMasterclassAction}>
+                <input type="hidden" name="eventId" value={e.id} />
+                <SubmitButton size="xs" variant="outline" pendingLabel="Notifying…">
+                  {e.announcedAt ? "Notify anyone missed" : "Notify all users"}
+                </SubmitButton>
+              </form>
+            )}
             <Button asChild size="xs" variant="outline">
               <Link href={`/studio/events/${e.id}/attendees`}>Attendees</Link>
             </Button>
@@ -158,7 +168,7 @@ type Prefill = { id: string; values: EventFormValues; missing: RequiredEventFiel
 
 const missingClass = "border-destructive ring-1 ring-destructive/40";
 
-function EventForm({ event, prefill }: { event: Event | null; prefill: Prefill }) {
+function EventForm({ event, prefill, partners }: { event: Event | null; prefill: Prefill; partners: { id: string; name: string }[] }) {
   const v = prefill?.values;
   const miss = (f: RequiredEventField) => !!prefill?.missing.includes(f);
   const missHint = "This still needs filling in.";
@@ -198,6 +208,22 @@ function EventForm({ event, prefill }: { event: Event | null; prefill: Prefill }
         <SubmitButton formAction={writeEventBodyAction} formNoValidate variant="outline" size="sm" pendingLabel="Writing…">
           Write the description for me
         </SubmitButton>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+        <Field label="Presenters" hint="Optional. For example: Adam Bond (LIVDOR) and Karley Weir. Shown on the event and in its announcement.">
+          <input name="presenters" defaultValue={event?.presenters ?? ""} maxLength={200} className={fieldClass} />
+        </Field>
+        <Field label="Sponsored by" hint="Optional. A sponsored event is always labelled.">
+          <select name="sponsorPartnerId" defaultValue={event?.sponsorPartnerId ?? ""} className={fieldClass}>
+            <option value="">Not sponsored</option>
+            {partners.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -263,7 +289,10 @@ function EventForm({ event, prefill }: { event: Event | null; prefill: Prefill }
         <input type="checkbox" name="published" defaultChecked={v ? v.published : (event?.published ?? false)} className="mt-0.5 h-4 w-4 accent-ink" />
         <span>
           <span className="font-medium text-ink">Published</span>
-          <span className="block text-muted-foreground">Show it to members and on the website.</span>
+          <span className="block text-muted-foreground">
+            Show it to members and on the website. Publishing a masterclass with a date still to come tells every user in the app straight away,
+            and drafts the announcement email for your approval.
+          </span>
         </span>
       </label>
 

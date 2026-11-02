@@ -109,14 +109,15 @@ export function BuyTicket({
     );
   }
   if (quote.amountPence <= 0) {
-    return note(
-      <>
-        This event is free for members.{" "}
-        <Link href="/members/events" className="underline underline-offset-4">
-          Save your place from the events page
-        </Link>
-        .
-      </>
+    return (
+      <div className="flex flex-col gap-2">
+        <Button asChild size={compact ? "default" : "lg"} className={cn(!compact && "w-full")}>
+          <Link href={`/members/events/${slug}`}>
+            Save your place <ArrowRight />
+          </Link>
+        </Button>
+        {note("This event is part of your membership. Say you are going and the joining details are sent to you.")}
+      </div>
     );
   }
 

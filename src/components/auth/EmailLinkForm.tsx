@@ -25,6 +25,7 @@ export function EmailLinkForm({
   // The result the visitor chose to move past with "Use a different email".
   const [dismissed, setDismissed] = useState<EmailLinkState | null>(null);
   const [email, setEmail] = useState(defaultEmail ?? "");
+  const [name, setName] = useState("");
   const sent = state.sent && state !== dismissed ? state.sent : null;
 
   if (sent) {
@@ -32,14 +33,15 @@ export function EmailLinkForm({
       <div className="space-y-4" role="status" aria-live="polite">
         <MailCheck className="h-7 w-7 stroke-[1.5]" aria-hidden />
         <p className="text-lg font-semibold leading-snug text-ink">
-          We have sent a sign-in link to <span className="break-all">{sent}</span>. Open your email app and tap the link.
+          We have sent a sign-in link to <span className="break-all">{sent}</span>. Open your email app and tap the button, or type the 6-digit code.
         </p>
         <p className="text-[15px] leading-relaxed text-ink-2">
-          The link opens your account, works once and expires after 24 hours. If it has not arrived within a couple of minutes, please check your
-          spam or junk folder.
+          The button and the code both work once and expire after 24 hours. If the email has not arrived within a couple of minutes, please check your
+          spam or junk folder. On an iPhone, type the code if the button does not open your account.
         </p>
         <form action={formAction} className="flex flex-col gap-3 pt-1 sm:flex-row">
           <input type="hidden" name="email" value={sent} />
+          {mode === "signup" && <input type="hidden" name="name" value={name} />}
           <Button type="submit" variant="outline" size="lg" disabled={pending} aria-busy={pending} className="w-full sm:w-auto">
             {pending ? "Sending the link…" : "Send the link again"}
           </Button>
@@ -62,6 +64,24 @@ export function EmailLinkForm({
 
   return (
     <form action={formAction} className="space-y-3">
+      {mode === "signup" && (
+        <>
+          <Label htmlFor="name">Your name</Label>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            required
+            minLength={2}
+            maxLength={80}
+            autoComplete="name"
+            placeholder="First and last name"
+            className="h-12 text-base"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </>
+      )}
       <Label htmlFor="email">Email address</Label>
       <Input
         id="email"
@@ -83,7 +103,7 @@ export function EmailLinkForm({
           {state.error}
         </p>
       )}
-      <p className="text-xs text-muted-foreground">No password to remember. We send a one-time link to your inbox.</p>
+      <p className="text-xs text-muted-foreground">No password to remember. We send a one-time link and a short code to your inbox.</p>
     </form>
   );
 }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { aiAvailable } from "@/agents/ai";
 import { AssistantChat } from "@/components/assistant/Chat";
 import { MemberPage } from "@/components/members/MemberPage";
 import { Paywall, ProfessionalUpsell } from "@/components/members/Paywall";
@@ -31,7 +32,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   }
 
   const { q } = await searchParams;
-  const configured = !!process.env.AI_GATEWAY_API_KEY;
+  const configured = aiAvailable();
 
   return (
     <div className="flex flex-col">
