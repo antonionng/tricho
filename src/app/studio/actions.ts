@@ -366,7 +366,7 @@ async function uniqueEventSlug(title: string) {
   return `${base}-${Date.now().toString(36)}`;
 }
 
-const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "priceGBP", "memberPriceGBP", "capacity", "ticketUrl", "published", "sellTickets"] as const;
+const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "priceGBP", "memberPriceGBP", "capacity", "ticketUrl", "published", "sellTickets", "presenters", "sponsorPartnerId"] as const;
 
 export async function saveEventAction(form: FormData) {
   const staff = await requirePermission("events.edit");
@@ -385,6 +385,10 @@ export async function saveEventAction(form: FormData) {
   }
   const data = checked.data;
   const title = data.title;
+  // Only a real partner can sponsor an event.
+  if (data.sponsorPartnerId && !(await prisma.partner.findUnique({ where: { id: data.sponsorPartnerId }, select: { id: true } }))) {
+    data.sponsorPartnerId = null;
+  }
 
   let eventId: string;
   let newlyPublished = data.published;
@@ -410,10 +414,26 @@ export async function saveEventAction(form: FormData) {
   }
 
   // A newly published event gets its announcement drafted straight away, for Karley to approve in the inbox.
+  // A masterclass also tells every user in the app at once, the first time it is published.
   let announced = false;
+  let notified = 0;
   if (newlyPublished) {
-    const { announceEvent } = await import("@/agents/announce");
-    announced = !!(await announceEvent(eventId));
+    const { announceEvent, announceMasterclass } = await import("@/agents/announce");
+    if (data.kind === "masterclass") {
+      const result = await announceMasterclass(eventId, { onlyFirstTime: true });
+      announced = !!result?.drafted;
+      notified = result?.notified ?? 0;
+      if (result) {
+        await audit(staff, {
+          action: "event.announce",
+          targetType: "event",
+          targetId: eventId,
+          summary: `Told ${notified} ${notified === 1 ? "person" : "people"} in the app about the masterclass "${title}"${result.drafted ? " and drafted the announcement email" : ""}.`,
+        });
+      }
+    } else {
+      announced = !!(await announceEvent(eventId));
+    }
     if (announced) revalidatePath("/studio", "layout");
   }
 
@@ -423,9 +443,13 @@ export async function saveEventAction(form: FormData) {
   redirect(
     withParams("/studio/events", {
       notice: data.published
-        ? announced
-          ? "Event saved and published. An announcement email is waiting for your approval in the inbox."
-          : "Event saved and published."
+        ? [
+            "Event saved and published.",
+            notified > 0 ? `${notified} ${notified === 1 ? "person has" : "people have"} been told in the app.` : "",
+            announced ? "An announcement email is waiting for your approval in the inbox." : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
         : "Event saved as a draft.",
     })
   );

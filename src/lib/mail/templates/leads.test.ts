@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { absoluteUrl, esc, renderEmail } from "../layout";
-import { samples, subscribeEmail } from "./leads";
+import { samples, signInLinkEmail, subscribeEmail } from "./leads";
 
 describe("lead and sign-in emails", () => {
   it.each(samples.map((s) => [s.id, s] as const))("%s renders", (_id, s) => {
@@ -18,6 +18,15 @@ describe("lead and sign-in emails", () => {
 
   it("has unique sample ids", () => {
     expect(new Set(samples.map((s) => s.id)).size).toBe(samples.length);
+  });
+
+  it("puts the typed sign-in code in both the HTML and the plain-text email", () => {
+    const email = signInLinkEmail({ url: "https://www.trichollective.net/login/confirm?token=482917", code: "482917" });
+    const { html, text } = renderEmail(email.content);
+    expect(html).toContain("482917");
+    expect(html).toContain("Your sign-in code");
+    expect(text).toContain("Your sign-in code: 482917");
+    expect(email.content.cta?.href).toContain("/login/confirm");
   });
 
   it("picks the confirmation that fits the sign-up source", () => {

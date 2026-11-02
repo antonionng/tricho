@@ -29,6 +29,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </p>
         </div>
         <SignInOptions mode="signin" redirectTo={safeNext(next, "/members")} defaultEmail={paidEmail} />
+        <p className="text-center text-sm text-ink-2">
+          Already have a code from your email?{" "}
+          <Link href="/login/confirm" className="text-ink underline underline-offset-4">
+            Type it here
+          </Link>
+          .
+        </p>
         <p className="text-center text-sm text-muted-foreground">
           New to Trichollective?{" "}
           <Link href="/signup" className="text-ink underline underline-offset-4">

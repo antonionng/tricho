@@ -9,6 +9,7 @@ import { news, type NewsItem } from "@/content/news";
 import type { Edition, Page } from "./types";
 
 export * from "./types";
+export * from "./access";
 
 /** Which news topics each edition's "In the news" page draws on. */
 const NEWS_TOPICS: Record<string, NewsItem["topics"]> = {
