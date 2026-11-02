@@ -22,7 +22,9 @@ export function ticketConfirmedEmail(p: TicketEmailInput): Email {
   const e = p.event;
   const places = p.quantity === 1 ? "one place" : `${p.quantity} places`;
   const how = e.online
-    ? "It takes place online, and we will send the joining details to this address before it starts."
+    ? e.joinUrl
+      ? "It takes place online on Google Meet. Use the joining link below at the start time, and keep this email so you have it to hand."
+      : "It takes place online, and we will send the joining details to this address before it starts."
     : `It takes place at ${eventWhere(e)}.`;
   const facts: [string, string][] = [
     ["Date", eventDate(e.startsAt)],
@@ -32,6 +34,7 @@ export function ticketConfirmedEmail(p: TicketEmailInput): Email {
     ["Price", p.priceType === "member" ? "Member price" : "Guest price"],
   ];
   if (p.amount) facts.push(["Paid", p.amount]);
+  if (e.joinUrl) facts.push(["Join online", e.joinUrl]);
   return {
     subject: `Your ticket for ${e.title} is confirmed`,
     content: {
@@ -46,7 +49,7 @@ export function ticketConfirmedEmail(p: TicketEmailInput): Email {
         "If you can no longer attend, reply to this email and we will help.",
       ].join("\n\n"),
       facts,
-      cta: { label: "View the event", href: eventHref(e) },
+      cta: e.joinUrl ? { label: "Join on Google Meet", href: e.joinUrl } : { label: "View the event", href: eventHref(e) },
       secondary: { label: "Add to your calendar", href: calendarHref(e) },
       reason: `You receive this because you bought a ticket for ${e.title}.`,
     },
@@ -66,7 +69,7 @@ export function ticketReminderEmail(p: { name: string | null; event: EmailEvent;
       heading: `${e.title} is on ${eventDay(e.startsAt)}, and your ticket is booked.`,
       body: [
         `Hello ${firstNameOf(p.name)},`,
-        `A short reminder that you have ${p.quantity === 1 ? "a ticket" : `${p.quantity} tickets`} for ${e.title}. Here are the details you need.`,
+        `A short reminder that you have ${p.quantity === 1 ? "a ticket" : `${p.quantity} tickets`} for ${e.title}. Here are the details you need${e.joinUrl ? ", including the link to join on Google Meet" : ""}.`,
         "If you can no longer attend, reply to this email and we will help.",
       ].join("\n\n"),
       facts: [
@@ -74,8 +77,9 @@ export function ticketReminderEmail(p: { name: string | null; event: EmailEvent;
         ["Time", eventTime(e.startsAt, e.endsAt)],
         ["Where", where],
         ["Tickets", p.quantity === 1 ? "1 ticket" : `${p.quantity} tickets`],
+        ...(e.joinUrl ? ([["Join online", e.joinUrl]] as [string, string][]) : []),
       ],
-      cta: { label: "View the event", href: eventHref(e) },
+      cta: e.joinUrl ? { label: "Join on Google Meet", href: e.joinUrl } : { label: "View the event", href: eventHref(e) },
       secondary: { label: "Add to your calendar", href: calendarHref(e) },
       reason: `You receive this because you bought a ticket for ${e.title}.`,
     },

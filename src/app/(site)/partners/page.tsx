@@ -7,6 +7,7 @@ import { images, img } from "@/content/images";
 import { premiumBusiness } from "@/config/subscriptions";
 import { foundingPartnerPlacesLeft } from "@/lib/founding";
 import { partnerTierLabel, publishedPartners, partnerLogoSrc } from "@/lib/partners";
+import { PartnerBadge } from "@/components/partners/PartnerBadge";
 import { ProudSupporters } from "@/components/site/ProudSupporters";
 import { breadcrumbLd, JsonLd, pageMetadata, absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
@@ -137,7 +138,7 @@ export default async function PartnersPage() {
                         )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Pill tone={p.tier === "premium" ? "ink" : "default"}>{partnerTierLabel(p.tier)}</Pill>
+                        {p.tier === "premium" ? <PartnerBadge founding={p.isFounding} /> : <Pill>{partnerTierLabel(p.tier)}</Pill>}
                         <Pill>{p.category}</Pill>
                       </div>
                       <div className="flex flex-col gap-2">

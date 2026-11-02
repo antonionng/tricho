@@ -32,7 +32,7 @@ export default function PrivacyPage() {
             &ldquo;us&rdquo; and &ldquo;our&rdquo; mean {site.name}.
           </p>
           <p>
-            Trichollective Ltd is the data controller for the personal data described here. You can
+            {site.company.name} (company number {site.company.number}, {site.company.address}) is the data controller for the personal data described here. You can
             contact us about anything in this notice, including your rights, at {mail}.
           </p>
         </>

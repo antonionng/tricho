@@ -17,6 +17,9 @@ import { urlForFile } from "@/lib/storage";
 import { SOCIAL_KEYS, SOCIAL_NETWORKS, membershipLabel, readQualifications, readSocials } from "@/lib/profile";
 import { shortName } from "@/lib/names";
 import { cn } from "@/lib/utils";
+import { site } from "@/config/site";
+import { profileCertificates } from "@/lib/courses";
+import { CourseBadges } from "@/components/courses/CourseBadges";
 
 /** The richer details a member keeps on their own profile, for listings linked to an account. */
 async function linkedProfile(listingId: string) {
@@ -98,6 +101,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
         : [];
 
   const qualifications = readQualifications(profile?.qualifications);
+  const badges = claimed && listing.userId ? await profileCertificates(listing.userId) : [];
   const socials = readSocials(profile?.socials);
   const socialLinks = SOCIAL_KEYS.filter((k) => socials[k]).map((k) => ({ key: k, url: socials[k]!, label: SOCIAL_NETWORKS[k].label }));
   const phone = profile?.showPhone ? profile.phone : null;
@@ -248,6 +252,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
               <section aria-labelledby="photos">
                 <p id="photos" className="label mb-4 text-muted-foreground">Inside the practice</p>
                 <PhotoGallery photos={gallery} name={listing.name} />
+              </section>
+            )}
+
+            {badges.length > 0 && (
+              <section aria-labelledby="courses">
+                <p id="courses" className="label mb-4 text-muted-foreground">Courses completed with {site.name}</p>
+                <CourseBadges badges={badges} className="sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0" />
               </section>
             )}
 

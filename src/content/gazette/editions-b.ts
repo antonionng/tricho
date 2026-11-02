@@ -1708,6 +1708,7 @@ export const editionsB: Edition[] = [
           { label: "Programme", value: "To be shared by the Trichollective team." },
           { label: "Founding listings", value: "Free for 90 days from sign-up, then claim with the Professional plan." },
           { label: "Los Angeles", value: "The next conference. Date to be confirmed." },
+          { label: "After the day", value: "Read how it went in Edition 9, Ireland, in review, at trichollective.net/trichozette/ireland-in-review." },
         ],
       },
     ],

@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { allEditions } from "./index";
 import { BlockSchema, EditionMetaSchema, PageSchema } from "./schema";
+import type { BuiltInOnlyKind } from "./types";
+
+/** Kinds Studio cannot write; they are checked by the type system instead. */
+const BUILT_IN_ONLY: BuiltInOnlyKind[] = ["gallery", "people", "partners", "partner", "cta"];
 
 describe("Trichozette page schema", () => {
   it("accepts every written page of every built-in edition", () => {
     for (const e of allEditions)
       for (const [i, p] of e.pages.entries()) {
-        if (p.kind === "news") continue;
+        if (p.kind === "news" || (BUILT_IN_ONLY as string[]).includes(p.kind)) continue;
         const parsed = PageSchema.safeParse(p);
         expect(parsed.success, `${e.slug} page ${i}: ${parsed.success ? "" : JSON.stringify(parsed.error.issues[0])}`).toBe(true);
       }

@@ -61,7 +61,7 @@ export function checkUpload(kind: FileKind, bytes: Uint8Array): UploadCheck {
 }
 
 /** A safe storage path: kind/yyyy/mm/random.ext */
-export function storagePath(kind: FileKind, ext: string, now = new Date(), random = Math.random().toString(36).slice(2, 12)) {
+export function storagePath(kind: FileKind | "video", ext: string, now = new Date(), random = Math.random().toString(36).slice(2, 12)) {
   const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
   return `${kind}/${now.getUTCFullYear()}/${mm}/${random}.${ext.replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin"}`;
 }
@@ -81,4 +81,26 @@ export function fileUrl(
     return `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/${file.bucket}/${file.path}`;
   }
   return `/api/files/${file.id}`;
+}
+
+/** Most photos and videos one community post can carry. */
+export const MAX_POST_MEDIA = 4;
+
+export const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"] as const;
+export type VideoType = (typeof VIDEO_TYPES)[number];
+
+/** Videos go straight from the browser to storage, so they can be larger than the 10MB a server action takes. */
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+/** The real type of a video from its first bytes: MP4 and MOV carry "ftyp", WebM starts with the EBML header. */
+export function sniffVideo(bytes: Uint8Array): VideoType | null {
+  if (String.fromCharCode(...bytes.slice(4, 8)) === "ftyp") {
+    return String.fromCharCode(...bytes.slice(8, 10)) === "qt" ? "video/quicktime" : "video/mp4";
+  }
+  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return "video/webm";
+  return null;
+}
+
+export function videoExtension(contentType: string) {
+  return ({ "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" } as Record<string, string>)[contentType] ?? "bin";
 }

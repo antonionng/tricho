@@ -16,6 +16,7 @@ import {
   Search,
   Sparkles,
   UserRound,
+  FileText,
   Gift,
   HeartHandshake,
   UserPlus,
@@ -33,13 +34,14 @@ const primary: NavItem[] = [
   { href: "/members/messages", label: "Messages", icon: MessageCircle },
   { href: "/members/people", label: "People", icon: Users },
   { href: "/members/events", label: "Events", icon: CalendarDays },
+  { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
   {
     href: "/members/learn",
     label: "Learn",
     icon: BookOpen,
     children: [
-      { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
       { href: "/members/assistant", label: "Assistant", icon: Sparkles },
+      { href: "/members/resources", label: "Resources", icon: FileText },
     ],
   },
   { href: "/members/perks", label: "Member perks", icon: Gift },
@@ -49,7 +51,7 @@ const primary: NavItem[] = [
 const mobileTabs: NavItem[] = [
   { href: "/members", label: "Home", icon: Home, exact: true },
   { href: "/members/community", label: "Community", icon: MessagesSquare },
-  { href: "/members/people", label: "People", icon: Users },
+  { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
   { href: "/members/events", label: "Events", icon: CalendarDays },
   { href: "/members/profile", label: "Me", icon: UserRound },
 ];
@@ -112,7 +114,6 @@ export function MemberShell({
       "flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
       active ? "bg-ink text-paper" : "text-ink-2 hover:bg-paper-2 hover:text-ink"
     );
-  const learnOpen = ["/members/learn", "/members/trichozette", "/members/assistant"].some((h) => isActive(h));
 
   return (
     <div className="min-h-screen bg-paper">
@@ -139,7 +140,7 @@ export function MemberShell({
                     </span>
                   )}
                 </Link>
-                {sub && learnOpen && (
+                {sub && (
                   <ul className="mt-0.5 mb-1 ml-[22px] flex flex-col gap-0.5 border-l border-rule pl-3">
                     {sub.map((c) => (
                       <li key={c.href}>

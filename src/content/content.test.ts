@@ -43,6 +43,26 @@ describe("Trichozette editions", () => {
   });
 });
 
+describe("event and partner pages", () => {
+  const pages = allEditions.flatMap((e) => e.pages.map((p) => [e.slug, p] as const));
+
+  it("use only our own photographs in galleries", () => {
+    for (const [slug, p] of pages)
+      if (p.kind === "gallery") for (const ph of p.photos) expect((images[ph.imageKey] as { local?: boolean }).local, `${slug}: ${ph.imageKey}`).toBe(true);
+  });
+
+  it("link every partner and exhibitor to a real https site", () => {
+    for (const [slug, p] of pages) {
+      if (p.kind === "partner") expect(p.partner.url, slug).toMatch(/^https:\/\//);
+      if (p.kind === "partners") for (const x of [p.sponsor, ...p.exhibitors]) expect(x.url, `${slug}: ${x.name}`).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("offer at least one way to join on every call-to-action page", () => {
+    for (const [slug, p] of pages) if (p.kind === "cta") expect(p.offers.length, slug).toBeGreaterThan(0);
+  });
+});
+
 describe("the four-year archive", () => {
   it("covers 2023 to 2026, four editions a year, one per field", () => {
     for (const year of ["2023", "2024", "2025", "2026"]) {

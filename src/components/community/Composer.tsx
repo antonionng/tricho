@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/members/SubmitButton";
 import { fieldClass } from "@/components/members/MemberPage";
 import { cn } from "@/lib/utils";
+import { MediaPicker } from "./MediaPicker";
 
 export type ComposerRoom = { id: string; label: string; prompt: string; blurb?: string };
 
@@ -39,6 +40,7 @@ export function Composer({
   const lockedRoom = lockedSpace ? rooms.find((r) => r.id === lockedSpace) : undefined;
   const initial = lockedRoom?.id ?? rooms.find((r) => r.id === defaultSpace)?.id ?? rooms[0]?.id ?? "lounge";
   const [space, setSpace] = useState(initial);
+  const [uploading, setUploading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const current = lockedRoom ?? rooms.find((r) => r.id === space);
@@ -135,13 +137,13 @@ export function Composer({
         <textarea
           ref={textRef}
           name="content"
-          required
-          minLength={2}
           rows={4}
           placeholder={prompt}
           aria-label="Your post"
           className={cn(fieldClass, "resize-y py-3 leading-relaxed")}
         />
+        {/* A fresh picker after each post, so attached files aren't offered again. */}
+        <MediaPicker key={state?.ok ? state.id : "draft"} onBusyChange={setUploading} />
         {chapter && (
           <label className="flex min-h-10 items-center gap-2.5 text-sm text-ink-2">
             <input type="checkbox" name="chapter" defaultChecked={chapterDefault} className="h-4 w-4 accent-[var(--ink)]" />
@@ -168,7 +170,9 @@ export function Composer({
               Cancel
             </Button>
           )}
-          <SubmitButton pending="Posting…">Post</SubmitButton>
+          <SubmitButton pending="Posting…" disabled={uploading}>
+            {uploading ? "Uploading…" : "Post"}
+          </SubmitButton>
         </div>
       </div>
     </form>

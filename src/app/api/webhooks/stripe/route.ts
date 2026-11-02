@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { isPremiumPriceId, premiumBusiness, tierById, tierByPriceId } from "@/config/subscriptions";
+import { isPremiumSubscription, premiumBusiness, tierById, tierByPriceId } from "@/config/subscriptions";
 import {
   activatePremiumPartner,
   checkoutAddress,
@@ -23,11 +23,15 @@ import {
   newMemberAlert,
   paymentFailedAlert,
   paymentFailedEmail,
+  renewalPaidAlert,
   welcomeEmail,
 } from "@/lib/mail/templates/billing";
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
 import { handleTicketWebhook } from "@/lib/tickets";
+import { handleCourseWebhook } from "@/lib/courses";
 import { onReferralCheckout, onReferralInvoicePaid, referralPriorStateSafe } from "@/lib/referrals";
+import { markOfferPaid, offerIdFrom } from "@/lib/partner-offer-payments";
+import { activatePaidOffer } from "@/lib/partner-offer-activation";
 
 /** Period end moved onto subscription items in newer Stripe API versions. */
 function getPeriodEnd(subscription: Stripe.Subscription): Date | null {
@@ -82,6 +86,14 @@ export async function POST(req: Request) {
     return new NextResponse("Ticket handler failed", { status: 500 });
   }
 
+  // Course places are one-off payments too.
+  try {
+    if (await handleCourseWebhook(event)) return new NextResponse(null, { status: 200 });
+  } catch (error) {
+    console.error("[STRIPE_WEBHOOK_COURSES]", error);
+    return new NextResponse("Course handler failed", { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -92,7 +104,9 @@ export async function POST(req: Request) {
           session.subscription as string
         );
         const priceId = subscription.items.data[0]?.price.id;
-        const tier = tierByPriceId(priceId);
+        // A bespoke Premium price (a payment link for an agreed deal) is marked by its metadata.
+        const premium = isPremiumSubscription(priceId, subscription.metadata);
+        const tier = premium ? tierById("business") : tierByPriceId(priceId);
         const email = (
           session.customer_details?.email ||
           session.customer_email ||
@@ -185,20 +199,39 @@ export async function POST(req: Request) {
         const to = (payer?.email || email).toLowerCase();
         const name = session.customer_details?.name || payer?.name || null;
         const founding = session.metadata?.founding === "1";
-        const premium = isPremiumPriceId(priceId);
         const planName = premium ? premiumBusiness.name : tier?.name;
+
+        // Paid from a partner's onboarding page: their page opens from the signed offer, and the
+        // partner emails (not the general welcome) go out.
+        const offerId = premium ? offerIdFrom(session.metadata) : null;
+        if (offerId) {
+          await activatePaidOffer({ offerId, subscriptionId: subscription.id, customerId: subscription.customer as string });
+          break;
+        }
 
         // Premium Business: the partner page goes live as soon as it is paid.
         // Business: the page is prepared from the short form and published by the brand after setup.
         const businessPlan = !premium && tier?.id === "business";
         if ((premium || businessPlan) && to) {
-          const answers = checkoutBrandAnswers(session.metadata, session.custom_fields) ?? premiumCheckoutAnswers(session.custom_fields);
+          // Payment links name the brand as "partner" in their metadata.
+          const metadata = { ...session.metadata, brand: session.metadata?.brand || session.metadata?.partner || "" };
+          const answers = checkoutBrandAnswers(metadata, session.custom_fields) ?? premiumCheckoutAnswers(session.custom_fields);
           const partner = premium
             ? await activatePremiumPartner({ ownerEmail: to, isFounding: founding, ...answers })
             : await ensureBusinessPartner({ ownerEmail: to, ...answers });
           revalidatePath("/partners");
           revalidatePath("/for-business");
           revalidatePath("/members/business");
+
+          // An onboarding link sent for this deal now shows as paid.
+          if (premium) {
+            await markOfferPaid({
+              offerId: null,
+              email: to,
+              subscriptionId: subscription.id,
+              customerId: subscription.customer as string,
+            }).catch((error) => console.error("[STRIPE_WEBHOOK_OFFER]", error));
+          }
 
           // The CRM record. Safe to repeat on a retried event; the timeline note is added once.
           try {
@@ -273,7 +306,15 @@ export async function POST(req: Request) {
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id;
-        const tier = tierByPriceId(priceId);
+        const tier = isPremiumSubscription(priceId, subscription.metadata) ? tierById("business") : tierByPriceId(priceId);
+
+        // An invoice for a Premium offer has been paid.
+        if (event.type === "invoice.payment_succeeded") {
+          const offerId = offerIdFrom(subscription.metadata);
+          if (offerId) {
+            await activatePaidOffer({ offerId, subscriptionId: subscription.id, customerId: subscription.customer as string });
+          }
+        }
 
         await prisma.user.updateMany({
           where: { stripeSubscriptionId: subscription.id },
@@ -291,6 +332,27 @@ export async function POST(req: Request) {
             data: { role: tier.grantsRole },
           });
         }
+        // Renewals tell the team too. First payments are announced from checkout (or the partner offer) already.
+        if (event.type === "invoice.payment_succeeded") {
+          const invoice = event.data.object as Stripe.Invoice;
+          if (invoice.billing_reason !== "subscription_create" && (invoice.amount_paid ?? 0) > 0 && (await claimOnce(`stripe:${event.id}:owners`))) {
+            const member = await prisma.user.findFirst({ where: { stripeSubscriptionId: subscription.id }, select: { name: true, email: true } });
+            const plan = isPremiumSubscription(priceId, subscription.metadata) ? premiumBusiness.name : (tier?.name ?? "Trichollective");
+            const to = (member?.email || invoice.customer_email || "").toLowerCase();
+            if (to) {
+              await alertOwners(
+                renewalPaidAlert({
+                  name: member?.name || invoice.customer_name || null,
+                  email: to,
+                  plan,
+                  amount: formatMoney(invoice.amount_paid, invoice.currency),
+                  interval: subscription.items.data[0]?.price.recurring?.interval ?? null,
+                })
+              );
+            }
+          }
+        }
+
         // Invite colleagues: a first payment earns the referrer's reward; any payment credits banked rewards. Never throws.
         if (event.type === "invoice.payment_succeeded") {
           await onReferralInvoicePaid(event.data.object as Stripe.Invoice);
@@ -314,7 +376,7 @@ export async function POST(req: Request) {
         });
 
         const endedPriceId = subscription.items?.data?.[0]?.price.id;
-        const endedPremium = isPremiumPriceId(endedPriceId);
+        const endedPremium = isPremiumSubscription(endedPriceId, subscription.metadata);
         const endedBusiness = !endedPremium && tierByPriceId(endedPriceId)?.id === "business";
         if (member?.email && (endedPremium || endedBusiness)) {
           const ownerEmail = member.email.toLowerCase();

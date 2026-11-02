@@ -23,11 +23,20 @@ const COVERS: Record<string, string> = {
   "the-business-of-scalp-care": "ed12",
   "textured-hair-and-traction": "ed07",
   dublin: "ed02",
+  "ireland-in-review": "ire11",
 };
+
+/** Editions shot on the day use their own photographs for unassigned art, not the editorial pool. */
+const EVENT_POOLS: Record<string, ImageKey[]> = {
+  "ireland-in-review": ["ire08", "ire03", "ire07", "ire01", "ire09", "ire04", "ire12", "ire02", "ire05"],
+};
+
+/** A person shot, or our own photography: both are kept wherever an editor chose them. */
+const keeps = (k: ImageKey) => /^ed\d+$/.test(k) || k.startsWith("portrait") || k === "heroPortrait" || (images[k] as BrandImage).local === true;
 
 /** The cover portrait for an edition. */
 export function coverImage(e: Edition): BrandImage {
-  if (e.coverImageKey && /^ed\d+$/.test(e.coverImageKey)) return images[e.coverImageKey];
+  if (e.coverImageKey && (/^ed\d+$/.test(e.coverImageKey) || (images[e.coverImageKey] as BrandImage).local)) return images[e.coverImageKey];
   const picked = COVERS[e.slug] as ImageKey | undefined;
   if (picked && picked in images) return images[picked];
   return images[POOL[hash(e.slug) % POOL.length]];
@@ -39,11 +48,14 @@ export function coverImage(e: Edition): BrandImage {
  */
 export function artFor(e: Edition, page: Page, index: number): BrandImage {
   const own = "imageKey" in page && page.imageKey ? page.imageKey : null;
-  if (own && (/^ed\d+$/.test(own) || own.startsWith("portrait") || own === "heroPortrait")) return images[own];
+  if (own && keeps(own)) return images[own];
   // Never repeat the cover inside the edition.
   const cover = coverImage(e);
-  let pick = images[POOL[(hash(e.slug) + index * 7 + 3) % POOL.length]];
-  if (pick === cover) pick = images[POOL[(hash(e.slug) + index * 7 + 4) % POOL.length]];
+  const pool = EVENT_POOLS[e.slug] ?? POOL;
+  const at = (n: number) => images[pool[n % pool.length]];
+  const seed = EVENT_POOLS[e.slug] ? 0 : hash(e.slug);
+  let pick = at(seed + index * 7 + 3);
+  if (pick === cover) pick = at(seed + index * 7 + 4);
   return pick;
 }
 

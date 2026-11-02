@@ -161,11 +161,11 @@ export default async function PodcastPage() {
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <SectionHeader
                 eyebrow="In the meantime"
-                title="Read a free piece from Trichozette"
+                title="Read the blog for free"
                 fade="while the first episode is being recorded."
-                body="Selected pieces from Trichozette, our monthly members' edition, are free to read in the Journal."
+                body="Our blog covers consultations, red flags, hair loss and head spa, with sources on every post."
               />
-              <ArrowLink href="/journal">Visit the Journal</ArrowLink>
+              <ArrowLink href="/blog">Read the blog</ArrowLink>
             </div>
           </Container>
         </Section>

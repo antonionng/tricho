@@ -87,6 +87,9 @@ export function Cover({
         <p className="mag-caps text-[1.7cqw] text-white/80">{edition.theme}</p>
         <p className="mag-didone mt-[1.2cqw] text-[9.4cqw] font-medium leading-[0.9] tracking-[-0.02em]">{edition.title}</p>
         <p className="mag-didone mt-[1.4cqw] text-[4cqw] italic leading-[1.05] text-white/85">{edition.fade}</p>
+        {edition.supportedBy && (
+          <p className="mag-caps mt-[2.4cqw] text-[1.6cqw] text-white/80">Brought to you by {edition.supportedBy.name}</p>
+        )}
       </div>
     </div>
   );

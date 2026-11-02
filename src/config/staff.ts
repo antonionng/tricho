@@ -137,6 +137,7 @@ export function draftPermission(kind: string, payload?: unknown): Permission | "
   switch (kind) {
     case "newsletter":
     case "gazette_article":
+    case "blog_idea":
       return "gazette.publish";
     case "announcement":
       if (type === "event") return "events.edit";
@@ -190,6 +191,7 @@ export type NavIcon =
   | "community"
   | "events"
   | "gazette"
+  | "blog"
   | "podcast"
   | "subscribers"
   | "emails"
@@ -216,8 +218,10 @@ export const NAV: NavItem[] = [
   { href: "/studio/inbox", label: "Inbox", icon: "inbox", perm: "inbox.view", badge: true, group: "today" },
   { href: "/studio/month", label: "This month", icon: "month", perm: "inbox.view", group: "today" },
   { href: "/studio/gazette", label: "Trichozette", icon: "gazette", perm: "gazette.view", group: "publish" },
+  { href: "/studio/blog", label: "Blog", icon: "blog", perm: "gazette.view", group: "publish" },
   { href: "/studio/podcast", label: "Podcast", icon: "podcast", perm: "podcast.view", group: "publish" },
   { href: "/studio/events", label: "Events", icon: "events", perm: "events.view", group: "publish" },
+  { href: "/studio/courses", label: "Courses", icon: "verification", perm: "members.view", group: "publish" },
   { href: "/studio/emails", label: "Emails", icon: "emails", perm: "emails.view", group: "publish" },
   { href: "/studio/members", label: "Members", icon: "members", perm: "members.view", group: "people" },
   { href: "/studio/crm", label: "Businesses", icon: "crm", perm: "crm.view", group: "people" },
@@ -229,6 +233,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/subscribers", label: "Subscribers", icon: "subscribers", perm: "subscribers.view", group: "growth" },
   { href: "/studio/invite", label: "Invite", icon: "invite", perm: "invite.send", group: "growth" },
   { href: "/studio/partners", label: "Partners", icon: "partners", perm: "partners.view", group: "growth" },
+  { href: "/studio/jobs", label: "Job posts", icon: "partners", perm: "partners.view", group: "growth" },
   { href: "/studio/listings", label: "Listings", icon: "listings", perm: "listings.view", group: "growth" },
   { href: "/studio/photos", label: "Photos", icon: "listings", perm: "listings.view", group: "growth" },
   { href: "/studio/team", label: "Team", icon: "team", perm: "staff.manage", group: "settings" },

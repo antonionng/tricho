@@ -9,6 +9,7 @@ import { CountView } from "@/components/partners/CountView";
 import { ShowcaseProfile } from "@/components/partners/ShowcaseProfile";
 import { listPhotos } from "@/lib/photos";
 import { publicTeam } from "@/lib/business-team";
+import { liveJobWhere } from "@/lib/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,15 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
   const partner = await getPartner(slug);
   if (!partner) notFound();
 
-  const [photos, team] = await Promise.all([listPhotos({ partnerId: partner.id }), publicTeam(partner.ownerEmail)]);
+  const [photos, team, jobs] = await Promise.all([
+    listPhotos({ partnerId: partner.id }),
+    publicTeam(partner.ownerEmail),
+    prisma.job.findMany({
+      where: { partnerId: partner.id, ...liveJobWhere() },
+      orderBy: { createdAt: "desc" },
+      select: { slug: true, title: true, location: true, employment: true },
+    }),
+  ]);
   const logo = partnerLogoSrc(partner.logoUrl);
   const website = safeHttpUrl(partner.website);
   const socials = socialLinks(partner.organisation?.socials);
@@ -51,6 +60,7 @@ export default async function PartnerPage({ params }: { params: Promise<{ slug: 
         photos={photos.map((p) => ({ src: p.url, caption: p.caption }))}
         socials={socials}
         team={team}
+        jobs={jobs}
       />
 
       <JsonLd
