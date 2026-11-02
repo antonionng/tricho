@@ -9,6 +9,7 @@ const s = vi.hoisted(() => ({
   paymentIntents: { retrieve: vi.fn() },
   transfers: { retrieve: vi.fn() },
   applicationFees: { retrieve: vi.fn() },
+  refunds: { list: vi.fn() },
 }));
 const alert = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
@@ -69,6 +70,16 @@ describe("course ledger", () => {
     const r = await recordRefund(refunded(7900));
     expect(r).toMatchObject({ refundedAmount: 7900, reversedAmount: 0, status: "refunded" });
     expect(alert).toHaveBeenCalledOnce();
+  });
+
+  it("asks Stripe for the refunds when the webhook's charge doesn't include them", async () => {
+    db.courseSale.findFirst.mockResolvedValue({ ...sale, educatorId: null, educatorAmount: 0, stripeTransferId: null });
+    s.refunds.list.mockResolvedValue({ data: [{ id: "re_2", amount: 4900, currency: "gbp" }] });
+    const charge = { id: "ch_1", amount_refunded: 4900, payment_intent: "pi_1", application_fee: null } as unknown as Stripe.Charge;
+    await recordRefund(charge);
+    expect(s.refunds.list).toHaveBeenCalledWith({ charge: "ch_1", limit: 100 });
+    const types = db.ledgerEntry.createMany.mock.calls.map((c) => [c[0].data[0].type, c[0].data[0].amount, c[0].data[0].stripeObjectId]);
+    expect(types).toEqual([["refund", -4900, "re_2"]]);
   });
 
   it("ignores charges that aren't course sales", async () => {

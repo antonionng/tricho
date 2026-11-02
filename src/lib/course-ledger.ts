@@ -95,7 +95,11 @@ export async function recordRefund(charge: Stripe.Charge) {
       refundedAt: new Date(),
     },
   });
-  for (const r of charge.refunds?.data ?? []) await entry(sale.id, "refund", -r.amount, r.currency, r.id);
+  // Webhook charges don't include their refunds on this API version, so ask Stripe for them.
+  const refunds =
+    charge.refunds?.data ??
+    (process.env.STRIPE_SECRET_KEY ? ((await stripe.refunds.list({ charge: charge.id, limit: 100 }).catch(() => null))?.data ?? []) : []);
+  for (const r of refunds) await entry(sale.id, "refund", -r.amount, r.currency, r.id);
   if (reversedTotal > sale.reversedAmount) {
     await entry(sale.id, "share_reversed", reversedTotal - sale.reversedAmount, sale.currency, `${sale.stripeTransferId}:${reversedTotal}`);
   }
