@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Clock, Target } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { courseBySlug } from "@/content/courses";
-import { lessonsOf } from "@/lib/courses";
+import { lessonImageUrls } from "@/lib/course-files";
+import { getContent, getCourse } from "@/lib/course-catalogue";
 import { LessonBlocks } from "@/components/courses/LessonBlocks";
 import { KnowledgeCheck } from "@/components/courses/KnowledgeCheck";
 import { LessonNotes } from "@/components/courses/LessonNotes";
@@ -16,8 +16,8 @@ type Params = { slug: string; lesson: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug, lesson } = await params;
-  const l = lessonsOf(slug)?.lessons.find((x) => x.slug === lesson);
-  return { title: l ? `${l.title} · ${courseBySlug(slug)?.title ?? "Course"}` : "Lesson" };
+  const l = (await getContent(slug))?.lessons.find((x) => x.slug === lesson);
+  return { title: l ? `${l.title} · ${(await getCourse(slug))?.title ?? "Course"}` : "Lesson" };
 }
 
 export default async function LessonPage({ params }: { params: Promise<Params> }) {
@@ -31,6 +31,7 @@ export default async function LessonPage({ params }: { params: Promise<Params> }
   const prev = content.lessons[index - 1];
   const next = content.lessons[index + 1];
   const row = enrolment?.lessons.find((l) => l.lessonSlug === lessonSlug);
+  const imageUrls = await lessonImageUrls(lesson.blocks);
   const done = !!row?.completedAt;
 
   // Remember where they are, so "Continue" brings them back here.
@@ -131,7 +132,7 @@ export default async function LessonPage({ params }: { params: Promise<Params> }
             </ul>
           </section>
 
-          <LessonBlocks blocks={lesson.blocks} />
+          <LessonBlocks blocks={lesson.blocks} imageUrls={imageUrls} fileHref={(id) => `/api/courses/${slug}/files/${id}`} />
 
           <section aria-labelledby="takeaways" className="flex flex-col gap-4 border-y border-ink py-7">
             <h2 id="takeaways" className="label text-muted-foreground">

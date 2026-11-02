@@ -2,7 +2,6 @@ import { site } from "@/config/site";
 import { authorOf, categoryName, lastUpdated, type BlogPost } from "@/content/blog";
 import { guides, type Guide } from "@/content/guides";
 import { glossary } from "@/content/glossary";
-import { courses } from "@/content/courses";
 import { DISCIPLINES } from "@/content/disciplines";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -76,7 +75,7 @@ export function guideMarkdown(g: Guide) {
 const link = (title: string, path: string, note?: string) => `- [${title}](${absoluteUrl(path)})${note ? `: ${note}` : ""}`;
 
 /** The short index: who we are and where the useful pages are. */
-export function llmsTxt(blogPosts: BlogPost[]) {
+export function llmsTxt(blogPosts: BlogPost[], courses: { slug: string; title: string; summary: string }[]) {
   return [
     `# ${site.name}`,
     "",

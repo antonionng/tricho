@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/members/SubmitButton";
 import { CertificateCard } from "@/components/courses/CertificateCard";
 import { CertificateActions } from "@/components/courses/CertificateActions";
 import { longDate } from "@/components/members/format";
-import { courseBySlug } from "@/content/courses";
+import { getCourse } from "@/lib/course-catalogue";
 import { site } from "@/config/site";
 import { requireLearner } from "../_data";
 import { setCertificateOnProfile } from "../actions";
@@ -16,7 +16,7 @@ type Params = { slug: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `Certificate · ${courseBySlug(slug)?.title ?? "Course"}` };
+  return { title: `Certificate · ${(await getCourse(slug))?.title ?? "Course"}` };
 }
 
 // Print only the certificate and the CPD record, not the member area around them.

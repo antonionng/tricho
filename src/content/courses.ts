@@ -1,6 +1,7 @@
 import type { ImageKey } from "@/content/gazette/types";
 
-export type CourseStatus = "open" | "coming-soon";
+/** "closed" is a built course that has been unlisted: its learners keep access, but no one new can enrol. */
+export type CourseStatus = "open" | "coming-soon" | "closed";
 
 export type Course = {
   slug: string;

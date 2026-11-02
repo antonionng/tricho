@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { AssessmentForm } from "@/components/courses/AssessmentForm";
 import { longDate } from "@/components/members/format";
-import { courseBySlug } from "@/content/courses";
+import { getCourse } from "@/lib/course-catalogue";
 import { PASS_MARK, publicQuestions } from "@/lib/courses";
 import { requireLearner } from "../_data";
 
@@ -13,7 +13,7 @@ type Params = { slug: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `Final assessment · ${courseBySlug(slug)?.title ?? "Course"}` };
+  return { title: `Final assessment · ${(await getCourse(slug))?.title ?? "Course"}` };
 }
 
 export default async function AssessmentPage({ params }: { params: Promise<Params> }) {
