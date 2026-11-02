@@ -88,7 +88,7 @@ export type Page =
       label?: string;
     }
   /** Join as a member or list a business. Shown to everyone, including readers without membership. */
-  | { kind: "cta"; kicker: string; title: string; intro: string; blocks: Block[]; offers: ("member" | "business")[] };
+  | { kind: "cta"; kicker: string; title: string; intro: string; blocks: Block[]; offers: ("account" | "member" | "business")[] };
 
 /** Page kinds that only built-in editions use. Studio cannot write them, so they have no form or schema there. */
 export type BuiltInOnlyKind = "gallery" | "people" | "partners" | "partner" | "cta";

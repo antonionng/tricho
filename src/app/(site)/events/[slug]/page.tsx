@@ -18,6 +18,7 @@ import {
   publicEventSelect,
 } from "@/components/editorial/events";
 import { BuyTicket, TicketReturnNotice } from "@/components/events/BuyTicket";
+import { MemberPlace } from "@/components/events/MemberPlace";
 import { images, img } from "@/content/images";
 import { seatUsage, seatsLeft } from "@/lib/tickets";
 import { prisma } from "@/lib/prisma";
@@ -101,6 +102,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
               <div className="flex flex-wrap gap-2">
                 <Pill>{EVENT_KIND_LABEL[event.kind]}</Pill>
                 <Pill>{event.online ? "Online" : event.city ?? "In person"}</Pill>
+                {event.sponsor && <Pill>Sponsored by {event.sponsor.name}</Pill>}
                 {isPast && <Pill>This event has taken place</Pill>}
               </div>
               <h1 className="display text-[2.5rem] leading-[0.98] sm:text-6xl lg:text-[4.25rem]">
@@ -109,6 +111,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                 <span className="text-fade">{formatEventDate(event.startsAt)}</span>
               </h1>
               <p className="lede max-w-2xl">{event.summary}</p>
+              {event.presenters && <p className="text-ink-2">Presented by {event.presenters}.</p>}
             </div>
             <div className="lg:col-span-5">
               <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-paper-2 lg:aspect-[4/5]">
@@ -211,17 +214,24 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                 {!isPast && !event.sellTickets && event.ticketUrl && (
                   <div className="flex flex-col gap-4 border-t border-rule pt-6">
                     <p className="label text-muted-foreground">Tickets</p>
-                    <Button asChild size="lg" className="w-full">
-                      <a href={event.ticketUrl} target="_blank" rel="noopener">
-                        Get tickets on Eventbrite <ArrowRight />
-                      </a>
-                    </Button>
-                    <Link
-                      href="/pricing"
-                      className="text-center text-[15px] font-medium underline decoration-transparent underline-offset-4 hover:decoration-ink/40"
-                    >
-                      Members hear about every gathering first
-                    </Link>
+                    <MemberPlace
+                      slug={event.slug}
+                      fallback={
+                        <>
+                          <Button asChild size="lg" className="w-full">
+                            <a href={event.ticketUrl} target="_blank" rel="noopener">
+                              Get tickets on Eventbrite <ArrowRight />
+                            </a>
+                          </Button>
+                          <Link
+                            href="/pricing"
+                            className="text-center text-[15px] font-medium underline decoration-transparent underline-offset-4 hover:decoration-ink/40"
+                          >
+                            Members hear about every gathering first
+                          </Link>
+                        </>
+                      }
+                    />
                   </div>
                 )}
                 {!isPast && !event.sellTickets && !event.ticketUrl && (
@@ -233,20 +243,25 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                         for members · {formatPrice(event.priceGBP)} otherwise
                       </p>
                     </div>
-                    {/* Phase 2: replace the mailto with Stripe ticketing and member RSVPs (EventRsvp). */}
-                    <div className="flex flex-col gap-4">
-                      <Button asChild size="lg" className="w-full">
-                        <Link href="/pricing">
-                          Members pay less <ArrowRight />
-                        </Link>
-                      </Button>
-                      <a
-                        href={ticketMail}
-                        className="inline-flex items-center justify-center gap-2 text-[15px] font-medium underline decoration-transparent underline-offset-4 hover:decoration-ink/40"
-                      >
-                        <Ticket className="h-4 w-4" aria-hidden /> Ask us for tickets by email
-                      </a>
-                    </div>
+                    {/* Members save their place in the members' area; guests ask by email until tickets are sold here. */}
+                    <MemberPlace
+                      slug={event.slug}
+                      fallback={
+                        <>
+                          <Button asChild size="lg" className="w-full">
+                            <Link href="/pricing">
+                              Members pay less <ArrowRight />
+                            </Link>
+                          </Button>
+                          <a
+                            href={ticketMail}
+                            className="inline-flex items-center justify-center gap-2 text-[15px] font-medium underline decoration-transparent underline-offset-4 hover:decoration-ink/40"
+                          >
+                            <Ticket className="h-4 w-4" aria-hidden /> Ask us for tickets by email
+                          </a>
+                        </>
+                      }
+                    />
                   </>
                 )}
               </div>

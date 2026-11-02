@@ -83,6 +83,14 @@ enum EditionStatus {
   withdrawn
 }
 
+enum BlogStatus {
+  /// Being written by the AI writer. Never shown to readers.
+  writing
+  draft
+  published
+  archived
+}
+
 enum EpisodeStatus {
   planning
   draft
@@ -529,6 +537,8 @@ model Notification {
   title     String
   href      String?
   readAt    DateTime?
+  /// One notification per ref, e.g. "masterclass:{eventId}:{userId}", so retries never repeat one.
+  refKey    String?   @unique
   createdAt DateTime  @default(now())
 
   @@index([userId, createdAt])
@@ -617,6 +627,13 @@ model Event {
   published      Boolean       @default(false)
   /// Sell tickets on Trichollective through Stripe instead of an external link.
   sellTickets    Boolean       @default(false)
+  /// Who presents it, e.g. "Adam Bond (LIVDOR) and Karley Weir". Shown on the event and in its announcement.
+  presenters     String?
+  /// The partner who sponsors it. A sponsored event is always labelled "Sponsored by".
+  sponsorPartnerId String?
+  sponsor        Partner?      @relation("EventSponsor", fields: [sponsorPartnerId], references: [id], onDelete: SetNull)
+  /// When everyone was first told about this masterclass, so saving or republishing never notifies twice.
+  announcedAt    DateTime?
   chapterId      String?
   chapter        Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   rsvps          EventRsvp[]
@@ -626,6 +643,7 @@ model Event {
   updatedAt DateTime @updatedAt
 
   @@index([published, startsAt])
+  @@index([sponsorPartnerId])
 }
 
 model EventRsvp {
@@ -748,6 +766,8 @@ model Partner {
   organisation  Organisation?
   stats         PartnerStat[]
   jobs          Job[]
+  /// Masterclasses and other events this partner sponsors.
+  sponsoredEvents Event[] @relation("EventSponsor")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -1428,4 +1448,53 @@ model CourseVersion {
 
   @@unique([courseId, number])
   @@index([status, submittedAt])
+}
+
+/// A blog post written in Studio. Posts in src/content/blog are merged with these on the public site.
+model BlogArticle {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  status      BlogStatus @default(draft)
+  title       String     @default("")
+  description String     @default("")
+  /// A BLOG_CATEGORIES slug from src/content/blog/types.ts.
+  category    String     @default("consultations")
+  /// "public" | "professional" | "both"
+  audience    String     @default("both")
+  tags        String[]
+  /// An authors key from src/content/authors.ts.
+  author      String     @default("editorial")
+  /// An images key from src/content/images.ts.
+  image       String     @default("hairDetail")
+  standfirst  String     @default("") @db.Text
+  answer      String     @default("") @db.Text
+  takeaways   String[]
+  body        String     @default("") @db.Text
+  /// { q, a }[]
+  faqs        Json       @default("[]")
+  /// { label, url }[]
+  sources     Json       @default("[]")
+  /// { guides?: string[], glossary?: string[], discipline?: string }
+  related     Json?
+  /// { name, credentials, reviewedOn } once a named clinician has reviewed it.
+  reviewer    Json?
+  featured    Boolean    @default(false)
+
+  /// The question the post should answer, and the writer's brief.
+  targetQuery String     @default("")
+  brief       String?    @db.Text
+  /// Extra URLs to read before writing, one per line.
+  sourceUrls  String[]
+  /// The AI writer's working state: { step, plan, notes, error, model }.
+  ai          Json?
+  /// "studio" when started by hand, "agent" when approved from an idea in the inbox.
+  origin      String     @default("studio")
+
+  publishedAt DateTime?
+  createdById String?
+  updatedById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, publishedAt])
 }

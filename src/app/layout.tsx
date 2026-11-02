@@ -37,6 +37,11 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
   appleWebApp: { capable: true, title: site.name, statusBarStyle: "default" },
   formatDetection: { telephone: false },
+  // Search Console and Bing Webmaster Tools ownership checks, set in Vercel.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } } : {}),
+  },
   manifest: "/manifest.webmanifest",
 };
 

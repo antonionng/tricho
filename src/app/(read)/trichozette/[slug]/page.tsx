@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import { EditionView } from "@/components/gazette/EditionView";
 import { coverLinesFor } from "@/components/gazette/Cover";
 import { coverImage } from "@/components/gazette/art";
-import { editionLabel, allEditions, pageKicker, pageTitle, PUBLIC_PREVIEW_PAGES } from "@/content/gazette";
+import { editionLabel, allEditions, canReadInFull, pageKicker, pageTitle, PUBLIC_PREVIEW_PAGES, TRICHOZETTE_ACCESS } from "@/content/gazette";
 import { getArchive, getEditionBySlug, getEditions } from "@/content/gazette/loader";
 import { getMemberContext } from "@/lib/member";
 import { withPartnerLogos } from "@/lib/gazette-partners";
+import { isReviewLink } from "@/lib/review";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -36,18 +37,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   });
 }
 
-export default async function EditionPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function EditionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const found = await getEditionBySlug((await params).slug);
   if (!found) notFound();
   const edition = await withPartnerLogos(found);
 
   const [ctx, editions, archive] = await Promise.all([getMemberContext(), getEditions(), getArchive()]);
-  const full = ctx.allowed;
+  // A private review link shows the whole edition to whoever holds it, signed in or not.
+  const full = canReadInFull(ctx) || (await isReviewLink(searchParams));
 
-  // Members-only pages never leave the server for non-members: only their titles do.
-  // Invitations to join are for everyone, so "cta" pages follow the preview.
+  // Gated pages never leave the server for readers without access: only their titles do.
+  // The gate carries the ways to join, so the edition's own join page isn't listed among them.
   const rest = edition.pages.slice(PUBLIC_PREVIEW_PAGES);
-  const visiblePages = full ? edition.pages : [...edition.pages.slice(0, PUBLIC_PREVIEW_PAGES), ...rest.filter((p) => p.kind === "cta")];
+  const visiblePages = full ? edition.pages : edition.pages.slice(0, PUBLIC_PREVIEW_PAGES);
   const lockedTitles = full
     ? []
     : rest.filter((p) => p.kind !== "cta").map((p) => ({ kicker: pageKicker(p), title: pageTitle(p) }));
@@ -74,12 +82,10 @@ export default async function EditionPage({ params }: { params: Promise<{ slug: 
             description: edition.standfirst,
             datePublished: edition.published,
             url: absoluteUrl(`/trichozette/${edition.slug}`),
-            isAccessibleForFree: false,
-            hasPart: {
-              "@type": "WebPageElement",
-              isAccessibleForFree: false,
-              cssSelector: "[data-sheet]",
-            },
+            isAccessibleForFree: TRICHOZETTE_ACCESS === "open",
+            ...(TRICHOZETTE_ACCESS === "open"
+              ? {}
+              : { hasPart: { "@type": "WebPageElement", isAccessibleForFree: false, cssSelector: "[data-sheet]" } }),
             isPartOf: { "@type": "Periodical", name: "Trichozette", publisher: { "@type": "Organization", name: site.name } },
           },
           breadcrumbLd([

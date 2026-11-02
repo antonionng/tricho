@@ -51,6 +51,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
       "Learn at a live masterclass and case round each month, with recordings to watch between clients",
       "Pay member prices on courses and conferences",
       "Save with member perks from partner brands",
+      "Download printable practice resources: consultation records, a referral guide and letter, a hair pull test record and client handouts",
     ],
   },
   {
@@ -118,7 +119,7 @@ export const freeListing = {
   features: [
     "A basic directory listing that stays free for as long as you like: name, discipline, town and specialism",
     `Your full profile free for ${FREE_LISTING_DAYS} days: photo, services, website and enquiries sent straight to you`,
-    "The opening features of every Trichozette edition, and the news for practitioners",
+    "Every Trichozette edition in full, including the archive from 2023 to 2026, and the news for practitioners",
     "The founding badge, which you keep if you become a member",
   ],
   excludes: [
