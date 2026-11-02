@@ -13,6 +13,8 @@ import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib
 import { cookies } from "next/headers";
 import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
 import { checkoutSignInUser } from "@/lib/signin-email";
+import { takeSignupName } from "@/lib/signup-name";
+import { confirmLinkFor, generateSignInCode } from "@/lib/signin-link";
 
 /** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
 async function recordSignupSource(userId: string | undefined) {
@@ -42,9 +44,12 @@ if (process.env.AUTH_RESEND_KEY) {
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY,
       from: process.env.AUTH_EMAIL_FROM || "Trichollective <onboarding@resend.dev>",
+      // A short code so a member can type it if the emailed button opens badly on a phone.
+      generateVerificationToken: generateSignInCode,
       // Branded magic link. Throws on failure so NextAuth shows the sign-in error.
-      async sendVerificationRequest({ identifier, url }) {
-        const { subject, content } = signInLinkEmail({ url });
+      // It opens a confirm page first, so mail scanners can't use up the token.
+      async sendVerificationRequest({ identifier, url, token }) {
+        const { subject, content } = signInLinkEmail({ url: confirmLinkFor(url), code: token });
         const { html, text } = renderEmail(content);
         await sendEmail({ to: identifier, subject, html, text, tag: "sign-in" });
       },
@@ -123,10 +128,21 @@ export const {
     async createUser({ user }) {
       await recordSignupSource(user.id);
       if (!user.email) return;
-      const { subject, content } = welcomeFreeAccountEmail({ name: user.name });
+      // An email link brings no name, so use the one typed on /signup.
+      let name = user.name;
+      try {
+        const typed = await takeSignupName(user.email);
+        if (typed && !name && user.id) {
+          await prisma.user.update({ where: { id: user.id }, data: { name: typed } });
+          name = typed;
+        }
+      } catch (error) {
+        console.error("[SIGNUP_NAME]", error);
+      }
+      const { subject, content } = welcomeFreeAccountEmail({ name });
       await Promise.all([
         deliver(user.email, subject, content, { tag: "welcome-free" }),
-        alertOwners(newAccountAlert({ name: user.name, email: user.email })),
+        alertOwners(newAccountAlert({ name, email: user.email })),
       ]);
     },
   },

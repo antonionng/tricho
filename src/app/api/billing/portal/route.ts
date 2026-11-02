@@ -3,6 +3,8 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { site } from "@/config/site";
+import { syncMembershipFromStripe } from "@/lib/stripe-sync";
+import { resolveMembership } from "@/lib/subscription";
 
 export async function POST() {
   const session = await auth();
@@ -14,9 +16,14 @@ export async function POST() {
     return new NextResponse("Stripe is not configured", { status: 503 });
   }
 
-  const user = await prisma.user.findUnique({
+  let user = await prisma.user.findUnique({
     where: { email: session.user.email },
   });
+  // A payment the webhook missed: link the paying Stripe customer first. The account may hold an
+  // empty customer from a second checkout attempt, so this checks the membership, not the id.
+  if ((!user || !resolveMembership(user).isActive) && (await syncMembershipFromStripe(session.user.email, { fresh: true }))) {
+    user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  }
   if (!user?.stripeCustomerId) {
     return NextResponse.redirect(new URL("/pricing", site.url));
   }

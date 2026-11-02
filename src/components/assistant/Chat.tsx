@@ -45,7 +45,7 @@ function textOf(message: UIMessage) {
 /** Turns whatever the server sent back into one sentence a member can act on. */
 function friendlyError(error: Error) {
   const msg = error.message || "";
-  if (/not (configured|switched on)|AI_GATEWAY_API_KEY|unauthenticated|api key/i.test(msg)) {
+  if (/not (configured|switched on)|AI_GATEWAY_API_KEY|unauthenticated|api key|free tier|credits/i.test(msg)) {
     return "The Assistant can't reach its AI service right now, so it can't reply. Please try again later.";
   }
   if (/402|Professional plan/i.test(msg)) return "The Assistant is part of Professional membership.";

@@ -2,10 +2,11 @@ import type { Draft, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeSpace } from "@/config/rooms";
 import { getRooms } from "@/lib/rooms";
-import { deliver, wantsList, type EmailList } from "@/lib/mail/send";
+import { deliver, deliverOnce, wantsList, type EmailList } from "@/lib/mail/send";
 import type { EmailContent } from "@/lib/mail/layout";
 import { draftEmailContent } from "@/lib/mail/templates/members";
 import { announcementEmail, newsletterEmail } from "@/lib/mail/templates/releases";
+import { freshState, uniqueSlug } from "./blog-writer";
 
 export const SYSTEM_USER_EMAIL = "team@trichollective.local";
 
@@ -61,7 +62,8 @@ export async function newsletterRecipients() {
 export async function announcementRecipients() {
   const [subscribers, users] = await Promise.all([
     prisma.subscriber.findMany({ where: { unsubscribedAt: null }, select: { email: true } }),
-    prisma.user.findMany({ where: { email: { not: null }, emailUpdates: true }, select: { email: true } }),
+    // Suspended and banned accounts hear nothing from us.
+    prisma.user.findMany({ where: { email: { not: null }, emailUpdates: true, accessStatus: "active" }, select: { email: true } }),
   ]);
   return cleanEmails([...subscribers, ...users]);
 }
@@ -73,10 +75,12 @@ const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * One email per person, so each carries their own unsubscribe link. Paced
  * gently when really sending, to stay inside the email provider's rate limit.
  */
-async function sendToEach(recipients: string[], subject: string, content: EmailContent, list: EmailList, tag: string) {
+async function sendToEach(recipients: string[], subject: string, content: EmailContent, list: EmailList, tag: string, onceRef?: string) {
   let sent = 0;
   for (const to of recipients) {
-    if (await deliver(to, subject, content, { list, tag })) sent++;
+    // With a ref, each person gets it at most once, so approving again after a failure only reaches those missed.
+    const ok = onceRef ? await deliverOnce(`${onceRef}:${to.toLowerCase()}`, to, subject, content, { list, tag }) : await deliver(to, subject, content, { list, tag });
+    if (ok) sent++;
     if (sendingEnabled()) await pause(250);
   }
   return sent;
@@ -110,6 +114,29 @@ export async function publishDraft(id: string): Promise<PublishResult> {
     case "gazette_article": {
       await done();
       return { status: "published", message: "Published to Trichozette." };
+    }
+
+    case "blog_idea": {
+      // Approving an idea starts a post; the writer runs when the editor opens it in Blog studio.
+      const question = str(payload.question) || draft.title;
+      const article = await prisma.blogArticle.create({
+        data: {
+          slug: await uniqueSlug(question),
+          status: "writing",
+          title: draft.title,
+          targetQuery: question,
+          brief: [str(payload.angle), str(payload.why) && `Why now: ${str(payload.why)}`].filter(Boolean).join("\n\n") || null,
+          audience: str(payload.audience) || "both",
+          category: str(payload.category) || "consultations",
+          origin: "agent",
+          tags: [],
+          takeaways: [],
+          sourceUrls: [],
+          ai: freshState() as unknown as Prisma.InputJsonObject,
+        },
+      });
+      await done({ articleId: article.id });
+      return { status: "published", message: `Approved. Open it in Blog studio to watch it being written: /studio/blog/${article.id}` };
     }
 
     case "community_post": {
@@ -163,7 +190,7 @@ export async function publishDraft(id: string): Promise<PublishResult> {
     case "announcement": {
       const recipients = await announcementRecipients();
       const { subject, content } = announcementEmail(draft, payload);
-      const sent = await sendToEach(recipients, subject, content, "updates", "release");
+      const sent = await sendToEach(recipients, subject, content, "updates", "release", str(payload.ref) || undefined);
       const skipped = !sendingEnabled();
       await done({ sentAt: now.toISOString(), sentCount: sent, recipientCount: recipients.length, skipped });
       return {

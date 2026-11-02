@@ -16,6 +16,7 @@ import {
   Search,
   Sparkles,
   UserRound,
+  FileText,
   Gift,
   HeartHandshake,
   UserPlus,
@@ -38,7 +39,10 @@ const primary: NavItem[] = [
     href: "/members/learn",
     label: "Learn",
     icon: BookOpen,
-    children: [{ href: "/members/assistant", label: "Assistant", icon: Sparkles }],
+    children: [
+      { href: "/members/assistant", label: "Assistant", icon: Sparkles },
+      { href: "/members/resources", label: "Resources", icon: FileText },
+    ],
   },
   { href: "/members/perks", label: "Member perks", icon: Gift },
   { href: "/members/referrals", label: "Client referrals", icon: HeartHandshake },
@@ -110,7 +114,6 @@ export function MemberShell({
       "flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
       active ? "bg-ink text-paper" : "text-ink-2 hover:bg-paper-2 hover:text-ink"
     );
-  const learnOpen = ["/members/learn", "/members/assistant"].some((h) => isActive(h));
 
   return (
     <div className="min-h-screen bg-paper">
@@ -137,7 +140,7 @@ export function MemberShell({
                     </span>
                   )}
                 </Link>
-                {sub && learnOpen && (
+                {sub && (
                   <ul className="mt-0.5 mb-1 ml-[22px] flex flex-col gap-0.5 border-l border-rule pl-3">
                     {sub.map((c) => (
                       <li key={c.href}>

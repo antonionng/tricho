@@ -6,6 +6,9 @@ import type { NextAuthConfig } from "next-auth";
  * the database adapter are added in `auth.ts`.
  */
 export const authConfig = {
+  // Vercel sits in front of the app. Without this, Auth.js can reject the host
+  // the member actually landed on (www vs the bare domain).
+  trustHost: true,
   providers: [],
   pages: {
     signIn: "/login",

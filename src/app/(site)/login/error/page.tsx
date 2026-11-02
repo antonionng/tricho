@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
+import { SignInCodeForm } from "@/components/auth/SignInCodeForm";
 import { Button } from "@/components/ui/button";
 import { pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
@@ -16,7 +17,7 @@ export const metadata = pageMetadata({
 const MESSAGES: Record<string, { title: string; body: string }> = {
   Verification: {
     title: "This sign-in link has expired or has already been used.",
-    body: "Each link works once and lasts for 24 hours. Ask for a new link below and use the newest email we send you.",
+    body: "Each link and code works once and lasts for 24 hours. If you still have the newest email, type the code below. Otherwise ask for a new link and use that email.",
   },
   AccessDenied: {
     title: "This account can't sign in at the moment.",
@@ -45,6 +46,12 @@ export default async function SignInErrorPage({ searchParams }: { searchParams: 
           <h1 className="display text-4xl leading-tight">{message.title}</h1>
           <p className="text-[15px] leading-relaxed text-ink-2">{message.body}</p>
         </div>
+        {expired && (
+          <div className="space-y-4 rounded-3xl border border-rule bg-card p-6 md:p-8">
+            <p className="text-[15px] font-semibold text-ink">Type the code from your newest email</p>
+            <SignInCodeForm />
+          </div>
+        )}
         <Button asChild size="lg" className="h-12 w-full text-base">
           <Link href="/login">
             {expired ? "Send me a new link" : "Back to sign in"} <ArrowRight />

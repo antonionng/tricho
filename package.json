@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.135",
     "@ai-sdk/react": "^3.0.199",
     "@auth/prisma-adapter": "^2.11.1",
     "@fontsource-variable/bodoni-moda": "^5.3.0",
