@@ -5,7 +5,11 @@ import { loadAttendees } from "@/lib/tickets";
 
 export const dynamic = "force-dynamic";
 
-/** The attendees of one event as a spreadsheet: paid tickets and saved places. */
+/**
+ * The attendees of one event as a spreadsheet: paid tickets and saved places.
+ * An order with named attendees has one row per person, with the order's
+ * amount on its first row only so the column still adds up.
+ */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const staff = await getStaff();
   if (!staff?.perms.has("events.edit")) {
@@ -24,10 +28,45 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
 
   const lines = [
-    csvRow(["name", "email", "type", "quantity", "status", "amount_gbp", "date", "ticket_type"]),
-    ...rows.map((a) =>
-      csvRow([a.name, a.email, a.type, a.quantity, a.status, a.amount != null ? (a.amount / 100).toFixed(2) : "", a.at.toISOString(), a.ticketType])
-    ),
+    csvRow([
+      "name",
+      "email",
+      "type",
+      "quantity",
+      "status",
+      "amount_gbp",
+      "date",
+      "ticket_type",
+      "attendee_name",
+      "attendee_email",
+      "dietary",
+      "access_needs",
+      "ticket_code",
+      "attendee_status",
+      "refunded_gbp",
+      "checked_in_at",
+    ]),
+    ...rows.flatMap((a) => {
+      const order = [a.name, a.email, a.type, a.quantity, a.status] as const;
+      const amount = a.amount != null ? (a.amount / 100).toFixed(2) : "";
+      if (!a.people.length) return [csvRow([...order, amount, a.at.toISOString(), a.ticketType])];
+      return a.people.map((p, i) =>
+        csvRow([
+          ...order,
+          i === 0 ? amount : "",
+          a.at.toISOString(),
+          a.ticketType,
+          p.name,
+          p.email,
+          p.dietary,
+          p.accessNeeds,
+          p.code,
+          p.cancelledAt || a.status === "Refunded" ? "Cancelled" : "Confirmed",
+          p.refundedPence != null ? (p.refundedPence / 100).toFixed(2) : "",
+          p.checkedInAt?.toISOString() ?? "",
+        ])
+      );
+    }),
   ];
   return new Response(`${lines.join("\n")}\n`, {
     headers: {

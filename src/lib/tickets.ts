@@ -3,7 +3,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import { formatMoney, ticketSoldAlert } from "@/lib/mail/templates/billing";
-import { ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
+import { attendeeTicketEmail, TICKET_QR_CID, ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
+import { eventDay } from "@/lib/mail/templates/members";
+import { detailsCloseAt, newAttendeeCode, placeholderRows, placeRefundPence } from "@/lib/attendees";
 import { eventTimeZone } from "@/lib/event-time";
 
 /**
@@ -170,11 +172,20 @@ export async function seatUsage(eventId: string, now = new Date(), db: Pick<type
   const [tickets, rsvps] = await Promise.all([
     db.eventTicket.findMany({
       where: { eventId, OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: holdCutoff(now) } }] },
-      select: { quantity: true, userId: true, ticketTypeId: true },
+      select: {
+        quantity: true,
+        userId: true,
+        ticketTypeId: true,
+        _count: { select: { attendees: { where: { cancelledAt: { not: null } } } } },
+      },
     }),
     db.eventRsvp.findMany({ where: { eventId }, select: { userId: true } }),
   ]);
-  return { tickets, rsvps };
+  // A place refunded on its own in Studio frees its seat; the rest of the order still counts.
+  return {
+    tickets: tickets.map(({ _count, ...t }) => ({ ...t, quantity: Math.max(0, t.quantity - (_count?.attendees ?? 0)) })),
+    rsvps,
+  };
 }
 
 function refresh(slug: string) {
@@ -232,6 +243,9 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
     await prisma.eventRsvp.createMany({ data: [{ eventId: ticket.eventId, userId: ticket.userId }], skipDuplicates: true });
   }
 
+  // In person, every place has a named attendee with their own e-ticket.
+  const attendees = ticket.event.online ? [] : await ensureAttendees(ticket);
+
   const email = ticketConfirmedEmail({
     name: ticket.name,
     event: ticket.event,
@@ -239,8 +253,12 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
     amount: formatMoney(session.amount_total ?? ticket.amount, session.currency ?? ticket.currency),
     priceType: ticket.priceType === "member" ? "member" : "guest",
     ticketType: ticket.ticketType?.name ?? null,
+    attendees: attendees.filter((a) => !a.cancelledAt).map((a) => ({ name: a.name, email: a.email })),
   });
   await deliverOnce(`ticket-confirmed:${ticket.id}`, ticket.email, email.subject, email.content, { tag: "event-ticket" });
+  for (const a of attendees) {
+    if (!a.cancelledAt) await sendAttendeeTicket(a, ticket);
+  }
 
   // The team hears about each sale once: only the event that marked the ticket paid sends it.
   if (updated.count > 0) {
@@ -260,6 +278,56 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
   return { ok: true as const, ticketId: ticket.id, already: updated.count === 0 };
 }
 
+type PaidTicket = {
+  id: string;
+  eventId: string;
+  name: string | null;
+  email: string;
+  quantity: number;
+  event: Parameters<typeof attendeeTicketEmail>[0]["event"] & { detailsCloseAt?: Date | null };
+  ticketType?: { name: string } | null;
+};
+
+/** The order's attendees, creating them from the buyer's details for an order that has none. */
+async function ensureAttendees(ticket: PaidTicket) {
+  const existing = await prisma.eventAttendee.findMany({ where: { ticketId: ticket.id }, orderBy: { createdAt: "asc" } });
+  if (existing.length) return existing;
+  await prisma.eventAttendee.createMany({
+    data: placeholderRows(ticket.quantity, { name: ticket.name, email: ticket.email }).map((row) => ({
+      ...row,
+      ticketId: ticket.id,
+      eventId: ticket.eventId,
+      code: newAttendeeCode(),
+    })),
+  });
+  return prisma.eventAttendee.findMany({ where: { ticketId: ticket.id }, orderBy: { createdAt: "asc" } });
+}
+
+/** One attendee's e-ticket, with the QR code inline. Sent once per attendee. */
+export async function sendAttendeeTicket(
+  a: { id: string; name: string; email: string; code: string; dietary: string | null; accessNeeds: string | null; isBuyer: boolean },
+  ticket: PaidTicket
+) {
+  try {
+    const { ticketQrPngBase64 } = await import("@/lib/ticket-qr");
+    const png = await ticketQrPngBase64(ticket.event.slug, a.code);
+    const email = attendeeTicketEmail({
+      attendee: a,
+      event: ticket.event,
+      ticketType: ticket.ticketType?.name ?? null,
+      boughtBy: !a.isBuyer && a.email !== ticket.email.toLowerCase() ? ticket.name : null,
+      changesUntil: eventDay(detailsCloseAt(ticket.event), ticket.event.timezone),
+    });
+    return await deliverOnce(`ticket-attendee:${a.id}`, a.email, email.subject, email.content, {
+      tag: "event-eticket",
+      attachments: [{ filename: `ticket-${a.code}.png`, content: png, contentId: TICKET_QR_CID }],
+    });
+  } catch (error) {
+    console.error("[TICKETS] e-ticket failed", { attendee: a.id, error });
+    return false;
+  }
+}
+
 /** checkout.session.expired for a ticket: release the hold straight away. */
 export async function handleTicketCheckoutExpired(session: Stripe.Checkout.Session) {
   const ticketId = session.metadata?.ticketId;
@@ -269,9 +337,9 @@ export async function handleTicketCheckoutExpired(session: Stripe.Checkout.Sessi
 
 /**
  * charge.refunded (or a payment intent) for a ticket. A full refund marks the
- * ticket refunded and frees the member's RSVP when they hold no other ticket.
- * A partial refund leaves the ticket paid, since the team may refund one of
- * several places by hand.
+ * ticket refunded, cancels its attendees and frees the member's RSVP when they
+ * hold no other ticket. A partial refund leaves the ticket paid: single places
+ * are refunded from Studio with refundAttendee, which records which one.
  */
 export async function handleTicketRefund(source: Stripe.Charge | Stripe.PaymentIntent | string) {
   let paymentIntentId: string | null;
@@ -295,14 +363,98 @@ export async function handleTicketRefund(source: Stripe.Charge | Stripe.PaymentI
   if (!tickets.length) return { ok: false as const, reason: "not-a-ticket" };
 
   await prisma.eventTicket.updateMany({ where: { id: { in: tickets.map((t) => t.id) } }, data: { status: "refunded" } });
+  // A full refund cancels every place on the order.
+  await prisma.eventAttendee.updateMany({
+    where: { ticketId: { in: tickets.map((t) => t.id) }, cancelledAt: null },
+    data: { cancelledAt: new Date() },
+  });
   for (const t of tickets) {
-    if (t.userId) {
-      const other = await prisma.eventTicket.count({ where: { eventId: t.eventId, userId: t.userId, status: "paid" } });
-      if (!other) await prisma.eventRsvp.deleteMany({ where: { eventId: t.eventId, userId: t.userId } });
-    }
+    await closeOrder(t);
     refresh(t.event.slug);
   }
   return { ok: true as const, count: tickets.length };
+}
+
+/** After an order has no places left: mark it refunded and free the member's RSVP if they hold no other ticket. */
+async function closeOrder(t: { id: string; eventId: string; userId: string | null }) {
+  await prisma.eventTicket.updateMany({ where: { id: t.id, status: "paid" }, data: { status: "refunded" } });
+  if (t.userId) {
+    const other = await prisma.eventTicket.count({ where: { eventId: t.eventId, userId: t.userId, status: "paid" } });
+    if (!other) await prisma.eventRsvp.deleteMany({ where: { eventId: t.eventId, userId: t.userId } });
+  }
+}
+
+export type AttendeeRefund = { ok: true; amount: number; orderClosed: boolean; name: string } | { ok: false; error: string };
+
+/**
+ * Refund one place on a paid order through Stripe and cancel that attendee.
+ * Places share what the order cost (after any discount code); the last place
+ * takes what is left. The place is claimed before Stripe is called, so two
+ * presses can never refund it twice, and Stripe's idempotency key backs that up.
+ */
+export async function refundAttendee(attendeeId: string): Promise<AttendeeRefund> {
+  const a = await prisma.eventAttendee.findUnique({
+    where: { id: attendeeId },
+    select: {
+      id: true,
+      name: true,
+      cancelledAt: true,
+      ticket: {
+        select: {
+          id: true,
+          eventId: true,
+          userId: true,
+          status: true,
+          amount: true,
+          quantity: true,
+          stripePaymentIntentId: true,
+          event: { select: { slug: true } },
+          attendees: { select: { id: true, cancelledAt: true, refundedPence: true } },
+        },
+      },
+    },
+  });
+  if (!a) return { ok: false, error: "That attendee could not be found." };
+  if (a.cancelledAt) return { ok: false, error: `${a.name}'s place has already been cancelled.` };
+  const t = a.ticket;
+  if (t.status !== "paid") return { ok: false, error: "Only a place on a paid order can be refunded." };
+  if (!t.stripePaymentIntentId && t.amount > 0) return { ok: false, error: "This order has no Stripe payment to refund." };
+
+  const refundedSoFar = t.attendees.reduce((sum, x) => sum + (x.refundedPence ?? 0), 0);
+  const open = t.attendees.filter((x) => !x.cancelledAt).length;
+  const amount = placeRefundPence(t, refundedSoFar, open);
+
+  const claimed = await prisma.eventAttendee.updateMany({
+    where: { id: a.id, cancelledAt: null },
+    data: { cancelledAt: new Date(), refundedPence: amount },
+  });
+  if (!claimed.count) return { ok: false, error: `${a.name}'s place has already been cancelled.` };
+
+  if (amount > 0) {
+    try {
+      const { stripe } = await import("@/lib/stripe");
+      const refund = await stripe.refunds.create(
+        {
+          payment_intent: t.stripePaymentIntentId!,
+          amount,
+          reason: "requested_by_customer",
+          metadata: { kind: "ticket", ticketId: t.id, attendeeId: a.id },
+        },
+        { idempotencyKey: `ticket-attendee-refund:${a.id}` }
+      );
+      await prisma.eventAttendee.update({ where: { id: a.id }, data: { stripeRefundId: refund.id } });
+    } catch (error) {
+      // Stripe refused: the place is still theirs.
+      await prisma.eventAttendee.update({ where: { id: a.id }, data: { cancelledAt: null, refundedPence: null } });
+      console.error("[TICKETS] attendee refund failed", { attendee: a.id, error });
+      return { ok: false, error: error instanceof Error ? `Stripe could not make the refund: ${error.message}` : "Stripe could not make the refund." };
+    }
+  }
+
+  const orderClosed = open <= 1;
+  if (orderClosed) await closeOrder(t);
+  refresh(t.event.slug);
+  return { ok: true, amount, orderClosed, name: a.name };
 }
 
 const isTicketSession = (s: Stripe.Checkout.Session) => s.mode === "payment" && s.metadata?.kind === "ticket";
@@ -341,6 +493,19 @@ export async function handleTicketWebhook(event: Stripe.Event): Promise<boolean>
   }
 }
 
+/** One named person on an order, for the Studio list, its CSV and check-in. */
+export type AttendeePerson = {
+  id: string;
+  name: string;
+  email: string;
+  dietary: string | null;
+  accessNeeds: string | null;
+  code: string;
+  checkedInAt: Date | null;
+  cancelledAt: Date | null;
+  refundedPence: number | null;
+};
+
 export type Attendee = {
   key: string;
   name: string | null;
@@ -352,6 +517,8 @@ export type Attendee = {
   status: string;
   amount: number | null;
   at: Date;
+  /** The named people on the order, for in-person events. */
+  people: AttendeePerson[];
 };
 
 /**
@@ -376,6 +543,20 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
         paidAt: true,
         createdAt: true,
         ticketType: { select: { name: true } },
+        attendees: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            dietary: true,
+            accessNeeds: true,
+            code: true,
+            checkedInAt: true,
+            cancelledAt: true,
+            refundedPence: true,
+          },
+        },
       },
     }),
     prisma.eventRsvp.findMany({
@@ -396,6 +577,7 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
       status: t.status === "paid" ? "Paid" : "Refunded",
       amount: t.amount,
       at: t.paidAt ?? t.createdAt,
+      people: t.attendees ?? [],
     })),
     ...rsvps
       .filter((r) => !paidHolders.has(r.userId))
@@ -409,6 +591,7 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
         status: "Going",
         amount: null,
         at: r.createdAt,
+        people: [],
       })),
   ];
 }

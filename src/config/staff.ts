@@ -22,6 +22,7 @@ export const PERMISSIONS = [
   "community.rooms",
   "events.view",
   "events.edit",
+  "events.refund",
   "courses.view",
   "courses.edit",
   "courses.review",

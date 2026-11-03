@@ -9,6 +9,12 @@ const db = {
   rsvpDeleteMany: vi.fn(),
   deliverOnce: vi.fn(),
   alertOwners: vi.fn(),
+  attendeeFindMany: vi.fn(),
+  attendeeFindUnique: vi.fn(),
+  attendeeCreateMany: vi.fn(),
+  attendeeUpdateMany: vi.fn(),
+  attendeeUpdate: vi.fn(),
+  refundCreate: vi.fn(),
 };
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -24,8 +30,16 @@ vi.mock("@/lib/prisma", () => ({
       createMany: (...a: unknown[]) => db.rsvpCreateMany(...a),
       deleteMany: (...a: unknown[]) => db.rsvpDeleteMany(...a),
     },
+    eventAttendee: {
+      findMany: (...a: unknown[]) => db.attendeeFindMany(...a),
+      findUnique: (...a: unknown[]) => db.attendeeFindUnique(...a),
+      createMany: (...a: unknown[]) => db.attendeeCreateMany(...a),
+      updateMany: (...a: unknown[]) => db.attendeeUpdateMany(...a),
+      update: (...a: unknown[]) => db.attendeeUpdate(...a),
+    },
   },
 }));
+vi.mock("@/lib/stripe", () => ({ stripe: { refunds: { create: (...a: unknown[]) => db.refundCreate(...a) } } }));
 vi.mock("@/lib/mail/send", () => ({
   deliverOnce: (...a: unknown[]) => db.deliverOnce(...a),
   alertOwners: (...a: unknown[]) => db.alertOwners(...a),
@@ -38,6 +52,7 @@ import {
   guestDetails,
   handleTicketCheckoutCompleted,
   handleTicketRefund,
+  refundAttendee,
   seatsLeft,
   ticketLineName,
   ticketPrice,
@@ -270,6 +285,13 @@ describe("handleTicketRefund", () => {
     db.updateMany.mockResolvedValue({ count: 1 });
     db.count.mockResolvedValue(0);
     db.rsvpDeleteMany.mockResolvedValue({ count: 1 });
+    db.attendeeUpdateMany.mockResolvedValue({ count: 2 });
+  });
+
+  it("cancels every attendee on a fully refunded order", async () => {
+    await handleTicketRefund("pi_1");
+    expect(db.attendeeUpdateMany.mock.calls[0][0]).toMatchObject({ where: { ticketId: { in: ["t1"] }, cancelledAt: null } });
+    expect(db.attendeeUpdateMany.mock.calls[0][0].data.cancelledAt).toBeInstanceOf(Date);
   });
 
   it("marks a fully refunded charge's ticket refunded and frees the RSVP", async () => {
@@ -292,5 +314,169 @@ describe("handleTicketRefund", () => {
     db.findMany.mockResolvedValue([]);
     const r = await handleTicketRefund("pi_other");
     expect(r).toEqual({ ok: false, reason: "not-a-ticket" });
+  });
+});
+
+const inPersonTicket = {
+  ...ticket,
+  userId: null,
+  priceType: "guest",
+  quantity: 2,
+  amount: 29800,
+  ticketType: { name: "Early bird" },
+  event: {
+    ...ticket.event,
+    slug: "whittlebury-2027",
+    title: "Whittlebury",
+    online: false,
+    venue: "Whittlebury Hall",
+    venueAddress: "Whittlebury, Towcester NN12 8QH",
+    timezone: "Europe/London",
+    startsAt: new Date("2027-04-26T08:00:00Z"),
+    detailsCloseAt: null,
+  },
+};
+
+const person = (id: string, over: Record<string, unknown> = {}) => ({
+  id,
+  name: `Person ${id}`,
+  email: `${id}@example.com`,
+  code: `CODE${id.toUpperCase()}XXXXXXXX`,
+  dietary: null,
+  accessNeeds: null,
+  isBuyer: false,
+  cancelledAt: null,
+  ...over,
+});
+
+describe("in-person orders", () => {
+  beforeEach(() => {
+    Object.values(db).forEach((f) => f.mockReset());
+    db.findUnique.mockResolvedValue(inPersonTicket);
+    db.updateMany.mockResolvedValue({ count: 1 });
+    db.deliverOnce.mockResolvedValue(true);
+  });
+
+  it("sends each attendee their own e-ticket with the QR code inline, and the buyer a receipt listing everyone", async () => {
+    db.attendeeFindMany.mockResolvedValue([person("a1", { isBuyer: true, email: "niamh@example.com" }), person("a2")]);
+    await handleTicketCheckoutCompleted(session);
+    const refs = db.deliverOnce.mock.calls.map((c) => c[0]);
+    expect(refs).toEqual(["ticket-confirmed:t1", "ticket-attendee:a1", "ticket-attendee:a2"]);
+    const receipt = db.deliverOnce.mock.calls[0][3];
+    expect(receipt.facts).toContainEqual(["Attendees", "Person a1 (niamh@example.com)\nPerson a2 (a2@example.com)"]);
+    const [, to, subject, content, opts] = db.deliverOnce.mock.calls[2];
+    expect(to).toBe("a2@example.com");
+    expect(subject).toBe("Your e-ticket for Whittlebury");
+    expect(content.ticket).toMatchObject({ contentId: "ticket-qr", code: "CODEA2XXXXXXXX" });
+    expect(content.body).toContain("Niamh Byrne has booked you a place");
+    expect(content.cta.href).toBe("/events/whittlebury-2027/ticket/CODEA2XXXXXXXX");
+    expect(opts.attachments[0]).toMatchObject({ contentId: "ticket-qr", filename: "ticket-CODEA2XXXXXXXX.png" });
+    expect(Buffer.from(opts.attachments[0].content, "base64").subarray(1, 4).toString()).toBe("PNG");
+  });
+
+  it("names the places from the buyer when an order has no attendees yet", async () => {
+    db.attendeeFindMany.mockResolvedValueOnce([]).mockResolvedValueOnce([person("a1"), person("a2")]);
+    db.attendeeCreateMany.mockResolvedValue({ count: 2 });
+    await handleTicketCheckoutCompleted(session);
+    const rows = db.attendeeCreateMany.mock.calls[0][0].data;
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({ name: "Niamh Byrne", email: "niamh@example.com", isBuyer: true, ticketId: "t1", eventId: "e1" });
+    expect(rows[0].code).toMatch(/^[2-9A-Z]{16}$/);
+  });
+
+  it("does not send e-tickets for cancelled places", async () => {
+    db.attendeeFindMany.mockResolvedValue([person("a1"), person("a2", { cancelledAt: new Date() })]);
+    await handleTicketCheckoutCompleted(session);
+    expect(db.deliverOnce.mock.calls.map((c) => c[0])).toEqual(["ticket-confirmed:t1", "ticket-attendee:a1"]);
+  });
+
+  it("leaves online orders without attendees", async () => {
+    db.findUnique.mockResolvedValue(ticket);
+    db.rsvpCreateMany.mockResolvedValue({ count: 1 });
+    await handleTicketCheckoutCompleted(session);
+    expect(db.attendeeFindMany).not.toHaveBeenCalled();
+    expect(db.deliverOnce).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("refundAttendee", () => {
+  const order = (over: Record<string, unknown> = {}) => ({
+    id: "a2",
+    name: "Person a2",
+    cancelledAt: null,
+    ticket: {
+      id: "t1",
+      eventId: "e1",
+      userId: null,
+      status: "paid",
+      amount: 10000,
+      quantity: 3,
+      stripePaymentIntentId: "pi_1",
+      event: { slug: "whittlebury-2027" },
+      attendees: [
+        { id: "a1", cancelledAt: null, refundedPence: null },
+        { id: "a2", cancelledAt: null, refundedPence: null },
+        { id: "a3", cancelledAt: null, refundedPence: null },
+      ],
+      ...over,
+    },
+  });
+
+  beforeEach(() => {
+    Object.values(db).forEach((f) => f.mockReset());
+    db.attendeeUpdateMany.mockResolvedValue({ count: 1 });
+    db.attendeeUpdate.mockResolvedValue({});
+    db.updateMany.mockResolvedValue({ count: 1 });
+    db.refundCreate.mockResolvedValue({ id: "re_1" });
+  });
+
+  it("claims the place, refunds its share through Stripe once, and keeps the order open", async () => {
+    db.attendeeFindUnique.mockResolvedValue(order());
+    const r = await refundAttendee("a2");
+    expect(r).toEqual({ ok: true, amount: 3333, orderClosed: false, name: "Person a2" });
+    expect(db.attendeeUpdateMany.mock.calls[0][0]).toMatchObject({ where: { id: "a2", cancelledAt: null }, data: { refundedPence: 3333 } });
+    const [params, opts] = db.refundCreate.mock.calls[0];
+    expect(params).toMatchObject({ payment_intent: "pi_1", amount: 3333, metadata: { kind: "ticket", attendeeId: "a2" } });
+    expect(opts).toEqual({ idempotencyKey: "ticket-attendee-refund:a2" });
+    expect(db.attendeeUpdate).toHaveBeenCalledWith({ where: { id: "a2" }, data: { stripeRefundId: "re_1" } });
+    expect(db.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("gives the last place whatever is left and closes the order", async () => {
+    db.attendeeFindUnique.mockResolvedValue(
+      order({
+        attendees: [
+          { id: "a1", cancelledAt: new Date(), refundedPence: 3333 },
+          { id: "a2", cancelledAt: null, refundedPence: null },
+          { id: "a3", cancelledAt: new Date(), refundedPence: 3333 },
+        ],
+      })
+    );
+    const r = await refundAttendee("a2");
+    expect(r).toMatchObject({ ok: true, amount: 3334, orderClosed: true });
+    expect(db.updateMany.mock.calls[0][0]).toEqual({ where: { id: "t1", status: "paid" }, data: { status: "refunded" } });
+  });
+
+  it("puts the place back when Stripe refuses", async () => {
+    db.attendeeFindUnique.mockResolvedValue(order());
+    db.refundCreate.mockRejectedValue(new Error("charge already refunded"));
+    const r = await refundAttendee("a2");
+    expect(r).toEqual({ ok: false, error: "Stripe could not make the refund: charge already refunded" });
+    expect(db.attendeeUpdate).toHaveBeenCalledWith({ where: { id: "a2" }, data: { cancelledAt: null, refundedPence: null } });
+  });
+
+  it("never refunds twice", async () => {
+    db.attendeeFindUnique.mockResolvedValue(order());
+    db.attendeeUpdateMany.mockResolvedValue({ count: 0 });
+    const r = await refundAttendee("a2");
+    expect(r.ok).toBe(false);
+    expect(db.refundCreate).not.toHaveBeenCalled();
+    db.attendeeFindUnique.mockResolvedValue({ ...order(), cancelledAt: new Date() });
+    expect((await refundAttendee("a2")).ok).toBe(false);
+  });
+
+  it("only refunds places on paid orders", async () => {
+    db.attendeeFindUnique.mockResolvedValue(order({ status: "refunded" }));
+    expect(await refundAttendee("a2")).toEqual({ ok: false, error: "Only a place on a paid order can be refunded." });
   });
 });
