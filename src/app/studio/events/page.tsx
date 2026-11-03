@@ -102,7 +102,7 @@ export default async function EventsPage({
       )}
 
       <Section title="Coming up">
-        <EventList events={upcoming} sales={salesByEvent} canEdit={canEdit} empty="Nothing coming up. Add an event so members have something to look forward to." />
+        <EventList events={upcoming} sales={salesByEvent} canEdit={canEdit} canCheckIn={staff.perms.has("events.checkin")} empty="Nothing coming up. Add an event so members have something to look forward to." />
       </Section>
       {past.length > 0 && (
         <Section title="Past events">
@@ -124,11 +124,13 @@ function EventList({
   sales,
   empty,
   canEdit,
+  canCheckIn = false,
 }: {
   events: (Event & { _count: { rsvps: number; ticketTypes: number } })[];
   sales: Sales;
   empty: string;
   canEdit: boolean;
+  canCheckIn?: boolean;
 }) {
   if (!events.length) return <Empty>{empty}</Empty>;
   return (
@@ -180,6 +182,11 @@ function EventList({
             <Button asChild size="xs" variant="outline">
               <Link href={`/studio/events/${e.id}/attendees`}>Attendees</Link>
             </Button>
+            {canCheckIn && e.sellTickets && !e.online && (
+              <Button asChild size="xs" variant="outline">
+                <Link href={`/studio/events/${e.id}/checkin`}>Check-in</Link>
+              </Button>
+            )}
             <Button asChild size="xs" variant="outline">
               <Link href={`/studio/events?edit=${e.id}`}>Edit</Link>
             </Button>
