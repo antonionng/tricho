@@ -632,7 +632,11 @@ model Event {
   endsAt         DateTime?
   venue          String?
   city           String?
+  /// The venue's full postal address, for in-person events. Shown in ticket emails with a map link.
+  venueAddress   String?
   online         Boolean       @default(false)
+  /// The IANA time zone the event's times are shown in, e.g. "Europe/London".
+  timezone       String        @default("Europe/London")
   priceGBP       Int           @default(0)
   memberPriceGBP Int           @default(0)
   capacity       Int?
@@ -654,6 +658,8 @@ model Event {
   chapter        Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   rsvps          EventRsvp[]
   tickets        EventTicket[]
+  /// Early bird, standard and so on. An event without any sells at the flat member and guest prices.
+  ticketTypes    EventTicketType[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1199,6 +1205,9 @@ model EventTicket {
   currency              String       @default("gbp")
   /// "member" or "guest" price.
   priceType             String       @default("guest")
+  /// The ticket type bought, when the event sells types. Null for flat-priced events.
+  ticketTypeId          String?
+  ticketType            EventTicketType? @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
   status                TicketStatus @default(pending)
   stripeSessionId       String?      @unique
   stripePaymentIntentId String?
@@ -1207,6 +1216,37 @@ model EventTicket {
 
   @@index([eventId, status])
   @@index([email])
+  @@index([ticketTypeId])
+}
+
+/// A kind of ticket for an event sold on Trichollective, such as early bird or standard.
+model EventTicketType {
+  id               String        @id @default(cuid())
+  eventId          String
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name             String
+  description      String        @default("")
+  /// What everyone pays, in pence, VAT included.
+  pricePence       Int
+  /// What signed-in active members pay instead, in pence. Null means the same as everyone.
+  memberPricePence Int?
+  /// Only signed-in active members can buy it.
+  membersOnly      Boolean       @default(false)
+  /// Places of this type. Null means only the event's total limits it.
+  capacity         Int?
+  /// On sale from this moment. Null means straight away.
+  salesStart       DateTime?
+  /// Off sale from this moment, e.g. when early bird ends. Null means until the event starts.
+  salesEnd         DateTime?
+  maxPerOrder      Int           @default(4)
+  sortOrder        Int           @default(0)
+  /// Hidden from sale when off. Types with tickets sold are switched off, never deleted.
+  active           Boolean       @default(true)
+  tickets          EventTicket[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([eventId, sortOrder])
 }
 
 enum EnrolmentStatus {

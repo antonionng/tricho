@@ -112,7 +112,7 @@ export default async function AttendeesPage({
                   <tr key={a.key}>
                     <td className="px-4 py-3 text-ink">{a.name || "No name given"}</td>
                     <td className="px-4 py-3 text-ink-2">{a.email}</td>
-                    <td className="px-4 py-3">{a.type}</td>
+                    <td className="px-4 py-3">{a.ticketType ? `${a.ticketType} · ${a.type}` : a.type}</td>
                     <td className="px-4 py-3">{a.quantity}</td>
                     <td className="px-4 py-3">
                       <Tag tone={a.status === "Refunded" ? "warn" : "positive"}>{a.status}</Tag>

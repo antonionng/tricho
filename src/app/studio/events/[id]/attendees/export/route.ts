@@ -24,9 +24,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
 
   const lines = [
-    csvRow(["name", "email", "type", "quantity", "status", "amount_gbp", "date"]),
+    csvRow(["name", "email", "type", "quantity", "status", "amount_gbp", "date", "ticket_type"]),
     ...rows.map((a) =>
-      csvRow([a.name, a.email, a.type, a.quantity, a.status, a.amount != null ? (a.amount / 100).toFixed(2) : "", a.at.toISOString()])
+      csvRow([a.name, a.email, a.type, a.quantity, a.status, a.amount != null ? (a.amount / 100).toFixed(2) : "", a.at.toISOString(), a.ticketType])
     ),
   ];
   return new Response(`${lines.join("\n")}\n`, {

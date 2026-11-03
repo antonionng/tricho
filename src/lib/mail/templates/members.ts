@@ -2,6 +2,7 @@ import { composeInviteEmail } from "@/lib/invite";
 import { site } from "@/config/site";
 import type { EmailSample } from "../catalogue";
 import type { EmailContent } from "../layout";
+import { eventTimeZone, timeZoneLabel } from "@/lib/event-time";
 
 /**
  * Member emails: replies and messages inside the platform, event bookings and
@@ -10,8 +11,6 @@ import type { EmailContent } from "../layout";
  */
 
 type Email = { subject: string; content: EmailContent };
-
-const TZ = "Europe/Dublin";
 
 export function firstNameOf(name: string | null | undefined, fallback = "there") {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
@@ -42,6 +41,10 @@ export type EmailEvent = {
   online: boolean;
   venue?: string | null;
   city?: string | null;
+  /** The venue's full postal address, for in-person events. */
+  venueAddress?: string | null;
+  /** The event's time zone; London when not given. */
+  timezone?: string | null;
   ticketUrl?: string | null;
   /** Online joining link, e.g. Google Meet. Only ever sent to people who are going. */
   joinUrl?: string | null;
@@ -50,19 +53,19 @@ export type EmailEvent = {
 };
 
 /** "Thursday 8 October 2026" */
-export function eventDate(d: Date) {
-  return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: TZ }).format(d);
+export function eventDate(d: Date, tz?: string | null) {
+  return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: eventTimeZone(tz) }).format(d);
 }
 
 /** "Thursday 8 October" */
-export function eventDay(d: Date) {
-  return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: TZ }).format(d);
+export function eventDay(d: Date, tz?: string | null) {
+  return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: eventTimeZone(tz) }).format(d);
 }
 
 /** "7:00 pm to 8:30 pm, Irish and UK time" */
-export function eventTime(start: Date, end?: Date | null) {
-  const t = new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: TZ });
-  return `${end ? `${t.format(start)} to ${t.format(end)}` : t.format(start)}, Irish and UK time`;
+export function eventTime(start: Date, end?: Date | null, tz?: string | null) {
+  const t = new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: eventTimeZone(tz) });
+  return `${end ? `${t.format(start)} to ${t.format(end)}` : t.format(start)}, ${timeZoneLabel(tz)}`;
 }
 
 export function eventWhere(e: Pick<EmailEvent, "online" | "venue" | "city">) {
