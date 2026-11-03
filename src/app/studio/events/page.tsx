@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function EventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; new?: string; notice?: string; tone?: string; prefill?: string; body?: string }>;
+  searchParams: Promise<{ edit?: string; new?: string; notice?: string; tone?: string; prefill?: string; body?: string; tt?: string }>;
 }) {
   const staff = await studioPage("/studio/events", "events.view");
   if (!staff) return <NoAccess what="events" />;
@@ -77,7 +77,7 @@ export default async function EventsPage({
         }
       />
 
-      {sp.notice && <Notice tone={sp.tone === "danger" ? "danger" : "default"}>{sp.notice}</Notice>}
+      {sp.notice && sp.tt !== "1" && <Notice tone={sp.tone === "danger" ? "danger" : "default"}>{sp.notice}</Notice>}
 
       {prefill && !sp.notice && (
         <Notice>
@@ -97,6 +97,7 @@ export default async function EventsPage({
           event={editing}
           types={ticketTypes.map((t) => ({ ...t, sold: typeSold.get(t.id) ?? 0 }))}
           canEdit={canEdit}
+          notice={sp.tt === "1" && sp.notice ? { text: sp.notice, danger: sp.tone === "danger" } : null}
         />
       )}
 
@@ -362,7 +363,17 @@ type TypeRow = EventTicketType & { sold: number };
  * event has at least one type switched on, the flat member and guest prices above
  * are no longer used.
  */
-function TicketTypesEditor({ event, types, canEdit }: { event: Event; types: TypeRow[]; canEdit: boolean }) {
+function TicketTypesEditor({
+  event,
+  types,
+  canEdit,
+  notice,
+}: {
+  event: Event;
+  types: TypeRow[];
+  canEdit: boolean;
+  notice: { text: string; danger: boolean } | null;
+}) {
   return (
     <section id="ticket-types" className="max-w-4xl space-y-4 rounded-2xl border border-rule bg-card p-5 sm:p-6">
       <div className="space-y-1">
@@ -376,6 +387,7 @@ function TicketTypesEditor({ event, types, canEdit }: { event: Event; types: Typ
             : " Without any types on sale, the flat guest and member prices are used."}
         </p>
       </div>
+      {notice && <Notice tone={notice.danger ? "danger" : "default"}>{notice.text}</Notice>}
       {types.map((t) => (
         <TicketTypeForm key={t.id} event={event} type={t} canEdit={canEdit} />
       ))}

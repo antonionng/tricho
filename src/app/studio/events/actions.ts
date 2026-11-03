@@ -208,7 +208,8 @@ export async function notifyMasterclassAction(form: FormData) {
 const TICKET_TYPE_FIELDS = ["name", "description", "price", "memberPrice", "membersOnly", "capacity", "salesStart", "salesEnd", "maxPerOrder", "sortOrder", "active"] as const;
 
 function ticketTypesBack(eventId: string, notice: string, tone?: string): never {
-  redirect(`${eventsUrl({ edit: eventId, notice, tone })}#ticket-types`);
+  // tt=1 shows the notice beside the ticket types, where the page lands.
+  redirect(`${eventsUrl({ edit: eventId, notice, tone, tt: "1" })}#ticket-types`);
 }
 
 /** Add or change a ticket type. Prices and dates are checked by validateTicketType. */
