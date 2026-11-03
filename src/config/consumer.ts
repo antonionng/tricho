@@ -13,11 +13,36 @@ export const HUB_PATH = "/hub";
  * these with separate, explicit consent.
  */
 export const CONCERNS = [
-  { id: "scalp", label: "A dry, oily, itchy or tight scalp" },
-  { id: "shedding", label: "Shedding more hair than usual" },
-  { id: "thinning", label: "Hair that is gradually getting thinner" },
-  { id: "patches", label: "A bald patch" },
-  { id: "care", label: "Looking after a healthy scalp and hair" },
+  {
+    id: "scalp",
+    label: "A dry, oily, itchy or tight scalp",
+    short: "Scalp problems",
+    terms: ["scalp", "dandruff", "itch", "psoriasis", "dermatitis", "eczema", "flaking"],
+  },
+  {
+    id: "shedding",
+    label: "Shedding more hair than usual",
+    short: "Shedding",
+    terms: ["shedding", "telogen", "hair loss", "postpartum"],
+  },
+  {
+    id: "thinning",
+    label: "Hair that is gradually getting thinner",
+    short: "Thinning hair",
+    terms: ["thinning", "androgenetic", "pattern", "hair loss", "density"],
+  },
+  {
+    id: "patches",
+    label: "A bald patch",
+    short: "Bald patches",
+    terms: ["alopecia", "areata", "patch", "scarring"],
+  },
+  {
+    id: "care",
+    label: "Looking after a healthy scalp and hair",
+    short: "Scalp care",
+    terms: ["head spa", "scalp care", "scalp treatment", "wellness", "hair health"],
+  },
 ] as const;
 
 export type ConcernId = (typeof CONCERNS)[number]["id"];

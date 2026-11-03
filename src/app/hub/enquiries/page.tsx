@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireConsumer } from "@/lib/consumer-session";
 import { longDate } from "@/components/members/format";
+import { Pill } from "@/components/site/primitives";
+import { consumerEnquiryStatus } from "@/lib/enquiry-status";
+import { shortName } from "@/lib/names";
 
 export const metadata = { title: "Your enquiries" };
 
@@ -30,23 +33,29 @@ export default async function HubEnquiriesPage() {
         </div>
       ) : (
         <ul className="space-y-4">
-          {enquiries.map((e) => (
-            <li key={e.id} className="space-y-2 rounded-3xl border border-rule bg-card p-6">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-lg font-semibold text-ink">
-                  {e.listing.slug ? (
-                    <Link href={`/directory/p/${e.listing.slug}`} className="hover:underline">
-                      {e.listing.name}
-                    </Link>
-                  ) : (
-                    e.listing.name
-                  )}
-                </h2>
-                <p className="text-sm text-ink-2">Sent on {longDate(e.createdAt)}</p>
-              </div>
-              <p className="line-clamp-3 whitespace-pre-line text-[15px] text-ink-2">{e.message}</p>
-            </li>
-          ))}
+          {enquiries.map((e) => {
+            const status = consumerEnquiryStatus(e.status, shortName(e.listing.name, "the professional"));
+            return (
+              <li key={e.id} className="space-y-2 rounded-3xl border border-rule bg-card p-6">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-lg font-semibold text-ink">
+                    {e.listing.slug ? (
+                      <Link href={`/directory/p/${e.listing.slug}`} className="hover:underline">
+                        {e.listing.name}
+                      </Link>
+                    ) : (
+                      e.listing.name
+                    )}
+                  </h2>
+                  <Pill tone={e.status === "forwarded" ? "positive" : "default"}>{status.label}</Pill>
+                </div>
+                <p className="text-sm text-ink-2">
+                  Sent on {longDate(e.createdAt)}. {status.detail}
+                </p>
+                <p className="line-clamp-3 whitespace-pre-line text-[15px] text-ink-2">{e.message}</p>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

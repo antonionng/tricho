@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { consumerSession } from "@/lib/consumer-session";
 import { hasFullProfile } from "@/lib/directory";
 import { deliver, deliverOnce } from "@/lib/mail/send";
 import {
@@ -23,7 +24,10 @@ export type EnquiryState = { ok: boolean; message: string } | null;
 export async function sendEnquiry(_prev: EnquiryState, formData: FormData): Promise<EnquiryState> {
   const listingId = String(formData.get("listingId") ?? "");
   const name = String(formData.get("name") ?? "").trim().slice(0, 80);
-  const email = String(formData.get("email") ?? "").trim().toLowerCase().slice(0, 160);
+  // A signed-in consumer's enquiry uses their account email and is linked to their account,
+  // so they can follow it in the hub. The professional sees the real name and email, never the alias.
+  const consumer = await consumerSession();
+  const email = (consumer?.user.email ?? String(formData.get("email") ?? "")).trim().toLowerCase().slice(0, 160);
   const message = String(formData.get("message") ?? "").trim().slice(0, 2000);
   // Honeypot: real people never fill this in.
   if (String(formData.get("company") ?? "")) return { ok: true, message: "Thank you." };
@@ -41,7 +45,7 @@ export async function sendEnquiry(_prev: EnquiryState, formData: FormData): Prom
   // Delivered for paid listings and free listings in their 90-day trial; otherwise held until they join.
   const claimed = hasFullProfile(listing);
   const enquiry = await prisma.enquiry.create({
-    data: { listingId: listing.id, name, email, message, status: claimed ? "forwarded" : "new" },
+    data: { listingId: listing.id, userId: consumer?.userId ?? null, name, email, message, status: claimed ? "forwarded" : "new" },
     select: { id: true },
   });
 
