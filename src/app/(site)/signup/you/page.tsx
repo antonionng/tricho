@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
-import { SignInOptions } from "@/components/auth/SignInOptions";
+import { SignInOptions, safeNext } from "@/components/auth/SignInOptions";
 import { pageMetadata } from "@/lib/seo";
 import { images } from "@/content/images";
 import { HUB_LABEL, HUB_PATH } from "@/config/consumer";
@@ -21,8 +21,8 @@ const FREE = [
   "Stay anonymous to other people with a random alias, unless you choose to show your first name",
 ];
 
-export default async function ConsumerSignupPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
-  const { from } = await searchParams;
+export default async function ConsumerSignupPage({ searchParams }: { searchParams: Promise<{ from?: string; next?: string }> }) {
+  const { from, next } = await searchParams;
   const fromFind = from === "find";
   return (
     <div className="mx-auto grid max-w-6xl gap-14 px-4 py-16 sm:px-6 md:py-24 lg:grid-cols-12 lg:px-10">
@@ -54,7 +54,7 @@ export default async function ConsumerSignupPage({ searchParams }: { searchParam
         </p>
       </div>
       <div className="lg:col-span-5 lg:col-start-8">
-        <SignInOptions mode="consumer" redirectTo={HUB_PATH} />
+        <SignInOptions mode="consumer" redirectTo={safeNext(next, HUB_PATH)} />
         <p className="mt-4 text-xs text-muted-foreground">
           By creating an account you agree to our <Link href="/terms" className="underline">terms</Link> and{" "}
           <Link href="/privacy" className="underline">privacy policy</Link>.

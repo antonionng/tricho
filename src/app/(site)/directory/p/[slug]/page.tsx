@@ -4,6 +4,7 @@ import { ArrowRight, BadgeCheck, Building2, CalendarClock, Check, Globe, MapPin,
 import { Container, Pill } from "@/components/site/primitives";
 import { ListingPhoto, Monogram } from "@/components/directory/ListingCard";
 import { EnquiryForm } from "@/components/directory/EnquiryForm";
+import { ListingVisitorProvider, SaveListingButton } from "@/components/directory/ListingVisitor";
 import { PhotoGallery, type GalleryPhoto } from "@/components/partners/PhotoGallery";
 import { Button } from "@/components/ui/button";
 import { DISCIPLINES } from "@/content/disciplines";
@@ -122,7 +123,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
     : [];
 
   return (
-    <>
+    <ListingVisitorProvider listingId={listing.id}>
       {/* Hero */}
       <section className="pt-8 md:pt-10">
         <Container>
@@ -185,6 +186,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
                   </a>
                 </Button>
               )}
+              {listing.slug && <SaveListingButton listingId={listing.id} slug={listing.slug} />}
             </div>
           </div>
         </Container>
@@ -371,6 +373,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           ]),
         ]}
       />
-    </>
+    </ListingVisitorProvider>
   );
 }

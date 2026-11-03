@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { publicListingWhere } from "@/lib/stats";
 import type { DisciplineId } from "@/content/disciplines";
+import type { ConcernId } from "@/config/consumer";
+import { concernWhere } from "@/lib/directory-concerns";
 
 export function slugify(input: string) {
   return input
@@ -54,11 +56,14 @@ export async function searchListings({
   q,
   discipline,
   city,
+  concern,
   take = 60,
 }: {
   q?: string;
   discipline?: DisciplineId;
   city?: string;
+  /** A concern category from the consumer area, e.g. "thinning". */
+  concern?: ConcernId;
   take?: number;
 }) {
   const query = q?.trim();
@@ -68,6 +73,7 @@ export async function searchListings({
         publicListingWhere(),
         discipline ? { profession: discipline } : {},
         city ? { city: { equals: city, mode: "insensitive" } } : {},
+        concernWhere(concern),
         query
           ? {
               OR: [
