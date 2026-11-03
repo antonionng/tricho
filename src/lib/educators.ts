@@ -7,6 +7,7 @@ import { alertOwners, deliver, deliverOnce } from "@/lib/mail/send";
 import { educatorDecisionEmail, educatorWelcomeEmail } from "@/lib/mail/templates/educators";
 import { educatorMembership } from "@/config/subscriptions";
 import { educatorSlugBase } from "@/lib/educator-rules";
+import { handleCourseBuildWebhook } from "@/lib/course-build";
 
 /**
  * Educator membership: a yearly subscription, separate from the member plans,
@@ -158,6 +159,8 @@ async function isEducatorInvoice(invoice: Stripe.Invoice) {
  * membership logic never sees it.
  */
 export async function handleEducatorWebhook(event: Stripe.Event): Promise<boolean> {
+  // One-off fees for the course build service.
+  if (await handleCourseBuildWebhook(event)) return true;
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;

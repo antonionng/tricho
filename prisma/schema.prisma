@@ -1612,25 +1612,57 @@ enum CourseRequestStatus {
   declined
 }
 
+/// The course-build service tiers, as in src/config/course-build.ts.
+enum CourseBuildTier {
+  tailor
+  build
+  build_film
+}
+
+/// Where the fee for a course build stands. Work starts only once it is paid or waived.
+enum CourseQuoteStatus {
+  none
+  draft
+  sent
+  paid
+  waived
+  withdrawn
+}
+
 /// An educator asking the Trichollective team to build or tailor a course for them.
 model CourseRequest {
-  id           String              @id @default(cuid())
-  educatorId   String
-  educator     EducatorProfile     @relation(fields: [educatorId], references: [id], onDelete: Cascade)
-  title        String
-  brief        String              @db.Text
-  audience     String              @default("")
-  timeline     String              @default("")
+  id                      String              @id @default(cuid())
+  educatorId              String
+  educator                EducatorProfile     @relation(fields: [educatorId], references: [id], onDelete: Cascade)
+  title                   String
+  brief                   String              @db.Text
+  audience                String              @default("")
+  timeline                String              @default("")
   /// StoredFile ids of the notes, slides or handouts they sent.
-  fileIds      String[]            @default([])
-  status       CourseRequestStatus @default(new)
-  assignedToId String?
+  fileIds                 String[]            @default([])
+  status                  CourseRequestStatus @default(new)
+  assignedToId            String?
   /// For the team only.
-  notes        String?             @db.Text
-  courseId     String?
-  course       Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  notes                   String?             @db.Text
+  courseId                String?
+  course                  Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  /// The build service tier the team quoted.
+  tier                    CourseBuildTier?
+  /// Whole pence, VAT included.
+  quoteAmount             Int?
+  quoteStatus             CourseQuoteStatus   @default(none)
+  /// What the quote covers, shown to the educator.
+  quoteNote               String?             @db.Text
+  quoteSentAt             DateTime?
+  /// The educator's share on the course this builds, in percent. Empty uses the tier's default, then the educator's rate.
+  sharePct                Int?
+  /// Why the team waived the fee, for the record.
+  waivedReason            String?
+  stripeCheckoutSessionId String?             @unique
+  stripePaymentIntentId   String?
+  paidAt                  DateTime?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 
   @@index([status, createdAt])
   @@index([educatorId])

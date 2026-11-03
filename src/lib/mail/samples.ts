@@ -8,10 +8,11 @@ import { samples as tickets } from "./templates/tickets";
 import { samples as releases } from "./templates/releases";
 import { samples as owners } from "./templates/owners";
 import { samples as pageAccess } from "./templates/page-access";
+import { samples as educators } from "./templates/educators";
 
 /** Every email the platform sends, grouped the way the Studio shows them. */
 const people = (list: EmailSample[]) => list.filter((s) => s.audience !== "owners");
-const alerts = [leads, directory, billing, members, tickets, releases, owners].flat().filter((s) => s.audience === "owners");
+const alerts = [leads, directory, billing, members, tickets, releases, educators, owners].flat().filter((s) => s.audience === "owners");
 
 export const emailGroups: { title: string; intro: string; samples: EmailSample[] }[] = [
   { title: "Sign-in, sign-ups and enquiries", intro: "Sent the moment someone signs in, joins the list, contacts you or applies to partner.", samples: people(leads) },
@@ -21,6 +22,7 @@ export const emailGroups: { title: string; intro: string; samples: EmailSample[]
   { title: "Business pages", intro: "Sent to the person who looks after a business, charity or gifted page when the team gives them access.", samples: pageAccess },
   { title: "Members", intro: "Sent to members about replies, messages and the events they have booked.", samples: people(members) },
   { title: "Event tickets", intro: "Sent to anyone who buys a ticket for an event on Trichollective, member or guest.", samples: people(tickets) },
+  { title: "Educators", intro: "Sent to educators when they join and when they use the course build service.", samples: people(educators) },
   { title: "New releases", intro: "Sent to members and subscribers when Karley approves an announcement in the inbox.", samples: people(releases) },
   { title: "Owner alerts", intro: "Sent to the owners so no lead, payment or report is missed.", samples: alerts },
 ];

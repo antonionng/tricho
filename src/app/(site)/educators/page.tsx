@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { ArrowLink, Container, Eyebrow, Section, SectionHeader } from "@/components/site/primitives";
 import { JoinEducatorButton } from "@/components/educators/JoinEducatorButton";
+import { CourseBuildEnquiryForm } from "@/components/educators/CourseBuildEnquiryForm";
 import { educatorMembership } from "@/config/subscriptions";
+import { courseBuild } from "@/config/course-build";
 import { images } from "@/content/images";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 
@@ -29,7 +31,10 @@ const faqs = [
   { q: "Who owns my courses?", a: "You do. You give Trichollective a licence to host and sell them, and learners who buy a course keep access to it." },
   { q: "How much can I earn?", a: `You keep ${share}% of what each learner pays. A course priced at £79 that 100 learners buy earns you £${Math.round(79 * 100 * share / 100).toLocaleString("en-GB")}. Members pay the member price you set, and your share is worked out on what they actually pay.` },
   { q: "Do I need to make videos?", a: "No. Many good courses are written lessons with case studies and handouts. If you do use video, host it on Vimeo or YouTube and paste the link into the lesson." },
-  { q: "Can Trichollective build the course for me?", a: "Yes. Our team can tailor a course with you from your notes, slides or talks, and you review it before it goes on sale." },
+  {
+    q: "Can Trichollective build the course for me?",
+    a: "Yes. Our team can tailor or build a course with you from your notes, slides or talks, for a one-off fee agreed before we start. You review every lesson before it goes on sale, and it is sold under your name.",
+  },
 ];
 
 const crumbs = [
@@ -100,7 +105,57 @@ export default function EducatorsPage() {
         </Container>
       </Section>
 
-      <Section>
+      <Section id="build-service">
+        <Container>
+          <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-6 lg:col-span-5">
+              <SectionHeader eyebrow="Course build service" title="Have our team build your course" fade="from the material you already teach." />
+              <p className="text-[16px] leading-relaxed text-ink-2">{courseBuild.summary}</p>
+              <p className="text-[15px] leading-relaxed text-ink-2">
+                {courseBuild.pricesConfirmed
+                  ? "Every build is quoted before we start, and you pay the quote, including VAT, before work begins."
+                  : "Every build is quoted for the course in front of us, and you pay the quote, including VAT, before work begins."}{" "}
+                You review every lesson, the course goes through the same review as any other, and you keep your share of every sale.
+              </p>
+            </div>
+            <ul className="flex flex-col divide-y divide-rule border-y border-rule lg:col-span-7">
+              {courseBuild.tiers.map((t) => (
+                <li key={t.id} className="flex flex-col gap-2 py-6">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-lg font-semibold leading-snug tracking-tight">{t.name}</p>
+                    {courseBuild.pricesConfirmed && <p className="text-[15px] text-ink-2">From £{t.fromPrice.toLocaleString("en-GB")}, including VAT</p>}
+                  </div>
+                  <p className="text-[15px] leading-relaxed text-ink-2">{t.summary}</p>
+                  <ul className="mt-1 flex flex-col gap-1.5">
+                    {t.includes.map((x) => (
+                      <li key={x} className="flex gap-3 text-[15px] leading-relaxed">
+                        <Check className="mt-1 h-4 w-4 shrink-0 stroke-[2]" aria-hidden />
+                        {x}.
+                      </li>
+                    ))}
+                  </ul>
+                  {courseBuild.pricesConfirmed && t.defaultSharePct && t.defaultSharePct !== share && (
+                    <p className="text-[14px] text-muted-foreground">You keep {t.defaultSharePct}% of each sale of a course we build at this level.</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-14 grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="flex flex-col gap-3 lg:col-span-5">
+              <p className="text-lg font-semibold leading-snug tracking-tight">Not an Educator yet?</p>
+              <p className="text-[15px] leading-relaxed text-ink-2">
+                Tell us what you would like to teach and what you have already, and we&apos;ll reply with how we would build it and what it would cost. Educators can ask for a build from their dashboard.
+              </p>
+            </div>
+            <div className="lg:col-span-7">
+              <CourseBuildEnquiryForm />
+            </div>
+          </div>
+        </Container>
+      </Section>
+
+      <Section tone="paper-2">
         <Container size="narrow">
           <SectionHeader eyebrow="Questions" title="What educators ask us" fade="before they join." />
           <dl className="mt-10 flex flex-col divide-y divide-rule border-y border-rule">
