@@ -19,6 +19,10 @@ const SIGNUP_FIELDS = [
 ] as const;
 type SignupFields = Record<(typeof SIGNUP_FIELDS)[number], string>;
 
+/** The consumer sign-up asks for less: an optional first name and the unticked marketing opt-in. */
+const CONSUMER_FIELDS = ["firstName", "marketing"] as const;
+type ConsumerFields = Record<(typeof CONSUMER_FIELDS)[number], string>;
+
 const selectClass =
   "h-12 w-full min-w-0 rounded-xl border border-input bg-card px-3.5 text-base outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
@@ -35,7 +39,7 @@ export function EmailLinkForm({
 }: {
   action: (prev: EmailLinkState, formData: FormData) => Promise<EmailLinkState>;
   defaultEmail?: string;
-  mode: "signin" | "signup";
+  mode: "signin" | "signup" | "consumer";
 }) {
   const [state, formAction, pending] = useActionState(action, {
     sent: null,
@@ -54,6 +58,7 @@ export function EmailLinkForm({
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setFields((v) => ({ ...v, [f]: e.target.value })),
   });
+  const [consumer, setConsumer] = useState<ConsumerFields>({ firstName: "", marketing: "" });
   const sent = state.sent && state !== dismissed ? state.sent : null;
 
   if (sent) {
@@ -80,6 +85,10 @@ export function EmailLinkForm({
             SIGNUP_FIELDS.map((f) => (
               <input key={f} type="hidden" name={f} value={fields[f]} />
             ))}
+          {mode === "consumer" &&
+            CONSUMER_FIELDS.map((f) =>
+              consumer[f] ? <input key={f} type="hidden" name={f} value={consumer[f]} /> : null,
+            )}
           <Button
             type="submit"
             variant="outline"
@@ -117,7 +126,7 @@ export function EmailLinkForm({
         required
         autoComplete="email"
         inputMode="email"
-        placeholder="you@practice.com"
+        placeholder={mode === "consumer" ? "you@example.com" : "you@practice.com"}
         className="h-12 text-base"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
@@ -223,6 +232,46 @@ export function EmailLinkForm({
           </select>
         </>
       )}
+      {mode === "consumer" && (
+        <>
+          <Label htmlFor="signup-first-name">First name (optional)</Label>
+          <Input
+            id="signup-first-name"
+            name="firstName"
+            type="text"
+            autoComplete="given-name"
+            maxLength={40}
+            className="h-12 text-base"
+            value={consumer.firstName}
+            onChange={(e) =>
+              setConsumer((v) => ({ ...v, firstName: e.target.value }))
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            We use it to greet you. Other people see a random alias instead
+            unless you choose otherwise.
+          </p>
+          {emailField}
+          <label className="flex items-start gap-3 pt-1 text-sm text-ink-2">
+            <input
+              type="checkbox"
+              name="marketing"
+              className="mt-0.5"
+              checked={consumer.marketing === "on"}
+              onChange={(e) =>
+                setConsumer((v) => ({
+                  ...v,
+                  marketing: e.target.checked ? "on" : "",
+                }))
+              }
+            />
+            <span>
+              Send me occasional news, new guides and articles from
+              Trichollective. You can stop them at any time.
+            </span>
+          </label>
+        </>
+      )}
       {mode === "signin" && emailField}
       <Button
         type="submit"
@@ -233,7 +282,7 @@ export function EmailLinkForm({
       >
         {pending
           ? "Sending your link…"
-          : mode === "signup"
+          : mode !== "signin"
             ? "Email me a link to create my account"
             : "Email me a sign-in link"}
       </Button>

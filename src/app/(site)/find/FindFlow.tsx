@@ -95,6 +95,16 @@ export function FindFlow() {
           <Button asChild size="lg"><Link href={r.href}>{r.cta} <ArrowRight /></Link></Button>
           <Button size="lg" variant="outline" onClick={() => { setStep(0); setAnswers([]); }}>Start again</Button>
         </div>
+        <div className="flex flex-col gap-3 rounded-2xl border border-rule bg-card p-5">
+          <h3 className="text-lg font-semibold text-ink">Save your results with a free account.</h3>
+          <p className="text-[15px] text-ink-2">
+            Create a free account to save the professionals you like, keep your enquiries in one place and get reading chosen for
+            you. We don&apos;t keep your answers to these questions, and you choose what you share once you are in.
+          </p>
+          <Link href="/signup/you?from=find" className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-ink underline underline-offset-4">
+            Create a free account <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
         <p className="text-sm text-muted-foreground">
           This is signposting, not a diagnosis. Only a professional who sees you in person can tell you what&apos;s going on.
         </p>
