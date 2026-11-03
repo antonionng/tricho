@@ -22,7 +22,13 @@ export const getPublicStats = unstable_cache(
     const [listings, cities, members] = await Promise.all([
       prisma.directoryListing.count({ where }),
       prisma.directoryListing.findMany({ where, distinct: ["city"], select: { city: true } }),
-      prisma.user.count({ where: { ...PROFESSIONAL_ACCOUNTS, stripeCurrentPeriodEnd: { gt: new Date() } } }),
+      prisma.user
+        .count({ where: { ...PROFESSIONAL_ACCOUNTS, stripeCurrentPeriodEnd: { gt: new Date() } } })
+        // Hidden below the threshold anyway, so a database without the latest migration (a preview build) still renders.
+        .catch((error) => {
+          console.error("[stats] couldn't count members", error);
+          return 0;
+        }),
     ]);
     return { listings, cities: cities.length, members };
   },
