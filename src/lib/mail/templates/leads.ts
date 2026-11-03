@@ -13,6 +13,7 @@ import type { EmailContent } from "../layout";
 import type { OwnerAlert } from "../send";
 import type { EmailSample } from "../catalogue";
 import { confirmLinkFor } from "@/lib/signin-link";
+import { HUB_LABEL, HUB_PATH } from "@/config/consumer";
 
 export type Email = { subject: string; content: EmailContent };
 
@@ -111,6 +112,52 @@ export function newAccountAlert(a: NewAccount): OwnerAlert {
       ? { label: "Open their record in the Studio", href: `/studio/members/${a.userId}` }
       : { label: "Open members in the Studio", href: "/studio/members" },
     replyTo: a.email,
+  };
+}
+
+/** A member of the public creating a free consumer account. Nothing here mentions the directory listing or membership. */
+export function welcomeConsumerEmail({ name }: { name?: string | null }): Email {
+  return {
+    subject: `Welcome to ${HUB_LABEL.toLowerCase()} on Trichollective`,
+    content: {
+      preheader: "Your free account is ready, with trusted reading and a way to find the right hair and scalp professional.",
+      eyebrow: "Welcome",
+      heading: "Your free account is ready, and it is yours to keep.",
+      image: "hairDetail",
+      body: [
+        hello(name),
+        `Thank you for joining Trichollective. ${HUB_LABEL} brings together reading our team has chosen for you and the professionals in our directory, so you can find the right help for your hair and scalp.`,
+        "## What you can do now",
+        "- Read guides and articles written for the public and checked by our editorial team.",
+        "- Save professionals from the directory, so you can come back to them when you are ready.",
+        "- Send an enquiry to a professional and follow its progress in one place.",
+        "Other people on Trichollective see you by a random alias unless you choose to show your first name. When you send an enquiry, the professional sees your real name and email so they can reply to you.",
+        "We will only send you news and updates if you ticked the box to say yes, and you can change that at any time in your settings.",
+      ].join("\n\n"),
+      cta: { label: `Open ${HUB_LABEL.toLowerCase()}`, href: HUB_PATH },
+      secondary: { label: "Find a professional", href: "/directory" },
+      reason: "You receive this because you created a free Trichollective account with this email address.",
+    },
+  };
+}
+
+/** Owners hear about new consumer accounts separately from professional ones. */
+export function consumerAccountAlert(a: { userId?: string | null; email: string; via?: string | null }): OwnerAlert {
+  const facts: [string, string][] = [
+    ["Account type", "Consumer (member of the public)"],
+    ["Email", a.email],
+  ];
+  if (a.via) facts.push(["Signed up with", a.via]);
+  return {
+    subject: `New consumer account: ${a.email}`,
+    heading: "A member of the public has created a free consumer account.",
+    body: `They have been sent the welcome email for ${HUB_LABEL.toLowerCase()}. They cannot use the member area or the community.`,
+    facts,
+    cta: a.userId
+      ? { label: "Open their record in the Studio", href: `/studio/members/${a.userId}` }
+      : { label: "Open members in the Studio", href: "/studio/members" },
+    replyTo: a.email,
+    tag: "consumer",
   };
 }
 
@@ -467,6 +514,8 @@ export const samples: EmailSample[] = [
     source: "instagram",
     via: "the sign-up form",
   })),
+  sample("welcome-consumer", "Welcome to a consumer account", "Sent when a member of the public creates a free consumer account.", "public", welcomeConsumerEmail({ name: "Aoife" })),
+  ownerSample("alert-new-consumer", "New consumer account", "Sent to the owners when a member of the public creates a free consumer account.", consumerAccountAlert({ email: "aoife@example.com", via: "the sign-up form" })),
   sample("starter-guide", "Starter guide", "Sent when someone asks for the starter guide.", "public", starterGuideEmail()),
   sample("course-interest", "Course interest", "Sent when someone registers interest in a course that hasn't opened yet.", "public", courseInterestEmail({ slug: "scalp-consultation-for-stylists", title: "The scalp consultation for stylists and head spa therapists" })),
   sample("founding-welcome", "Founding welcome", "Sent when someone leaves their email on a founding or launch page, such as the Trichollective Ireland QR code.", "public", foundingWelcomeEmail()),

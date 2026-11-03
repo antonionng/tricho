@@ -1,5 +1,6 @@
 import type { Draft, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 import { normalizeSpace } from "@/config/rooms";
 import { getRooms } from "@/lib/rooms";
 import { deliver, deliverOnce, wantsList, type EmailList } from "@/lib/mail/send";
@@ -46,7 +47,7 @@ export async function newsletterRecipients() {
   const [subscribers, members] = await Promise.all([
     prisma.subscriber.findMany({ where: { unsubscribedAt: null }, select: { email: true } }),
     prisma.user.findMany({
-      where: { stripeCurrentPeriodEnd: { gt: now }, email: { not: null }, emailUpdates: true },
+      where: { stripeCurrentPeriodEnd: { gt: now }, email: { not: null }, emailUpdates: true, ...PROFESSIONAL_ACCOUNTS },
       select: { email: true },
     }),
   ]);
@@ -63,7 +64,11 @@ export async function announcementRecipients() {
   const [subscribers, users] = await Promise.all([
     prisma.subscriber.findMany({ where: { unsubscribedAt: null }, select: { email: true } }),
     // Suspended and banned accounts hear nothing from us.
-    prisma.user.findMany({ where: { email: { not: null }, emailUpdates: true, accessStatus: "active" }, select: { email: true } }),
+    // Consumers opted in to news for the public, which comes in their own digest, not professional releases.
+    prisma.user.findMany({
+      where: { email: { not: null }, emailUpdates: true, accessStatus: "active", ...PROFESSIONAL_ACCOUNTS },
+      select: { email: true },
+    }),
   ]);
   return cleanEmails([...subscribers, ...users]);
 }

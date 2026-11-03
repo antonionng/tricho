@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 
 const showSamples = process.env.NODE_ENV !== "production";
 
@@ -21,7 +22,7 @@ export const getPublicStats = unstable_cache(
     const [listings, cities, members] = await Promise.all([
       prisma.directoryListing.count({ where }),
       prisma.directoryListing.findMany({ where, distinct: ["city"], select: { city: true } }),
-      prisma.user.count({ where: { stripeCurrentPeriodEnd: { gt: new Date() } } }),
+      prisma.user.count({ where: { ...PROFESSIONAL_ACCOUNTS, stripeCurrentPeriodEnd: { gt: new Date() } } }),
     ]);
     return { listings, cities: cities.length, members };
   },

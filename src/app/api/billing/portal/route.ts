@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
+import { HUB_PATH } from "@/config/consumer";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -10,6 +12,10 @@ export async function POST() {
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.redirect(new URL("/login", site.url));
+  }
+  // Consumer accounts are free and have no billing.
+  if (!(await professionalSession())) {
+    return NextResponse.redirect(new URL(HUB_PATH, site.url));
   }
 
   if (!process.env.STRIPE_SECRET_KEY) {

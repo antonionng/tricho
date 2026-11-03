@@ -11,28 +11,38 @@ import { syncMembershipFromStripe } from "@/lib/stripe-sync";
 import type { ProfessionId } from "@/config/rooms";
 import { canPostInRoom, type Room, type RoomId } from "@/config/rooms";
 import type { StaffRoleId } from "@/config/staff";
+import { isConsumer } from "@/lib/account-type";
 
+function notAMember(consumer: boolean) {
+  return {
+    session: null,
+    /** Signed in with a consumer account, which never gets into the member area. */
+    consumer,
+    allowed: false,
+    unlocked: false,
+    role: null as string | null,
+    plan: null as string | null,
+    isAdmin: false,
+    staffRole: null as StaffRoleId | null,
+    restricted: null as Restriction | null,
+    professional: false,
+    profession: null as ProfessionId | null,
+    membership: { isActive: false } as MembershipStatus,
+    consultation: false,
+    chapterId: null as string | null,
+    onboarded: false,
+  };
+}
+
+/**
+ * Who is using the member area and what they can do. A consumer account is treated as
+ * signed out (with `consumer: true`), so every member page, action and /api route that
+ * checks the session turns them away.
+ */
 export async function getMemberContext() {
   const session = await auth();
-  if (!session?.user?.id) {
-    return {
-      session: null,
-      allowed: false,
-      unlocked: false,
-      role: null as string | null,
-      plan: null as string | null,
-      isAdmin: false,
-      staffRole: null as StaffRoleId | null,
-      restricted: null as Restriction | null,
-      professional: false,
-      profession: null as ProfessionId | null,
-      membership: { isActive: false } as MembershipStatus,
-      consultation: false,
-      chapterId: null as string | null,
-      onboarded: false,
-    };
-  }
-
+  if (!session?.user?.id) return notAMember(false);
+  if (isConsumer(session.user)) return notAMember(true);
   let membership = await getMembershipByEmail(session.user.email);
   // Paid, but the webhook never recorded it: find the subscription in Stripe and record it now.
   if (!membership.isActive && !devMembershipUnlock() && (await syncMembershipFromStripe(session.user.email))) {
@@ -52,10 +62,13 @@ export async function getMemberContext() {
         accessUntil: true,
         mutedUntil: true,
         lastSeenAt: true,
+        accountType: true,
         profile: { select: { profession: true } },
       },
     }),
   ]);
+  // The token can be up to a request behind the database, so check the account itself too.
+  if (isConsumer(user)) return notAMember(true);
   // Last seen, at most once an hour, without holding up the page.
   if (user && (!user.lastSeenAt || Date.now() - user.lastSeenAt.getTime() > 60 * 60 * 1000)) {
     prisma.user.update({ where: { id: session.user.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
@@ -70,6 +83,7 @@ export async function getMemberContext() {
 
   return {
     session,
+    consumer: false,
     membership,
     unlocked,
     allowed: !blocked && (membership.isActive || unlocked || isAdmin),
@@ -122,4 +136,16 @@ export async function requireAdmin() {
   const staff = await getStaff();
   if (!staff) return null;
   return auth();
+}
+
+/**
+ * The session of a signed-in professional, or null for a consumer or nobody. For server
+ * actions and /api routes that call auth() directly, since the middleware skips /api and
+ * a server action can be posted from any page.
+ */
+export async function professionalSession() {
+  const session = await auth();
+  if (!session?.user?.id || isConsumer(session.user)) return null;
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { accountType: true } });
+  return user && !isConsumer(user) ? session : null;
 }

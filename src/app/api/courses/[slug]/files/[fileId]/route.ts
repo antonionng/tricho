@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { getStaff } from "@/lib/staff";
 import { signedUrl } from "@/lib/storage";
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string; fileId: string }> }) {
   const { slug, fileId } = await params;
   const notFound = () => new Response("Not found", { status: 404 });
-  const session = await auth();
+  const session = await professionalSession();
   const userId = session?.user?.id;
   if (!userId) return notFound();
 

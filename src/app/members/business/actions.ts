@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/directory";
 import { BUSINESS_SEATS, isBusinessAccount } from "@/lib/subscription";
@@ -59,7 +59,7 @@ function cleanUrl(value: string) {
 
 /** The signed-in business account holder, or a redirect. */
 async function requireBusiness() {
-  const session = await auth();
+  const session = await professionalSession();
   const email = session?.user?.email?.toLowerCase();
   if (!email) redirect(`/login?next=${PAGE}`);
   const page = await prisma.partner.findUnique({ where: { ownerEmail: email } });

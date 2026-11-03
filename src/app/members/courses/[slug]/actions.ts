@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { grade, maybeIssueCertificate, progressOf } from "@/lib/courses";
 import { getContent } from "@/lib/course-catalogue";
@@ -13,7 +13,7 @@ import { getContent } from "@/lib/course-catalogue";
  */
 
 async function activeEnrolment(slug: string) {
-  const session = await auth();
+  const session = await professionalSession();
   const userId = session?.user?.id;
   if (!userId) return null;
   const enrolment = await prisma.courseEnrolment.findUnique({ where: { userId_courseSlug: { userId, courseSlug: slug } } });
@@ -115,7 +115,7 @@ export async function submitAssessment(slug: string, answers: Record<string, num
 
 /** Shows or hides a certificate's badge on the member's profile and listing. */
 export async function setCertificateOnProfile(form: FormData) {
-  const session = await auth();
+  const session = await professionalSession();
   const userId = session?.user?.id;
   const id = String(form.get("id") ?? "");
   const show = form.get("show") === "1";

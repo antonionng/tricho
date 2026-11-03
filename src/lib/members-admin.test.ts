@@ -30,9 +30,9 @@ describe("member filters", () => {
     expect(memberFilterQuery({ plan: "professional" }, { cursor: "x" })).toBe("?plan=professional&cursor=x");
   });
 
-  it("always leaves out the system account", () => {
+  it("always leaves out the system account and consumer accounts", () => {
     const where = buildMemberWhere({ q: "", plan: "", status: "" }, now, SYSTEM);
-    expect(where).toEqual({ AND: [{ NOT: { email: SYSTEM } }] });
+    expect(where).toEqual({ AND: [{ NOT: { email: SYSTEM }, accountType: "professional" }] });
   });
 
   it("searches name, email and city without minding case", () => {
