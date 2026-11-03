@@ -69,6 +69,18 @@ enum StaffRole {
   support
 }
 
+/// Professionals use the member area; consumers are members of the public in /hub. Kept apart from role, which billing overwrites.
+enum AccountType {
+  professional
+  consumer
+}
+
+/// How a consumer appears to other people: their first name or their random alias.
+enum ConsumerDisplayMode {
+  name
+  alias
+}
+
 enum AccessStatus {
   active
   suspended
@@ -148,6 +160,7 @@ model User {
   emailVerified       DateTime?
   image               String?
   role                UserRole     @default(individual)
+  accountType         AccountType  @default(professional)
   /// Set for the Trichollective team. Decides what they can do in Studio.
   staffRole           StaffRole?
   accessStatus        AccessStatus @default(active)
@@ -224,8 +237,46 @@ model User {
   verifications  VerificationRequest[] @relation("verificationSubject")
   orgMemberships OrganisationContact[]
 
+  consumerProfile ConsumerProfile?
+  savedListings   SavedListing[]
+  enquiries       Enquiry[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// A member of the public. Staff see the real identity; other people see the name or the alias.
+model ConsumerProfile {
+  id                  String              @id @default(cuid())
+  userId              String              @unique
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayMode         ConsumerDisplayMode @default(alias)
+  /// Random, e.g. "Willow-428". Never derived from the name or email.
+  alias               String              @unique
+  /// Seeds the generated avatar, so no photo is needed.
+  avatarSeed          String
+  region              String?
+  country             String?
+  /// Concern category ids from src/config/consumer.ts. Health data: only kept while healthDataConsentAt is set.
+  concerns            String[]            @default([])
+  marketingConsentAt  DateTime?
+  healthDataConsentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A professional a consumer saved from the directory.
+model SavedListing {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   DirectoryListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
 }
 
 model TrichologistProfile {
@@ -288,23 +339,24 @@ model DirectoryListing {
   reviewedAt     DateTime?
   reviewNote     String?
 
-  slug             String?   @unique
+  slug             String?        @unique
   headline         String?
-  country          String    @default("Ireland")
-  services         String[]  @default([])
+  country          String         @default("Ireland")
+  services         String[]       @default([])
   photoUrl         String?
-  isFounding       Boolean   @default(true)
+  isFounding       Boolean        @default(true)
   /// Free listings stay public until this date (90 days from approval). Claimed (paid) listings ignore it.
   freeUntil        DateTime?
-  isVerified       Boolean   @default(false)
-  acceptsReferrals Boolean   @default(true)
+  isVerified       Boolean        @default(false)
+  acceptsReferrals Boolean        @default(true)
   /// Dev seed rows. Never shown in production.
-  isSample         Boolean   @default(false)
+  isSample         Boolean        @default(false)
   /// Where the listing came from, e.g. "dublin", "instagram".
   source           String?
   /// Private token in an invitation link; cleared once the person submits their listing.
-  inviteToken      String?   @unique
+  inviteToken      String?        @unique
   enquiries        Enquiry[]
+  savedBy          SavedListing[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -486,6 +538,9 @@ model PendingSignup {
   city         String?
   country      String?
   heardFrom    String?
+  accountType  AccountType @default(professional)
+  /// Consumers only: ticked the unticked marketing opt-in on the form.
+  marketing    Boolean     @default(false)
   createdAt    DateTime    @default(now())
 }
 
@@ -589,6 +644,9 @@ model Enquiry {
   id        String           @id @default(cuid())
   listingId String
   listing   DirectoryListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  /// The consumer account that sent it, if they were signed in. Cleared when the account is deleted.
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   name      String
   email     String
   message   String           @db.Text
@@ -598,6 +656,7 @@ model Enquiry {
   createdAt DateTime         @default(now())
 
   @@index([listingId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model Referral {
@@ -621,38 +680,38 @@ model Referral {
 }
 
 model Event {
-  id             String        @id @default(cuid())
-  slug           String        @unique
-  title          String
-  kind           EventKind
-  summary        String
-  body           String?       @db.Text
-  startsAt       DateTime
-  endsAt         DateTime?
-  venue          String?
-  city           String?
-  online         Boolean       @default(false)
-  priceGBP       Int           @default(0)
-  memberPriceGBP Int           @default(0)
-  capacity       Int?
+  id               String        @id @default(cuid())
+  slug             String        @unique
+  title            String
+  kind             EventKind
+  summary          String
+  body             String?       @db.Text
+  startsAt         DateTime
+  endsAt           DateTime?
+  venue            String?
+  city             String?
+  online           Boolean       @default(false)
+  priceGBP         Int           @default(0)
+  memberPriceGBP   Int           @default(0)
+  capacity         Int?
   /// External ticketing (e.g. Eventbrite) until native ticketing ships.
-  ticketUrl      String?
+  ticketUrl        String?
   /// The online joining link (for example Google Meet). Shown only to members who are going.
-  joinUrl        String?
-  published      Boolean       @default(false)
+  joinUrl          String?
+  published        Boolean       @default(false)
   /// Sell tickets on Trichollective through Stripe instead of an external link.
-  sellTickets    Boolean       @default(false)
+  sellTickets      Boolean       @default(false)
   /// Who presents it, e.g. "Adam Bond (LIVDOR) and Karley Weir". Shown on the event and in its announcement.
-  presenters     String?
+  presenters       String?
   /// The partner who sponsors it. A sponsored event is always labelled "Sponsored by".
   sponsorPartnerId String?
-  sponsor        Partner?      @relation("EventSponsor", fields: [sponsorPartnerId], references: [id], onDelete: SetNull)
+  sponsor          Partner?      @relation("EventSponsor", fields: [sponsorPartnerId], references: [id], onDelete: SetNull)
   /// When everyone was first told about this masterclass, so saving or republishing never notifies twice.
-  announcedAt    DateTime?
-  chapterId      String?
-  chapter        Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  rsvps          EventRsvp[]
-  tickets        EventTicket[]
+  announcedAt      DateTime?
+  chapterId        String?
+  chapter          Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  rsvps            EventRsvp[]
+  tickets          EventTicket[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -728,63 +787,63 @@ model AgentSetting {
 
 /// Business and Premium Business partners shown on /partners. Only real, published partners appear.
 model Partner {
-  id            String         @id @default(cuid())
-  slug          String         @unique
-  name          String
+  id              String         @id @default(cuid())
+  slug            String         @unique
+  name            String
   /// "premium" or "business"
-  tier          String         @default("premium")
+  tier            String         @default("premium")
   /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
-  category      String
-  logoUrl       String?
-  blurb         String         @db.Text
-  website       String?
+  category        String
+  logoUrl         String?
+  blurb           String         @db.Text
+  website         String?
   /// The member perk, shown in the member area.
-  perk          String?        @db.Text
-  contactEmail  String?
+  perk            String?        @db.Text
+  contactEmail    String?
   /// Shown on the public partner page when set.
-  publicEmail   String?
-  publicPhone   String?
-  isFounding    Boolean        @default(false)
-  published     Boolean        @default(false)
-  featuredUntil DateTime?
+  publicEmail     String?
+  publicPhone     String?
+  isFounding      Boolean        @default(false)
+  published       Boolean        @default(false)
+  featuredUntil   DateTime?
   /// The sign-in email of the person who manages this page from the member area.
-  ownerEmail    String?        @unique
+  ownerEmail      String?        @unique
   /// Taken down by the Studio: hidden, and the owner can't republish it.
-  hidden        Boolean        @default(false)
+  hidden          Boolean        @default(false)
   /// "brand" (a paying, sponsored partner) or "charity" (a cause we support free, never labelled sponsored).
-  kind          String         @default("brand")
+  kind            String         @default("brand")
   /// A hex colour that themes a charity's page, e.g. "#E6007E".
-  accentColor   String?
+  accentColor     String?
   /// A wide banner image across the top of the page.
-  coverUrl      String?
-  coverFileId   String?
+  coverUrl        String?
+  coverFileId     String?
   /// A registered charity number, shown on the page.
-  charityNumber String?
+  charityNumber   String?
   /// One sentence under the name.
-  tagline       String?
+  tagline         String?
   /// The longer "Our story", paragraphs separated by a blank line.
-  story         String?        @db.Text
+  story           String?        @db.Text
   /// { value, label }[]: a few headline numbers.
-  highlights    Json?
+  highlights      Json?
   /// { title, body }[]: products or services.
-  offerings     Json?
+  offerings       Json?
   /// The main button on the page, e.g. "Book a demo".
-  ctaLabel      String?
-  ctaUrl        String?
+  ctaLabel        String?
+  ctaUrl          String?
   /// A YouTube or Vimeo link (Premium).
-  videoUrl      String?
+  videoUrl        String?
   /// { eyebrow?, title, body?, steps?: string[], ctaLabel?, ctaUrl? }[]: longer feature sections.
-  sections      Json?
-  photos        ProfilePhoto[]
-  logo          PartnerLogo?
-  logoFileId    String?
-  organisation  Organisation?
-  stats         PartnerStat[]
-  jobs          Job[]
+  sections        Json?
+  photos          ProfilePhoto[]
+  logo            PartnerLogo?
+  logoFileId      String?
+  organisation    Organisation?
+  stats           PartnerStat[]
+  jobs            Job[]
   /// Masterclasses and other events this partner sponsors.
-  sponsoredEvents Event[] @relation("EventSponsor")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  sponsoredEvents Event[]        @relation("EventSponsor")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([published, tier])
 }
@@ -1496,20 +1555,20 @@ model BlogArticle {
   featured    Boolean    @default(false)
 
   /// The question the post should answer, and the writer's brief.
-  targetQuery String     @default("")
-  brief       String?    @db.Text
+  targetQuery String   @default("")
+  brief       String?  @db.Text
   /// Extra URLs to read before writing, one per line.
   sourceUrls  String[]
   /// The AI writer's working state: { step, plan, notes, error, model }.
   ai          Json?
   /// "studio" when started by hand, "agent" when approved from an idea in the inbox.
-  origin      String     @default("studio")
+  origin      String   @default("studio")
 
   publishedAt DateTime?
   createdById String?
   updatedById String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([status, publishedAt])
 }

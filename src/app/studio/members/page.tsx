@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 import { prisma } from "@/lib/prisma";
 import { subscriptionTiers } from "@/config/subscriptions";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
@@ -47,7 +48,7 @@ export default async function MembersPage({
   const filters = parseMemberFilters(sp);
   const cursor = typeof sp.cursor === "string" ? sp.cursor.slice(0, 64) : undefined;
   const now = new Date();
-  const notSystem: Prisma.UserWhereInput = { NOT: { email: SYSTEM_USER_EMAIL } };
+  const notSystem: Prisma.UserWhereInput = { NOT: { email: SYSTEM_USER_EMAIL }, ...PROFESSIONAL_ACCOUNTS };
 
   const [users, recentJoins, listingSources, subscriberSources] = await Promise.all([
     prisma.user.findMany({

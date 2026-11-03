@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { site } from "@/config/site";
@@ -26,7 +26,8 @@ function error(message: string, status: number) {
 }
 
 async function buyer() {
-  const session = await auth();
+  // Courses are for professionals. Consumer accounts can't enrol, and the learner area is in /members.
+  const session = await professionalSession();
   const email = session?.user?.email?.toLowerCase();
   if (!session?.user?.id || !email) return null;
   const membership = await getMembershipByEmail(email);

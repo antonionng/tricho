@@ -9,13 +9,33 @@ import { isDevOrDemo, isPreviewDemo } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
 import { renderEmail } from "@/lib/mail/layout";
 import { alertOwners, deliver } from "@/lib/mail/send";
-import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib/mail/templates/leads";
+import {
+  consumerAccountAlert,
+  newAccountAlert,
+  signInLinkEmail,
+  welcomeConsumerEmail,
+  welcomeFreeAccountEmail,
+} from "@/lib/mail/templates/leads";
 import { cookies } from "next/headers";
 import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
 import { checkoutSignInUser } from "@/lib/signin-email";
 import { confirmLinkFor, generateSignInCode } from "@/lib/signin-link";
 import { applyPendingSignup } from "@/lib/signup-details";
 import { takeSignupName } from "@/lib/signup-name";
+import { makeConsumer } from "@/lib/consumer";
+import { ACCOUNT_TYPE_COOKIE } from "@/lib/account-cookie";
+
+/** The account type the sign-up page chose in this browser before sending them to Google. */
+async function accountTypeFromCookie() {
+  try {
+    const store = await cookies();
+    const value = store.get(ACCOUNT_TYPE_COOKIE)?.value;
+    if (value) store.delete(ACCOUNT_TYPE_COOKIE);
+    return value === "consumer" ? ("consumer" as const) : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
 async function recordSignupSource(userId: string | undefined) {
@@ -87,6 +107,7 @@ if (isDevOrDemo()) {
         email: { label: "Email", type: "email" },
         name: { label: "Name", type: "text" },
         passcode: { label: "Passcode", type: "password" },
+        accountType: { label: "Account type", type: "text" },
       },
       async authorize(credentials) {
         const email = (credentials?.email as string)?.toLowerCase().trim();
@@ -105,6 +126,10 @@ if (isDevOrDemo()) {
             name: (credentials?.name as string) || email.split("@")[0],
           },
         });
+        // A new account from the consumer sign-up page becomes a consumer, as the email link would.
+        if (credentials?.accountType === "consumer" && Date.now() - user.createdAt.getTime() < 10_000) {
+          await makeConsumer(user.id);
+        }
 
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
@@ -130,31 +155,45 @@ export const {
       await recordSignupSource(user.id);
       if (!user.email || !user.id) return;
       // The details from the sign-up form, or Google's name.
-      const details = await applyPendingSignup({ id: user.id, email: user.email, name: user.name });
+      const details = await applyPendingSignup(
+        { id: user.id, email: user.email, name: user.name },
+        { accountType: await accountTypeFromCookie() }
+      );
+      const via = details.fromForm ? "the sign-up form" : "Google";
+      if (details.accountType === "consumer") {
+        const { subject, content } = welcomeConsumerEmail({ name: details.name });
+        await Promise.all([
+          deliver(user.email, subject, content, { tag: "welcome-consumer" }),
+          alertOwners(consumerAccountAlert({ userId: user.id, email: user.email, via })),
+        ]);
+        return;
+      }
+      let name = details.name;
       // A link sent before PendingSignup shipped still has its name in the old store.
-      if (!details.name) {
+      if (!name) {
         const typed = await takeSignupName(user.email).catch(() => null);
         if (typed) {
           await prisma.user.update({ where: { id: user.id }, data: { name: typed } });
-          details.name = typed;
+          name = typed;
         }
       }
       const source = await prisma.user
         .findUnique({ where: { id: user.id }, select: { signupSource: true } })
         .then((u) => u?.signupSource ?? null)
         .catch(() => null);
-      const { subject, content } = welcomeFreeAccountEmail({ name: details.name });
+      const { subject, content } = welcomeFreeAccountEmail({ name });
       await Promise.all([
         deliver(user.email, subject, content, { tag: "welcome-free" }),
         // Without a name (a new email on the sign-in page), owners hear once onboarding asks for it.
-        details.name
+        name
           ? alertOwners(
               newAccountAlert({
-                ...(details.fromForm ? details : { name: details.name }),
+                ...(details.fromForm ? details : {}),
+                name,
                 userId: user.id,
                 email: user.email,
                 source,
-                via: details.fromForm ? "the sign-up form" : "Google",
+                via,
               })
             )
           : null,
@@ -171,19 +210,6 @@ export const {
       });
       return existing?.accessStatus !== "banned";
     },
-    async session({ session, token }) {
-      if (token.sub && session.user) {
-        session.user.id = token.sub;
-      }
-      if (token.role && session.user) {
-        session.user.role = token.role as never;
-      }
-      if (session.user) {
-        // A hint for the interface only. Studio always re-checks the database.
-        session.user.staffRole = (token.staffRole ?? null) as never;
-      }
-      return session;
-    },
     async jwt({ token }) {
       if (!token.sub) return token;
 
@@ -197,6 +223,7 @@ export const {
 
       token.role = existingUser.role;
       token.staffRole = existingUser.staffRole;
+      token.accountType = existingUser.accountType;
       return token;
     },
   },

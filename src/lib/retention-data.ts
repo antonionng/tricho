@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 import { site } from "@/config/site";
 import { tierById } from "@/config/subscriptions";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
@@ -54,6 +55,7 @@ function candidateWhere(now: Date): Prisma.UserWhereInput {
     email: { not: null },
     staffRole: null,
     role: { not: "admin" },
+    ...PROFESSIONAL_ACCOUNTS,
     NOT: { email: SYSTEM_USER_EMAIL },
     OR: [
       { cancelAtPeriodEnd: true },

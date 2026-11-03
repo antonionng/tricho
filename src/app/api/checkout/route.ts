@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import {
@@ -70,6 +71,13 @@ export async function POST(req: Request) {
     }
 
     const session = await auth();
+    // Membership is for professionals. A consumer account would pay for an area it can't open.
+    if (session?.user?.id && !(await professionalSession())) {
+      return NextResponse.json(
+        { error: "You are signed in with a free consumer account, which can't hold a membership. Please sign out and continue with your work email." },
+        { status: 403 }
+      );
+    }
     let customer: string | undefined;
     let userId: string | undefined;
     let buyer: { id: string; email: string | null; stripeCustomerId: string | null; hasPaidBefore: boolean } | null = null;

@@ -108,6 +108,8 @@ export type OwnerAlert = {
   cta?: { label: string; href: string };
   /** Replies go straight to the person, so an owner can answer from their inbox. */
   replyTo?: string;
+  /** Added to the "owner-alert" tag, e.g. "consumer", so these alerts can be told apart in the log. */
+  tag?: string;
 };
 
 /** How an owner alert looks, shared by alertOwners and the Studio email previews. */
@@ -128,7 +130,7 @@ export function ownerAlertContent(a: OwnerAlert): EmailContent {
 export async function alertOwners(a: OwnerAlert) {
   const content = ownerAlertContent(a);
   await Promise.all(
-    ownerEmails().map((o) => deliver(o, `[Trichollective] ${a.subject}`, content, { replyTo: a.replyTo, tag: "owner-alert" }))
+    ownerEmails().map((o) => deliver(o, `[Trichollective] ${a.subject}`, content, { replyTo: a.replyTo, tag: a.tag ? `owner-alert-${a.tag}` : "owner-alert" }))
   );
 }
 
