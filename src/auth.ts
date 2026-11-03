@@ -123,7 +123,8 @@ if (isDevOrDemo()) {
           update: {},
           create: {
             email,
-            name: (credentials?.name as string) || email.split("@")[0],
+            // A consumer's name is optional and never made up from the email.
+            name: (credentials?.name as string) || (credentials?.accountType === "consumer" ? null : email.split("@")[0]),
           },
         });
         // A new account from the consumer sign-up page becomes a consumer, as the email link would.
