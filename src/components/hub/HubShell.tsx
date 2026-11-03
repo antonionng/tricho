@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand/BrandMark";
-import { SiteFooter } from "@/components/site/SiteFooter";
+import { HubFooter } from "@/components/hub/HubFooter";
 import { ConsumerAvatar } from "@/components/hub/ConsumerAvatar";
 import { HubNav } from "@/components/hub/HubNav";
 import { HUB_LABEL, HUB_PATH } from "@/config/consumer";
 
 /**
- * The frame around every hub page. It is separate from MemberShell on purpose: nothing
+ * The frame around every hub page. It is separate from the member area's shell on purpose: nothing
  * here links into the member area or the community.
  */
 export function HubShell({
@@ -51,7 +51,7 @@ export function HubShell({
       <main id="main" className="mx-auto w-full max-w-5xl px-4 pb-16 pt-8 sm:px-6 lg:px-10">
         {children}
       </main>
-      <SiteFooter />
+      <HubFooter />
     </>
   );
 }
