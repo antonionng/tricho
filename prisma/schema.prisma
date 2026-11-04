@@ -185,6 +185,8 @@ model User {
   isFounding    Boolean   @default(false)
   /// Where they came from when they first paid, e.g. "dublin", "instagram", "facebook".
   signupSource  String?
+  /// What they told us on the sign-up form, e.g. "colleague", "instagram".
+  heardFrom     String?
   onboardedAt   DateTime?
   /// Newsletter and announcements of new editions, courses and events.
   emailUpdates  Boolean   @default(true)
@@ -473,6 +475,19 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+}
+
+/// The name and phone typed on the sign-up form, held until the emailed link creates the account.
+model PendingSignup {
+  email        String      @id
+  name         String
+  phone        String?
+  profession   Profession?
+  practiceName String?
+  city         String?
+  country      String?
+  heardFrom    String?
+  createdAt    DateTime    @default(now())
 }
 
 /// Local chapters: Dublin, London, Manchester and others.

@@ -13,8 +13,9 @@ import { newAccountAlert, signInLinkEmail, welcomeFreeAccountEmail } from "@/lib
 import { cookies } from "next/headers";
 import { SOURCE_COOKIE, cleanSource } from "@/lib/source";
 import { checkoutSignInUser } from "@/lib/signin-email";
-import { takeSignupName } from "@/lib/signup-name";
 import { confirmLinkFor, generateSignInCode } from "@/lib/signin-link";
+import { applyPendingSignup } from "@/lib/signup-details";
+import { takeSignupName } from "@/lib/signup-name";
 
 /** Where a new free account came from (the tc_src cookie), saved only if nothing is recorded yet. */
 async function recordSignupSource(userId: string | undefined) {
@@ -127,22 +128,36 @@ export const {
     // written directly with Prisma, so they don't get this free-account welcome.
     async createUser({ user }) {
       await recordSignupSource(user.id);
-      if (!user.email) return;
-      // An email link brings no name, so use the one typed on /signup.
-      let name = user.name;
-      try {
-        const typed = await takeSignupName(user.email);
-        if (typed && !name && user.id) {
+      if (!user.email || !user.id) return;
+      // The details from the sign-up form, or Google's name.
+      const details = await applyPendingSignup({ id: user.id, email: user.email, name: user.name });
+      // A link sent before PendingSignup shipped still has its name in the old store.
+      if (!details.name) {
+        const typed = await takeSignupName(user.email).catch(() => null);
+        if (typed) {
           await prisma.user.update({ where: { id: user.id }, data: { name: typed } });
-          name = typed;
+          details.name = typed;
         }
-      } catch (error) {
-        console.error("[SIGNUP_NAME]", error);
       }
-      const { subject, content } = welcomeFreeAccountEmail({ name });
+      const source = await prisma.user
+        .findUnique({ where: { id: user.id }, select: { signupSource: true } })
+        .then((u) => u?.signupSource ?? null)
+        .catch(() => null);
+      const { subject, content } = welcomeFreeAccountEmail({ name: details.name });
       await Promise.all([
         deliver(user.email, subject, content, { tag: "welcome-free" }),
-        alertOwners(newAccountAlert({ name, email: user.email })),
+        // Without a name (a new email on the sign-in page), owners hear once onboarding asks for it.
+        details.name
+          ? alertOwners(
+              newAccountAlert({
+                ...(details.fromForm ? details : { name: details.name }),
+                userId: user.id,
+                email: user.email,
+                source,
+                via: details.fromForm ? "the sign-up form" : "Google",
+              })
+            )
+          : null,
       ]);
     },
   },
