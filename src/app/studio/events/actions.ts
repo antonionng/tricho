@@ -78,6 +78,7 @@ export async function writeEventBodyAction(form: FormData) {
     venue: s(form, "venue", 160),
     venueAddress: s(form, "venueAddress", 300),
     timezone: s(form, "timezone", 64),
+    detailsCloseAt: s(form, "detailsCloseAt", 32),
     priceGBP: s(form, "priceGBP", 8),
     memberPriceGBP: s(form, "memberPriceGBP", 8),
     capacity: s(form, "capacity", 8),
@@ -281,4 +282,34 @@ export async function deleteTicketTypeAction(form: FormData) {
   const { revalidatePath } = await import("next/cache");
   revalidatePath(`/events/${type.event.slug}`);
   ticketTypesBack(eventId, `${type.name} tickets removed.`);
+}
+
+/**
+ * Refund one named attendee's place through Stripe and cancel it. Owners only,
+ * since it moves money. The amount is that place's share of what the order cost.
+ */
+export async function refundAttendeeAction(form: FormData) {
+  const staff = await requirePermission("events.refund");
+  const eventId = s(form, "eventId", 64);
+  const attendeeId = s(form, "attendeeId", 64);
+  const back = (notice: string, tone?: string): never =>
+    redirect(`/studio/events/${eventId}/attendees?${new URLSearchParams({ notice, ...(tone ? { tone } : {}) })}`);
+  if (form.get("confirm") !== "on") back("Tick the box to confirm the refund first.", "danger");
+
+  const attendee = await prisma.eventAttendee.findFirst({ where: { id: attendeeId, eventId }, select: { id: true, event: { select: { title: true } } } });
+  if (!attendee) back("That attendee could not be found.", "danger");
+
+  const { refundAttendee } = await import("@/lib/tickets");
+  const result = await refundAttendee(attendee!.id);
+  if (!result.ok) back(result.error, "danger");
+  const r = result as Extract<typeof result, { ok: true }>;
+  const pounds = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(r.amount / 100);
+  await audit(staff, {
+    action: "event.attendee_refund",
+    targetType: "event",
+    targetId: eventId,
+    summary: `Refunded ${pounds} for ${r.name}'s place at "${attendee!.event.title}" and cancelled it.`,
+    after: { attendeeId, amount: r.amount, orderClosed: r.orderClosed },
+  });
+  back(`${r.name}'s place is cancelled and ${pounds} is on its way back to the card.${r.orderClosed ? " That was the last place on the order." : ""}`);
 }

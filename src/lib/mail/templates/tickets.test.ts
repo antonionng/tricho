@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { absoluteUrl, esc, renderEmail } from "../layout";
-import { samples, ticketConfirmedEmail, ticketReminderEmail } from "./tickets";
+import { attendeeTicketEmail, samples, ticketConfirmedEmail, ticketReminderEmail } from "./tickets";
 
 const event = {
   id: "evt_1",
@@ -88,5 +88,25 @@ describe("in-person ticket emails", () => {
     const e = ticketConfirmedEmail({ name: null, event: { ...event, venueAddress: "Ignored" }, quantity: 1, amount: null, priceType: "guest" });
     expect(e.content.facts?.some(([k]) => k === "Address" || k === "Map")).toBe(false);
     expect(e.content.body).toContain("online");
+  });
+});
+
+describe("e-tickets", () => {
+  it("shows the QR code inline by content id, with the code in both versions", () => {
+    const e = attendeeTicketEmail({
+      attendee: { name: "Aisling Murphy", code: "7KQ2M9XRB4TZ8HCW", dietary: "Vegetarian" },
+      event: { ...event, online: false, venue: "Whittlebury Hall", venueAddress: "Whittlebury, Towcester NN12 8QH" },
+      ticketType: "Standard",
+      changesUntil: "Saturday 24 April",
+    });
+    const { html, text } = renderEmail(e.content);
+    expect(html).toContain('src="cid:ticket-qr"');
+    expect(html).toContain("7KQ2M9XRB4TZ8HCW");
+    expect(text).toContain("Ticket code: 7KQ2M9XRB4TZ8HCW");
+    expect(e.content.facts).toContainEqual(["Dietary", "Vegetarian"]);
+    expect(e.content.facts).toContainEqual(["Ticket", "Standard"]);
+    expect(e.content.body).toContain("until Saturday 24 April");
+    expect(e.content.body).not.toContain("has booked you");
+    expect(e.content.cta?.href).toBe("/events/scalp-masterclass/ticket/7KQ2M9XRB4TZ8HCW");
   });
 });

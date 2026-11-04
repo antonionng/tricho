@@ -308,6 +308,17 @@ function EventForm({ event, prefill, partners }: { event: Event | null; prefill:
         <Field label="Venue address" hint="For in-person events. Ticket emails show it with a map link, for example: Whittlebury Hall, Whittlebury, Towcester NN12 8QH.">
           <input name="venueAddress" defaultValue={v ? v.venueAddress : (event?.venueAddress ?? "")} maxLength={300} className={fieldClass} />
         </Field>
+        <Field
+          label="Attendees can change their details until"
+          hint="For in-person events, each attendee can change their name, dietary and access details from their e-ticket until then. Leave blank for 48 hours before the start."
+        >
+          <input
+            type="datetime-local"
+            name="detailsCloseAt"
+            defaultValue={v ? v.detailsCloseAt : dateToZonedInput(event?.detailsCloseAt, tz)}
+            className={cn(fieldClass, "sm:max-w-xs")}
+          />
+        </Field>
       </fieldset>
 
       <Field label="Ticket link" hint="Optional. For example an Eventbrite page. Shown on the event and in Trichozette and newsletter.">

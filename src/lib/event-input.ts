@@ -76,6 +76,8 @@ export type EventInput = {
   venueAddress: string | null;
   /** The IANA zone the times are entered and shown in. */
   timezone: string;
+  /** Until when attendees can change their own details. Null means 48 hours before the start. */
+  detailsCloseAt: Date | null;
   priceGBP: number;
   memberPriceGBP: number;
   capacity: number | null;
@@ -133,6 +135,7 @@ export function validateEventInput(raw: Raw): EventValidation {
     venue: online ? null : text(raw, "venue", 160) || null,
     venueAddress: online ? null : text(raw, "venueAddress", 300) || null,
     timezone,
+    detailsCloseAt: zonedToDate(text(raw, "detailsCloseAt", 32), timezone),
     priceGBP: pounds(text(raw, "priceGBP", 8)),
     memberPriceGBP: pounds(text(raw, "memberPriceGBP", 8)),
     capacity: capacityRaw ? Math.max(0, Math.round(Number(capacityRaw))) || null : null,
@@ -178,6 +181,7 @@ export type EventFormValues = {
   venue: string;
   venueAddress: string;
   timezone: string;
+  detailsCloseAt: string;
   priceGBP: string;
   memberPriceGBP: string;
   capacity: string;
@@ -204,6 +208,7 @@ export function formValuesFromPayload(payload: unknown): EventFormValues | null 
     venue: str("venue"),
     venueAddress: str("venueAddress"),
     timezone: pickTimeZone(str("timezone")),
+    detailsCloseAt: str("detailsCloseAt"),
     priceGBP: str("priceGBP") || "0",
     memberPriceGBP: str("memberPriceGBP") || "0",
     capacity: str("capacity"),

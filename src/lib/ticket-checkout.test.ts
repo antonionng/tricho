@@ -16,6 +16,7 @@ const m = vi.hoisted(() => ({
   ticketUpdate: vi.fn(),
   ticketUpdateMany: vi.fn(),
   rsvpFindMany: vi.fn(),
+  attendeeCreateMany: vi.fn(),
   lock: vi.fn(),
   checkout: vi.fn(),
 }));
@@ -32,7 +33,8 @@ vi.mock("@/lib/prisma", () => {
     updateMany: (...a: unknown[]) => m.ticketUpdateMany(...a),
   };
   const eventRsvp = { findMany: (...a: unknown[]) => m.rsvpFindMany(...a) };
-  const tx = { eventTicket, eventRsvp, $executeRaw: (...a: unknown[]) => m.lock(...a) };
+  const eventAttendee = { createMany: (...a: unknown[]) => m.attendeeCreateMany(...a) };
+  const tx = { eventTicket, eventRsvp, eventAttendee, $executeRaw: (...a: unknown[]) => m.lock(...a) };
   return {
     prisma: {
       event: { findFirst: (...a: unknown[]) => m.event(...a) },
@@ -65,6 +67,7 @@ const baseEvent = {
   title: "Whittlebury",
   startsAt: new Date(Date.now() + 90 * 86_400_000),
   timezone: "Europe/London",
+  online: true,
   capacity: 200,
   priceGBP: 60,
   memberPriceGBP: 40,
@@ -171,5 +174,46 @@ describe("ticket checkout without types", () => {
     m.ticketCount.mockResolvedValue(1);
     const res = await post({ quantity: 2 });
     expect(res.status).toBe(409);
+  });
+});
+
+describe("in-person checkout", () => {
+  beforeEach(() => m.event.mockResolvedValue({ ...baseEvent, online: false }));
+
+  it("asks for one named attendee per place", async () => {
+    const res = await post({ name: "Niamh", email: "niamh@example.com", ticketTypeId: "tt_std", quantity: 2, attendees: [{ isBuyer: true }] });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Please give a name for each of the 2 places.");
+    expect(m.lock).not.toHaveBeenCalled();
+  });
+
+  it("stores the attendees with the pending order, each with their own code", async () => {
+    m.attendeeCreateMany.mockResolvedValue({ count: 2 });
+    const res = await post({
+      name: "Niamh Byrne",
+      email: "niamh@example.com",
+      ticketTypeId: "tt_std",
+      quantity: 2,
+      attendees: [
+        { isBuyer: true, dietary: "Vegetarian" },
+        { name: "Aisling Murphy", email: "", accessNeeds: "Step-free access" },
+      ],
+    });
+    expect(res.status).toBe(200);
+    const rows = m.attendeeCreateMany.mock.calls[0][0].data;
+    expect(rows).toEqual([
+      expect.objectContaining({ name: "Niamh Byrne", email: "niamh@example.com", dietary: "Vegetarian", isBuyer: true, ticketId: "t_new", eventId: "evt_1" }),
+      // A blank email sends the e-ticket to the buyer.
+      expect.objectContaining({ name: "Aisling Murphy", email: "niamh@example.com", accessNeeds: "Step-free access", isBuyer: false }),
+    ]);
+    expect(rows[0].code).not.toBe(rows[1].code);
+    // Names never travel in the Stripe URLs.
+    const session = m.checkout.mock.calls[0][0];
+    expect(session.success_url).not.toContain("Aisling");
+  });
+
+  it("says when a quote is for an in-person event", async () => {
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body.inPerson).toBe(true);
   });
 });

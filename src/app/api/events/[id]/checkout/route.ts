@@ -23,6 +23,7 @@ import {
   typeSeatsTaken,
   type TicketTypeRule,
 } from "@/lib/tickets";
+import { attendeeRows, newAttendeeCode } from "@/lib/attendees";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +37,8 @@ export const dynamic = "force-dynamic";
  * may buy up to four at the guest price. Emails are never put in URLs.
  * When the event sells ticket types, GET lists them and POST takes
  * {ticketTypeId, quantity}, with each type's own price, window and limits.
+ * In-person events also take one attendee per place (name, email, dietary
+ * and access needs), stored with the pending order until payment.
  */
 
 type Params = { params: Promise<{ id: string }> };
@@ -46,6 +49,7 @@ const eventSelect = {
   title: true,
   startsAt: true,
   timezone: true,
+  online: true,
   capacity: true,
   priceGBP: true,
   memberPriceGBP: true,
@@ -130,6 +134,9 @@ export async function GET(_req: Request, { params }: Params) {
       hasTicket: holds > 0,
       onSale: event.startsAt.getTime() > Date.now(),
       types,
+      // In person, the buyer names each place. Their own email lets "this is me" fill a row.
+      inPerson: !event.online,
+      email: who?.email ?? null,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
@@ -152,6 +159,7 @@ export async function POST(req: Request, { params }: Params) {
       email?: unknown;
       quantity?: unknown;
       ticketTypeId?: unknown;
+      attendees?: unknown;
       returnTo?: unknown;
     };
 
@@ -197,6 +205,12 @@ export async function POST(req: Request, { params }: Params) {
       email = details.email;
     }
     const quantity = type ? clampTypeQuantity(body.quantity, type) : clampQuantity(body.quantity, isMember);
+    // One named person per place at an in-person event. Kept with the order, never in a URL.
+    let people: ReturnType<typeof attendeeRows> | null = null;
+    if (!event.online) {
+      people = attendeeRows(body.attendees, quantity, { name, email });
+      if (!people.ok) return error(people.error, 400);
+    }
 
     // Hold the seats. The advisory lock serialises buyers for this event so two
     // people can never take the last place at the same moment.
@@ -220,7 +234,7 @@ export async function POST(req: Request, { params }: Params) {
       } else if (left != null && left < quantity) {
         throw new SoldOut(left === 0 ? "This event is sold out." : `Only ${left} ${left === 1 ? "place is" : "places are"} left.`);
       }
-      return tx.eventTicket.create({
+      const created = await tx.eventTicket.create({
         data: {
           eventId: event.id,
           userId: who?.userId ?? null,
@@ -235,6 +249,12 @@ export async function POST(req: Request, { params }: Params) {
         },
         select: { id: true },
       });
+      if (people?.ok) {
+        await tx.eventAttendee.createMany({
+          data: people.rows.map((p) => ({ ...p, ticketId: created.id, eventId: event.id, code: newAttendeeCode() })),
+        });
+      }
+      return created;
     });
 
     const back = body.returnTo === "members" ? "/members/events" : `/events/${event.slug}`;

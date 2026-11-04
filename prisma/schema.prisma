@@ -214,6 +214,7 @@ model User {
   rewardsEarned  ReferralReward[]      @relation("rewardReferrer")
   rewardsFrom    ReferralReward[]      @relation("rewardReferred")
   tickets        EventTicket[]
+  checkIns       EventAttendee[]       @relation("attendeeCheckIn")
   enrolments     CourseEnrolment[]
   educator       EducatorProfile?
   certificates   Certificate[]
@@ -660,6 +661,9 @@ model Event {
   tickets        EventTicket[]
   /// Early bird, standard and so on. An event without any sells at the flat member and guest prices.
   ticketTypes    EventTicketType[]
+  attendees      EventAttendee[]
+  /// Attendees can change their name, dietary and access details on their ticket page until then. Null means 48 hours before the start.
+  detailsCloseAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1213,10 +1217,43 @@ model EventTicket {
   stripePaymentIntentId String?
   paidAt                DateTime?
   createdAt             DateTime     @default(now())
+  /// One named person per place, for in-person events.
+  attendees             EventAttendee[]
 
   @@index([eventId, status])
   @@index([email])
   @@index([ticketTypeId])
+}
+
+/// One named person on a ticket, for in-person events. Their code is on their e-ticket's QR code.
+model EventAttendee {
+  id            String      @id @default(cuid())
+  ticketId      String
+  ticket        EventTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  eventId       String
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  dietary       String?
+  accessNeeds   String?
+  /// The buyer ticked "this is me" for this place.
+  isBuyer       Boolean     @default(false)
+  /// Random and unguessable: it opens the attendee's ticket page and is what the door scans.
+  code          String      @unique
+  checkedInAt   DateTime?
+  checkedInById String?
+  checkedInBy   User?       @relation("attendeeCheckIn", fields: [checkedInById], references: [id], onDelete: SetNull)
+  /// The place was cancelled, by a full refund of the order or a refund of this place.
+  cancelledAt   DateTime?
+  /// What was refunded for this place alone, in pence, when the team refunded it in Studio.
+  refundedPence Int?
+  stripeRefundId String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([eventId])
+  @@index([ticketId])
+  @@index([email])
 }
 
 /// A kind of ticket for an event sold on Trichollective, such as early bird or standard.

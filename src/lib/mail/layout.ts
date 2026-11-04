@@ -36,6 +36,11 @@ export type EmailContent = {
   image?: EmailImage;
   /** A short one-time code shown large, used by the sign-in email. */
   code?: string;
+  /**
+   * An e-ticket: the QR code image (sent as an inline attachment with this
+   * content id) and the ticket code under it, for the door to scan or type.
+   */
+  ticket?: { contentId: string; code: string; label: string };
   /** Label/value rows, used by owner alerts and receipts. */
   facts?: [string, string][];
   /** Sign-off line. Defaults to "Karley and the Trichollective team". */
@@ -107,6 +112,7 @@ function textVersion(c: EmailContent) {
   if (c.code) {
     parts.push("", `Your sign-in code: ${c.code}`, "If the button does not open your account, type this code on the sign-in page.");
   }
+  if (c.ticket) parts.push("", `${c.ticket.label}: ${c.ticket.code}`);
   if (c.secondary) parts.push(`${c.secondary.label}: ${absoluteUrl(c.secondary.href)}`);
   if (c.signoff !== null) parts.push("", c.signoff ?? `${site.founder} and the Trichollective team`);
   parts.push("", "--", "Trichollective, the private home for hair and scalp professionals.", site.url);
@@ -143,6 +149,14 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
       </td></tr></table>`
     : "";
 
+  const ticket = c.ticket
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 22px"><tr><td style="background:${C.paper};border:1px solid ${C.rule};border-radius:16px;padding:20px 16px;text-align:center">
+        <img src="cid:${esc(c.ticket.contentId)}" alt="QR code for ticket ${esc(c.ticket.code)}" width="200" height="200" style="display:block;margin:0 auto 12px;width:200px;height:200px;border:0">
+        <p style="margin:0 0 6px;font-family:${SANS};font-size:11px;letter-spacing:0.18em;text-transform:uppercase;font-weight:700;color:${C.muted}">${esc(c.ticket.label)}</p>
+        <p style="margin:0;font-family:${SANS};font-size:20px;line-height:1;letter-spacing:0.12em;font-weight:700;color:${C.ink}">${esc(c.ticket.code)}</p>
+      </td></tr></table>`
+    : "";
+
   const footerLinks = [
     ["Trichozette", "/trichozette"],
     ["Directory", "/directory"],
@@ -167,6 +181,7 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
     ${c.eyebrow ? `<p style="margin:0 0 14px;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;font-weight:700;color:${C.muted}">${esc(c.eyebrow)}</p>` : ""}
     <h1 style="margin:0 0 20px;font-family:${SERIF};font-weight:400;font-size:34px;line-height:1.12;letter-spacing:-0.01em;color:${C.ink}">${esc(c.heading)}</h1>
     ${bodyToHtml(c.body)}
+    ${ticket}
     ${facts}
     ${cta}
     ${code}
