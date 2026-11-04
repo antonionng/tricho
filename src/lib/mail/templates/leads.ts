@@ -6,6 +6,9 @@
 import { shortName } from "@/lib/names";
 import { site } from "@/config/site";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
+import { PROFESSIONS } from "@/config/rooms";
+import { heardFromLabel } from "@/config/signup";
+import { sourceLabel } from "@/lib/source";
 import type { EmailContent } from "../layout";
 import type { OwnerAlert } from "../send";
 import type { EmailSample } from "../catalogue";
@@ -69,17 +72,45 @@ export function welcomeFreeAccountEmail({ name }: { name?: string | null }): Ema
   };
 }
 
-export function newAccountAlert({ name, email }: { name?: string | null; email: string }): OwnerAlert {
+export type NewAccount = {
+  userId?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  email: string;
+  profession?: string | null;
+  practiceName?: string | null;
+  city?: string | null;
+  country?: string | null;
+  heardFrom?: string | null;
+  /** The tracked link they arrived from, e.g. "instagram". */
+  source?: string | null;
+  /** "the sign-up form", "Google" or "the sign-in page". */
+  via?: string | null;
+};
+
+export function newAccountAlert(a: NewAccount): OwnerAlert {
+  const work = PROFESSIONS.find((p) => p.id === a.profession);
+  const place = [a.city, a.country].filter(Boolean).join(", ");
+  const facts: [string, string][] = [
+    ["Name", a.name || "Not given"],
+    ["Email", a.email],
+    ["Phone", a.phone || "Not given"],
+    ["Work", work ? `${work.label}: ${work.blurb}` : "Not given yet"],
+    ["Business", a.practiceName || "Not given"],
+    ["Location", place || "Not given yet"],
+    ["Heard about us", heardFromLabel(a.heardFrom) || "Not given"],
+  ];
+  if (a.source) facts.push(["Arrived from", sourceLabel(a.source) ?? a.source]);
+  if (a.via) facts.push(["Signed up with", a.via]);
   return {
-    subject: `New free account: ${name || email}`,
+    subject: `New free account: ${a.name || a.email}${work ? ` (${work.label.toLowerCase()})` : ""}`,
     heading: "Someone has created a free Trichollective account.",
-    body: "They have been sent the welcome email with their founding directory listing and Trichozette.",
-    facts: [
-      ["Name", name || "Not given"],
-      ["Email", email],
-    ],
-    cta: { label: "Open members in the Studio", href: "/studio/members" },
-    replyTo: email,
+    body: "They have been sent the welcome email with their founding directory listing and Trichozette. Reply to this email to write to them directly.",
+    facts,
+    cta: a.userId
+      ? { label: "Open their record in the Studio", href: `/studio/members/${a.userId}` }
+      : { label: "Open members in the Studio", href: "/studio/members" },
+    replyTo: a.email,
   };
 }
 
@@ -424,7 +455,18 @@ const sampleEnquiry: PartnerEnquiry = {
 export const samples: EmailSample[] = [
   sample("sign-in-link", "Sign-in link", "Sent when someone asks to sign in with their email address.", "everyone", signInLinkEmail({ url: confirmLinkFor(`${site.url}/api/auth/callback/resend?token=482917&email=niamh@example.com&callbackUrl=/members`), code: "482917" })),
   sample("welcome-free-account", "Welcome to a free account", "Sent when someone creates a free account by signing in for the first time.", "practitioners", welcomeFreeAccountEmail({ name: "Niamh Walsh" })),
-  ownerSample("alert-new-account", "New free account", "Sent to the owners when someone creates a free account.", newAccountAlert({ name: "Niamh Walsh", email: "niamh@example.com" })),
+  ownerSample("alert-new-account", "New free account", "Sent to the owners when someone creates a free account.", newAccountAlert({
+    name: "Niamh Walsh",
+    phone: "+353 87 123 4567",
+    email: "niamh@example.com",
+    profession: "clinical",
+    practiceName: "Walsh Hair and Scalp Clinic",
+    city: "Galway",
+    country: "Ireland",
+    heardFrom: "colleague",
+    source: "instagram",
+    via: "the sign-up form",
+  })),
   sample("starter-guide", "Starter guide", "Sent when someone asks for the starter guide.", "public", starterGuideEmail()),
   sample("course-interest", "Course interest", "Sent when someone registers interest in a course that hasn't opened yet.", "public", courseInterestEmail({ slug: "scalp-consultation-for-stylists", title: "The scalp consultation for stylists and head spa therapists" })),
   sample("founding-welcome", "Founding welcome", "Sent when someone leaves their email on a founding or launch page, such as the Trichollective Ireland QR code.", "public", foundingWelcomeEmail()),

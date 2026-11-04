@@ -22,6 +22,8 @@ const optionClass =
   "flex cursor-pointer items-start gap-3 rounded-2xl border border-rule bg-card p-4 transition-colors hover:border-ink/40 has-[:checked]:border-ink has-[:checked]:bg-paper-2";
 
 const ERRORS: Record<string, string> = {
+  name: "Please enter your full name, first name and surname.",
+  phone: "Please check your mobile number, or leave it empty.",
   discipline: "Please choose the option closest to your work.",
   chapter: "Please choose a chapter, or none for now.",
   photo: "We couldn't use that photo. Please upload a JPEG, PNG or WebP image under 8MB.",
@@ -135,8 +137,28 @@ export default async function OnboardingPage({
             </p>
           </header>
           <label className="flex flex-col gap-1.5">
-            <span className="label text-muted-foreground">Your name</span>
-            <input name="name" defaultValue={user?.name ?? ""} autoComplete="name" className={cn(fieldClass, "h-12")} />
+            <span className="label text-muted-foreground">Your full name</span>
+            <input
+              name="name"
+              required
+              defaultValue={user?.name ?? ""}
+              autoComplete="name"
+              placeholder="First name and surname"
+              className={cn(fieldClass, "h-12")}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="label text-muted-foreground">Mobile number, optional</span>
+            <input
+              name="phone"
+              type="tel"
+              inputMode="tel"
+              maxLength={40}
+              defaultValue={profile?.phone ?? ""}
+              autoComplete="tel"
+              className={cn(fieldClass, "h-12")}
+            />
+            <span className="text-xs text-muted-foreground">It stays private unless you choose to show it on your profile.</span>
           </label>
           <fieldset className="flex flex-col gap-2.5">
             <legend className="sr-only">Discipline</legend>
