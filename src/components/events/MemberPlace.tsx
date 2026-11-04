@@ -39,6 +39,8 @@ export function MemberPlace({
     };
   }, []);
 
+  const signIn = `/login?next=${encodeURIComponent(`/events/${slug}`)}`;
+
   if (visitor?.member) {
     return (
       <div className="flex flex-col gap-3">
@@ -67,14 +69,17 @@ export function MemberPlace({
       {fallback}
       {membersOnly && visitor?.signedIn && (
         <p className="text-sm leading-relaxed text-muted-foreground">
-          You are signed in with a free account. Events like this one are part of membership, so become a member to
-          save your place.
+          You are signed in with a free account, and events like this one are part of membership. Already a member?{" "}
+          <Link href={signIn} className="underline underline-offset-4">
+            Sign in with the email you joined with
+          </Link>{" "}
+          to reserve your place.
         </p>
       )}
       {!visitor?.signedIn && (
         <p className="text-sm leading-relaxed text-muted-foreground">
           Already a member?{" "}
-          <Link href={`/login?next=${encodeURIComponent(`/events/${slug}`)}`} className="underline underline-offset-4">
+          <Link href={signIn} className="underline underline-offset-4">
             Sign in
           </Link>{" "}
           to save your place.
