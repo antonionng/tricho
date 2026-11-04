@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
-import { ArrowRight, CalendarDays, Clock, MapPin, Ticket, Users, Video } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock, MapPin, Users, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLink, Container, Pill, Section } from "@/components/site/primitives";
 import { Breadcrumbs } from "@/components/editorial/PageHero";
@@ -23,7 +23,6 @@ import { images, img } from "@/content/images";
 import { seatUsage, seatsLeft } from "@/lib/tickets";
 import { prisma } from "@/lib/prisma";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
-import { site } from "@/config/site";
 
 export const revalidate = 300;
 
@@ -90,7 +89,6 @@ export default async function EventPage({ params }: { params: Promise<Params> })
           .then((u) => seatsLeft(event, u.tickets, u.rsvps))
           .catch(() => null)
       : null;
-  const ticketMail = `mailto:${site.contactEmail}?subject=${encodeURIComponent(`Tickets: ${event.title}`)}`;
 
   return (
     <>
@@ -239,27 +237,18 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                     <div className="flex flex-col gap-1 border-t border-rule pt-6">
                       <p className="label text-muted-foreground">Tickets</p>
                       <p className="display mt-2 text-5xl">{formatPrice(event.memberPriceGBP)}</p>
-                      <p className="text-[15px] text-ink-2">
-                        for members · {formatPrice(event.priceGBP)} otherwise
-                      </p>
+                      <p className="text-[15px] text-ink-2">for members. This event is part of membership.</p>
                     </div>
-                    {/* Members save their place in the members' area; guests ask by email until tickets are sold here. */}
+                    {/* Members save their place in the members' area; everyone else is shown how to join. */}
                     <MemberPlace
                       slug={event.slug}
+                      membersOnly
                       fallback={
-                        <>
-                          <Button asChild size="lg" className="w-full">
-                            <Link href="/pricing">
-                              Members pay less <ArrowRight />
-                            </Link>
-                          </Button>
-                          <a
-                            href={ticketMail}
-                            className="inline-flex items-center justify-center gap-2 text-[15px] font-medium underline decoration-transparent underline-offset-4 hover:decoration-ink/40"
-                          >
-                            <Ticket className="h-4 w-4" aria-hidden /> Ask us for tickets by email
-                          </a>
-                        </>
+                        <Button asChild size="lg" className="w-full">
+                          <Link href="/pricing">
+                            Become a member to save your place <ArrowRight />
+                          </Link>
+                        </Button>
                       }
                     />
                   </>
