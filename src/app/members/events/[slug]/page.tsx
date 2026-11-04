@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { timeZoneLabel } from "@/lib/event-time";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, CalendarDays, CalendarPlus, Clock, MapPin, Megaphone, Users, Video } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
@@ -117,12 +118,12 @@ export default async function MemberEventPage({
           <div className="flex gap-3">
             <dt className="sr-only">Date</dt>
             <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
-            <dd>{formatEventDate(event.startsAt)}</dd>
+            <dd>{formatEventDate(event.startsAt, event.timezone)}</dd>
           </div>
           <div className="flex gap-3">
             <dt className="sr-only">Time</dt>
             <Clock className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
-            <dd>{formatEventTime(event.startsAt, event.endsAt)} (Irish and UK time)</dd>
+            <dd>{formatEventTime(event.startsAt, event.endsAt, event.timezone)} ({timeZoneLabel(event.timezone)})</dd>
           </div>
           <div className="flex gap-3">
             <dt className="sr-only">Where</dt>

@@ -1,6 +1,7 @@
 import type { EmailSample } from "../catalogue";
 import type { EmailContent } from "../layout";
 import { calendarHref, eventDate, eventDay, eventHref, eventTime, eventWhere, firstNameOf, type EmailEvent } from "./members";
+import { mapHref } from "@/lib/event-time";
 
 /**
  * Event ticket emails: the confirmation sent once Stripe confirms payment for a
@@ -9,6 +10,27 @@ import { calendarHref, eventDate, eventDay, eventHref, eventTime, eventWhere, fi
 
 type Email = { subject: string; content: EmailContent };
 
+/** How to get there: online wording for online events, the venue, address and a map link for in-person ones. */
+export function eventHow(e: EmailEvent) {
+  if (e.online) {
+    return e.joinUrl
+      ? "It takes place online on Google Meet. Use the joining link below at the start time, and keep this email so you have it to hand."
+      : "It takes place online, and we will send the joining details to this address before it starts.";
+  }
+  const place = [eventWhere(e), e.venueAddress?.trim()].filter(Boolean).join(", ");
+  return `It takes place in person at ${place}.${e.venueAddress ? " The map link below shows the way." : ""}`;
+}
+
+/** Address and map rows for an in-person event; nothing for an online one. */
+export function venueFacts(e: EmailEvent): [string, string][] {
+  if (e.online) return [];
+  const facts: [string, string][] = [];
+  if (e.venueAddress) facts.push(["Address", e.venueAddress]);
+  const map = e.venueAddress ? mapHref([e.venue, e.venueAddress]) : null;
+  if (map) facts.push(["Map", map]);
+  return facts;
+}
+
 export type TicketEmailInput = {
   name: string | null;
   event: EmailEvent;
@@ -16,32 +38,32 @@ export type TicketEmailInput = {
   /** Already formatted, e.g. "£40.00". */
   amount: string | null;
   priceType: "member" | "guest";
+  /** The ticket type bought, e.g. "Early bird", when the event sells types. */
+  ticketType?: string | null;
 };
 
 export function ticketConfirmedEmail(p: TicketEmailInput): Email {
   const e = p.event;
   const places = p.quantity === 1 ? "one place" : `${p.quantity} places`;
-  const how = e.online
-    ? e.joinUrl
-      ? "It takes place online on Google Meet. Use the joining link below at the start time, and keep this email so you have it to hand."
-      : "It takes place online, and we will send the joining details to this address before it starts."
-    : `It takes place at ${eventWhere(e)}.`;
+  const how = eventHow(e);
+  const price = p.priceType === "member" ? "Member price" : "Guest price";
   const facts: [string, string][] = [
-    ["Date", eventDate(e.startsAt)],
-    ["Time", eventTime(e.startsAt, e.endsAt)],
+    ["Date", eventDate(e.startsAt, e.timezone)],
+    ["Time", eventTime(e.startsAt, e.endsAt, e.timezone)],
     ["Where", eventWhere(e)],
+    ...venueFacts(e),
     ["Tickets", p.quantity === 1 ? "1 ticket" : `${p.quantity} tickets`],
-    ["Price", p.priceType === "member" ? "Member price" : "Guest price"],
+    ["Price", p.ticketType ? `${p.ticketType}, ${price.toLowerCase()}` : price],
   ];
   if (p.amount) facts.push(["Paid", p.amount]);
   if (e.joinUrl) facts.push(["Join online", e.joinUrl]);
   return {
     subject: `Your ticket for ${e.title} is confirmed`,
     content: {
-      preheader: `${eventDay(e.startsAt)}. Your payment has been received and your place is booked.`,
+      preheader: `${eventDay(e.startsAt, e.timezone)}. Your payment has been received and your place is booked.`,
       eyebrow: "Your ticket",
       image: "gathering",
-      heading: `Your ticket for ${e.title} on ${eventDay(e.startsAt)} is confirmed.`,
+      heading: `Your ticket for ${e.title} on ${eventDay(e.startsAt, e.timezone)} is confirmed.`,
       body: [
         `Hello ${firstNameOf(p.name)},`,
         `Thank you for booking. Your payment has been received and we have reserved ${places} for you. ${how}`,
@@ -61,21 +83,22 @@ export function ticketReminderEmail(p: { name: string | null; event: EmailEvent;
   const e = p.event;
   const where = eventWhere(e);
   return {
-    subject: `Reminder: ${e.title} is on ${eventDay(e.startsAt)}`,
+    subject: `Reminder: ${e.title} is on ${eventDay(e.startsAt, e.timezone)}`,
     content: {
-      preheader: `${eventTime(e.startsAt, e.endsAt)}, ${where.toLowerCase() === "online" ? "online" : where}.`,
+      preheader: `${eventTime(e.startsAt, e.endsAt, e.timezone)}, ${where.toLowerCase() === "online" ? "online" : where}.`,
       eyebrow: "Event reminder",
       image: "gathering",
-      heading: `${e.title} is on ${eventDay(e.startsAt)}, and your ticket is booked.`,
+      heading: `${e.title} is on ${eventDay(e.startsAt, e.timezone)}, and your ticket is booked.`,
       body: [
         `Hello ${firstNameOf(p.name)},`,
         `A short reminder that you have ${p.quantity === 1 ? "a ticket" : `${p.quantity} tickets`} for ${e.title}. Here are the details you need${e.joinUrl ? ", including the link to join on Google Meet" : ""}.`,
         "If you can no longer attend, reply to this email and we will help.",
       ].join("\n\n"),
       facts: [
-        ["Date", eventDate(e.startsAt)],
-        ["Time", eventTime(e.startsAt, e.endsAt)],
+        ["Date", eventDate(e.startsAt, e.timezone)],
+        ["Time", eventTime(e.startsAt, e.endsAt, e.timezone)],
         ["Where", where],
+        ...venueFacts(e),
         ["Tickets", p.quantity === 1 ? "1 ticket" : `${p.quantity} tickets`],
         ...(e.joinUrl ? ([["Join online", e.joinUrl]] as [string, string][]) : []),
       ],
@@ -96,10 +119,12 @@ const sampleEvent: EmailEvent = {
   online: false,
   venue: "The Alex Hotel",
   city: "Dublin",
+  venueAddress: "41-47 Fenian Street, Dublin 2, D02 H678",
+  timezone: "Europe/Dublin",
   ticketUrl: null,
 };
 
-const confirmed = ticketConfirmedEmail({ name: "Niamh Byrne", event: sampleEvent, quantity: 2, amount: "£120.00", priceType: "guest" });
+const confirmed = ticketConfirmedEmail({ name: "Niamh Byrne", event: sampleEvent, quantity: 2, amount: "£120.00", priceType: "guest", ticketType: "Early bird" });
 
 const reminder = ticketReminderEmail({ name: "Niamh Byrne", event: sampleEvent, quantity: 2 });
 

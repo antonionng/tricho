@@ -57,3 +57,36 @@ describe("ticket emails", () => {
     expect(e.content.secondary?.href).toBe("/api/events/evt_1/ics");
   });
 });
+
+describe("in-person ticket emails", () => {
+  const inPerson = {
+    ...event,
+    online: false,
+    venue: "Whittlebury Hall",
+    city: "Towcester",
+    venueAddress: "Whittlebury, Towcester NN12 8QH",
+    timezone: "Europe/London",
+  };
+
+  it("gives the venue, address and a map link instead of Google Meet wording", () => {
+    const e = ticketConfirmedEmail({ name: "Niamh", event: inPerson, quantity: 2, amount: "£298.00", priceType: "guest", ticketType: "Early bird" });
+    expect(e.content.body).toContain("in person at Whittlebury Hall, Towcester, Whittlebury, Towcester NN12 8QH");
+    expect(e.content.body).not.toMatch(/Google Meet|online/i);
+    expect(e.content.facts).toContainEqual(["Address", "Whittlebury, Towcester NN12 8QH"]);
+    const map = e.content.facts?.find(([k]) => k === "Map")?.[1];
+    expect(map).toBe("https://www.google.com/maps/search/?api=1&query=Whittlebury%20Hall%2C%20Whittlebury%2C%20Towcester%20NN12%208QH");
+    expect(e.content.facts).toContainEqual(["Price", "Early bird, guest price"]);
+    expect(e.content.cta?.label).toBe("View the event");
+  });
+
+  it("puts the address in the reminder too", () => {
+    const r = ticketReminderEmail({ name: null, event: inPerson, quantity: 1 });
+    expect(r.content.facts).toContainEqual(["Address", "Whittlebury, Towcester NN12 8QH"]);
+  });
+
+  it("keeps the online wording and leaves out address rows for online events", () => {
+    const e = ticketConfirmedEmail({ name: null, event: { ...event, venueAddress: "Ignored" }, quantity: 1, amount: null, priceType: "guest" });
+    expect(e.content.facts?.some(([k]) => k === "Address" || k === "Map")).toBe(false);
+    expect(e.content.body).toContain("online");
+  });
+});

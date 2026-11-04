@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import { formatMoney, ticketSoldAlert } from "@/lib/mail/templates/billing";
 import { ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
+import { eventTimeZone } from "@/lib/event-time";
 
 /**
  * Native event tickets, paid through Stripe Checkout (one-off payments).
@@ -17,6 +18,12 @@ import { ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
  *  - A pending ticket holds its seats while its Checkout Session is open. The
  *    session expires after 31 minutes; holds older than PENDING_HOLD_MINUTES
  *    stop counting and are marked cancelled.
+ *
+ * An event can instead sell ticket types (early bird, standard and so on).
+ * Then the buyer picks a type, pays its member price when signed in as a member
+ * (or its price otherwise), and may buy up to the type's own maximum per order,
+ * members included. Each type's places and the event's total are both checked.
+ * Events without types keep the flat rules above.
  */
 
 export const MAX_GUEST_TICKETS = 4;
@@ -34,6 +41,70 @@ export function ticketPrice(event: Priced, isMember: boolean): { amountPence: nu
   const pounds = isMember ? event.memberPriceGBP : event.priceGBP;
   const amountPence = Math.max(0, Math.round((Number.isFinite(pounds) ? pounds : 0) * 100));
   return { amountPence, priceType: isMember ? "member" : "guest" };
+}
+
+/** A ticket type's rules, as the checkout and the event page need them. */
+export type TicketTypeRule = {
+  id: string;
+  name: string;
+  description?: string;
+  pricePence: number;
+  memberPricePence: number | null;
+  membersOnly: boolean;
+  capacity: number | null;
+  salesStart: Date | null;
+  salesEnd: Date | null;
+  maxPerOrder: number;
+  active: boolean;
+};
+
+/** What this buyer pays for one ticket of a type, in pence. Members pay the member price when there is one. */
+export function typePrice(type: Pick<TicketTypeRule, "pricePence" | "memberPricePence">, isMember: boolean): { amountPence: number; priceType: PriceType } {
+  const member = isMember && type.memberPricePence != null;
+  const raw = member ? type.memberPricePence! : type.pricePence;
+  return { amountPence: Math.max(0, Math.round(Number.isFinite(raw) ? raw : 0)), priceType: member ? "member" : "guest" };
+}
+
+/** How many of a type one order may take: one up to the type's maximum. */
+export function clampTypeQuantity(raw: unknown, type: Pick<TicketTypeRule, "maxPerOrder">) {
+  const max = Math.max(1, Math.round(type.maxPerOrder) || 1);
+  const n = Math.round(Number(raw ?? 1));
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(max, n);
+}
+
+/** Places of one type that are paid or held. */
+export function typeSeatsTaken(typeId: string, tickets: { quantity: number; ticketTypeId?: string | null }[]) {
+  return tickets.reduce((sum, t) => (t.ticketTypeId === typeId ? sum + Math.max(0, t.quantity) : sum), 0);
+}
+
+export type TypeState = "on_sale" | "not_yet" | "closed" | "sold_out" | "members_only";
+
+export type TypeAvailability = {
+  state: TypeState;
+  /** Places of this type still available, within the event's total. Null means no limit. */
+  left: number | null;
+  /** When sales open, for "not_yet". */
+  opensAt: Date | null;
+};
+
+/**
+ * Whether a type can be bought right now, and how many are left. The order of
+ * checks matters: a type not yet on sale says so even when the event is full.
+ */
+export function typeAvailability(
+  type: TicketTypeRule,
+  opts: { now?: Date; eventStartsAt: Date; taken: number; eventLeft: number | null; isMember: boolean }
+): TypeAvailability {
+  const now = opts.now ?? new Date();
+  const typeLeft = type.capacity == null ? null : Math.max(0, type.capacity - opts.taken);
+  const left = typeLeft == null ? opts.eventLeft : opts.eventLeft == null ? typeLeft : Math.min(typeLeft, opts.eventLeft);
+  if (!type.active) return { state: "closed", left, opensAt: null };
+  if (type.salesStart && type.salesStart > now) return { state: "not_yet", left, opensAt: type.salesStart };
+  if ((type.salesEnd && type.salesEnd <= now) || opts.eventStartsAt <= now) return { state: "closed", left, opensAt: null };
+  if (left === 0) return { state: "sold_out", left, opensAt: null };
+  if (type.membersOnly && !opts.isMember) return { state: "members_only", left, opensAt: null };
+  return { state: "on_sale", left, opensAt: null };
 }
 
 /** How many tickets this buyer may take in one order, within what is left. */
@@ -75,13 +146,13 @@ export function guestDetails(body: { name?: unknown; email?: unknown }):
 }
 
 /** The line Stripe shows at checkout and on the receipt: "Scalp masterclass, Thursday 12 November 2026". */
-export function ticketLineName(event: { title: string; startsAt: Date }) {
+export function ticketLineName(event: { title: string; startsAt: Date; timezone?: string | null }) {
   const date = new Intl.DateTimeFormat("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Europe/Dublin",
+    timeZone: eventTimeZone(event.timezone),
   })
     .format(event.startsAt)
     // Some ICU versions put a comma after the weekday.
@@ -94,12 +165,12 @@ export function holdCutoff(now = new Date()) {
   return new Date(now.getTime() - PENDING_HOLD_MINUTES * 60_000);
 }
 
-/** The tickets and RSVPs that take a seat right now, for seatsLeft. */
+/** The tickets and RSVPs that take a seat right now, for seatsLeft and typeSeatsTaken. */
 export async function seatUsage(eventId: string, now = new Date(), db: Pick<typeof prisma, "eventTicket" | "eventRsvp"> = prisma) {
   const [tickets, rsvps] = await Promise.all([
     db.eventTicket.findMany({
       where: { eventId, OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: holdCutoff(now) } }] },
-      select: { quantity: true, userId: true },
+      select: { quantity: true, userId: true, ticketTypeId: true },
     }),
     db.eventRsvp.findMany({ where: { eventId }, select: { userId: true } }),
   ]);
@@ -132,7 +203,10 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
     return { ok: false as const, reason: "unpaid" };
   }
 
-  const ticket = await prisma.eventTicket.findUnique({ where: { id: ticketId }, include: { event: true } });
+  const ticket = await prisma.eventTicket.findUnique({
+    where: { id: ticketId },
+    include: { event: true, ticketType: { select: { name: true } } },
+  });
   if (!ticket) {
     console.error("[TICKETS] paid checkout for an unknown ticket", { ticketId, session: session.id });
     return { ok: false as const, reason: "unknown-ticket" };
@@ -164,6 +238,7 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
     quantity: ticket.quantity,
     amount: formatMoney(session.amount_total ?? ticket.amount, session.currency ?? ticket.currency),
     priceType: ticket.priceType === "member" ? "member" : "guest",
+    ticketType: ticket.ticketType?.name ?? null,
   });
   await deliverOnce(`ticket-confirmed:${ticket.id}`, ticket.email, email.subject, email.content, { tag: "event-ticket" });
 
@@ -271,6 +346,8 @@ export type Attendee = {
   name: string | null;
   email: string;
   type: "Member ticket" | "Guest ticket" | "RSVP";
+  /** The ticket type's name, when the event sells types. */
+  ticketType: string | null;
   quantity: number;
   status: string;
   amount: number | null;
@@ -287,7 +364,19 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
     prisma.eventTicket.findMany({
       where: { eventId, status: { in: ["paid", "refunded"] } },
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, email: true, priceType: true, quantity: true, status: true, amount: true, userId: true, paidAt: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        priceType: true,
+        quantity: true,
+        status: true,
+        amount: true,
+        userId: true,
+        paidAt: true,
+        createdAt: true,
+        ticketType: { select: { name: true } },
+      },
     }),
     prisma.eventRsvp.findMany({
       where: { eventId },
@@ -302,6 +391,7 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
       name: t.name,
       email: t.email,
       type: t.priceType === "member" ? "Member ticket" : "Guest ticket",
+      ticketType: t.ticketType?.name ?? null,
       quantity: t.quantity,
       status: t.status === "paid" ? "Paid" : "Refunded",
       amount: t.amount,
@@ -314,6 +404,7 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
         name: r.user.name,
         email: r.user.email ?? "",
         type: "RSVP",
+        ticketType: null,
         quantity: 1,
         status: "Going",
         amount: null,

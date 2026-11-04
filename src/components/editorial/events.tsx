@@ -4,6 +4,7 @@ import type { EventKind } from "@prisma/client";
 import { Pill } from "@/components/site/primitives";
 import { absoluteUrl } from "@/lib/seo";
 import { site } from "@/config/site";
+import { eventTimeZone } from "@/lib/event-time";
 import { cn } from "@/lib/utils";
 
 /** The fields the public pages need. Kept narrow so nothing private is ever selected. */
@@ -18,6 +19,8 @@ export const publicEventSelect = {
   endsAt: true,
   venue: true,
   city: true,
+  venueAddress: true,
+  timezone: true,
   online: true,
   priceGBP: true,
   memberPriceGBP: true,
@@ -40,6 +43,8 @@ export type PublicEvent = {
   endsAt: Date | null;
   venue: string | null;
   city: string | null;
+  venueAddress?: string | null;
+  timezone?: string | null;
   online: boolean;
   priceGBP: number;
   memberPriceGBP: number;
@@ -77,20 +82,19 @@ export const EVENT_KINDS_EXPLAINED = [
   },
 ];
 
-const TZ = "Europe/Dublin";
-
-export function formatEventDate(d: Date) {
+/** Dates and times are shown in the event's own zone, London unless Studio says otherwise. */
+export function formatEventDate(d: Date, tz?: string | null) {
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: TZ,
+    timeZone: eventTimeZone(tz),
   }).format(d);
 }
 
-export function formatEventTime(start: Date, end?: Date | null) {
-  const t = new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: TZ });
+export function formatEventTime(start: Date, end?: Date | null, tz?: string | null) {
+  const t = new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: eventTimeZone(tz) });
   return end ? `${t.format(start)} to ${t.format(end)}` : t.format(start);
 }
 
@@ -113,6 +117,7 @@ export function eventLd(e: PublicEvent) {
         name: e.venue ?? e.city ?? "To be confirmed",
         address: {
           "@type": "PostalAddress",
+          ...(e.venueAddress ? { streetAddress: e.venueAddress } : {}),
           ...(e.city ? { addressLocality: e.city } : {}),
         },
       };
@@ -143,8 +148,9 @@ export function eventLd(e: PublicEvent) {
 
 /** A single event as a calm list row: date block, title, place and price. */
 export function EventRow({ event, past = false }: { event: PublicEvent; past?: boolean }) {
-  const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: TZ }).format(event.startsAt);
-  const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: TZ }).format(event.startsAt);
+  const tz = eventTimeZone(event.timezone);
+  const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: tz }).format(event.startsAt);
+  const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: tz }).format(event.startsAt);
   return (
     <li>
       <Link
@@ -170,7 +176,7 @@ export function EventRow({ event, past = false }: { event: PublicEvent; past?: b
             ) : (
               <MapPin className="h-4 w-4 shrink-0" aria-hidden />
             )}
-            {eventPlace(event)} · {formatEventTime(event.startsAt, event.endsAt)}
+            {eventPlace(event)} · {formatEventTime(event.startsAt, event.endsAt, event.timezone)}
           </p>
         </div>
         <div className="col-start-2 flex items-center justify-between gap-6 sm:col-start-3 sm:flex-col sm:items-end sm:justify-center sm:gap-1">

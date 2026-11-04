@@ -149,3 +149,24 @@ describe("prefill payloads", () => {
     expect(formValuesFromPayload({ kind: "party" })?.kind).toBe("gathering");
   });
 });
+
+describe("venue address and time zone", () => {
+  const base = { title: "Whittlebury", kind: "gathering", summary: "A day together.", startsAt: "2027-04-26T09:00" };
+
+  it("keeps the address for in-person events and drops it online", () => {
+    const inPerson = validateEventInput({ ...base, venueAddress: " Whittlebury, Towcester NN12 8QH " });
+    expect(inPerson.ok && inPerson.data.venueAddress).toBe("Whittlebury, Towcester NN12 8QH");
+    const online = validateEventInput({ ...base, online: "on", venueAddress: "Somewhere" });
+    expect(online.ok && online.data.venueAddress).toBeNull();
+  });
+
+  it("defaults to London and only accepts the zones Studio offers", () => {
+    const r = validateEventInput(base);
+    expect(r.ok && r.data.timezone).toBe("Europe/London");
+    expect(r.ok && r.data.startsAt.toISOString()).toBe("2027-04-26T08:00:00.000Z");
+    const dublin = validateEventInput({ ...base, timezone: "Europe/Dublin" });
+    expect(dublin.ok && dublin.data.timezone).toBe("Europe/Dublin");
+    const odd = validateEventInput({ ...base, timezone: "Asia/Tokyo" });
+    expect(odd.ok && odd.data.timezone).toBe("Europe/London");
+  });
+});

@@ -34,12 +34,17 @@ vi.mock("@/lib/mail/send", () => ({
 import type Stripe from "stripe";
 import {
   clampQuantity,
+  clampTypeQuantity,
   guestDetails,
   handleTicketCheckoutCompleted,
   handleTicketRefund,
   seatsLeft,
   ticketLineName,
   ticketPrice,
+  typeAvailability,
+  typePrice,
+  typeSeatsTaken,
+  type TicketTypeRule,
 } from "./tickets";
 
 describe("ticketPrice", () => {
@@ -81,6 +86,77 @@ describe("seatsLeft", () => {
   });
 });
 
+const earlyBird: TicketTypeRule = {
+  id: "tt_early",
+  name: "Early bird",
+  pricePence: 14900,
+  memberPricePence: 9900,
+  membersOnly: false,
+  capacity: 50,
+  salesStart: null,
+  salesEnd: new Date("2027-01-31T23:59:00Z"),
+  maxPerOrder: 6,
+  active: true,
+};
+
+describe("ticket types", () => {
+  const startsAt = new Date("2027-04-26T08:00:00Z");
+  const now = new Date("2026-12-01T12:00:00Z");
+
+  it("charges members the member price when the type has one", () => {
+    expect(typePrice(earlyBird, true)).toEqual({ amountPence: 9900, priceType: "member" });
+    expect(typePrice(earlyBird, false)).toEqual({ amountPence: 14900, priceType: "guest" });
+    expect(typePrice({ ...earlyBird, memberPricePence: null }, true)).toEqual({ amountPence: 14900, priceType: "guest" });
+  });
+
+  it("lets anyone, members included, buy up to the type's maximum", () => {
+    expect(clampTypeQuantity(5, earlyBird)).toBe(5);
+    expect(clampTypeQuantity(9, earlyBird)).toBe(6);
+    expect(clampTypeQuantity("x", earlyBird)).toBe(1);
+    expect(clampTypeQuantity(3, { maxPerOrder: 0 })).toBe(1);
+  });
+
+  it("counts only places of the same type", () => {
+    const tickets = [
+      { quantity: 2, ticketTypeId: "tt_early" },
+      { quantity: 3, ticketTypeId: "tt_standard" },
+      { quantity: 1, ticketTypeId: "tt_early" },
+      { quantity: 4, ticketTypeId: null },
+    ];
+    expect(typeSeatsTaken("tt_early", tickets)).toBe(3);
+  });
+
+  it("is on sale with the smaller of the type's and the event's places left", () => {
+    expect(typeAvailability(earlyBird, { now, eventStartsAt: startsAt, taken: 10, eventLeft: 100, isMember: false })).toEqual({ state: "on_sale", left: 40, opensAt: null });
+    expect(typeAvailability(earlyBird, { now, eventStartsAt: startsAt, taken: 10, eventLeft: 5, isMember: false }).left).toBe(5);
+    expect(typeAvailability({ ...earlyBird, capacity: null }, { now, eventStartsAt: startsAt, taken: 10, eventLeft: null, isMember: false }).left).toBeNull();
+  });
+
+  it("is sold out when either the type or the event is full", () => {
+    expect(typeAvailability(earlyBird, { now, eventStartsAt: startsAt, taken: 50, eventLeft: 100, isMember: false }).state).toBe("sold_out");
+    expect(typeAvailability(earlyBird, { now, eventStartsAt: startsAt, taken: 0, eventLeft: 0, isMember: false }).state).toBe("sold_out");
+  });
+
+  it("follows the sales window and the event start", () => {
+    const later = { ...earlyBird, salesStart: new Date("2027-02-01T09:00:00Z") };
+    expect(typeAvailability(later, { now, eventStartsAt: startsAt, taken: 0, eventLeft: null, isMember: false })).toMatchObject({
+      state: "not_yet",
+      opensAt: later.salesStart,
+    });
+    const after = new Date("2027-02-01T00:00:00Z");
+    expect(typeAvailability(earlyBird, { now: after, eventStartsAt: startsAt, taken: 0, eventLeft: null, isMember: false }).state).toBe("closed");
+    const open = { ...earlyBird, salesEnd: null };
+    expect(typeAvailability(open, { now: startsAt, eventStartsAt: startsAt, taken: 0, eventLeft: null, isMember: false }).state).toBe("closed");
+    expect(typeAvailability({ ...earlyBird, active: false }, { now, eventStartsAt: startsAt, taken: 0, eventLeft: null, isMember: false }).state).toBe("closed");
+  });
+
+  it("keeps members-only types from guests", () => {
+    const members = { ...earlyBird, membersOnly: true };
+    expect(typeAvailability(members, { now, eventStartsAt: startsAt, taken: 0, eventLeft: null, isMember: false }).state).toBe("members_only");
+    expect(typeAvailability(members, { now, eventStartsAt: startsAt, taken: 0, eventLeft: null, isMember: true }).state).toBe("on_sale");
+  });
+});
+
 describe("guestDetails", () => {
   it("normalises a valid name and email", () => {
     expect(guestDetails({ name: "  Niamh   Byrne ", email: " Niamh@Example.com " })).toEqual({ ok: true, name: "Niamh Byrne", email: "niamh@example.com" });
@@ -96,6 +172,12 @@ describe("ticketLineName", () => {
     expect(ticketLineName({ title: "Scalp masterclass", startsAt: new Date("2026-11-12T19:00:00Z") })).toBe(
       "Scalp masterclass, Thursday 12 November 2026"
     );
+  });
+  it("uses the event's own time zone for the date", () => {
+    // 23:30 UTC is already the next day in a zone ahead of UTC.
+    const late = new Date("2027-04-25T23:30:00Z");
+    expect(ticketLineName({ title: "Whittlebury", startsAt: late })).toBe("Whittlebury, Monday 26 April 2027");
+    expect(ticketLineName({ title: "Whittlebury", startsAt: late, timezone: "America/New_York" })).toBe("Whittlebury, Sunday 25 April 2027");
   });
 });
 
