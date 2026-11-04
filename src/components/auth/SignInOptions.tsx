@@ -6,8 +6,7 @@ import { isDevOrDemo, isPreviewDemo } from "@/lib/env";
 import { cookies } from "next/headers";
 import { cleanEmail, SIGNIN_EMAIL_COOKIE, signinEmailCookieOptions } from "@/lib/signin-email";
 import { EmailLinkForm, type EmailLinkState } from "@/components/auth/EmailLinkForm";
-import { cleanName } from "@/lib/names";
-import { rememberSignupName } from "@/lib/signup-name";
+import { clearPendingSignup, savePendingSignup, signupDetailsFromForm } from "@/lib/signup-details";
 
 const googleEnabled = !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 const resendEnabled = !!process.env.AUTH_RESEND_KEY;
@@ -64,10 +63,12 @@ export function SignInOptions({
             "use server";
             const email = cleanEmail(formData.get("email"));
             if (!email) return { sent: null, error: "Please enter a valid email address." };
-            const name = mode === "signup" ? cleanName(formData.get("name")) : null;
-            if (mode === "signup" && !name) return { sent: null, error: "Please enter your name." };
+            const signup = mode === "signup" ? signupDetailsFromForm(formData) : null;
+            if (signup && !signup.ok) return { sent: null, error: signup.error };
             try {
-              if (name) await rememberSignupName(email, name);
+              // Held until the link creates the account. A plain sign-in clears anything someone else typed for this email.
+              if (signup?.ok) await savePendingSignup(email, signup.details);
+              else await clearPendingSignup(email);
               const url = await signIn("resend", { email, redirectTo, redirect: false });
               if (typeof url === "string" && url.includes("error=")) throw new Error(url);
               // Remembered briefly (httpOnly, never in a URL) so /login/check-email can show it and resend.
