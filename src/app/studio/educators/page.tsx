@@ -27,12 +27,18 @@ export default async function StudioEducatorsPage({ searchParams }: { searchPara
   });
   educators.sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status));
   const waiting = educators.filter((e) => e.status === "pending_review").length;
+  const openRequests = await prisma.courseRequest.count({ where: { status: "new" } }).catch(() => 0);
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Educators"
         intro="Educators pay for the year when they join, then wait for approval. Approve the ones who can teach within their scope of practice; rejecting someone refunds their fee. Only approved educators can send courses for review."
+        actions={
+          <Link href="/studio/educators/requests" className="rounded-full border border-ink/20 px-4 py-2 text-sm font-medium hover:border-ink">
+            Tailored course requests{openRequests ? ` (${openRequests})` : ""}
+          </Link>
+        }
       />
       {notice && <Notice tone={tone === "danger" ? "danger" : "default"}>{notice}</Notice>}
       <Section title={waiting ? `${waiting} waiting for approval` : "All educators"}>
