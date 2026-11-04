@@ -396,6 +396,51 @@ export function partnerAlert(e: PartnerEnquiry, draftId?: string): OwnerAlert {
 }
 
 // ---------------------------------------------------------------------------
+// Course build enquiries, from people who aren't Educators yet
+// ---------------------------------------------------------------------------
+
+export type CourseBuildEnquiry = { name: string; email: string; topic: string; material?: string };
+
+export function courseBuildEnquiryAcknowledgementEmail(e: CourseBuildEnquiry): Email {
+  return {
+    subject: "Your course enquiry has reached Trichollective",
+    content: {
+      preheader: "Karley or a member of the team will reply within three working days.",
+      eyebrow: "Course build service",
+      heading: "Thank you for telling us about the course you'd like to teach.",
+      body: [
+        hello(e.name),
+        "Your enquiry has reached the Trichollective team. We'll look at what you'd like to teach and what you have already, and reply within three working days with how we could build it with you and what it would cost.",
+        "Courses we build are sold under your name to practitioners across every discipline, and you keep a share of every sale. To publish a course you join as an Educator, which we'll explain when we reply.",
+        "If you'd like to add anything in the meantime, reply to this email.",
+      ].join("\n\n"),
+      facts: [
+        ["The course", e.topic],
+        ...(e.material ? ([["What you have already", e.material]] as [string, string][]) : []),
+      ],
+      secondary: { label: "Read about teaching on Trichollective", href: "/educators" },
+      reason: "You receive this because you sent an enquiry about the Trichollective course build service.",
+    },
+  };
+}
+
+export function courseBuildEnquiryAlert(e: CourseBuildEnquiry, draftId?: string): OwnerAlert {
+  return {
+    subject: `Course build enquiry from ${e.name}`,
+    heading: `${e.name} would like the team to build a course with them.`,
+    body: "They aren't an Educator yet. Reply to this email to answer them directly. They have been told to expect a reply within three working days.",
+    facts: [
+      ["Name", e.name],
+      ["Email", e.email],
+      ["The course", e.topic],
+      ...(e.material ? ([["What they have already", e.material]] as [string, string][]) : []),
+    ],
+    cta: { label: "Open in the Studio", href: draftId ? `/studio/inbox?id=${draftId}` : "/studio/inbox" },
+    replyTo: e.email,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Samples for the Studio gallery
 // ---------------------------------------------------------------------------
 
@@ -452,6 +497,13 @@ const sampleEnquiry: PartnerEnquiry = {
   message: "We'd like to discuss sponsoring a session on hair loss in perimenopause at the next conference.",
 };
 
+const sampleBuildEnquiry: CourseBuildEnquiry = {
+  name: "Dr Orla Quinn",
+  email: "orla@example.com",
+  topic: "Recognising frontal fibrosing alopecia early, for stylists and barbers.",
+  material: "Slides and a recorded talk from a dermatology study day.",
+};
+
 export const samples: EmailSample[] = [
   sample("sign-in-link", "Sign-in link", "Sent when someone asks to sign in with their email address.", "everyone", signInLinkEmail({ url: confirmLinkFor(`${site.url}/api/auth/callback/resend?token=482917&email=niamh@example.com&callbackUrl=/members`), code: "482917" })),
   sample("welcome-free-account", "Welcome to a free account", "Sent when someone creates a free account by signing in for the first time.", "practitioners", welcomeFreeAccountEmail({ name: "Niamh Walsh" })),
@@ -478,4 +530,6 @@ export const samples: EmailSample[] = [
   sample("business-enquiry", "Business enquiry received", "Sent when a company sends a general business enquiry.", "public", partnerAcknowledgementEmail(sampleEnquiry)),
   ownerSample("alert-partner-application", "New partner application", "Sent to the owners when a company applies to become a partner.", partnerAlert(sampleApplication)),
   ownerSample("alert-business-enquiry", "New business enquiry", "Sent to the owners when a company sends a business enquiry.", partnerAlert(sampleEnquiry)),
+  sample("course-build-enquiry", "Course build enquiry received", "Sent when someone who isn't an Educator yet asks the team to build a course with them.", "public", courseBuildEnquiryAcknowledgementEmail(sampleBuildEnquiry)),
+  ownerSample("alert-course-build-enquiry", "New course build enquiry", "Sent to the owners when someone asks the team to build a course with them.", courseBuildEnquiryAlert(sampleBuildEnquiry)),
 ];

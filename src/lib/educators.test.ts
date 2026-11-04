@@ -5,6 +5,7 @@ const db = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   educatorProfile: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   course: { updateMany: vi.fn() },
+  courseRequest: { findUnique: vi.fn(), updateMany: vi.fn() },
   notification: { create: vi.fn() },
   emailLog: { create: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => ops),
@@ -66,5 +67,15 @@ describe("handleEducatorWebhook", () => {
     const invoice = { parent: { subscription_details: { subscription: "sub_2", metadata: { plan: "professional" } } } };
     expect(await handleEducatorWebhook(event("invoice.payment_succeeded", invoice))).toBe(false);
     expect(stripeMock.subscriptions.retrieve).not.toHaveBeenCalled();
+  });
+});
+
+describe("handleEducatorWebhook and the course build service", () => {
+  it("sends build fees to the course build handler, not the membership logic", async () => {
+    const buildEvent = event("checkout.session.expired", { id: "cs_b", metadata: { kind: "course_build" } });
+    db.courseRequest.updateMany.mockResolvedValue({ count: 0 });
+    expect(await handleEducatorWebhook(buildEvent)).toBe(true);
+    expect(db.courseRequest.updateMany).toHaveBeenCalled();
+    expect(db.educatorProfile.create).not.toHaveBeenCalled();
   });
 });

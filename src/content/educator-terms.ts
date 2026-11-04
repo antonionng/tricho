@@ -8,9 +8,13 @@ import { educatorMembership } from "@/config/subscriptions";
  *
  * Draft for legal review before launch: course ownership and licence, content
  * warranties and indemnity, and how VAT affects the revenue share.
+ *
+ * SOLICITOR REVIEW: the "build-service" section (added 3 November 2026) is new
+ * and unreviewed: fees and refunds once work has started, revisions,
+ * ownership of what the team writes and films, and the share on built courses.
  */
-export const EDUCATOR_TERMS_VERSION = "2026-10-14";
-export const EDUCATOR_TERMS_UPDATED = "14 October 2026";
+export const EDUCATOR_TERMS_VERSION = "2026-11-03";
+export const EDUCATOR_TERMS_UPDATED = "3 November 2026";
 
 export type EducatorTermsSection = { id: string; heading: string; paragraphs: string[] };
 
@@ -65,6 +69,18 @@ export const educatorTerms: EducatorTermsSection[] = [
       `You receive ${share}% of the amount each learner pays for your course, and Trichollective keeps the rest. We pay the card processing fees out of our share. If we agree a different share with you for a particular course, we will confirm it in writing before the course goes on sale.`,
       "To be paid you connect a Stripe account. Your share of each sale is transferred to it automatically when the learner pays, and Stripe pays it into your bank account on its usual schedule. Stripe's own terms apply to your Stripe account.",
       "You are responsible for any tax due on your earnings.",
+    ],
+  },
+  {
+    id: "build-service",
+    heading: "Courses we build with you",
+    paragraphs: [
+      "You can ask the Trichollective team to tailor or build a course with you. We send you a written quote first, setting out the service, what it covers, the fee including VAT, and your share of each sale of the finished course. Nothing is agreed until you accept the quote and pay the fee.",
+      "We start work once you have paid. If we cannot start the work, or we withdraw the quote after you have paid, we refund the fee in full. Once work has started, the fee is non-refundable, except where the law says otherwise or we fail to deliver what the quote describes.",
+      "Your quote says how many rounds of changes are included. You review every lesson before the course goes for review, and further changes beyond those rounds may be quoted separately.",
+      "You own the finished course, including what our team writes and films for it, on the same terms as a course you write yourself. We keep the right to reuse our own templates, formats and general know-how, and anything you supply stays yours. You confirm that you have the right to the material you send us.",
+      `Your share of each sale of a course we build is the share stated in your quote, which may be lower than the usual ${share}% to reflect the work involved. If the quote doesn't state a share, the usual share applies.`,
+      "A course we build goes through the same review as any other course before it goes on sale, and the clinical content remains your responsibility as its author.",
     ],
   },
   {

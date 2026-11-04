@@ -11,6 +11,8 @@ import { educatorCanSell, hasEducatorAccess, submitCoursesBlocker } from "@/lib/
 import { totals } from "@/lib/revenue-split";
 import { formatMoney } from "@/lib/mail/templates/billing";
 import { cn } from "@/lib/utils";
+import { buildTierById, courseBuild } from "@/config/course-build";
+import { canPayQuote, requestSharePct } from "@/lib/course-build";
 import { requireEducator } from "./_data";
 import { createEducatorCourseAction, requestTailoredCourseAction, saveEducatorProfileAction } from "./actions";
 
@@ -32,6 +34,8 @@ const ERRORS: Record<string, string> = {
   payments: "Payments aren't switched on yet, so payouts can't be set up.",
   request: "Please give the course a title and a few sentences on what it should cover.",
   upload: "One of the files couldn't be uploaded. Please attach PDFs up to 9MB each.",
+  quote: "That quote can't be paid just now. It may have been updated or withdrawn; refresh the page, or reply to the quote email.",
+  payment: "We couldn't start the payment. Please try again in a moment.",
 };
 
 const REQUEST_STATUS: Record<string, string> = {
@@ -97,7 +101,7 @@ export default async function EducatorDashboardPage({ searchParams }: { searchPa
   for (const x of sales) earnedBy.set(x.courseSlug, (earnedBy.get(x.courseSlug) ?? 0) + x.educatorAmount - x.reversedAmount);
   const titleOf = new Map(courses.map((c) => [c.slug, c.title]));
   const canSell = educatorCanSell(profile);
-  const requests = await prisma.courseRequest.findMany({ where: { educatorId: profile.id }, orderBy: { createdAt: "desc" }, select: { id: true, title: true, status: true, createdAt: true, courseId: true } });
+  const requests = await prisma.courseRequest.findMany({ where: { educatorId: profile.id }, orderBy: { createdAt: "desc" }, select: { id: true, title: true, status: true, createdAt: true, courseId: true, tier: true, quoteStatus: true, quoteAmount: true, quoteNote: true, sharePct: true, paidAt: true } });
   const approvedNotSelling = courses.some((c) => c.status === "published") && !canSell && profile.status === "approved";
 
   return (
@@ -120,7 +124,11 @@ export default async function EducatorDashboardPage({ searchParams }: { searchPa
       {joined && <p role="status" className="mb-6 rounded-2xl bg-positive/10 px-5 py-4 text-[15px]"><strong>Welcome to the Educator programme.</strong> Your membership has started, and we&apos;ve emailed you what happens next.</p>}
       {saved && (
         <p role="status" className="mb-6 rounded-2xl bg-positive/10 px-5 py-4 text-[15px]">
-          {saved === "request" ? "Your request is with the team. We'll reply within a few working days." : "Your profile is saved."}
+          {saved === "request"
+            ? "Your request is with the team. We'll send you a quote within a few working days."
+            : saved === "build-paid"
+              ? "Thank you. Your payment is going through, and we'll email you as soon as the team starts work."
+              : "Your profile is saved."}
         </p>
       )}
       {error && ERRORS[error] && <p role="alert" className="mb-6 rounded-2xl bg-destructive/5 px-5 py-4 text-[15px] text-destructive">{ERRORS[error]}</p>}
@@ -233,19 +241,45 @@ export default async function EducatorDashboardPage({ searchParams }: { searchPa
         {requests.length > 0 && (
           <ul className="mb-4 flex flex-col divide-y divide-rule overflow-hidden rounded-2xl border border-rule bg-card">
             {requests.map((r) => (
-              <li key={r.id} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <span>
-                  <span className="block font-medium">{r.title}</span>
-                  <span className="block text-sm text-muted-foreground">Sent {longDate(r.createdAt)}</span>
-                </span>
-                <span className="flex items-center gap-2">
-                  <Pill tone={r.status === "with_educator" ? "ink" : "default"}>{REQUEST_STATUS[r.status] ?? r.status}</Pill>
-                  {r.courseId && (
-                    <Link href={`/members/educator/courses/${r.courseId}`} className="text-sm font-medium underline underline-offset-4">
-                      Open the course
-                    </Link>
-                  )}
-                </span>
+              <li key={r.id} className="flex flex-col gap-3 p-4">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    <span className="block font-medium">{r.title}</span>
+                    <span className="block text-sm text-muted-foreground">
+                      Sent {longDate(r.createdAt)}
+                      {r.paidAt ? ` · ${buildTierById(r.tier)?.name ?? "Build"} paid ${longDate(r.paidAt)}` : ""}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Pill tone={r.status === "with_educator" || canPayQuote(r) ? "ink" : "default"}>{canPayQuote(r) ? "Quote ready" : (REQUEST_STATUS[r.status] ?? r.status)}</Pill>
+                    {r.courseId && (
+                      <Link href={`/members/educator/courses/${r.courseId}`} className="text-sm font-medium underline underline-offset-4">
+                        Open the course
+                      </Link>
+                    )}
+                  </span>
+                </div>
+                {canPayQuote(r) && r.quoteAmount !== null && (
+                  <div className="flex flex-col gap-3 rounded-xl bg-paper-2 p-4">
+                    <p className="text-[15px]">
+                      <strong>{buildTierById(r.tier)?.name ?? courseBuild.name}</strong>: {formatMoney(r.quoteAmount, "gbp")}, including VAT. You keep {requestSharePct(r, profile.sharePct)}% of every sale of the finished course.
+                    </p>
+                    {r.quoteNote && <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{r.quoteNote}</p>}
+                    {active ? (
+                      <form action="/api/educators/build-checkout" method="post" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                        <input type="hidden" name="requestId" value={r.id} />
+                        <SubmitButton className="self-start" pending="Opening Stripe…">
+                          Accept and pay
+                        </SubmitButton>
+                        <span className="text-sm text-muted-foreground">
+                          The team starts work as soon as you pay. <Link href="/terms/educators#build-service" className="underline underline-offset-4">Course build terms</Link>
+                        </span>
+                      </form>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Renew your Educator membership to accept this quote.</p>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -255,7 +289,7 @@ export default async function EducatorDashboardPage({ searchParams }: { searchPa
             <summary className="cursor-pointer p-5 font-medium">Tell us about the course you&apos;d like</summary>
             <form action={requestTailoredCourseAction} className="flex flex-col gap-4 border-t border-rule p-5">
               <p className="text-[15px] leading-relaxed text-ink-2">
-                Send us your notes, slides or the talk you give, and the team will turn them into a course with you. You review every lesson before it goes for review, and it&apos;s sold under your name.
+                Send us your notes, slides or the talk you give, and the team will turn them into a course with you. We reply with a quote for the work, and start as soon as you accept and pay. You review every lesson before it goes for review, and it&apos;s sold under your name.
               </p>
               <Field label="Working title">
                 <input name="title" required minLength={3} className={cn(fieldClass, "h-12")} />
