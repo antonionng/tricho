@@ -20,6 +20,9 @@ import { shortName } from "@/lib/names";
 import { canPostInRoom } from "@/config/rooms";
 import { getRooms } from "@/lib/rooms";
 import { moderateNewContent } from "@/agents/moderation";
+import { cleanFullName, cleanPhone } from "@/lib/signup-details";
+import { alertOwners } from "@/lib/mail/send";
+import { newAccountAlert } from "@/lib/mail/templates/leads";
 
 async function requireUser() {
   const ctx = await getMemberContext();
@@ -46,17 +49,38 @@ function goTo(step: number, error?: string): never {
 }
 
 export async function saveDiscipline(formData: FormData) {
-  const { userId } = await requireUser();
+  const { ctx, userId } = await requireUser();
   const profession = String(formData.get("profession") ?? "");
-  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  const name = cleanFullName(formData.get("name"));
+  const phone = cleanPhone(formData.get("phone"));
+  if (!name) goTo(1, "name");
+  if (phone === null) goTo(1, "phone");
   if (!PROFESSIONS.some((p) => p.id === profession)) goTo(1, "discipline");
 
-  if (name.length >= 2) await prisma.user.update({ where: { id: userId }, data: { name } });
+  const before = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true, createdAt: true, signupSource: true },
+  });
+  await prisma.user.update({ where: { id: userId }, data: { name } });
   await prisma.trichologistProfile.upsert({
     where: { userId },
-    create: { userId, profession: profession as Profession },
-    update: { profession: profession as Profession },
+    create: { userId, profession: profession as Profession, phone: phone || null },
+    update: { profession: profession as Profession, ...(phone ? { phone } : {}) },
   });
+  // A new free account that arrived without a name was held back from the owners until now.
+  const isNew = !!before && Date.now() - before.createdAt.getTime() < 7 * 24 * 60 * 60 * 1000;
+  if (!ctx.allowed && isNew && !before.name && before.email) {
+    const alert = newAccountAlert({
+      userId,
+      name,
+      phone,
+      email: before.email,
+      profession,
+      source: before.signupSource,
+      via: "the sign-in page",
+    });
+    after(() => alertOwners(alert));
+  }
   await syncListingFromProfile(userId);
   await markReached(userId, 1);
   goTo(2);
