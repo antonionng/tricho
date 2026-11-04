@@ -29,6 +29,7 @@ import {
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
 import { handleTicketWebhook } from "@/lib/tickets";
 import { handleCourseWebhook } from "@/lib/courses";
+import { handleEducatorWebhook } from "@/lib/educators";
 import { onReferralCheckout, onReferralInvoicePaid, referralPriorStateSafe } from "@/lib/referrals";
 import { markOfferPaid, offerIdFrom } from "@/lib/partner-offer-payments";
 import { activatePaidOffer } from "@/lib/partner-offer-activation";
@@ -92,6 +93,14 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("[STRIPE_WEBHOOK_COURSES]", error);
     return new NextResponse("Course handler failed", { status: 500 });
+  }
+
+  // Educator memberships are subscriptions too, but never member plans: handled here so they can't change one.
+  try {
+    if (await handleEducatorWebhook(event)) return new NextResponse(null, { status: 200 });
+  } catch (error) {
+    console.error("[STRIPE_WEBHOOK_EDUCATORS]", error);
+    return new NextResponse("Educator handler failed", { status: 500 });
   }
 
   try {

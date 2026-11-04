@@ -25,6 +25,8 @@ export type CatalogueCourse = Course & {
   /** The approved version learners see now, for builder courses. */
   versionId: string | null;
   educatorId: string | null;
+  /** The educator who wrote it, for the byline and their page. */
+  educator: { name: string; slug: string } | null;
   sharePct: number | null;
 };
 
@@ -39,7 +41,7 @@ export function imageKeyOrFallback(key: string): ImageKey {
 
 /** Builds the catalogue shape from a builder course's approved version. */
 export function courseFromVersion(
-  row: { id: string; slug: string; status: string; educatorId: string | null; sharePct: number | null },
+  row: { id: string; slug: string; status: string; educatorId: string | null; sharePct: number | null; educator?: { displayName: string; slug: string } | null },
   version: { id: string; meta: unknown; content: unknown }
 ): { course: CatalogueCourse; content: CourseContent } | null {
   const meta = courseMetaSchema.safeParse(version.meta);
@@ -66,19 +68,23 @@ export function courseFromVersion(
       id: row.id,
       versionId: version.id,
       educatorId: row.educatorId,
+      educator: row.educator ? { name: row.educator.displayName, slug: row.educator.slug } : null,
       sharePct: row.sharePct,
     },
   };
 }
 
 function fromStatic(c: Course): CatalogueCourse {
-  return { ...c, source: "static", id: null, versionId: null, educatorId: null, sharePct: null };
+  return { ...c, source: "static", id: null, versionId: null, educatorId: null, educator: null, sharePct: null };
 }
 
 /** A builder course with its approved version, or null if it has never been approved. */
 const loadDbCourse = cache(async (slug: string) => {
   const row = await prisma.course
-    .findUnique({ where: { slug }, select: { id: true, slug: true, status: true, educatorId: true, sharePct: true, publishedVersionId: true } })
+    .findUnique({
+      where: { slug },
+      select: { id: true, slug: true, status: true, educatorId: true, sharePct: true, publishedVersionId: true, educator: { select: { displayName: true, slug: true } } },
+    })
     .catch(() => null);
   if (!row?.publishedVersionId || (row.status !== "published" && row.status !== "unlisted")) return null;
   const version = await prisma.courseVersion.findUnique({ where: { id: row.publishedVersionId }, select: { id: true, meta: true, content: true } });

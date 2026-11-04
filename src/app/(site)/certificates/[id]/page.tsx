@@ -47,7 +47,7 @@ export default async function CertificateVerifyPage({ params }: { params: Promis
       ? await prisma.certificate
           .findUnique({
             where: { id: lookup },
-            select: { id: true, holderName: true, courseSlug: true, courseTitle: true, hours: true, issuedAt: true, withdrawnAt: true },
+            select: { id: true, holderName: true, courseSlug: true, courseTitle: true, hours: true, issuedAt: true, withdrawnAt: true, educatorName: true },
           })
           .catch(() => null)
       : null;
@@ -103,7 +103,8 @@ export default async function CertificateVerifyPage({ params }: { params: Promis
                   hours={certificate.hours}
                   issuedAt={certificate.issuedAt}
                   reviewer={course?.reviewer ? `${course.reviewer.name}, ${course.reviewer.credentials}` : null}
-                  withdrawn={withdrawn}
+                  educator={certificate.educatorName}
+            withdrawn={withdrawn}
                 />
               </div>
             </div>

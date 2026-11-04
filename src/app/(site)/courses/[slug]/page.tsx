@@ -104,10 +104,18 @@ export default async function CoursePage({ params }: { params: Promise<Params> }
                 <Pill>Online</Pill>
                 {comingSoon ? <Pill>Opening soon</Pill> : course.status === "closed" ? <Pill>Not taking enrolments</Pill> : <Pill tone="positive">Open now</Pill>}
               </div>
-              <h1 className="display text-[2.5rem] leading-[0.98] sm:text-6xl lg:text-[4.25rem]">
+              <h1 lang="en-GB" className="display hyphens-auto text-[2.5rem] leading-[0.98] sm:text-6xl lg:text-[4.25rem]">
                 {course.title}
               </h1>
               <p className="lede max-w-2xl">{course.summary}</p>
+              {course.educator && (
+                <p className="text-[15px] text-ink-2">
+                  By{" "}
+                  <Link href={`/educators/${course.educator.slug}`} className="font-medium text-ink underline underline-offset-4">
+                    {course.educator.name}
+                  </Link>
+                </p>
+              )}
               {reviewLine(course) && (
                 <p className="flex items-start gap-2.5 text-[15px] text-ink-2">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
