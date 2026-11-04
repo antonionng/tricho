@@ -68,6 +68,11 @@ export default async function AttendeesPage({
             <Button asChild variant="outline">
               <Link href="/studio/events">Back to events</Link>
             </Button>
+            {staff.perms.has("events.checkin") && !event.online && (
+              <Button asChild variant="outline">
+                <Link href={`/studio/events/${event.id}/checkin`}>Check-in</Link>
+              </Button>
+            )}
             {staff.perms.has("events.edit") && (
               <Button asChild>
                 <a href={`/studio/events/${event.id}/attendees/export`}>Download as a spreadsheet</a>
