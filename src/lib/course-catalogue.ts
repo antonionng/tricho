@@ -5,6 +5,8 @@ import { courses as staticCourses, type Course } from "@/content/courses";
 import { courseContent } from "@/content/course-lessons";
 import type { CourseContent } from "@/content/course-types";
 import { parseCourseContent } from "@/content/course-schema";
+import { educatorCanSell, sharePctFor } from "@/lib/educator-rules";
+import type { EducatorStatus } from "@prisma/client";
 import { images } from "@/content/images";
 import type { ImageKey } from "@/content/gazette/types";
 
@@ -28,6 +30,11 @@ export type CatalogueCourse = Course & {
   /** The educator who wrote it, for the byline and their page. */
   educator: { name: string; slug: string } | null;
   sharePct: number | null;
+  /**
+   * For educators' courses: where their share is sent, and their percentage.
+   * Server-only details for checkout; never pass them to the browser.
+   */
+  payout: { accountId: string; sharePct: number; educatorId: string } | null;
 };
 
 const FALLBACK_IMAGE: ImageKey = "ed21";
@@ -41,7 +48,14 @@ export function imageKeyOrFallback(key: string): ImageKey {
 
 /** Builds the catalogue shape from a builder course's approved version. */
 export function courseFromVersion(
-  row: { id: string; slug: string; status: string; educatorId: string | null; sharePct: number | null; educator?: { displayName: string; slug: string } | null },
+  row: {
+    id: string;
+    slug: string;
+    status: string;
+    educatorId: string | null;
+    sharePct: number | null;
+    educator?: { id: string; displayName: string; slug: string; status: EducatorStatus; currentPeriodEnd: Date | null; stripeAccountId: string | null; transfersActive: boolean; sharePct: number } | null;
+  },
   version: { id: string; meta: unknown; content: unknown }
 ): { course: CatalogueCourse; content: CourseContent } | null {
   const meta = courseMetaSchema.safeParse(version.meta);
@@ -60,7 +74,8 @@ export function courseFromVersion(
       hours: m.hours,
       priceGBP: m.priceGBP,
       memberPriceGBP: Math.min(m.memberPriceGBP, m.priceGBP),
-      status: row.status === "published" ? "open" : "closed",
+      // An educator's course is only on sale while they can be paid their share.
+      status: row.status === "published" && (!row.educatorId || educatorCanSell(row.educator)) ? "open" : "closed",
       outcomes: m.outcomes.filter((o) => o.trim()),
       syllabus: content.lessons.map((l) => ({ title: l.title, detail: l.detail })),
       imageKey: imageKeyOrFallback(m.imageKey),
@@ -70,12 +85,16 @@ export function courseFromVersion(
       educatorId: row.educatorId,
       educator: row.educator ? { name: row.educator.displayName, slug: row.educator.slug } : null,
       sharePct: row.sharePct,
+      payout:
+        row.educator?.stripeAccountId && educatorCanSell(row.educator)
+          ? { accountId: row.educator.stripeAccountId, sharePct: sharePctFor(row, row.educator), educatorId: row.educator.id }
+          : null,
     },
   };
 }
 
 function fromStatic(c: Course): CatalogueCourse {
-  return { ...c, source: "static", id: null, versionId: null, educatorId: null, educator: null, sharePct: null };
+  return { ...c, source: "static", id: null, versionId: null, educatorId: null, educator: null, sharePct: null, payout: null };
 }
 
 /** A builder course with its approved version, or null if it has never been approved. */
@@ -83,7 +102,15 @@ const loadDbCourse = cache(async (slug: string) => {
   const row = await prisma.course
     .findUnique({
       where: { slug },
-      select: { id: true, slug: true, status: true, educatorId: true, sharePct: true, publishedVersionId: true, educator: { select: { displayName: true, slug: true } } },
+      select: {
+        id: true,
+        slug: true,
+        status: true,
+        educatorId: true,
+        sharePct: true,
+        publishedVersionId: true,
+        educator: { select: { id: true, displayName: true, slug: true, status: true, currentPeriodEnd: true, stripeAccountId: true, transfersActive: true, sharePct: true } },
+      },
     })
     .catch(() => null);
   if (!row?.publishedVersionId || (row.status !== "published" && row.status !== "unlisted")) return null;

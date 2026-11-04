@@ -8,6 +8,7 @@ import { studioAction } from "../_lib/guard";
 import { storeUpload } from "@/lib/storage";
 import { createCourse, reviewVersion, saveDraft, setListed, submitForReview, type SaveResult } from "@/lib/course-builder";
 import { DECISION_LABEL } from "@/lib/course-review";
+import { refundSale } from "@/lib/course-ledger";
 
 /**
  * Withdraws a certificate (it then shows as withdrawn on its public page and
@@ -112,4 +113,25 @@ export async function setCourseListedAction(form: FormData) {
   await audit(staff, { action: listed ? "course.list" : "course.unlist", targetType: "course", targetId: id, summary: listed ? "Put a course back on sale." : "Took a course off sale; its learners keep access." });
   revalidatePath("/studio/courses");
   redirect(`/studio/courses/${id}?notice=${encodeURIComponent(listed ? "The course is on sale again." : "The course is off sale. Its learners keep access.")}`);
+}
+
+/** Refunds a course sale in full. For an educator's course, Stripe also takes back their share. */
+export async function refundSaleAction(form: FormData) {
+  const staff = await studioAction("courses.review");
+  const id = String(form.get("id") ?? "").slice(0, 40);
+  const sale = await prisma.courseSale.findUnique({ where: { id }, select: { courseSlug: true, gross: true, educatorId: true } });
+  if (!sale) redirect("/studio/courses#sales");
+  const result = await refundSale(id).catch((error) => {
+    console.error("[COURSE_REFUND]", error);
+    return { ok: false as const, error: "Stripe didn't accept the refund. Check the payment in Stripe." };
+  });
+  if (!result.ok) redirect(`/studio/courses?notice=${encodeURIComponent(result.error)}&tone=danger#sales`);
+  await audit(staff, {
+    action: "course_sale.refund",
+    targetType: "course_sale",
+    targetId: id,
+    summary: `Refunded a sale of ${sale.courseSlug} in full${sale.educatorId ? ", taking back the educator's share" : ""}.`,
+  });
+  revalidatePath("/studio/courses");
+  redirect(`/studio/courses?notice=${encodeURIComponent("The refund is on its way. The ledger updates as soon as Stripe confirms it.")}#sales`);
 }

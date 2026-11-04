@@ -5,7 +5,10 @@ import { Empty, Notice, NoAccess, PageHeader, Section, Stat, Tag, dateOnly } fro
 import { formatMoney } from "@/lib/mail/templates/billing";
 import { getContent, listCourses } from "@/lib/course-catalogue";
 import { studioPage } from "../_lib/guard";
-import { createCourseAction, setCertificateWithdrawnAction } from "./actions";
+import { createCourseAction, refundSaleAction, setCertificateWithdrawnAction } from "./actions";
+import { totals } from "@/lib/revenue-split";
+
+const money = (pence: number) => formatMoney(pence, "gbp") ?? "£0.00";
 
 const STATE_LABEL: Record<string, { label: string; tone: "default" | "ink" | "positive" | "warn" | "danger" }> = {
   draft: { label: "Draft", tone: "default" },
@@ -20,6 +23,20 @@ export default async function StudioCoursesPage({ searchParams }: { searchParams
   const { notice, tone } = await searchParams;
   const canEdit = staff.perms.has("courses.edit");
 
+  const canRefund = staff.perms.has("courses.review");
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const sales = await prisma.courseSale
+    .findMany({ orderBy: { createdAt: "desc" }, take: 500, include: { educator: { select: { id: true, displayName: true } } } })
+    .catch(() => []);
+  const allTotals = totals(sales);
+  const monthTotals = totals(sales.filter((x) => x.createdAt >= monthStart));
+  const byEducator = new Map<string, { name: string; rows: (typeof sales)[number][] }>();
+  for (const x of sales) {
+    const key = x.educator?.id ?? "own";
+    const group = byEducator.get(key) ?? { name: x.educator?.displayName ?? "Trichollective's own courses", rows: [] };
+    group.rows.push(x);
+    byEducator.set(key, group);
+  }
   const [enrolments, certificates, built, waiting, courses] = await Promise.all([
     prisma.courseEnrolment.findMany({
       where: { status: { in: ["active", "refunded"] } },
@@ -95,6 +112,84 @@ export default async function StudioCoursesPage({ searchParams }: { searchParams
               </li>
             ))}
           </ul>
+        )}
+      </Section>
+
+      <Section
+        title="Sales"
+        intro="Every paid course place, how it was split and where the money went. Educators' shares are transferred by Stripe when the learner pays."
+        actions={
+          canRefund && sales.length ? (
+            <Button asChild variant="outline" size="sm">
+              <a href="/studio/courses/sales.csv">Download CSV</a>
+            </Button>
+          ) : undefined
+        }
+      >
+        <div id="sales" className="scroll-mt-20" />
+        {sales.length === 0 ? (
+          <Empty>No course places have been sold yet.</Empty>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <Stat label="Paid by learners, this month" value={money(monthTotals.gross)} note={`${monthTotals.sales} sales`} />
+              <Stat label="Paid by learners, all time" value={money(allTotals.gross)} note={`${allTotals.sales} sales`} />
+              <Stat label="Educators' share" value={money(allTotals.educator)} note="After refunds" />
+              <Stat label="Trichollective keeps" value={money(allTotals.net)} note={`After ${money(allTotals.stripeFees)} Stripe fees and ${money(allTotals.refunded)} refunds`} />
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-rule bg-card">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead className="border-b border-rule text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-2.5 font-medium">Who</th>
+                    <th className="px-4 py-2.5 font-medium">Sales</th>
+                    <th className="px-4 py-2.5 font-medium">Paid by learners</th>
+                    <th className="px-4 py-2.5 font-medium">To the educator</th>
+                    <th className="px-4 py-2.5 font-medium">Kept, after fees and refunds</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-rule">
+                  {[...byEducator.values()].map((g) => {
+                    const t = totals(g.rows);
+                    return (
+                      <tr key={g.name}>
+                        <td className="px-4 py-2.5 font-medium">{g.name}</td>
+                        <td className="px-4 py-2.5 tabular-nums">{t.sales}</td>
+                        <td className="px-4 py-2.5 tabular-nums">{money(t.gross)}</td>
+                        <td className="px-4 py-2.5 tabular-nums">{money(t.educator)}</td>
+                        <td className="px-4 py-2.5 tabular-nums">{money(t.net)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <details>
+              <summary className="cursor-pointer text-sm text-muted-foreground">Recent sales and refunds</summary>
+              <ul className="mt-2 divide-y divide-rule rounded-2xl border border-rule bg-card">
+                {sales.slice(0, 50).map((x) => (
+                  <li key={x.id} className="flex flex-col gap-2 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <span>
+                      {x.courseSlug} · {dateOnly(x.createdAt)} · {money(x.gross)} ({x.priceType})
+                      {x.educator ? ` · ${money(x.educatorAmount)} to ${x.educator.displayName}` : ""}
+                      {x.stripeFee != null ? ` · Stripe fee ${money(x.stripeFee)}` : ""}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {x.status !== "paid" && <Tag tone={x.status === "disputed" ? "danger" : "default"}>{x.status.replace("_", " ")}</Tag>}
+                      {canRefund && x.refundedAmount < x.gross && x.status !== "disputed" && (
+                        <form action={refundSaleAction}>
+                          <input type="hidden" name="id" value={x.id} />
+                          <button type="submit" className="rounded-full px-3 py-1 text-destructive hover:bg-destructive/5">
+                            Refund
+                          </button>
+                        </form>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </div>
         )}
       </Section>
 
