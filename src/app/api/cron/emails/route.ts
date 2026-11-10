@@ -20,7 +20,11 @@ async function sendEventReminders(now: Date) {
     where: { published: true, startsAt: { gte: new Date(now.getTime() + 24 * HOUR), lt: new Date(now.getTime() + 48 * HOUR) } },
     include: {
       rsvps: { select: { userId: true, user: { select: { name: true, email: true } } } },
-      tickets: { where: { status: "paid" }, select: { userId: true, email: true, name: true, quantity: true } },
+      // Exhibitor packages and their extra places are not delegate tickets, so their contacts are not sent this reminder.
+      tickets: {
+        where: { status: "paid", OR: [{ ticketTypeId: null }, { ticketType: { kind: "attendee" } }] },
+        select: { userId: true, email: true, name: true, quantity: true },
+      },
     },
   });
   let sent = 0;

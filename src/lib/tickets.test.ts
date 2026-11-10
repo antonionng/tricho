@@ -15,6 +15,7 @@ const db = {
   attendeeUpdateMany: vi.fn(),
   attendeeUpdate: vi.fn(),
   refundCreate: vi.fn(),
+  typeFindFirst: vi.fn(),
 };
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -26,6 +27,7 @@ vi.mock("@/lib/prisma", () => ({
       findMany: (...a: unknown[]) => db.findMany(...a),
       count: (...a: unknown[]) => db.count(...a),
     },
+    eventTicketType: { findFirst: (...a: unknown[]) => db.typeFindFirst(...a) },
     eventRsvp: {
       createMany: (...a: unknown[]) => db.rsvpCreateMany(...a),
       deleteMany: (...a: unknown[]) => db.rsvpDeleteMany(...a),
@@ -475,8 +477,75 @@ describe("refundAttendee", () => {
     expect((await refundAttendee("a2")).ok).toBe(false);
   });
 
+  it("never refunds a place included in a package on its own", async () => {
+    db.attendeeFindUnique.mockResolvedValue(order({ ticketType: { kind: "package" }, quantity: 1, amount: 75_000 }));
+    const r = await refundAttendee("a2");
+    expect(r.ok).toBe(false);
+    expect(db.attendeeUpdateMany).not.toHaveBeenCalled();
+    expect(db.refundCreate).not.toHaveBeenCalled();
+  });
+
   it("only refunds places on paid orders", async () => {
     db.attendeeFindUnique.mockResolvedValue(order({ status: "refunded" }));
     expect(await refundAttendee("a2")).toEqual({ ok: false, error: "Only a place on a paid order can be refunded." });
+  });
+});
+
+describe("paid exhibitor packages", () => {
+  const packageTicket = {
+    ...inPersonTicket,
+    email: "sam@follicle.example",
+    name: "Sam Patel",
+    quantity: 1,
+    amount: 75_000,
+    ticketTypeId: "tt_evolve",
+    ticketType: { name: "Evolve", kind: "package", placesIncluded: 3, includesStand: true, includesStageSlot: true, description: "A stand space with priority positioning." },
+    exhibitor: { companyName: "Follicle Labs", contactName: "Sam Patel", manageCode: "MANAGE2345678ABC", vatNumber: "GB123456789" },
+  };
+  const packageSession = { ...session, amount_total: 75_000 } as Stripe.Checkout.Session;
+
+  beforeEach(() => {
+    Object.values(db).forEach((f) => f.mockReset());
+    db.findUnique.mockResolvedValue(packageTicket);
+    db.updateMany.mockResolvedValue({ count: 1 });
+    db.deliverOnce.mockResolvedValue(true);
+    db.typeFindFirst.mockResolvedValue({ name: "Extra exhibitor ticket", pricePence: 10_000, maxPerOrder: 5 });
+    db.attendeeFindMany.mockResolvedValue([
+      person("a1", { name: "Sam Patel", email: "sam@follicle.example", awaitingName: false }),
+      person("a2", { name: "Follicle Labs, place 2", email: "sam@follicle.example", awaitingName: true }),
+      person("a3", { name: "Follicle Labs, place 3", email: "sam@follicle.example", awaitingName: true }),
+    ]);
+  });
+
+  it("sends the package confirmation, e-tickets only for named places, and one owner alert", async () => {
+    const r = await handleTicketCheckoutCompleted(packageSession);
+    expect(r).toMatchObject({ ok: true, already: false });
+    // Package places are never invented from the buyer: they were created at checkout.
+    expect(db.attendeeCreateMany).not.toHaveBeenCalled();
+    expect(db.rsvpCreateMany).not.toHaveBeenCalled();
+    expect(db.deliverOnce.mock.calls.map((c) => c[0])).toEqual(["package-confirmed:t1", "ticket-attendee:a1"]);
+    const [, to, subject, content] = db.deliverOnce.mock.calls[0];
+    expect(to).toBe("sam@follicle.example");
+    expect(subject).toBe("Your Evolve package for Whittlebury is confirmed");
+    expect(content.cta).toEqual({ label: "Open your exhibitor page", href: "/events/whittlebury-2027/exhibitor/MANAGE2345678ABC" });
+    expect(content.facts).toContainEqual(["Package code", "MANAGE2345678ABC"]);
+    expect(content.body).toContain("2 of your 3 places are still to be named");
+    expect(content.body).toContain("up to 5 extra places for your team at £100.00 each");
+    expect(content.body).toContain("- 3 delegate places, each with its own e-ticket.\n- A slot on the main stage.");
+    expect(db.typeFindFirst.mock.calls[0][0].where).toMatchObject({ kind: "addon", active: true, addonForTypeIds: { has: "tt_evolve" } });
+    expect(db.alertOwners).toHaveBeenCalledTimes(1);
+    expect(db.alertOwners.mock.calls[0][0]).toMatchObject({ subject: "Package sold: Evolve to Follicle Labs, £750.00" });
+  });
+
+  it("leaves out the extra places when the package is not offered them", async () => {
+    db.typeFindFirst.mockResolvedValue(null);
+    await handleTicketCheckoutCompleted(packageSession);
+    expect(db.deliverOnce.mock.calls[0][3].body).not.toContain("extra places");
+  });
+
+  it("does not alert the team twice for a retried event", async () => {
+    db.updateMany.mockResolvedValue({ count: 0 });
+    await handleTicketCheckoutCompleted(packageSession);
+    expect(db.alertOwners).not.toHaveBeenCalled();
   });
 });

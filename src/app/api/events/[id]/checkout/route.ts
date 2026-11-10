@@ -24,6 +24,8 @@ import {
   type TicketTypeRule,
 } from "@/lib/tickets";
 import { attendeeRows, newAttendeeCode } from "@/lib/attendees";
+import { kindOf } from "@/lib/packages";
+import { startAddonCheckout, startPackageCheckout } from "@/lib/package-checkout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +41,9 @@ export const dynamic = "force-dynamic";
  * {ticketTypeId, quantity}, with each type's own price, window and limits.
  * In-person events also take one attendee per place (name, email, dietary
  * and access needs), stored with the pending order until payment.
+ * Exhibitor packages and their extra places are ticket types too: POST with a
+ * package's ticketTypeId takes {exhibitor, attendees}, and with an add-on's it
+ * takes {packageCode, quantity, attendees}. See src/lib/package-checkout.ts.
  */
 
 type Params = { params: Promise<{ id: string }> };
@@ -55,6 +60,8 @@ const eventSelect = {
   memberPriceGBP: true,
   published: true,
   sellTickets: true,
+  stageSlots: true,
+  standSpaces: true,
   ticketTypes: {
     where: { active: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] as Prisma.EventTicketTypeOrderByWithRelationInput[],
@@ -70,6 +77,11 @@ const eventSelect = {
       salesEnd: true,
       maxPerOrder: true,
       active: true,
+      kind: true,
+      placesIncluded: true,
+      includesStand: true,
+      includesStageSlot: true,
+      addonForTypeIds: true,
     },
   },
 } as const;
@@ -105,7 +117,8 @@ export async function GET(_req: Request, { params }: Params) {
   const holds = who
     ? await prisma.eventTicket.count({ where: { eventId: event.id, userId: who.userId, status: "paid" } })
     : 0;
-  const types = event.ticketTypes.map((t) => {
+  // Exhibitor packages are sold from their own section of the event page.
+  const types = event.ticketTypes.filter((t) => kindOf(t) === "attendee").map((t) => {
     const availability = typeAvailability(t, { eventStartsAt: event.startsAt, taken: typeSeatsTaken(t.id, usage.tickets), eventLeft: left, isMember });
     return {
       id: t.id,
@@ -161,6 +174,8 @@ export async function POST(req: Request, { params }: Params) {
       ticketTypeId?: unknown;
       attendees?: unknown;
       returnTo?: unknown;
+      exhibitor?: unknown;
+      packageCode?: unknown;
     };
 
     if (!process.env.STRIPE_SECRET_KEY) return error("Payments are not switched on yet. Please try again shortly.", 503);
@@ -171,10 +186,19 @@ export async function POST(req: Request, { params }: Params) {
 
     const who = await buyer();
     const isMember = !!who?.isMember;
-    const hasTypes = event.ticketTypes.length > 0;
+
+    const chosen = event.ticketTypes.find((t) => t.id === body.ticketTypeId);
+    if (chosen && kindOf(chosen) !== "attendee") {
+      const result =
+        kindOf(chosen) === "package" ? await startPackageCheckout(event, chosen, body, who) : await startAddonCheckout(event, chosen, body, who);
+      return NextResponse.json(result.body, { status: result.status });
+    }
+
+    const attendeeTypes = event.ticketTypes.filter((t) => kindOf(t) === "attendee");
+    const hasTypes = attendeeTypes.length > 0;
     let type: TicketTypeRule | null = null;
     if (hasTypes) {
-      type = event.ticketTypes.find((t) => t.id === body.ticketTypeId) ?? null;
+      type = attendeeTypes.find((t) => t.id === body.ticketTypeId) ?? null;
       if (!type) return error("Please choose a ticket type.", 400);
       if (type.membersOnly && !isMember) return error(`${type.name} tickets are for members. Please sign in as a member to buy one.`, 403);
     }

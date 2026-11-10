@@ -366,7 +366,7 @@ async function uniqueEventSlug(title: string) {
   return `${base}-${Date.now().toString(36)}`;
 }
 
-const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "venueAddress", "timezone", "detailsCloseAt", "priceGBP", "memberPriceGBP", "capacity", "ticketUrl", "published", "sellTickets", "presenters", "sponsorPartnerId"] as const;
+const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "venueAddress", "timezone", "detailsCloseAt", "priceGBP", "memberPriceGBP", "capacity", "stageSlots", "standSpaces", "ticketUrl", "published", "sellTickets", "presenters", "sponsorPartnerId"] as const;
 
 export async function saveEventAction(form: FormData) {
   const staff = await requirePermission("events.edit");

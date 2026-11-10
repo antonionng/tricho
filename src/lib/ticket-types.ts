@@ -1,4 +1,5 @@
 import { zonedToDate } from "@/lib/event-input";
+import { DEFAULT_EXTRAS_PER_PACKAGE, MAX_EXTRAS_LIMIT, type TicketKind } from "@/lib/packages";
 
 /**
  * Validating the Studio ticket-type form. Pure, so the rules are tested
@@ -21,7 +22,15 @@ export type TicketTypeInput = {
   maxPerOrder: number;
   sortOrder: number;
   active: boolean;
+  kind: TicketKind;
+  placesIncluded: number;
+  includesStand: boolean;
+  includesStageSlot: boolean;
+  addonForTypeIds: string[];
 };
+
+/** The most places one package can include. */
+export const MAX_PLACES_INCLUDED = 20;
 
 type Raw = Record<string, string | undefined>;
 
@@ -45,16 +54,38 @@ function whole(value: string | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-export function validateTicketType(raw: Raw, tz: string): { ok: true; data: TicketTypeInput } | { ok: false; error: string } {
+/**
+ * Packages and add-ons are checked by the same rules, with these differences:
+ * a package is bought one at a time, sets how many places it includes and
+ * whether it takes a stand or a stage slot, and has no member price; an add-on
+ * lists the package types it is offered with, and its "most per order" is the
+ * most extra places one package can add in total.
+ */
+export function validateTicketType(
+  raw: Raw,
+  tz: string,
+  opts: { addonFor?: string[]; packageIds?: string[] } = {}
+): { ok: true; data: TicketTypeInput } | { ok: false; error: string } {
+  const kind: TicketKind = raw.kind === "package" || raw.kind === "addon" ? raw.kind : "attendee";
   const name = (raw.name ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
-  if (!name) return { ok: false, error: "Please give the ticket type a name, such as Early bird." };
+  if (!name) {
+    return {
+      ok: false,
+      error:
+        kind === "package"
+          ? "Please give the package a name, such as Elevate."
+          : kind === "addon"
+            ? "Please give the extra places a name, such as Extra exhibitor ticket."
+            : "Please give the ticket type a name, such as Early bird.",
+    };
+  }
 
   const pricePence = poundsToPence(raw.price);
   if (pricePence == null || pricePence < MIN_TICKET_PENCE) {
     return { ok: false, error: `Please give ${name} a price of at least £${(MIN_TICKET_PENCE / 100).toFixed(2)}.` };
   }
   let memberPricePence: number | null = null;
-  if ((raw.memberPrice ?? "").trim()) {
+  if (kind === "attendee" && (raw.memberPrice ?? "").trim()) {
     memberPricePence = poundsToPence(raw.memberPrice);
     if (memberPricePence == null || memberPricePence < MIN_TICKET_PENCE) {
       return { ok: false, error: `The member price for ${name} must be at least £${(MIN_TICKET_PENCE / 100).toFixed(2)}, or left blank.` };
@@ -65,7 +96,19 @@ export function validateTicketType(raw: Raw, tz: string): { ok: true; data: Tick
   if (capacityRaw != null && capacityRaw < 1) return { ok: false, error: `Places for ${name} must be at least 1, or left blank for no limit.` };
 
   const maxRaw = whole(raw.maxPerOrder);
-  const maxPerOrder = Math.min(MAX_PER_ORDER_LIMIT, Math.max(1, maxRaw ?? 4));
+  const maxPerOrder =
+    kind === "package"
+      ? 1
+      : kind === "addon"
+        ? Math.min(MAX_EXTRAS_LIMIT, Math.max(1, maxRaw ?? DEFAULT_EXTRAS_PER_PACKAGE))
+        : Math.min(MAX_PER_ORDER_LIMIT, Math.max(1, maxRaw ?? 4));
+
+  const placesRaw = whole(raw.placesIncluded);
+  if (kind === "package" && (placesRaw == null || placesRaw < 0 || placesRaw > MAX_PLACES_INCLUDED)) {
+    return { ok: false, error: `Please say how many delegate places ${name} includes, from 0 to ${MAX_PLACES_INCLUDED}.` };
+  }
+  const known = new Set(opts.packageIds ?? []);
+  const addonForTypeIds = kind === "addon" ? [...new Set(opts.addonFor ?? [])].filter((id) => !opts.packageIds || known.has(id)) : [];
 
   const salesStart = (raw.salesStart ?? "").trim() ? zonedToDate(raw.salesStart!.trim(), tz) : null;
   const salesEnd = (raw.salesEnd ?? "").trim() ? zonedToDate(raw.salesEnd!.trim(), tz) : null;
@@ -77,16 +120,31 @@ export function validateTicketType(raw: Raw, tz: string): { ok: true; data: Tick
     ok: true,
     data: {
       name,
-      description: (raw.description ?? "").trim().slice(0, 300),
+      // A package lists its benefits one per line, so it has room for more.
+      description:
+        kind === "package"
+          ? (raw.description ?? "")
+              .replace(/\r/g, "")
+              .split("\n")
+              .map((l) => l.trim())
+              .filter(Boolean)
+              .join("\n")
+              .slice(0, 1200)
+          : (raw.description ?? "").trim().slice(0, 300),
       pricePence,
       memberPricePence,
-      membersOnly: raw.membersOnly === "on",
+      membersOnly: kind === "attendee" && raw.membersOnly === "on",
       capacity: capacityRaw,
       salesStart,
       salesEnd,
       maxPerOrder,
       sortOrder: whole(raw.sortOrder) ?? 0,
       active: raw.active === "on",
+      kind,
+      placesIncluded: kind === "package" ? placesRaw! : 1,
+      includesStand: kind === "package" && raw.includesStand === "on",
+      includesStageSlot: kind === "package" && raw.includesStageSlot === "on",
+      addonForTypeIds,
     },
   };
 }

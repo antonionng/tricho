@@ -3,10 +3,11 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import { formatMoney, ticketSoldAlert } from "@/lib/mail/templates/billing";
-import { attendeeTicketEmail, TICKET_QR_CID, ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
+import { attendeeTicketEmail, packageConfirmedEmail, packageSoldAlert, TICKET_QR_CID, ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
 import { eventDay } from "@/lib/mail/templates/members";
 import { detailsCloseAt, newAttendeeCode, placeholderRows, placeRefundPence } from "@/lib/attendees";
 import { eventTimeZone } from "@/lib/event-time";
+import { exhibitorPath, kindOf, packageIncludes, type PackageOrder } from "@/lib/packages";
 
 /**
  * Native event tickets, paid through Stripe Checkout (one-off payments).
@@ -167,24 +168,43 @@ export function holdCutoff(now = new Date()) {
   return new Date(now.getTime() - PENDING_HOLD_MINUTES * 60_000);
 }
 
-/** The tickets and RSVPs that take a seat right now, for seatsLeft and typeSeatsTaken. */
+/**
+ * The tickets and RSVPs that take a seat right now, for seatsLeft and
+ * typeSeatsTaken, and the exhibitor packages and extra places that are paid or
+ * held, for package stock. Exhibitor places do not count towards the event's
+ * Places, which is for delegates.
+ */
 export async function seatUsage(eventId: string, now = new Date(), db: Pick<typeof prisma, "eventTicket" | "eventRsvp"> = prisma) {
-  const [tickets, rsvps] = await Promise.all([
+  const [all, rsvps] = await Promise.all([
     db.eventTicket.findMany({
       where: { eventId, OR: [{ status: "paid" }, { status: "pending", createdAt: { gte: holdCutoff(now) } }] },
       select: {
+        id: true,
         quantity: true,
         userId: true,
         ticketTypeId: true,
+        packageTicketId: true,
+        ticketType: { select: { kind: true, includesStand: true, includesStageSlot: true } },
         _count: { select: { attendees: { where: { cancelledAt: { not: null } } } } },
       },
     }),
     db.eventRsvp.findMany({ where: { eventId }, select: { userId: true } }),
   ]);
-  // A place refunded on its own in Studio frees its seat; the rest of the order still counts.
+  const isPackageOrder = (t: (typeof all)[number]) => kindOf(t.ticketType) !== "attendee";
   return {
-    tickets: tickets.map(({ _count, ...t }) => ({ ...t, quantity: Math.max(0, t.quantity - (_count?.attendees ?? 0)) })),
+    // A place refunded on its own in Studio frees its seat; the rest of the order still counts.
+    tickets: all
+      .filter((t) => !isPackageOrder(t))
+      .map((t) => ({ quantity: Math.max(0, t.quantity - (t._count?.attendees ?? 0)), userId: t.userId, ticketTypeId: t.ticketTypeId })),
     rsvps,
+    // A package keeps its stock, stand and stage slot until the whole order is refunded.
+    packageOrders: all.filter(isPackageOrder).map<PackageOrder>((t) => ({
+      ticketTypeId: t.ticketTypeId,
+      quantity: kindOf(t.ticketType) === "addon" ? Math.max(0, t.quantity - (t._count?.attendees ?? 0)) : 1,
+      packageTicketId: t.packageTicketId ?? null,
+      includesStand: kindOf(t.ticketType) === "package" && !!t.ticketType?.includesStand,
+      includesStageSlot: kindOf(t.ticketType) === "package" && !!t.ticketType?.includesStageSlot,
+    })),
   };
 }
 
@@ -216,7 +236,11 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
 
   const ticket = await prisma.eventTicket.findUnique({
     where: { id: ticketId },
-    include: { event: true, ticketType: { select: { name: true } } },
+    include: {
+      event: true,
+      ticketType: { select: { name: true, kind: true, placesIncluded: true, includesStand: true, includesStageSlot: true, description: true } },
+      exhibitor: { select: { companyName: true, contactName: true, manageCode: true, vatNumber: true } },
+    },
   });
   if (!ticket) {
     console.error("[TICKETS] paid checkout for an unknown ticket", { ticketId, session: session.id });
@@ -238,6 +262,12 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
       ...(session.currency ? { currency: session.currency } : {}),
     },
   });
+
+  if (kindOf(ticket.ticketType) === "package") {
+    await completePackage(ticket, session, updated.count > 0);
+    refresh(ticket.event.slug);
+    return { ok: true as const, ticketId: ticket.id, already: updated.count === 0 };
+  }
 
   if (ticket.userId) {
     await prisma.eventRsvp.createMany({ data: [{ eventId: ticket.eventId, userId: ticket.userId }], skipDuplicates: true });
@@ -276,6 +306,70 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
 
   refresh(ticket.event.slug);
   return { ok: true as const, ticketId: ticket.id, already: updated.count === 0 };
+}
+
+/**
+ * A paid exhibitor package: the confirmation to the contact with links to name
+ * their places, add their logo and booklet text, and buy extra places; an
+ * e-ticket for each place already named; and an alert to the owners.
+ */
+async function completePackage(
+  ticket: PaidTicket & {
+    amount: number;
+    currency: string;
+    ticketTypeId: string | null;
+    ticketType: { name: string; kind: string; placesIncluded: number; includesStand: boolean; includesStageSlot: boolean; description: string } | null;
+    exhibitor: { companyName: string; contactName: string; manageCode: string; vatNumber: string | null } | null;
+  },
+  session: Stripe.Checkout.Session,
+  firstTime: boolean
+) {
+  const type = ticket.ticketType!;
+  const ex = ticket.exhibitor;
+  if (!ex) {
+    console.error("[TICKETS] paid package without company details", { ticketId: ticket.id });
+    return;
+  }
+  const attendees = await prisma.eventAttendee.findMany({ where: { ticketId: ticket.id }, orderBy: { createdAt: "asc" } });
+  const open = attendees.filter((a) => !a.cancelledAt);
+  const extras = ticket.ticketTypeId
+    ? await prisma.eventTicketType.findFirst({
+        where: { eventId: ticket.eventId, kind: "addon", active: true, addonForTypeIds: { has: ticket.ticketTypeId } },
+        select: { name: true, pricePence: true, maxPerOrder: true },
+      })
+    : null;
+  const amount = formatMoney(session.amount_total ?? ticket.amount, session.currency ?? ticket.currency);
+  const email = packageConfirmedEmail({
+    contactName: ex.contactName,
+    companyName: ex.companyName,
+    event: ticket.event,
+    packageName: type.name,
+    includes: packageIncludes(type),
+    amount,
+    named: open.filter((a) => !a.awaitingName).map((a) => ({ name: a.name, email: a.email })),
+    waiting: open.filter((a) => a.awaitingName).length,
+    manageHref: exhibitorPath(ticket.event.slug, ex.manageCode),
+    code: ex.manageCode,
+    extras: extras ? { name: extras.name, price: formatMoney(extras.pricePence, "gbp") ?? "", max: extras.maxPerOrder } : null,
+  });
+  await deliverOnce(`package-confirmed:${ticket.id}`, ticket.email, email.subject, email.content, { tag: "event-package" });
+  for (const a of open) {
+    if (!a.awaitingName) await sendAttendeeTicket(a, ticket);
+  }
+  if (firstTime) {
+    await alertOwners(
+      packageSoldAlert({
+        company: ex.companyName,
+        contact: ex.contactName,
+        email: ticket.email,
+        event: ticket.event.title,
+        eventId: ticket.eventId,
+        packageName: type.name,
+        amount,
+        vatNumber: ex.vatNumber,
+      })
+    );
+  }
 }
 
 type PaidTicket = {
@@ -408,6 +502,7 @@ export async function refundAttendee(attendeeId: string): Promise<AttendeeRefund
           amount: true,
           quantity: true,
           stripePaymentIntentId: true,
+          ticketType: { select: { kind: true } },
           event: { select: { slug: true } },
           attendees: { select: { id: true, cancelledAt: true, refundedPence: true } },
         },
@@ -418,6 +513,9 @@ export async function refundAttendee(attendeeId: string): Promise<AttendeeRefund
   if (a.cancelledAt) return { ok: false, error: `${a.name}'s place has already been cancelled.` };
   const t = a.ticket;
   if (t.status !== "paid") return { ok: false, error: "Only a place on a paid order can be refunded." };
+  if (kindOf(t.ticketType) === "package") {
+    return { ok: false, error: "Places included in a package are not priced on their own, so refund the whole package in Stripe instead." };
+  }
   if (!t.stripePaymentIntentId && t.amount > 0) return { ok: false, error: "This order has no Stripe payment to refund." };
 
   const refundedSoFar = t.attendees.reduce((sum, x) => sum + (x.refundedPence ?? 0), 0);
@@ -510,7 +608,9 @@ export type Attendee = {
   key: string;
   name: string | null;
   email: string;
-  type: "Member ticket" | "Guest ticket" | "RSVP";
+  type: "Member ticket" | "Guest ticket" | "RSVP" | "Exhibitor package" | "Extra exhibitor places";
+  /** The company, for exhibitor packages and their extra places. */
+  company?: string | null;
   /** The ticket type's name, when the event sells types. */
   ticketType: string | null;
   quantity: number;
@@ -542,7 +642,9 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
         userId: true,
         paidAt: true,
         createdAt: true,
-        ticketType: { select: { name: true } },
+        ticketType: { select: { name: true, kind: true } },
+        exhibitor: { select: { companyName: true } },
+        packageTicket: { select: { exhibitor: { select: { companyName: true } } } },
         attendees: {
           orderBy: { createdAt: "asc" },
           select: {
@@ -571,7 +673,15 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
       key: `t:${t.id}`,
       name: t.name,
       email: t.email,
-      type: t.priceType === "member" ? "Member ticket" : "Guest ticket",
+      type:
+        kindOf(t.ticketType) === "package"
+          ? "Exhibitor package"
+          : kindOf(t.ticketType) === "addon"
+            ? "Extra exhibitor places"
+            : t.priceType === "member"
+              ? "Member ticket"
+              : "Guest ticket",
+      company: t.exhibitor?.companyName ?? t.packageTicket?.exhibitor?.companyName ?? null,
       ticketType: t.ticketType?.name ?? null,
       quantity: t.quantity,
       status: t.status === "paid" ? "Paid" : "Refunded",
