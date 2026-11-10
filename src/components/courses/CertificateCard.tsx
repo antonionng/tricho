@@ -14,6 +14,7 @@ export function CertificateCard({
   hours,
   issuedAt,
   reviewer,
+  educator,
   withdrawn,
   className,
 }: {
@@ -23,6 +24,8 @@ export function CertificateCard({
   hours: number;
   issuedAt: Date;
   reviewer?: string | null;
+  /** The educator who wrote the course, for courses by Educator members. */
+  educator?: string | null;
   withdrawn?: boolean;
   className?: string;
 }) {
@@ -63,6 +66,12 @@ export function CertificateCard({
             <dt className="label text-muted-foreground">Completed</dt>
             <dd className="mt-1">{longDate(issuedAt)}</dd>
           </div>
+          {educator && (
+            <div className="col-span-2">
+              <dt className="label text-muted-foreground">Taught by</dt>
+              <dd className="mt-1">{educator}</dd>
+            </div>
+          )}
           {reviewer && (
             <div className="col-span-2">
               <dt className="label text-muted-foreground">Course reviewed by</dt>

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { isDevOrDemo } from "@/lib/env";
 import { subscriptionTiers, tierByPriceId, type PlanId } from "@/config/subscriptions";
+import { hasEducatorAccess } from "@/lib/educator-rules";
+import type { EducatorStatus } from "@prisma/client";
 
 /** Small grace window so a member isn't locked out the instant a renewal is processing. */
 const GRACE_PERIOD_MS = 1000 * 60 * 60 * 24; // 24h
@@ -95,12 +97,30 @@ export async function getMembershipByEmail(
   // A complimentary Professional or Business plan comes before a business seat; a complimentary Community plan after it.
   const comp = user ? resolveComp(user) : null;
   if (comp && comp.tierId !== "community") return comp;
+  // A paid-up Educator has Professional membership for as long as they're an Educator.
+  const educator = await educatorAccess(email.toLowerCase());
+  if (educator) return educator;
   // Never let the business lookup lock a member out, e.g. before its tables exist.
   const viaBusiness = await businessMembership(email.toLowerCase()).catch((error) => {
     console.error("[BUSINESS_MEMBERSHIP]", error);
     return null;
   });
   return viaBusiness ?? (own.isActive ? own : comp ?? own);
+}
+
+export const EDUCATOR = "Educator";
+
+/** Professional through the Educator membership, or null. Never throws, e.g. before its table exists. */
+async function educatorAccess(email: string): Promise<MembershipStatus | null> {
+  let profile: { status: EducatorStatus; currentPeriodEnd: Date | null } | null = null;
+  try {
+    profile = await prisma.educatorProfile.findFirst({ where: { user: { email } }, select: { status: true, currentPeriodEnd: true } });
+  } catch {
+    return null;
+  }
+  if (!hasEducatorAccess(profile)) return null;
+  const tier = subscriptionTiers.find((t) => t.id === "professional");
+  return { isActive: true, tierId: "professional", tierName: tier?.name, currentPeriodEnd: profile!.currentPeriodEnd, via: EDUCATOR };
 }
 
 /** True when this email holds an active Business plan (paid or complimentary) or manages a Premium partner page. */

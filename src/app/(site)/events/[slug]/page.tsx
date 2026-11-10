@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
-import { ArrowRight, CalendarDays, Clock, MapPin, Ticket, Users, Video } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock, MapPin, Users, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLink, Container, Pill, Section } from "@/components/site/primitives";
 import { Breadcrumbs } from "@/components/editorial/PageHero";
@@ -20,10 +20,10 @@ import {
 import { BuyTicket, TicketReturnNotice } from "@/components/events/BuyTicket";
 import { MemberPlace } from "@/components/events/MemberPlace";
 import { images, img } from "@/content/images";
-import { seatUsage, seatsLeft } from "@/lib/tickets";
+import { seatUsage, seatsLeft, typeAvailability, typeSeatsTaken, type TypeAvailability } from "@/lib/tickets";
+import { eventTimeZone, mapHref, timeZoneLabel } from "@/lib/event-time";
 import { prisma } from "@/lib/prisma";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
-import { site } from "@/config/site";
 
 export const revalidate = 300;
 
@@ -40,6 +40,46 @@ const getEvent = cache(async (slug: string) => {
     return null;
   }
 });
+
+const getTicketTypes = cache(async (eventId: string) =>
+  prisma.eventTicketType
+    .findMany({
+      where: { eventId, active: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        pricePence: true,
+        memberPricePence: true,
+        membersOnly: true,
+        capacity: true,
+        salesStart: true,
+        salesEnd: true,
+        maxPerOrder: true,
+        active: true,
+      },
+    })
+    .catch(() => [])
+);
+
+function pence(p: number) {
+  return p % 100 === 0 ? `£${p / 100}` : `£${(p / 100).toFixed(2)}`;
+}
+
+/** "12 left", "Sold out", "Sales open on 1 December", "Sales closed". */
+function availabilityText(a: TypeAvailability, tz: string) {
+  switch (a.state) {
+    case "not_yet":
+      return `Sales open on ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz }).format(a.opensAt!)}`;
+    case "closed":
+      return "Sales closed";
+    case "sold_out":
+      return "Sold out";
+    default:
+      return a.left != null ? `${a.left} left` : null;
+  }
+}
 
 export async function generateStaticParams(): Promise<Params[]> {
   try {
@@ -63,7 +103,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     title: `${event.title}, ${formatEventDate(event.startsAt)}`,
     description: event.summary,
     path: `/events/${event.slug}`,
-    og: { title: event.title, sub: event.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Dublin" }), eyebrow: event.online ? "Online" : event.city ?? "Event", img: (event.online ? images.ed15 : images.ed28).src, variant: "photo" },
+    og: { title: event.title, sub: event.startsAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: eventTimeZone(event.timezone) }), eyebrow: event.online ? "Online" : event.city ?? "Event", img: (event.online ? images.ed15 : images.ed28).src, variant: "photo" },
   });
 }
 
@@ -84,13 +124,22 @@ export default async function EventPage({ params }: { params: Promise<Params> })
     .map((p) => p.trim())
     .filter(Boolean);
   // Seats left for tickets sold here. The page refreshes when a ticket is paid; checkout checks again.
-  const left =
-    event.sellTickets && !isPast
-      ? await seatUsage(event.id)
-          .then((u) => seatsLeft(event, u.tickets, u.rsvps))
-          .catch(() => null)
-      : null;
-  const ticketMail = `mailto:${site.contactEmail}?subject=${encodeURIComponent(`Tickets: ${event.title}`)}`;
+  const usageForLeft = event.sellTickets && !isPast ? await seatUsage(event.id).catch(() => null) : null;
+  const left = usageForLeft ? seatsLeft(event, usageForLeft.tickets, usageForLeft.rsvps) : null;
+  // Ticket types, each with what is left. Shown to everyone at the public price; members see theirs at checkout.
+  const usage = usageForLeft;
+  const types = event.sellTickets ? await getTicketTypes(event.id) : [];
+  const typeRows = types.map((t) => ({
+    ...t,
+    availability: typeAvailability(t, {
+      eventStartsAt: event.startsAt,
+      taken: usage ? typeSeatsTaken(t.id, usage.tickets) : 0,
+      eventLeft: left,
+      isMember: true,
+    }),
+  }));
+  const tz = eventTimeZone(event.timezone);
+  const map = !event.online && event.venueAddress ? mapHref([event.venue, event.venueAddress]) : null;
 
   return (
     <>
@@ -108,7 +157,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
               <h1 className="display text-[2.5rem] leading-[0.98] sm:text-6xl lg:text-[4.25rem]">
                 {event.title}
                 <br />
-                <span className="text-fade">{formatEventDate(event.startsAt)}</span>
+                <span className="text-fade">{formatEventDate(event.startsAt, tz)}</span>
               </h1>
               <p className="lede max-w-2xl">{event.summary}</p>
               {event.presenters && <p className="text-ink-2">Presented by {event.presenters}.</p>}
@@ -162,12 +211,14 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                   <div className="flex gap-3">
                     <dt className="sr-only">Date</dt>
                     <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
-                    <dd className="text-ink">{formatEventDate(event.startsAt)}</dd>
+                    <dd className="text-ink">{formatEventDate(event.startsAt, tz)}</dd>
                   </div>
                   <div className="flex gap-3">
                     <dt className="sr-only">Time</dt>
                     <Clock className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.5]" aria-hidden />
-                    <dd className="text-ink">{formatEventTime(event.startsAt, event.endsAt)} (Irish and UK time)</dd>
+                    <dd className="text-ink">
+                      {formatEventTime(event.startsAt, event.endsAt, tz)} ({timeZoneLabel(tz)})
+                    </dd>
                   </div>
                   <div className="flex gap-3">
                     <dt className="sr-only">Where</dt>
@@ -178,6 +229,19 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                     )}
                     <dd className="text-ink">
                       {eventPlace(event)}
+                      {!event.online && event.venueAddress && (
+                        <span className="block text-[13px] text-muted-foreground">
+                          {event.venueAddress}
+                          {map && (
+                            <>
+                              {" · "}
+                              <a href={map} target="_blank" rel="noopener" className="underline underline-offset-4">
+                                Map
+                              </a>
+                            </>
+                          )}
+                        </span>
+                      )}
                       {event.online && (
                         <span className="block text-[13px] text-muted-foreground">
                           The joining link is sent to everyone who books.
@@ -194,7 +258,37 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                   )}
                 </dl>
 
-                {!isPast && event.sellTickets && (
+                {!isPast && event.sellTickets && typeRows.length > 0 && (
+                  <div className="flex flex-col gap-4 border-t border-rule pt-6">
+                    <p className="label text-muted-foreground">Tickets</p>
+                    <ul className="flex flex-col divide-y divide-rule">
+                      {typeRows.map((t) => {
+                        const status = availabilityText(t.availability, tz);
+                        const gone = t.availability.state === "sold_out" || t.availability.state === "closed";
+                        return (
+                          <li key={t.id} className={`flex items-start justify-between gap-4 py-3 ${gone ? "opacity-60" : ""}`}>
+                            <div className="min-w-0">
+                              <p className="font-medium text-ink">
+                                {t.name}
+                                {t.membersOnly && <span className="text-muted-foreground"> · members only</span>}
+                              </p>
+                              {t.description && <p className="text-[14px] text-ink-2">{t.description}</p>}
+                              {status && <p className="text-[13px] text-muted-foreground">{status}</p>}
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-lg font-semibold text-ink">{pence(t.pricePence)}</p>
+                              {t.memberPricePence != null && t.memberPricePence < t.pricePence && (
+                                <p className="text-[13px] text-muted-foreground">{pence(t.memberPricePence)} for members</p>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} />
+                  </div>
+                )}
+                {!isPast && event.sellTickets && typeRows.length === 0 && (
                   <div className="flex flex-col gap-4 border-t border-rule pt-6">
                     <div className="flex flex-col gap-1">
                       <p className="label text-muted-foreground">Tickets</p>
@@ -239,27 +333,18 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                     <div className="flex flex-col gap-1 border-t border-rule pt-6">
                       <p className="label text-muted-foreground">Tickets</p>
                       <p className="display mt-2 text-5xl">{formatPrice(event.memberPriceGBP)}</p>
-                      <p className="text-[15px] text-ink-2">
-                        for members · {formatPrice(event.priceGBP)} otherwise
-                      </p>
+                      <p className="text-[15px] text-ink-2">for members. This event is part of membership.</p>
                     </div>
-                    {/* Members save their place in the members' area; guests ask by email until tickets are sold here. */}
+                    {/* Members save their place in the members' area; everyone else is shown how to join. */}
                     <MemberPlace
                       slug={event.slug}
+                      membersOnly
                       fallback={
-                        <>
-                          <Button asChild size="lg" className="w-full">
-                            <Link href="/pricing">
-                              Members pay less <ArrowRight />
-                            </Link>
-                          </Button>
-                          <a
-                            href={ticketMail}
-                            className="inline-flex items-center justify-center gap-2 text-[15px] font-medium underline decoration-transparent underline-offset-4 hover:decoration-ink/40"
-                          >
-                            <Ticket className="h-4 w-4" aria-hidden /> Ask us for tickets by email
-                          </a>
-                        </>
+                        <Button asChild size="lg" className="w-full">
+                          <Link href="/pricing">
+                            Become a member to save your place <ArrowRight />
+                          </Link>
+                        </Button>
                       }
                     />
                   </>

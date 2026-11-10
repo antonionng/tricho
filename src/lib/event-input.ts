@@ -1,25 +1,30 @@
 import type { EventKind } from "@prisma/client";
+import { DEFAULT_EVENT_TIMEZONE, EVENT_TIMEZONES } from "@/lib/event-time";
 
 /** Pure helpers for turning event form values (or an AI draft) into Event fields. */
 
 export const EVENT_KINDS: EventKind[] = ["gathering", "masterclass", "case_round", "chapter_meetup", "welcome"];
 
-/** datetime-local values are London wall-clock time. */
-export function londonToDate(value: string): Date | null {
+/** datetime-local values are wall-clock time in the event's zone. */
+export function zonedToDate(value: string, tz: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
   const guess = new Date(`${value}:00Z`);
   if (Number.isNaN(guess.getTime())) return null;
-  const inLondon = new Date(guess.toLocaleString("en-US", { timeZone: "Europe/London" }));
+  const inZone = new Date(guess.toLocaleString("en-US", { timeZone: tz }));
   const inUtc = new Date(guess.toLocaleString("en-US", { timeZone: "UTC" }));
-  return new Date(guess.getTime() - (inLondon.getTime() - inUtc.getTime()));
+  return new Date(guess.getTime() - (inZone.getTime() - inUtc.getTime()));
 }
 
-/** A date as the London wall-clock value a datetime-local input expects: "YYYY-MM-DDTHH:mm". */
-export function dateToLondonInput(d: Date | null | undefined) {
+export function londonToDate(value: string): Date | null {
+  return zonedToDate(value, "Europe/London");
+}
+
+/** A date as the wall-clock value a datetime-local input expects in a zone: "YYYY-MM-DDTHH:mm". */
+export function dateToZonedInput(d: Date | null | undefined, tz: string) {
   if (!d || Number.isNaN(d.getTime())) return "";
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/London",
+      timeZone: tz,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -31,6 +36,15 @@ export function dateToLondonInput(d: Date | null | undefined) {
       .map((p) => [p.type, p.value])
   );
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+export function dateToLondonInput(d: Date | null | undefined) {
+  return dateToZonedInput(d, "Europe/London");
+}
+
+/** One of the zones Studio offers, or London. */
+export function pickTimeZone(value: unknown) {
+  return typeof value === "string" && EVENT_TIMEZONES.some((z) => z.id === value) ? value : DEFAULT_EVENT_TIMEZONE;
 }
 
 export function cleanUrl(value: string) {
@@ -58,6 +72,12 @@ export type EventInput = {
   online: boolean;
   city: string | null;
   venue: string | null;
+  /** The venue's full postal address, for in-person events. */
+  venueAddress: string | null;
+  /** The IANA zone the times are entered and shown in. */
+  timezone: string;
+  /** Until when attendees can change their own details. Null means 48 hours before the start. */
+  detailsCloseAt: Date | null;
   priceGBP: number;
   memberPriceGBP: number;
   capacity: number | null;
@@ -100,8 +120,9 @@ export function validateEventInput(raw: Raw): EventValidation {
   const kindRaw = text(raw, "kind", 32) as EventKind;
   const kind = EVENT_KINDS.includes(kindRaw) ? kindRaw : undefined;
   const summary = text(raw, "summary", 400);
-  const startsAt = londonToDate(text(raw, "startsAt", 32));
-  const endsAt = londonToDate(text(raw, "endsAt", 32));
+  const timezone = pickTimeZone(text(raw, "timezone", 64));
+  const startsAt = zonedToDate(text(raw, "startsAt", 32), timezone);
+  const endsAt = zonedToDate(text(raw, "endsAt", 32), timezone);
   const online = flag(raw, "online");
   const capacityRaw = text(raw, "capacity", 8);
   const sellTickets = flag(raw, "sellTickets");
@@ -112,6 +133,9 @@ export function validateEventInput(raw: Raw): EventValidation {
     online,
     city: online ? null : text(raw, "city", 80) || null,
     venue: online ? null : text(raw, "venue", 160) || null,
+    venueAddress: online ? null : text(raw, "venueAddress", 300) || null,
+    timezone,
+    detailsCloseAt: zonedToDate(text(raw, "detailsCloseAt", 32), timezone),
     priceGBP: pounds(text(raw, "priceGBP", 8)),
     memberPriceGBP: pounds(text(raw, "memberPriceGBP", 8)),
     capacity: capacityRaw ? Math.max(0, Math.round(Number(capacityRaw))) || null : null,
@@ -155,6 +179,9 @@ export type EventFormValues = {
   online: boolean;
   city: string;
   venue: string;
+  venueAddress: string;
+  timezone: string;
+  detailsCloseAt: string;
   priceGBP: string;
   memberPriceGBP: string;
   capacity: string;
@@ -179,6 +206,9 @@ export function formValuesFromPayload(payload: unknown): EventFormValues | null 
     online: p.online === true,
     city: str("city"),
     venue: str("venue"),
+    venueAddress: str("venueAddress"),
+    timezone: pickTimeZone(str("timezone")),
+    detailsCloseAt: str("detailsCloseAt"),
     priceGBP: str("priceGBP") || "0",
     memberPriceGBP: str("memberPriceGBP") || "0",
     capacity: str("capacity"),

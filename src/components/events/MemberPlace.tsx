@@ -12,8 +12,19 @@ type Visitor = { signedIn: boolean; member: boolean };
  * which takes them to the event in the members' area. Everyone else sees the
  * fallback (membership plans, Eventbrite, and so on), with a sign-in link for
  * members who are on a device where they are not signed in yet.
+ *
+ * For members-only events, someone signed in with a free account is told that
+ * events come with membership, so they know why they cannot save a place yet.
  */
-export function MemberPlace({ slug, fallback }: { slug: string; fallback: React.ReactNode }) {
+export function MemberPlace({
+  slug,
+  fallback,
+  membersOnly = false,
+}: {
+  slug: string;
+  fallback: React.ReactNode;
+  membersOnly?: boolean;
+}) {
   const [visitor, setVisitor] = useState<Visitor | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -27,6 +38,8 @@ export function MemberPlace({ slug, fallback }: { slug: string; fallback: React.
       live = false;
     };
   }, []);
+
+  const signIn = `/login?next=${encodeURIComponent(`/events/${slug}`)}`;
 
   if (visitor?.member) {
     return (
@@ -54,10 +67,19 @@ export function MemberPlace({ slug, fallback }: { slug: string; fallback: React.
   return (
     <div className="flex flex-col gap-3">
       {fallback}
+      {membersOnly && visitor?.signedIn && (
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          You are signed in with a free account, and events like this one are part of membership. Already a member?{" "}
+          <Link href={signIn} className="underline underline-offset-4">
+            Sign in with the email you joined with
+          </Link>{" "}
+          to reserve your place.
+        </p>
+      )}
       {!visitor?.signedIn && (
         <p className="text-sm leading-relaxed text-muted-foreground">
           Already a member?{" "}
-          <Link href={`/login?next=${encodeURIComponent(`/events/${slug}`)}`} className="underline underline-offset-4">
+          <Link href={signIn} className="underline underline-offset-4">
             Sign in
           </Link>{" "}
           to save your place.

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
@@ -10,13 +11,19 @@ import {
   MAX_GUEST_TICKETS,
   MAX_MEMBER_TICKETS,
   clampQuantity,
+  clampTypeQuantity,
   guestDetails,
   holdCutoff,
   seatUsage,
   seatsLeft,
   ticketLineName,
   ticketPrice,
+  typeAvailability,
+  typePrice,
+  typeSeatsTaken,
+  type TicketTypeRule,
 } from "@/lib/tickets";
+import { attendeeRows, newAttendeeCode } from "@/lib/attendees";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +35,10 @@ export const dynamic = "force-dynamic";
  *  - POST holds the seats and starts a one-off Stripe Checkout payment.
  * Signed-in active members buy one ticket at the member price; everyone else
  * may buy up to four at the guest price. Emails are never put in URLs.
+ * When the event sells ticket types, GET lists them and POST takes
+ * {ticketTypeId, quantity}, with each type's own price, window and limits.
+ * In-person events also take one attendee per place (name, email, dietary
+ * and access needs), stored with the pending order until payment.
  */
 
 type Params = { params: Promise<{ id: string }> };
@@ -37,11 +48,30 @@ const eventSelect = {
   slug: true,
   title: true,
   startsAt: true,
+  timezone: true,
+  online: true,
   capacity: true,
   priceGBP: true,
   memberPriceGBP: true,
   published: true,
   sellTickets: true,
+  ticketTypes: {
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] as Prisma.EventTicketTypeOrderByWithRelationInput[],
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      pricePence: true,
+      memberPricePence: true,
+      membersOnly: true,
+      capacity: true,
+      salesStart: true,
+      salesEnd: true,
+      maxPerOrder: true,
+      active: true,
+    },
+  },
 } as const;
 
 async function loadEvent(id: string) {
@@ -75,6 +105,22 @@ export async function GET(_req: Request, { params }: Params) {
   const holds = who
     ? await prisma.eventTicket.count({ where: { eventId: event.id, userId: who.userId, status: "paid" } })
     : 0;
+  const types = event.ticketTypes.map((t) => {
+    const availability = typeAvailability(t, { eventStartsAt: event.startsAt, taken: typeSeatsTaken(t.id, usage.tickets), eventLeft: left, isMember });
+    return {
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      amountPence: typePrice(t, isMember).amountPence,
+      pricePence: t.pricePence,
+      memberPricePence: t.memberPricePence,
+      membersOnly: t.membersOnly,
+      maxPerOrder: Math.max(1, t.maxPerOrder),
+      state: availability.state,
+      left: availability.left,
+      opensAt: availability.opensAt?.toISOString() ?? null,
+    };
+  });
 
   return NextResponse.json(
     {
@@ -87,17 +133,35 @@ export async function GET(_req: Request, { params }: Params) {
       seatsLeft: left,
       hasTicket: holds > 0,
       onSale: event.startsAt.getTime() > Date.now(),
+      types,
+      // In person, the buyer names each place. Their own email lets "this is me" fill a row.
+      inPerson: !event.online,
+      email: who?.email ?? null,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
 
-class SoldOut extends Error {}
+class SoldOut extends Error {
+  constructor(
+    message: string,
+    readonly status = 409
+  ) {
+    super(message);
+  }
+}
 
 export async function POST(req: Request, { params }: Params) {
   try {
     const { id } = await params;
-    const body = (await req.json().catch(() => ({}))) as { name?: unknown; email?: unknown; quantity?: unknown; returnTo?: unknown };
+    const body = (await req.json().catch(() => ({}))) as {
+      name?: unknown;
+      email?: unknown;
+      quantity?: unknown;
+      ticketTypeId?: unknown;
+      attendees?: unknown;
+      returnTo?: unknown;
+    };
 
     if (!process.env.STRIPE_SECRET_KEY) return error("Payments are not switched on yet. Please try again shortly.", 503);
 
@@ -107,7 +171,14 @@ export async function POST(req: Request, { params }: Params) {
 
     const who = await buyer();
     const isMember = !!who?.isMember;
-    const price = ticketPrice(event, isMember);
+    const hasTypes = event.ticketTypes.length > 0;
+    let type: TicketTypeRule | null = null;
+    if (hasTypes) {
+      type = event.ticketTypes.find((t) => t.id === body.ticketTypeId) ?? null;
+      if (!type) return error("Please choose a ticket type.", 400);
+      if (type.membersOnly && !isMember) return error(`${type.name} tickets are for members. Please sign in as a member to buy one.`, 403);
+    }
+    const price = type ? typePrice(type, isMember) : ticketPrice(event, isMember);
     if (price.amountPence <= 0) {
       return error(
         isMember
@@ -122,15 +193,24 @@ export async function POST(req: Request, { params }: Params) {
     if (who) {
       name = who.name;
       email = who.email;
-      const already = await prisma.eventTicket.count({ where: { eventId: event.id, userId: who.userId, status: "paid" } });
-      if (isMember && already > 0) return error("You already have a ticket for this event.", 409);
+      // With flat pricing a member buys one place; ticket types set their own limit per order.
+      if (isMember && !type) {
+        const already = await prisma.eventTicket.count({ where: { eventId: event.id, userId: who.userId, status: "paid" } });
+        if (already > 0) return error("You already have a ticket for this event.", 409);
+      }
     } else {
       const details = guestDetails(body);
       if (!details.ok) return error(details.error, 400);
       name = details.name;
       email = details.email;
     }
-    const quantity = clampQuantity(body.quantity, isMember);
+    const quantity = type ? clampTypeQuantity(body.quantity, type) : clampQuantity(body.quantity, isMember);
+    // One named person per place at an in-person event. Kept with the order, never in a URL.
+    let people: ReturnType<typeof attendeeRows> | null = null;
+    if (!event.online) {
+      people = attendeeRows(body.attendees, quantity, { name, email });
+      if (!people.ok) return error(people.error, 400);
+    }
 
     // Hold the seats. The advisory lock serialises buyers for this event so two
     // people can never take the last place at the same moment.
@@ -143,8 +223,18 @@ export async function POST(req: Request, { params }: Params) {
       });
       const usage = await seatUsage(event.id, now, tx);
       const left = seatsLeft(event, usage.tickets, usage.rsvps);
-      if (left != null && left < quantity) throw new SoldOut(left === 0 ? "This event is sold out." : `Only ${left} ${left === 1 ? "place is" : "places are"} left.`);
-      return tx.eventTicket.create({
+      if (type) {
+        // The type's own window and places, inside the same lock as the event's total.
+        const a = typeAvailability(type, { now, eventStartsAt: event.startsAt, taken: typeSeatsTaken(type.id, usage.tickets), eventLeft: left, isMember });
+        if (a.state === "not_yet") throw new SoldOut(`${type.name} tickets are not on sale yet.`, 400);
+        if (a.state === "closed") throw new SoldOut(`${type.name} tickets are no longer on sale.`, 400);
+        if (a.left != null && a.left < quantity) {
+          throw new SoldOut(a.left === 0 ? `${type.name} tickets are sold out.` : `Only ${a.left} ${type.name} ${a.left === 1 ? "ticket is" : "tickets are"} left.`);
+        }
+      } else if (left != null && left < quantity) {
+        throw new SoldOut(left === 0 ? "This event is sold out." : `Only ${left} ${left === 1 ? "place is" : "places are"} left.`);
+      }
+      const created = await tx.eventTicket.create({
         data: {
           eventId: event.id,
           userId: who?.userId ?? null,
@@ -154,14 +244,21 @@ export async function POST(req: Request, { params }: Params) {
           amount: price.amountPence * quantity,
           currency: "gbp",
           priceType: price.priceType,
+          ticketTypeId: type?.id ?? null,
           status: "pending",
         },
         select: { id: true },
       });
+      if (people?.ok) {
+        await tx.eventAttendee.createMany({
+          data: people.rows.map((p) => ({ ...p, ticketId: created.id, eventId: event.id, code: newAttendeeCode() })),
+        });
+      }
+      return created;
     });
 
     const back = body.returnTo === "members" ? "/members/events" : `/events/${event.slug}`;
-    const metadata = { kind: "ticket", ticketId: ticket.id, eventId: event.id };
+    const metadata = { kind: "ticket", ticketId: ticket.id, eventId: event.id, ...(type ? { ticketTypeId: type.id } : {}) };
     try {
       const checkout = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -175,13 +272,19 @@ export async function POST(req: Request, { params }: Params) {
               tax_behavior: "inclusive",
               product_data: {
                 name: ticketLineName(event),
-                description: price.priceType === "member" ? "Member ticket" : "Guest ticket",
+                description: type
+                  ? `${type.name}${price.priceType === "member" ? ", member price" : ""}`
+                  : price.priceType === "member"
+                    ? "Member ticket"
+                    : "Guest ticket",
               },
             },
           },
         ],
         customer_email: email,
         locale: "en-GB",
+        // Discount codes are created in the Stripe dashboard as promotion codes.
+        allow_promotion_codes: true,
         custom_text: checkoutTermsText("ticket"),
         expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_MINUTES * 60,
         metadata,
@@ -196,7 +299,7 @@ export async function POST(req: Request, { params }: Params) {
       throw stripeError;
     }
   } catch (err) {
-    if (err instanceof SoldOut) return error(err.message, 409);
+    if (err instanceof SoldOut) return error(err.message, err.status);
     console.error("[TICKET_CHECKOUT]", err);
     return error("We could not start the payment. Please try again in a moment.", 500);
   }

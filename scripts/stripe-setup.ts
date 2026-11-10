@@ -72,6 +72,12 @@ const PLANS: { product: string; description: string; prices: PriceSpec[] }[] = [
       { env: "STRIPE_PRICE_ID_PREMIUM_FOUNDING", lookup: "tc_premium_founding_year", gbp: 195000, interval: "year", nickname: "Premium Business, founding partner annual" },
     ],
   },
+  {
+    // A separate yearly subscription for practitioners who write and sell courses (pounds only).
+    product: "Trichollective Educator",
+    description: "Write and sell courses on Trichollective, with Professional membership included.",
+    prices: [{ env: "STRIPE_PRICE_ID_EDUCATOR", lookup: "tc_educator_year", gbp: 50000, interval: "year", nickname: "Educator, annual" }],
+  },
 ];
 
 const money = (minor: number, symbol: string) => `${symbol}${(minor / 100).toLocaleString("en-GB")}`;

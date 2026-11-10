@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { absoluteUrl, esc, renderEmail } from "../layout";
-import { samples, ticketConfirmedEmail, ticketReminderEmail } from "./tickets";
+import { attendeeTicketEmail, samples, ticketConfirmedEmail, ticketReminderEmail } from "./tickets";
 
 const event = {
   id: "evt_1",
@@ -55,5 +55,58 @@ describe("ticket emails", () => {
     expect(e.content.body).toContain("2 tickets");
     expect(e.content.body).not.toContain("events page in the app");
     expect(e.content.secondary?.href).toBe("/api/events/evt_1/ics");
+  });
+});
+
+describe("in-person ticket emails", () => {
+  const inPerson = {
+    ...event,
+    online: false,
+    venue: "Whittlebury Hall",
+    city: "Towcester",
+    venueAddress: "Whittlebury, Towcester NN12 8QH",
+    timezone: "Europe/London",
+  };
+
+  it("gives the venue, address and a map link instead of Google Meet wording", () => {
+    const e = ticketConfirmedEmail({ name: "Niamh", event: inPerson, quantity: 2, amount: "£298.00", priceType: "guest", ticketType: "Early bird" });
+    expect(e.content.body).toContain("in person at Whittlebury Hall, Towcester, Whittlebury, Towcester NN12 8QH");
+    expect(e.content.body).not.toMatch(/Google Meet|online/i);
+    expect(e.content.facts).toContainEqual(["Address", "Whittlebury, Towcester NN12 8QH"]);
+    const map = e.content.facts?.find(([k]) => k === "Map")?.[1];
+    expect(map).toBe("https://www.google.com/maps/search/?api=1&query=Whittlebury%20Hall%2C%20Whittlebury%2C%20Towcester%20NN12%208QH");
+    expect(e.content.facts).toContainEqual(["Price", "Early bird, guest price"]);
+    expect(e.content.cta?.label).toBe("View the event");
+  });
+
+  it("puts the address in the reminder too", () => {
+    const r = ticketReminderEmail({ name: null, event: inPerson, quantity: 1 });
+    expect(r.content.facts).toContainEqual(["Address", "Whittlebury, Towcester NN12 8QH"]);
+  });
+
+  it("keeps the online wording and leaves out address rows for online events", () => {
+    const e = ticketConfirmedEmail({ name: null, event: { ...event, venueAddress: "Ignored" }, quantity: 1, amount: null, priceType: "guest" });
+    expect(e.content.facts?.some(([k]) => k === "Address" || k === "Map")).toBe(false);
+    expect(e.content.body).toContain("online");
+  });
+});
+
+describe("e-tickets", () => {
+  it("shows the QR code inline by content id, with the code in both versions", () => {
+    const e = attendeeTicketEmail({
+      attendee: { name: "Aisling Murphy", code: "7KQ2M9XRB4TZ8HCW", dietary: "Vegetarian" },
+      event: { ...event, online: false, venue: "Whittlebury Hall", venueAddress: "Whittlebury, Towcester NN12 8QH" },
+      ticketType: "Standard",
+      changesUntil: "Saturday 24 April",
+    });
+    const { html, text } = renderEmail(e.content);
+    expect(html).toContain('src="cid:ticket-qr"');
+    expect(html).toContain("7KQ2M9XRB4TZ8HCW");
+    expect(text).toContain("Ticket code: 7KQ2M9XRB4TZ8HCW");
+    expect(e.content.facts).toContainEqual(["Dietary", "Vegetarian"]);
+    expect(e.content.facts).toContainEqual(["Ticket", "Standard"]);
+    expect(e.content.body).toContain("until Saturday 24 April");
+    expect(e.content.body).not.toContain("has booked you");
+    expect(e.content.cta?.href).toBe("/events/scalp-masterclass/ticket/7KQ2M9XRB4TZ8HCW");
   });
 });

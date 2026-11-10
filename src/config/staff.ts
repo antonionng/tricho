@@ -22,6 +22,8 @@ export const PERMISSIONS = [
   "community.rooms",
   "events.view",
   "events.edit",
+  "events.refund",
+  "events.checkin",
   "courses.view",
   "courses.edit",
   "courses.review",
@@ -74,7 +76,7 @@ export const ROLE_PERMISSIONS: Record<StaffRoleId, readonly Permission[]> = {
     "courses.view",
     "courses.edit",
   ],
-  events: ["overview.view", "inbox.view", "events.view", "events.edit", "emails.view"],
+  events: ["overview.view", "inbox.view", "events.view", "events.edit", "events.checkin", "emails.view"],
   moderator: [
     "overview.view",
     "inbox.view",
@@ -115,7 +117,7 @@ export const STAFF_ROLE_PHRASE: Record<StaffRoleId, string> = {
 export const STAFF_ROLE_DESCRIPTION: Record<StaffRoleId, string> = {
   owner: "Owners can do everything in Studio, including choosing who is on the team and what each person can do.",
   editor: "Editors write and publish Trichozette editions, podcast episodes, newsletters and announcements, and build courses.",
-  events: "Events staff create and publish events, and approve the announcement emails that go with them.",
+  events: "Events staff create and publish events, approve the announcement emails that go with them, and check people in at the door.",
   moderator: "Moderators look after the community, review reports and listings, and can suspend members who break the rules.",
   support: "Support can see every part of Studio to help members, but cannot change anything or export personal data.",
 };
@@ -233,6 +235,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/community", label: "Community", icon: "community", perm: "community.view", group: "people" },
   { href: "/studio/verification", label: "Verification", icon: "verification", perm: "verification.review", group: "people" },
   { href: "/studio/enquiries", label: "Enquiries", icon: "enquiries", perm: "enquiries.view", group: "people" },
+  { href: "/studio/educators", label: "Educators", icon: "members", perm: "courses.view", group: "people" },
   { href: "/studio/referrals", label: "Referrals", icon: "referrals", perm: "referrals.view", group: "growth" },
   { href: "/studio/retention", label: "Retention", icon: "retention", perm: "retention.view", group: "growth" },
   { href: "/studio/subscribers", label: "Subscribers", icon: "subscribers", perm: "subscribers.view", group: "growth" },

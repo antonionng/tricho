@@ -21,7 +21,7 @@ export const questionSchema = z.object({
   explain: text(1500),
 });
 
-const blockSchema = z.discriminatedUnion("type", [
+export const blockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("p"), text: text(6000) }),
   z.object({ type: z.literal("h"), text: text(200) }),
   z.object({ type: z.literal("list"), items: z.array(text(1000)).max(40), ordered: z.boolean().optional() }),

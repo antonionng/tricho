@@ -47,3 +47,16 @@ describe("subscription tiers", () => {
     }
   });
 });
+
+describe("educator membership", () => {
+  it("is never mistaken for a member plan", async () => {
+    vi.resetModules();
+    vi.stubEnv("STRIPE_PRICE_ID_EDUCATOR", "price_educator_test");
+    const { educatorMembership, isEducatorPriceId, tierByPriceId } = await import("./subscriptions");
+    expect(isEducatorPriceId("price_educator_test")).toBe(true);
+    expect(tierByPriceId("price_educator_test")).toBeUndefined();
+    vi.unstubAllEnvs();
+    expect(educatorMembership.annualPrice).toBe(500);
+    expect(educatorMembership.defaultSharePct).toBe(70);
+  });
+});

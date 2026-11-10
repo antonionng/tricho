@@ -46,6 +46,12 @@ describe("staff roles", () => {
     expect(can("moderator", "community.rooms")).toBe(true);
     expect(can("moderator", "members.edit")).toBe(false);
     expect(can(null, "overview.view")).toBe(false);
+    // Refunds move money, so they stay with owners.
+    expect(can("owner", "events.refund")).toBe(true);
+    expect(can("events", "events.refund")).toBe(false);
+    // The events team runs the door; support can look but not check anyone in.
+    expect(can("events", "events.checkin")).toBe(true);
+    expect(can("support", "events.checkin")).toBe(false);
   });
 
   it("gives every role the overview", () => {

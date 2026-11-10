@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, type EmailAttachment } from "@/lib/email";
 import { absoluteUrl, renderEmail, type EmailContent } from "./layout";
 
 /**
@@ -71,6 +71,8 @@ export type DeliverOptions = {
   list?: EmailList;
   replyTo?: string;
   tag?: string;
+  /** Files to send with it, e.g. an e-ticket's QR code shown inline. */
+  attachments?: EmailAttachment[];
 };
 
 /**
@@ -84,7 +86,7 @@ export async function deliver(to: string, subject: string, content: EmailContent
     const unsub = opts.list ? unsubscribeUrl(to, opts.list) : undefined;
     const oneClick = opts.list ? oneClickUnsubscribeUrl(to, opts.list) : undefined;
     const { html, text } = renderEmail({ ...content, unsubscribeUrl: content.unsubscribeUrl ?? unsub });
-    await sendEmail({ to, subject, html, text, replyTo: opts.replyTo, unsubscribeUrl: oneClick, tag: opts.tag });
+    await sendEmail({ to, subject, html, text, replyTo: opts.replyTo, unsubscribeUrl: oneClick, tag: opts.tag, attachments: opts.attachments });
     return true;
   } catch (err) {
     console.error(`[email] failed to send "${subject}" to ${to}:`, err);

@@ -76,6 +76,9 @@ export async function writeEventBodyAction(form: FormData) {
     online: form.get("online") === "on",
     city: s(form, "city", 80),
     venue: s(form, "venue", 160),
+    venueAddress: s(form, "venueAddress", 300),
+    timezone: s(form, "timezone", 64),
+    detailsCloseAt: s(form, "detailsCloseAt", 32),
     priceGBP: s(form, "priceGBP", 8),
     memberPriceGBP: s(form, "memberPriceGBP", 8),
     capacity: s(form, "capacity", 8),
@@ -201,4 +204,112 @@ export async function notifyMasterclassAction(form: FormData) {
       .filter(Boolean)
       .join(" ")
   );
+}
+
+const TICKET_TYPE_FIELDS = ["name", "description", "price", "memberPrice", "membersOnly", "capacity", "salesStart", "salesEnd", "maxPerOrder", "sortOrder", "active"] as const;
+
+function ticketTypesBack(eventId: string, notice: string, tone?: string): never {
+  // tt=1 shows the notice beside the ticket types, where the page lands.
+  redirect(`${eventsUrl({ edit: eventId, notice, tone, tt: "1" })}#ticket-types`);
+}
+
+/** Add or change a ticket type. Prices and dates are checked by validateTicketType. */
+export async function saveTicketTypeAction(form: FormData) {
+  const staff = await requirePermission("events.edit");
+  const eventId = s(form, "eventId", 64);
+  const typeId = s(form, "typeId", 64) || null;
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, title: true, slug: true, timezone: true } });
+  if (!event) redirect(eventsUrl({ notice: "That event could not be found.", tone: "danger" }));
+
+  const raw: Record<string, string | undefined> = {};
+  for (const key of TICKET_TYPE_FIELDS) {
+    const v = form.get(key);
+    raw[key] = typeof v === "string" ? v : undefined;
+  }
+  const { validateTicketType } = await import("@/lib/ticket-types");
+  const checked = validateTicketType(raw, event.timezone);
+  if (!checked.ok) ticketTypesBack(event.id, checked.error, "danger");
+  const data = checked.data;
+
+  if (typeId) {
+    const before = await prisma.eventTicketType.findFirst({ where: { id: typeId, eventId: event.id } });
+    if (!before) ticketTypesBack(event.id, "That ticket type could not be found.", "danger");
+    await prisma.eventTicketType.update({ where: { id: typeId }, data });
+    await audit(staff, {
+      action: "event.ticket_type_edit",
+      targetType: "event",
+      targetId: event.id,
+      summary: `Updated the ${data.name} tickets for "${event.title}".`,
+      before,
+      after: data,
+    });
+  } else {
+    await prisma.eventTicketType.create({ data: { ...data, eventId: event.id } });
+    await audit(staff, {
+      action: "event.ticket_type_create",
+      targetType: "event",
+      targetId: event.id,
+      summary: `Added ${data.name} tickets to "${event.title}".`,
+      after: data,
+    });
+  }
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath(`/events/${event.slug}`);
+  ticketTypesBack(event.id, `${data.name} tickets saved.`);
+}
+
+/** Remove a ticket type nobody has bought. Types with tickets are switched off instead, so the records stay whole. */
+export async function deleteTicketTypeAction(form: FormData) {
+  const staff = await requirePermission("events.edit");
+  const eventId = s(form, "eventId", 64);
+  const typeId = s(form, "typeId", 64);
+  const type = await prisma.eventTicketType.findFirst({
+    where: { id: typeId, eventId },
+    select: { id: true, name: true, event: { select: { title: true, slug: true } } },
+  });
+  if (!type) ticketTypesBack(eventId, "That ticket type could not be found.", "danger");
+  const sold = await prisma.eventTicket.count({ where: { ticketTypeId: type.id, status: { in: ["paid", "refunded", "pending"] } } });
+  if (sold > 0) {
+    ticketTypesBack(eventId, `${type.name} tickets have already been bought, so untick On sale to stop selling them instead of removing them.`, "danger");
+  }
+  await prisma.eventTicketType.delete({ where: { id: type.id } });
+  await audit(staff, {
+    action: "event.ticket_type_delete",
+    targetType: "event",
+    targetId: eventId,
+    summary: `Removed the ${type.name} tickets from "${type.event.title}".`,
+  });
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath(`/events/${type.event.slug}`);
+  ticketTypesBack(eventId, `${type.name} tickets removed.`);
+}
+
+/**
+ * Refund one named attendee's place through Stripe and cancel it. Owners only,
+ * since it moves money. The amount is that place's share of what the order cost.
+ */
+export async function refundAttendeeAction(form: FormData) {
+  const staff = await requirePermission("events.refund");
+  const eventId = s(form, "eventId", 64);
+  const attendeeId = s(form, "attendeeId", 64);
+  const back = (notice: string, tone?: string): never =>
+    redirect(`/studio/events/${eventId}/attendees?${new URLSearchParams({ notice, ...(tone ? { tone } : {}) })}`);
+  if (form.get("confirm") !== "on") back("Tick the box to confirm the refund first.", "danger");
+
+  const attendee = await prisma.eventAttendee.findFirst({ where: { id: attendeeId, eventId }, select: { id: true, event: { select: { title: true } } } });
+  if (!attendee) back("That attendee could not be found.", "danger");
+
+  const { refundAttendee } = await import("@/lib/tickets");
+  const result = await refundAttendee(attendee!.id);
+  if (!result.ok) back(result.error, "danger");
+  const r = result as Extract<typeof result, { ok: true }>;
+  const pounds = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(r.amount / 100);
+  await audit(staff, {
+    action: "event.attendee_refund",
+    targetType: "event",
+    targetId: eventId,
+    summary: `Refunded ${pounds} for ${r.name}'s place at "${attendee!.event.title}" and cancelled it.`,
+    after: { attendeeId, amount: r.amount, orderClosed: r.orderClosed },
+  });
+  back(`${r.name}'s place is cancelled and ${pounds} is on its way back to the card.${r.orderClosed ? " That was the last place on the order." : ""}`);
 }
