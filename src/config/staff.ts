@@ -156,6 +156,7 @@ export function draftPermission(kind: string, payload?: unknown): Permission | "
     case "community_nudge":
       return "community.moderate";
     case "podcast_post":
+    case "feature_application":
       return "podcast.publish";
     case "event_prefill":
       return "events.edit";

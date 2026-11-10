@@ -225,6 +225,16 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           </Card>
 
           <Card className="p-5">
+            <SectionLabel>Be featured</SectionLabel>
+            <p className="text-sm leading-relaxed text-ink-2">
+              Apply to join the podcast or Trichollective TV, or propose a feature and record it from where you work.
+            </p>
+            <Link href="/featured" className="mt-3 inline-flex items-center gap-1 text-sm font-medium">
+              Apply <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Card>
+
+          <Card className="p-5">
             <SectionLabel
               action={
                 <Link href="/members/trichozette" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:underline">

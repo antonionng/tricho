@@ -171,6 +171,20 @@ export default async function PodcastPage() {
         </Section>
       )}
 
+      <Section>
+        <Container>
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <SectionHeader
+              eyebrow="Be featured"
+              title="Have something the community should hear?"
+              fade="Apply to join a conversation, or host one."
+              body="Share your expertise, a story from practice or a piece of work. You can be interviewed, or propose a feature and record it from where you already work. We don't need to travel to you."
+            />
+            <ArrowLink href="/featured">Apply to be featured</ArrowLink>
+          </div>
+        </Container>
+      </Section>
+
       <JsonLd data={breadcrumbLd(crumbs)} />
     </>
   );

@@ -70,6 +70,9 @@ describe("inbox decisions", () => {
     expect(canApproveDraft("editor", "community_post", { type: "podcast" })).toBe(true);
     expect(canApproveDraft("editor", "community_post")).toBe(false);
     expect(draftPermission("partner_enquiry")).toBe("owner");
+    expect(draftPermission("feature_application")).toBe("podcast.publish");
+    expect(canApproveDraft("editor", "feature_application")).toBe(true);
+    expect(canApproveDraft("support", "feature_application")).toBe(false);
   });
 
   it("lets only owners decide on anything unlisted", () => {

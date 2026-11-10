@@ -62,6 +62,7 @@ describe("owner digest", () => {
         enquiriesDelivered: 0,
         enquiriesHeld: 0,
         contactMessages: 0,
+        featureApplications: 0,
         partnerApplications: 0,
         reportsOpen: 0,
         leads: [],
