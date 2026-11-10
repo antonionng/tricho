@@ -285,8 +285,8 @@ export async function saveTicketTypeAction(form: FormData) {
 
 /**
  * Set an in-person event up with Karley's five packages and extra places, as
- * for TRICHOLLECTIVE UK: prices before VAT, 20 stand spaces and 8 stage slots
- * unless already set. Safe to press twice. Attendee tickets are left alone.
+ * for TRICHOLLECTIVE UK, with 20 stand spaces and 8 stage slots unless already
+ * set. Safe to press twice. Attendee tickets are left alone.
  */
 export async function addDefaultPackagesAction(form: FormData) {
   const staff = await requirePermission("events.edit");

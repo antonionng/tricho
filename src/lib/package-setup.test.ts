@@ -23,7 +23,7 @@ function fakeDb(event: Record<string, unknown> | null, types: Record<string, unk
   return { db, created };
 }
 
-const whittlebury = { id: "c3a8f0a88b391441b7019a1ac", title: "TRICHOLLECTIVE UK", published: false, online: false, pricesExcludeVat: false, standSpaces: null, stageSlots: null };
+const whittlebury = { id: "c3a8f0a88b391441b7019a1ac", title: "TRICHOLLECTIVE UK", published: false, online: false, standSpaces: null, stageSlots: null };
 const tickets = [
   { id: "tt_early", name: "Early bird", kind: "attendee", pricePence: 12500, memberPricePence: 11250, placesIncluded: 1, addonForTypeIds: [] },
   { id: "tt_std", name: "Standard", kind: "attendee", pricePence: 15000, memberPricePence: 13500, placesIncluded: 1, addonForTypeIds: [] },
@@ -34,7 +34,7 @@ describe("setupEventPackages", () => {
     const { db, created } = fakeDb(whittlebury, tickets);
     const r = await setupEventPackages(db as never, whittlebury.id, { apply: true });
     expect("error" in r).toBe(false);
-    expect(db.event.update).toHaveBeenCalledWith({ where: { id: whittlebury.id }, data: { pricesExcludeVat: true, standSpaces: 20, stageSlots: 8 } });
+    expect(db.event.update).toHaveBeenCalledWith({ where: { id: whittlebury.id }, data: { standSpaces: 20, stageSlots: 8 } });
     expect(created.map((t) => t.name)).toEqual(["Sponsor", "Promote", "Elevate", "Evolve", "Elite", "Extra exhibitor ticket"]);
     const addon = created.at(-1)!;
     const byId = new Map(created.map((t) => [t.id, t.name]));
@@ -48,11 +48,11 @@ describe("setupEventPackages", () => {
     const r = await setupEventPackages(db as never, whittlebury.id, { apply: false });
     expect(db.event.update).not.toHaveBeenCalled();
     expect(db.eventTicketType.create).not.toHaveBeenCalled();
-    if (!("error" in r)) expect(r.changes).toContain("Added the Promote package at £250 + VAT.");
+    if (!("error" in r)) expect(r.changes).toContain("Added the Promote package at £250.");
   });
 
   it("keeps stand and stage numbers already set, and adds nothing twice", async () => {
-    const event = { ...whittlebury, pricesExcludeVat: true, standSpaces: 14, stageSlots: 4 };
+    const event = { ...whittlebury, standSpaces: 14, stageSlots: 4 };
     const existing = [
       ...tickets,
       { id: "p1", name: "Sponsor", kind: "package", placesIncluded: 0, addonForTypeIds: [] },

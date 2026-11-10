@@ -7,7 +7,6 @@ import { attendeeTicketEmail, packageConfirmedEmail, packageSoldAlert, TICKET_QR
 import { eventDay } from "@/lib/mail/templates/members";
 import { detailsCloseAt, newAttendeeCode, placeholderRows, placeRefundPence } from "@/lib/attendees";
 import { eventTimeZone } from "@/lib/event-time";
-import { priceText } from "@/lib/vat";
 import { exhibitorPath, kindOf, packageIncludes, type PackageOrder } from "@/lib/packages";
 
 /**
@@ -218,13 +217,6 @@ function refresh(slug: string) {
   }
 }
 
-/** The VAT Stripe added on top, as the price before VAT and the VAT, or null when prices included VAT. */
-export function vatBreakdown(session: Pick<Stripe.Checkout.Session, "amount_total" | "currency" | "total_details">) {
-  const tax = session.total_details?.amount_tax ?? 0;
-  if (!tax || session.amount_total == null) return null;
-  return { net: formatMoney(session.amount_total - tax, session.currency ?? "gbp") ?? "", vat: formatMoney(tax, session.currency ?? "gbp") ?? "" };
-}
-
 function idOf(value: string | { id: string } | null | undefined) {
   if (!value) return null;
   return typeof value === "string" ? value : value.id;
@@ -292,7 +284,6 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
     priceType: ticket.priceType === "member" ? "member" : "guest",
     ticketType: ticket.ticketType?.name ?? null,
     attendees: attendees.filter((a) => !a.cancelledAt).map((a) => ({ name: a.name, email: a.email })),
-    vat: vatBreakdown(session),
   });
   await deliverOnce(`ticket-confirmed:${ticket.id}`, ticket.email, email.subject, email.content, { tag: "event-ticket" });
   for (const a of attendees) {
@@ -359,8 +350,7 @@ async function completePackage(
     waiting: open.filter((a) => a.awaitingName).length,
     manageHref: exhibitorPath(ticket.event.slug, ex.manageCode),
     code: ex.manageCode,
-    extras: extras ? { name: extras.name, price: priceText(extras.pricePence, !!ticket.event.pricesExcludeVat), max: extras.maxPerOrder } : null,
-    vat: vatBreakdown(session),
+    extras: extras ? { name: extras.name, price: formatMoney(extras.pricePence, "gbp") ?? "", max: extras.maxPerOrder } : null,
   });
   await deliverOnce(`package-confirmed:${ticket.id}`, ticket.email, email.subject, email.content, { tag: "event-package" });
   for (const a of open) {
@@ -388,7 +378,7 @@ type PaidTicket = {
   name: string | null;
   email: string;
   quantity: number;
-  event: Parameters<typeof attendeeTicketEmail>[0]["event"] & { detailsCloseAt?: Date | null; pricesExcludeVat?: boolean };
+  event: Parameters<typeof attendeeTicketEmail>[0]["event"] & { detailsCloseAt?: Date | null };
   ticketType?: { name: string } | null;
 };
 

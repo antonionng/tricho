@@ -1,12 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
-import { priceText } from "@/lib/vat";
 import { DEFAULT_EXTRA_PLACES, DEFAULT_PACKAGES, DEFAULT_STAGE_SLOTS, DEFAULT_STAND_SPACES } from "@/lib/package-defaults";
 
 /**
  * Sets an in-person event up with the standard exhibitor packages, as used for
  * TRICHOLLECTIVE UK at Whittlebury Hall. Shared by the Studio button and
  * scripts/whittlebury-packages.ts. Safe to run more than once:
- *  - prices on the event become VAT-exclusive (Karley's decision);
  *  - stand spaces and stage slots get their defaults only when not set yet;
  *  - packages are added only when the event has none of that name;
  *  - the extra places add-on is added once, and offered to every package that
@@ -17,6 +15,8 @@ import { DEFAULT_EXTRA_PLACES, DEFAULT_PACKAGES, DEFAULT_STAGE_SLOTS, DEFAULT_ST
 
 type Db = Pick<PrismaClient, "event" | "eventTicketType">;
 
+const pounds = (pence: number) => `£${(pence / 100).toLocaleString("en-GB")}`;
+
 export type SetupReport = {
   event: { id: string; title: string; published: boolean };
   changes: string[];
@@ -26,17 +26,13 @@ export type SetupReport = {
 export async function setupEventPackages(db: Db, eventId: string, opts: { apply: boolean }): Promise<SetupReport | { error: string }> {
   const event = await db.event.findUnique({
     where: { id: eventId },
-    select: { id: true, title: true, published: true, online: true, pricesExcludeVat: true, standSpaces: true, stageSlots: true },
+    select: { id: true, title: true, published: true, online: true, standSpaces: true, stageSlots: true },
   });
   if (!event) return { error: "That event could not be found." };
   if (event.online) return { error: "Exhibitor packages are for in-person events." };
 
   const changes: string[] = [];
-  const eventData: { pricesExcludeVat?: boolean; standSpaces?: number; stageSlots?: number } = {};
-  if (!event.pricesExcludeVat) {
-    eventData.pricesExcludeVat = true;
-    changes.push("Prices on this event exclude VAT, and checkout adds VAT at 20%.");
-  }
+  const eventData: { standSpaces?: number; stageSlots?: number } = {};
   if (event.standSpaces == null) {
     eventData.standSpaces = DEFAULT_STAND_SPACES;
     changes.push(`Stand spaces set to ${DEFAULT_STAND_SPACES}.`);
@@ -57,7 +53,7 @@ export async function setupEventPackages(db: Db, eventId: string, opts: { apply:
     if (opts.apply) {
       await db.eventTicketType.create({ data: { ...p, eventId: event.id, kind: "package", maxPerOrder: 1, capacity: null, active: true } });
     }
-    changes.push(`Added the ${p.name} package at ${priceText(p.pricePence, true)}.`);
+    changes.push(`Added the ${p.name} package at ${pounds(p.pricePence)}.`);
   }
 
   const withPlaces = opts.apply
@@ -69,7 +65,7 @@ export async function setupEventPackages(db: Db, eventId: string, opts: { apply:
     if (opts.apply) {
       await db.eventTicketType.create({ data: { ...DEFAULT_EXTRA_PLACES, eventId: event.id, kind: "addon", placesIncluded: 1, active: true, addonForTypeIds: ids } });
     }
-    changes.push(`Added ${DEFAULT_EXTRA_PLACES.name} at ${priceText(DEFAULT_EXTRA_PLACES.pricePence, true)}, up to ${DEFAULT_EXTRA_PLACES.maxPerOrder} per package with places.`);
+    changes.push(`Added ${DEFAULT_EXTRA_PLACES.name} at ${pounds(DEFAULT_EXTRA_PLACES.pricePence)} each, up to ${DEFAULT_EXTRA_PLACES.maxPerOrder} per package with places.`);
   } else {
     const missing = ids.filter((id) => !addon.addonForTypeIds.includes(id));
     if (missing.length) {

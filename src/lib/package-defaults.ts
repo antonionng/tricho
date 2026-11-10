@@ -1,8 +1,8 @@
 /**
  * Karley's exhibitor and sponsor packages for TRICHOLLECTIVE UK, used to fill
  * an event with a starting point. Everything can be changed in Studio
- * afterwards. Prices are before VAT: the setup also marks the event as
- * pricing VAT on top. No imports, so scripts can use it outside Next.
+ * afterwards. Prices include VAT, like the rest of the site. No imports, so
+ * scripts can use it outside Next.
  */
 
 export type PackageDefault = {

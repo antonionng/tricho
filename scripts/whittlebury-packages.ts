@@ -1,8 +1,7 @@
 /**
  * Sets an event up with the Whittlebury exhibitor packages: Sponsor, Promote,
- * Elevate, Evolve and Elite, and extra places at £100 + VAT for every package
- * with places. Also marks the event's prices as excluding VAT and, when blank,
- * sets 20 stand spaces and 8 stage slots. Attendee tickets (early bird and
+ * Elevate, Evolve and Elite, and extra places at £100 for every package with
+ * places. When blank, it also sets 20 stand spaces and 8 stage slots. Attendee tickets (early bird and
  * standard) are never created or changed; their prices are printed to check.
  * The same as Studio's "Add the standard packages" button.
  *
@@ -42,7 +41,7 @@ async function main() {
   if ("error" in r) throw new Error(r.error);
   console.log(`${r.event.title} (${r.event.id})${r.event.published ? "" : ", not published"}`);
   console.log(r.changes.length ? r.changes.map((c) => `  - ${c}`).join("\n") : "  Nothing to change.");
-  console.log("\nAttendee tickets, left as they are (expected: early bird £125 and standard £150 before VAT, members 10% off):");
+  console.log("\nAttendee tickets, left as they are (expected: early bird £125 and standard £150, members 10% off):");
   for (const t of r.ticketTypes) console.log(`  - ${t.name}: ${pounds(t.pricePence)}, members ${pounds(t.memberPricePence)}`);
   if (!apply) console.log("\nNothing was written. Add --apply to make these changes.");
 }

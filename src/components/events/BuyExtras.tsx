@@ -4,11 +4,13 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { lineTotal, poundsText } from "@/lib/vat";
 
 type Person = { name: string; email: string; dietary: string; accessNeeds: string };
 const blank = (): Person => ({ name: "", email: "", dietary: "", accessNeeds: "" });
 
+function money(pence: number) {
+  return pence % 100 === 0 ? `£${(pence / 100).toLocaleString("en-GB")}` : `£${(pence / 100).toFixed(2)}`;
+}
 
 /**
  * Extra places for a package holder. The package code and every name go to the
@@ -19,13 +21,11 @@ export function BuyExtras({
   packageCode,
   addon,
   left,
-  excludesVat = false,
 }: {
   eventId: string;
   packageCode: string;
   addon: { id: string; name: string; pricePence: number };
   left: number;
-  excludesVat?: boolean;
 }) {
   const [count, setCount] = useState(1);
   const [people, setPeople] = useState<Person[]>([blank()]);
@@ -87,14 +87,11 @@ export function BuyExtras({
       ))}
       <div>
         <Button type="submit" disabled={busy}>
-          {busy ? "Opening secure payment…" : `Pay ${poundsText(lineTotal(addon.pricePence, count, excludesVat).gross)} for ${count === 1 ? "one extra place" : `${count} extra places`}`}
+          {busy ? "Opening secure payment…" : `Pay ${money(addon.pricePence * count)} for ${count === 1 ? "one extra place" : `${count} extra places`}`}
           {!busy && <ArrowRight />}
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {excludesVat ? "The total includes UK VAT at 20%. " : "The price includes VAT. "}Stripe emails a VAT invoice in your company&apos;s name once you have
-        paid.
-      </p>
+      <p className="text-sm text-muted-foreground">The price includes VAT, and Stripe emails a VAT invoice in your company&apos;s name once you have paid.</p>
       {error && (
         <p className="text-sm text-destructive" role="alert">
           {error}

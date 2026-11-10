@@ -7,7 +7,6 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { lineTotal, poundsText, priceText } from "@/lib/vat";
 
 type TypeQuote = {
   id: string;
@@ -38,13 +37,14 @@ type Quote = {
   /** In person: each place needs a named attendee. */
   inPerson?: boolean;
   email?: string | null;
-  /** Prices are before VAT, and checkout adds UK VAT at 20% on top. */
-  pricesExcludeVat?: boolean;
 };
 
 type Person = { name: string; email: string; dietary: string; accessNeeds: string; isBuyer: boolean };
 const blankPerson = (isBuyer: boolean): Person => ({ name: "", email: "", dietary: "", accessNeeds: "", isBuyer });
 
+function money(pence: number) {
+  return pence % 100 === 0 ? `£${pence / 100}` : `£${(pence / 100).toFixed(2)}`;
+}
 
 /**
  * "Buy a ticket" for an event sold on Trichollective. It asks the server what
@@ -184,10 +184,7 @@ export function BuyTicket({
   const count = Math.min(quantity, max);
   const buyerName = quote.signedIn ? (quote.name ?? "") : name;
   const buyerEmail = quote.signedIn ? (quote.email ?? "") : email;
-  const exVat = !!quote.pricesExcludeVat;
-  const total = lineTotal(unitPence, count, exVat);
-  const label = `Buy ${count > 1 ? `${count} tickets` : "a ticket"} for ${poundsText(total.gross)}`;
-  const vatNote = exVat ? note(`${priceText(total.net, true)} is ${poundsText(total.gross)} with UK VAT at 20%, and you receive a VAT invoice.`) : null;
+  const label = `Buy ${count > 1 ? `${count} tickets` : "a ticket"} for ${money(unitPence * count)}`;
   const typePicker = types.length > 0 && (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1 text-sm text-ink-2">Ticket type</legend>
@@ -218,7 +215,7 @@ export function BuyTicket({
               {t.name}
               {t.state === "members_only" && <span className="text-muted-foreground">(members only)</span>}
             </span>
-            <span className="font-medium">{priceText(t.amountPence, exVat)}</span>
+            <span className="font-medium">{money(t.amountPence)}</span>
           </label>
         ))}
     </fieldset>
@@ -308,7 +305,6 @@ export function BuyTicket({
                 ? `Members pay ${memberPriceGBP === 0 ? "nothing" : `£${memberPriceGBP}`} for this event. Payment is handled securely by Stripe.`
                 : "Payment is handled securely by Stripe."
             )}
-        {vatNote}
         {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
       </form>
     );
@@ -348,7 +344,6 @@ export function BuyTicket({
           )}
         </>
       )}
-      {vatNote}
       {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
     </form>
   );

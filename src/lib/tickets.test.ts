@@ -530,7 +530,7 @@ describe("paid exhibitor packages", () => {
     expect(content.cta).toEqual({ label: "Open your exhibitor page", href: "/events/whittlebury-2027/exhibitor/MANAGE2345678ABC" });
     expect(content.facts).toContainEqual(["Package code", "MANAGE2345678ABC"]);
     expect(content.body).toContain("2 of your 3 places are still to be named");
-    expect(content.body).toContain("up to 5 extra places for your team at £100 each");
+    expect(content.body).toContain("up to 5 extra places for your team at £100.00 each");
     expect(content.body).toContain("- 3 delegate places, each with its own e-ticket.\n- A slot on the main stage.");
     expect(db.typeFindFirst.mock.calls[0][0].where).toMatchObject({ kind: "addon", active: true, addonForTypeIds: { has: "tt_evolve" } });
     expect(db.alertOwners).toHaveBeenCalledTimes(1);
@@ -547,29 +547,5 @@ describe("paid exhibitor packages", () => {
     db.updateMany.mockResolvedValue({ count: 0 });
     await handleTicketCheckoutCompleted(packageSession);
     expect(db.alertOwners).not.toHaveBeenCalled();
-  });
-});
-
-describe("confirmation emails when VAT was added on top", () => {
-  beforeEach(() => {
-    Object.values(db).forEach((f) => f.mockReset());
-    db.findUnique.mockResolvedValue({ ...ticket, userId: null, event: { ...ticket.event, pricesExcludeVat: true } });
-    db.updateMany.mockResolvedValue({ count: 1 });
-    db.deliverOnce.mockResolvedValue(true);
-  });
-
-  it("shows the price before VAT, the VAT and the total paid", async () => {
-    await handleTicketCheckoutCompleted({ ...session, amount_total: 15_000, total_details: { amount_tax: 2_500, amount_discount: 0, amount_shipping: 0 } } as Stripe.Checkout.Session);
-    const facts = db.deliverOnce.mock.calls[0][3].facts;
-    expect(facts).toContainEqual(["Price before VAT", "£125.00"]);
-    expect(facts).toContainEqual(["VAT at 20%", "£25.00"]);
-    expect(facts).toContainEqual(["Total paid", "£150.00"]);
-  });
-
-  it("keeps the single Paid line when no VAT was added", async () => {
-    await handleTicketCheckoutCompleted(session);
-    const facts = db.deliverOnce.mock.calls[0][3].facts;
-    expect(facts).toContainEqual(["Paid", "£40.00"]);
-    expect(facts.find((f: string[]) => f[0] === "VAT at 20%")).toBeUndefined();
   });
 });

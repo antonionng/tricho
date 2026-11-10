@@ -15,7 +15,6 @@ import {
   packagePlaces,
   type PackageRule,
 } from "@/lib/packages";
-import { lineTotal, sellerVatLine, ukVatTaxRateId } from "@/lib/vat";
 
 /**
  * Starting a Stripe Checkout for an exhibitor package, or for extra places on
@@ -26,8 +25,7 @@ import { lineTotal, sellerVatLine, ukVatTaxRateId } from "@/lib/vat";
  * Package checkouts turn on Stripe's invoice creation, so the business gets a
  * VAT invoice with its company name and VAT number, and Stripe's own tax ID
  * collection, so a buyer can add their VAT number there too. Prices include
- * VAT like the rest of the site, unless the event prices exclude VAT: then a
- * Stripe TaxRate adds UK VAT at 20% on top of each line.
+ * VAT, like the rest of the site.
  */
 
 export type CheckoutEvent = {
@@ -39,20 +37,7 @@ export type CheckoutEvent = {
   online: boolean;
   stageSlots: number | null;
   standSpaces: number | null;
-  pricesExcludeVat?: boolean;
 };
-
-/** The line item's tax settings and the invoice footer for this event. */
-async function vatSetup(event: CheckoutEvent) {
-  const excludesVat = !!event.pricesExcludeVat;
-  const taxRateId = excludesVat ? await ukVatTaxRateId(stripe) : null;
-  return {
-    excludesVat,
-    taxBehavior: (excludesVat ? "exclusive" : "inclusive") as "exclusive" | "inclusive",
-    taxRates: taxRateId ? { tax_rates: [taxRateId] } : {},
-    footer: (...lines: (string | null)[]) => lines.filter(Boolean).join(" · ").slice(0, 5000) || undefined,
-  };
-}
 
 export type CheckoutResult = { status: number; body: { url?: string; error?: string } };
 
@@ -98,8 +83,6 @@ export async function startPackageCheckout(
   if (!places.ok) return fail(places.error, 400);
   const pricePence = Math.max(0, Math.round(type.pricePence));
   if (pricePence <= 0) return fail("This package has no price to pay. Please get in touch with us to book it.", 400);
-  const vat = await vatSetup(event);
-  const charge = lineTotal(pricePence, 1, vat.excludesVat);
 
   let ticketId: string;
   let manageCode: string;
@@ -123,7 +106,7 @@ export async function startPackageCheckout(
           email: d.contactEmail,
           name: d.contactName,
           quantity: 1,
-          amount: charge.gross,
+          amount: pricePence,
           currency: "gbp",
           priceType: "guest",
           ticketTypeId: type.id,
@@ -155,10 +138,9 @@ export async function startPackageCheckout(
         price_data: {
           currency: "gbp",
           unit_amount: pricePence,
-          tax_behavior: vat.taxBehavior,
+          tax_behavior: "inclusive",
           product_data: { name: line, description: `Exhibitor package for ${d.companyName}`.slice(0, 250) },
         },
-        ...vat.taxRates,
       },
     ],
     customer_email: d.contactEmail,
@@ -170,7 +152,7 @@ export async function startPackageCheckout(
         description: line,
         custom_fields: invoiceFields(d),
         metadata: { ticketId, eventId: event.id },
-        footer: vat.footer(`Invoice to: ${d.companyName}, ${d.invoiceAddress.replace(/\n/g, ", ")}`, sellerVatLine()),
+        footer: `Invoice to: ${d.companyName}, ${d.invoiceAddress.replace(/\n/g, ", ")}`.slice(0, 5000),
       },
     },
     tax_id_collection: { enabled: true },
@@ -222,8 +204,6 @@ export async function startAddonCheckout(
   if (!people.ok) return fail(people.error, 400);
   const pricePence = Math.max(0, Math.round(addon.pricePence));
   if (pricePence <= 0) return fail("Extra places have no price to pay. Please get in touch with us to add them.", 400);
-  const vat = await vatSetup(event);
-  const charge = lineTotal(pricePence, quantity, vat.excludesVat);
 
   let ticketId: string;
   try {
@@ -254,7 +234,7 @@ export async function startAddonCheckout(
           email: pkg.contactEmail,
           name: pkg.contactName,
           quantity,
-          amount: charge.gross,
+          amount: pricePence * quantity,
           currency: "gbp",
           priceType: "guest",
           ticketTypeId: addon.id,
@@ -284,22 +264,16 @@ export async function startAddonCheckout(
         price_data: {
           currency: "gbp",
           unit_amount: pricePence,
-          tax_behavior: vat.taxBehavior,
+          tax_behavior: "inclusive",
           product_data: { name: line, description: `Extra places for ${pkg.companyName}`.slice(0, 250) },
         },
-        ...vat.taxRates,
       },
     ],
     customer_email: pkg.contactEmail,
     customer_creation: "always",
     invoice_creation: {
       enabled: true,
-      invoice_data: {
-        description: line,
-        custom_fields: [{ name: "Company", value: pkg.companyName.slice(0, 140) }],
-        metadata: { ticketId, eventId: event.id },
-        ...(vat.footer(sellerVatLine()) ? { footer: vat.footer(sellerVatLine()) } : {}),
-      },
+      invoice_data: { description: line, custom_fields: [{ name: "Company", value: pkg.companyName.slice(0, 140) }], metadata: { ticketId, eventId: event.id } },
     },
     tax_id_collection: { enabled: true },
     locale: "en-GB",

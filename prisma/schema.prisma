@@ -668,8 +668,6 @@ model Event {
   stageSlots     Int?
   /// Stand spaces shared by every package that includes a stand. Null means only each package's own stock limits them.
   standSpaces    Int?
-  /// Every price on this event (ticket types, packages, extra places, flat prices) is before VAT, and checkout adds UK VAT at 20% on top.
-  pricesExcludeVat Boolean     @default(false)
   /// Attendees can change their name, dietary and access details on their ticket page until then. Null means 48 hours before the start.
   detailsCloseAt DateTime?
 

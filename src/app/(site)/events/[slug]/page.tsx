@@ -20,7 +20,6 @@ import {
 import { BuyTicket, TicketReturnNotice } from "@/components/events/BuyTicket";
 import { BuyPackage, PackageReturnNotice, type PackageCard } from "@/components/events/BuyPackage";
 import { packageAvailability, packageIncludes } from "@/lib/packages";
-import { priceText } from "@/lib/vat";
 import { MemberPlace } from "@/components/events/MemberPlace";
 import { images, img } from "@/content/images";
 import { seatUsage, seatsLeft, typeAvailability, typeSeatsTaken, type TypeAvailability } from "@/lib/tickets";
@@ -91,6 +90,9 @@ const getPackages = cache(async (eventId: string) =>
     .catch(() => [])
 );
 
+function pence(p: number) {
+  return p % 100 === 0 ? `£${p / 100}` : `£${(p / 100).toFixed(2)}`;
+}
 
 /** "12 left", "Sold out", "Sales open on 1 December", "Sales closed". */
 function availabilityText(a: TypeAvailability, tz: string) {
@@ -300,9 +302,6 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                 {!isPast && event.sellTickets && typeRows.length > 0 && (
                   <div className="flex flex-col gap-4 border-t border-rule pt-6">
                     <p className="label text-muted-foreground">Tickets</p>
-                    {event.pricesExcludeVat && (
-                      <p className="text-[14px] text-ink-2">Prices are shown before VAT. UK VAT at 20% is added at checkout, and you receive a VAT invoice.</p>
-                    )}
                     <ul className="flex flex-col divide-y divide-rule">
                       {typeRows.map((t) => {
                         const status = availabilityText(t.availability, tz);
@@ -318,9 +317,9 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                               {status && <p className="text-[13px] text-muted-foreground">{status}</p>}
                             </div>
                             <div className="shrink-0 text-right">
-                              <p className="text-lg font-semibold text-ink">{priceText(t.pricePence, event.pricesExcludeVat)}</p>
+                              <p className="text-lg font-semibold text-ink">{pence(t.pricePence)}</p>
                               {t.memberPricePence != null && t.memberPricePence < t.pricePence && (
-                                <p className="text-[13px] text-muted-foreground">{priceText(t.memberPricePence, event.pricesExcludeVat)} for members</p>
+                                <p className="text-[13px] text-muted-foreground">{pence(t.memberPricePence)} for members</p>
                               )}
                             </div>
                           </li>
@@ -334,12 +333,9 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                   <div className="flex flex-col gap-4 border-t border-rule pt-6">
                     <div className="flex flex-col gap-1">
                       <p className="label text-muted-foreground">Tickets</p>
-                      <p className="display mt-2 text-5xl">
-                        {formatPrice(event.memberPriceGBP)}
-                        {event.pricesExcludeVat && event.memberPriceGBP > 0 && <span className="text-2xl"> + VAT</span>}
-                      </p>
+                      <p className="display mt-2 text-5xl">{formatPrice(event.memberPriceGBP)}</p>
                       <p className="text-[15px] text-ink-2">
-                        for members, and {event.priceGBP === 0 ? "free" : `${formatPrice(event.priceGBP)}${event.pricesExcludeVat ? " + VAT" : ""}`} for guests.
+                        for members, and {event.priceGBP === 0 ? "free" : formatPrice(event.priceGBP)} for guests.
                       </p>
                       {left != null && (
                         <p className="text-[15px] text-ink-2">
@@ -412,16 +408,13 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                   package gets your company in the event booklet, and the larger ones add a stand, time on stage and places for your team.
                 </p>
                 <p className="text-[15px] text-ink-2">
-                  {event.pricesExcludeVat
-                    ? "Prices are shown before VAT. UK VAT at 20% is added at checkout, and you receive a VAT invoice in your company's name."
-                    : "Prices include VAT, and you receive a VAT invoice in your company's name."}{" "}
-                  Packages are booked separately from delegate tickets.
+                  Prices include VAT, and you receive a VAT invoice in your company&apos;s name. Packages are booked separately from delegate tickets.
                 </p>
               </div>
               <Suspense fallback={null}>
                 <PackageReturnNotice />
               </Suspense>
-              <BuyPackage eventId={event.id} slug={event.slug} packages={packageCards} excludesVat={event.pricesExcludeVat} />
+              <BuyPackage eventId={event.id} slug={event.slug} packages={packageCards} />
             </div>
           </Container>
         </Section>

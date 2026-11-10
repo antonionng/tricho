@@ -6,7 +6,6 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { lineTotal, poundsText, priceText } from "@/lib/vat";
 
 export type PackageCard = {
   id: string;
@@ -22,6 +21,9 @@ export type PackageCard = {
 type Person = { name: string; email: string; dietary: string; accessNeeds: string };
 const blank = (): Person => ({ name: "", email: "", dietary: "", accessNeeds: "" });
 
+function money(pence: number) {
+  return pence % 100 === 0 ? `£${(pence / 100).toLocaleString("en-GB")}` : `£${(pence / 100).toFixed(2)}`;
+}
 
 const textarea = "min-h-[88px] rounded-xl border border-input bg-card px-3 py-2 text-[15px] placeholder:text-muted-foreground";
 
@@ -31,18 +33,7 @@ const textarea = "min-h-[88px] rounded-xl border border-input bg-card px-3 py-2 
  * Company, contact and invoice details go to the checkout route in the request
  * body, never in a URL, and the buyer can name their places now or later.
  */
-export function BuyPackage({
-  eventId,
-  slug,
-  packages,
-  excludesVat = false,
-}: {
-  eventId: string;
-  slug: string;
-  packages: PackageCard[];
-  /** Prices are before VAT, and checkout adds UK VAT on top. */
-  excludesVat?: boolean;
-}) {
+export function BuyPackage({ eventId, slug, packages }: { eventId: string; slug: string; packages: PackageCard[] }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const [company, setCompany] = useState({ companyName: "", contactName: "", contactEmail: "", contactPhone: "", website: "", invoiceAddress: "", vatNumber: "" });
   const [people, setPeople] = useState<Person[]>([]);
@@ -95,7 +86,7 @@ export function BuyPackage({
           >
             <div className="flex items-baseline justify-between gap-3">
               <h3 className="text-xl font-semibold text-ink">{p.name}</h3>
-              <p className="text-right text-xl font-semibold text-ink">{priceText(p.pricePence, excludesVat)}</p>
+              <p className="text-xl font-semibold text-ink">{money(p.pricePence)}</p>
             </div>
             <ul className="flex flex-1 flex-col gap-2 text-[15px] text-ink-2">
               {p.includes.map((line) => (
@@ -131,13 +122,11 @@ export function BuyPackage({
         <form id="book-package" onSubmit={buy} className="mx-auto flex w-full max-w-2xl scroll-mt-24 flex-col gap-4 rounded-3xl border border-rule bg-card p-6 sm:p-8">
           <div className="flex flex-col gap-1">
             <h3 className="text-xl font-semibold text-ink">
-              Book the {pkg.name} package for {priceText(pkg.pricePence, excludesVat)}
+              Book the {pkg.name} package for {money(pkg.pricePence)}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {excludesVat
-                ? `UK VAT at 20% is added at checkout, so you pay ${poundsText(lineTotal(pkg.pricePence, 1, true).gross)} in total. `
-                : "The price includes VAT. "}
-              Stripe emails a VAT invoice made out to your company once you have paid, and you can add your VAT number there too.
+              The price includes VAT. Stripe emails a VAT invoice made out to your company once you have paid, and you can add your VAT number there
+              too.
             </p>
           </div>
           <fieldset className="grid gap-3 sm:grid-cols-2">
@@ -184,7 +173,7 @@ export function BuyPackage({
           )}
 
           <Button type="submit" size="lg" disabled={busy}>
-            {busy ? "Opening secure payment…" : `Pay ${poundsText(lineTotal(pkg.pricePence, 1, excludesVat).gross)} and book ${pkg.name}`} {!busy && <ArrowRight />}
+            {busy ? "Opening secure payment…" : `Pay ${money(pkg.pricePence)} and book ${pkg.name}`} {!busy && <ArrowRight />}
           </Button>
           <p className="text-sm text-muted-foreground">
             After paying, you can name your places, upload your logo and send your booklet text from your exhibitor page.
