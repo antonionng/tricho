@@ -7,6 +7,8 @@ import { deliver, deliverOnce, wantsList, type EmailList } from "@/lib/mail/send
 import type { EmailContent } from "@/lib/mail/layout";
 import { draftEmailContent } from "@/lib/mail/templates/members";
 import { announcementEmail, newsletterEmail } from "@/lib/mail/templates/releases";
+import { consumerDigestEmail } from "@/lib/mail/templates/consumers";
+import { consumerDigestRecipients } from "@/lib/consumer-mail";
 import { freshState, uniqueSlug } from "./blog-writer";
 
 export const SYSTEM_USER_EMAIL = "team@trichollective.local";
@@ -189,6 +191,20 @@ export async function publishDraft(id: string): Promise<PublishResult> {
         message: skipped
           ? `Approved for ${recipients.length} people. Email sending isn't switched on yet, so it was logged instead.`
           : `Sent to ${sent} of ${recipients.length} people.`,
+      };
+    }
+
+    case "consumer_digest": {
+      const recipients = await consumerDigestRecipients();
+      const { subject, content } = consumerDigestEmail(draft, payload);
+      const sent = await sendToEach(recipients, subject, content, "updates", "consumer-digest", `consumer-digest:${str(payload.month) || draft.id}`);
+      const skipped = !sendingEnabled();
+      await done({ sentAt: now.toISOString(), sentCount: sent, recipientCount: recipients.length, skipped });
+      return {
+        status: "published",
+        message: skipped
+          ? `Approved for ${recipients.length} ${recipients.length === 1 ? "consumer" : "consumers"}. Email sending isn't switched on yet, so it was logged instead.`
+          : `Sent to ${sent} of ${recipients.length} ${recipients.length === 1 ? "consumer" : "consumers"} who opted in to news.`,
       };
     }
 

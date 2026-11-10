@@ -4,6 +4,7 @@ export const KIND_LABEL: Record<string, string> = {
   community_nudge: "Quiet post",
   email: "Email",
   newsletter: "Newsletter",
+  consumer_digest: "Hair hub digest",
   partner_enquiry: "Partner enquiry",
   contact: "Contact message",
   announcement: "New release email",
@@ -33,6 +34,8 @@ export function approveLabel(kind: string) {
     case "newsletter":
     case "announcement":
       return "Approve & send to everyone…";
+    case "consumer_digest":
+      return "Approve & send to opted-in consumers…";
     default:
       return "Mark as handled";
   }

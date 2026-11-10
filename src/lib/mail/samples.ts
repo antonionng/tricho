@@ -8,6 +8,8 @@ import { samples as tickets } from "./templates/tickets";
 import { samples as releases } from "./templates/releases";
 import { samples as owners } from "./templates/owners";
 import { samples as pageAccess } from "./templates/page-access";
+import { samples as consumers } from "./templates/consumers";
+import { HUB_LABEL } from "@/config/consumer";
 
 /** Every email the platform sends, grouped the way the Studio shows them. */
 const people = (list: EmailSample[]) => list.filter((s) => s.audience !== "owners");
@@ -15,6 +17,7 @@ const alerts = [leads, directory, billing, members, tickets, releases, owners].f
 
 export const emailGroups: { title: string; intro: string; samples: EmailSample[] }[] = [
   { title: "Sign-in, sign-ups and enquiries", intro: "Sent the moment someone signs in, joins the list, contacts you or applies to partner.", samples: people(leads) },
+  { title: HUB_LABEL, intro: "Sent to members of the public with a free consumer account, about their enquiries and, if they opted in, a monthly digest.", samples: consumers },
   { title: "Directory", intro: "Sent to practitioners as their listing is checked, goes live and receives enquiries.", samples: people(directory) },
   { title: "Membership and payments", intro: "Sent when someone pays, when a payment fails and when a membership ends.", samples: people(billing) },
   { title: "Invite colleagues", intro: "Sent to a member when a colleague who joined with their code makes a first payment and earns them a free month.", samples: people(referrals) },

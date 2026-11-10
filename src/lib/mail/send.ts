@@ -63,6 +63,7 @@ export async function leaveList(email: string, list: EmailList) {
     return;
   }
   await prisma.user.updateMany({ where: { email: e }, data: { emailUpdates: false } });
+  await prisma.consumerProfile.updateMany({ where: { user: { email: e }, marketingConsentAt: { not: null } }, data: { marketingConsentAt: null } });
   await prisma.subscriber.updateMany({ where: { email: e, unsubscribedAt: null }, data: { unsubscribedAt: new Date() } });
 }
 

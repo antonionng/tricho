@@ -27,6 +27,7 @@ import {
   welcomeEmail,
 } from "@/lib/mail/templates/billing";
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
+import { emailEnquiryUpdates } from "@/lib/consumer-mail";
 import { handleTicketWebhook } from "@/lib/tickets";
 import { handleCourseWebhook } from "@/lib/courses";
 import { handleEducatorWebhook } from "@/lib/educators";
@@ -196,6 +197,7 @@ export async function POST(req: Request) {
                 tag: "enquiry",
               });
             }
+            await emailEnquiryUpdates(held.map((e) => e.id), "delivered");
             listingClaimed = claimed.count > 0;
             enquiriesReleased = held.length;
           }

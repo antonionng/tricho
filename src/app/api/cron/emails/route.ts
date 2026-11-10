@@ -71,7 +71,7 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
     prisma.subscriber.findMany({ where: { createdAt: recent }, select: { email: true, source: true, createdAt: true } }),
     prisma.user.findMany({
       where: { ...realUsers, createdAt: recent },
-      select: { name: true, email: true, plan: true, stripeCurrentPeriodEnd: true, createdAt: true },
+      select: { name: true, email: true, plan: true, stripeCurrentPeriodEnd: true, accountType: true, createdAt: true },
     }),
     prisma.directoryListing.count({ where: { status: "pending", isSample: false } }),
     prisma.enquiry.groupBy({ by: ["status"], where: { createdAt: recent }, _count: { _all: true } }),
@@ -85,6 +85,7 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
 
   // New accounts that are paying now count as paid members; the rest are free accounts.
   const paid = newUsers.filter((u) => u.plan && u.stripeCurrentPeriodEnd && u.stripeCurrentPeriodEnd > now);
+  const consumers = newUsers.filter((u) => u.accountType === "consumer");
   const byPlan = new Map<string, number>();
   for (const u of paid) {
     const label = PLAN_LABEL[u.plan ?? ""] ?? String(u.plan);
@@ -97,7 +98,7 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
     ...newUsers.map((u) => ({
       name: u.name,
       email: u.email ?? "",
-      source: paid.includes(u) ? `${PLAN_LABEL[u.plan ?? ""] ?? "Paid"} member` : "Free account",
+      source: paid.includes(u) ? `${PLAN_LABEL[u.plan ?? ""] ?? "Paid"} member` : consumers.includes(u) ? "Consumer account" : "Free account",
       at: u.createdAt,
     })),
     ...subscriberRows.map((s) => ({ name: null, email: s.email, source: `Subscriber, ${s.source || "website"}`, at: s.createdAt })),
@@ -131,7 +132,8 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
   return {
     dateLabel: now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Dublin" }),
     subscribersBySource: [...bySource.entries()].map(([source, n]) => ({ source, count: n })).sort((a, b) => b.count - a.count),
-    freeAccounts: newUsers.length - paid.length,
+    freeAccounts: newUsers.length - paid.length - consumers.length,
+    consumerAccounts: consumers.length,
     paidByPlan: [...byPlan.entries()].map(([plan, n]) => ({ plan, count: n })),
     listingsWaiting,
     enquiriesDelivered: count("forwarded") + count("closed"),
