@@ -9,7 +9,14 @@ import { Empty, Field, Notice, PageHeader, Section, Tag, dateTime, fieldClass, N
 import { cn } from "@/lib/utils";
 import { studioPage } from "../_lib/guard";
 import { saveEventAction } from "../actions";
-import { deleteTicketTypeAction, draftEventAction, notifyMasterclassAction, saveTicketTypeAction, writeEventBodyAction } from "./actions";
+import {
+  addDefaultPackagesAction,
+  deleteTicketTypeAction,
+  draftEventAction,
+  notifyMasterclassAction,
+  saveTicketTypeAction,
+  writeEventBodyAction,
+} from "./actions";
 import { dateToZonedInput, formValuesFromPayload, missingEventFields, type EventFormValues, type RequiredEventField } from "@/lib/event-input";
 import { DEFAULT_EVENT_TIMEZONE, EVENT_TIMEZONES } from "@/lib/event-time";
 import { penceToPounds } from "@/lib/ticket-types";
@@ -95,9 +102,18 @@ export default async function EventsPage({
       {editing && (
         <TicketTypesEditor
           event={editing}
-          types={ticketTypes.map((t) => ({ ...t, sold: typeSold.get(t.id) ?? 0 }))}
+          types={ticketTypes.filter((t) => t.kind === "attendee").map((t) => ({ ...t, sold: typeSold.get(t.id) ?? 0 }))}
           canEdit={canEdit}
           notice={sp.tt === "1" && sp.notice ? { text: sp.notice, danger: sp.tone === "danger" } : null}
+        />
+      )}
+
+      {editing && !editing.online && (
+        <PackagesEditor
+          event={editing}
+          types={ticketTypes.filter((t) => t.kind !== "attendee").map((t) => ({ ...t, sold: typeSold.get(t.id) ?? 0 }))}
+          canEdit={canEdit}
+          notice={sp.tt === "2" && sp.notice ? { text: sp.notice, danger: sp.tone === "danger" } : null}
         />
       )}
 
@@ -182,6 +198,11 @@ function EventList({
             <Button asChild size="xs" variant="outline">
               <Link href={`/studio/events/${e.id}/attendees`}>Attendees</Link>
             </Button>
+            {e.sellTickets && !e.online && (
+              <Button asChild size="xs" variant="outline">
+                <Link href={`/studio/events/${e.id}/exhibitors`}>Exhibitors</Link>
+              </Button>
+            )}
             {canCheckIn && e.sellTickets && !e.online && (
               <Button asChild size="xs" variant="outline">
                 <Link href={`/studio/events/${e.id}/checkin`}>Check-in</Link>
@@ -357,6 +378,23 @@ function EventForm({ event, prefill, partners }: { event: Event | null; prefill:
         </Field>
       </div>
 
+      <fieldset className="space-y-3 rounded-2xl border border-rule p-4">
+        <legend className="px-1 text-sm font-medium text-ink">Exhibitors</legend>
+        <p className="text-sm text-muted-foreground">
+          For in-person events that sell exhibitor and sponsor packages. These limits are shared by every package that includes a stand or a stage
+          slot, on top of each package&apos;s own stock. Leave them blank if only each package&apos;s stock should count. Places included in
+          packages do not count towards the event&apos;s Places above, which are for delegates.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Stand spaces" hint="How many stands the venue has room for.">
+            <input type="number" min={0} step={1} name="standSpaces" defaultValue={event?.standSpaces ?? ""} className={fieldClass} />
+          </Field>
+          <Field label="Stage slots" hint="How many 15-minute slots there are on stage for exhibitors.">
+            <input type="number" min={0} step={1} name="stageSlots" defaultValue={event?.stageSlots ?? ""} className={fieldClass} />
+          </Field>
+        </div>
+      </fieldset>
+
       <label className={cn("flex items-start gap-3 rounded-2xl border border-rule p-4 text-sm")}>
         <input type="checkbox" name="published" defaultChecked={v ? v.published : (event?.published ?? false)} className="mt-0.5 h-4 w-4 accent-ink" />
         <span>
@@ -492,6 +530,233 @@ function TicketTypeForm({ event, type, canEdit, nextSort = 0 }: { event: Event; 
           )}
         </div>
       )}
+    </form>
+  );
+}
+
+/**
+ * Exhibitor and sponsor packages for an in-person event, and the extra places
+ * package holders can add. Each package has its price, stock, places included,
+ * and whether it takes a stand or a stage slot from the event's shared limits.
+ */
+function PackagesEditor({
+  event,
+  types,
+  canEdit,
+  notice,
+}: {
+  event: Event;
+  types: TypeRow[];
+  canEdit: boolean;
+  notice: { text: string; danger: boolean } | null;
+}) {
+  const packages = types.filter((t) => t.kind === "package");
+  const addons = types.filter((t) => t.kind === "addon");
+  const nextSort = (types.at(-1)?.sortOrder ?? 90) + 10;
+  return (
+    <section id="packages" className="max-w-4xl space-y-4 rounded-2xl border border-rule bg-card p-5 sm:p-6">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-ink">Exhibitor and sponsor packages</h2>
+        <p className="text-sm text-muted-foreground">
+          Brands and clinics buy a package from the &ldquo;Exhibit or sponsor&rdquo; section of the event page, one at a time, with their company and
+          invoice details. Prices include VAT, and Stripe sends each business a VAT invoice. Stock sets how many of a package exist; the event&apos;s
+          stand spaces and stage slots above are shared by every package that includes one.
+          {!event.sellTickets && " Tick Sell tickets on Trichollective above for these to go on sale."}
+        </p>
+      </div>
+      {notice && <Notice tone={notice.danger ? "danger" : "default"}>{notice.text}</Notice>}
+      {canEdit && packages.length === 0 && (
+        <form action={addDefaultPackagesAction} className="flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-rule p-4">
+          <input type="hidden" name="eventId" value={event.id} />
+          <p className="flex-1 text-sm text-ink-2">
+            Start from the standard five packages, from Sponsor at £150 to Elite at £1,000, and extra places at £100 each. This also gives the
+            event 20 stand spaces and 8 stage slots if they are blank. You can change any of it afterwards.
+          </p>
+          <SubmitButton size="sm" pendingLabel="Adding…">
+            Add the standard packages
+          </SubmitButton>
+        </form>
+      )}
+      {packages.map((t) => (
+        <PackageForm key={t.id} event={event} type={t} canEdit={canEdit} />
+      ))}
+      {addons.map((t) => (
+        <AddonForm key={t.id} event={event} type={t} packages={packages} canEdit={canEdit} />
+      ))}
+      {canEdit && (
+        <div className="grid gap-3">
+          <details className="rounded-2xl border border-dashed border-rule p-4">
+            <summary className="cursor-pointer text-sm font-medium text-ink">Add a package</summary>
+            <div className="pt-4">
+              <PackageForm event={event} type={null} canEdit nextSort={nextSort} />
+            </div>
+          </details>
+          {packages.length > 0 && (
+            <details className="rounded-2xl border border-dashed border-rule p-4">
+              <summary className="cursor-pointer text-sm font-medium text-ink">Add extra places for package holders</summary>
+              <div className="pt-4">
+                <AddonForm event={event} type={null} packages={packages} canEdit nextSort={nextSort} />
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TypeHeader({ type, unit }: { type: TypeRow; unit: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <p className="font-medium text-ink">{type.name}</p>
+      <Tag>
+        {type.sold} {unit}
+        {type.capacity ? ` of ${type.capacity}` : ""}
+      </Tag>
+      {type.active ? <Tag tone="positive">On sale</Tag> : <Tag tone="warn">Switched off</Tag>}
+    </div>
+  );
+}
+
+function SalesFields({ type, tz, nextSort }: { type: TypeRow | null; tz: string; nextSort: number }) {
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="On sale from" hint="Blank for straight away.">
+          <input type="datetime-local" name="salesStart" defaultValue={dateToZonedInput(type?.salesStart, tz)} className={fieldClass} />
+        </Field>
+        <Field label="Sales close" hint="Blank for the start of the event.">
+          <input type="datetime-local" name="salesEnd" defaultValue={dateToZonedInput(type?.salesEnd, tz)} className={fieldClass} />
+        </Field>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="active" defaultChecked={type?.active ?? true} className="h-4 w-4 accent-ink" />
+          On sale
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          Order on the page
+          <input type="number" step={1} name="sortOrder" defaultValue={type?.sortOrder ?? nextSort} className={cn(fieldClass, "w-24")} />
+        </label>
+      </div>
+    </>
+  );
+}
+
+function TypeButtons({ type, label }: { type: TypeRow | null; label: string }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <SubmitButton size="sm" pendingLabel="Saving…">
+        {type ? `Save ${label}` : `Add ${label}`}
+      </SubmitButton>
+      {type && type.sold === 0 && (
+        <SubmitButton size="sm" variant="outline" formAction={deleteTicketTypeAction} formNoValidate pendingLabel="Removing…">
+          Remove
+        </SubmitButton>
+      )}
+    </div>
+  );
+}
+
+function PackageForm({ event, type, canEdit, nextSort = 0 }: { event: Event; type: TypeRow | null; canEdit: boolean; nextSort?: number }) {
+  return (
+    <form action={saveTicketTypeAction} className={cn("space-y-4", type && "rounded-2xl border border-rule p-4")}>
+      <input type="hidden" name="eventId" value={event.id} />
+      <input type="hidden" name="kind" value="package" />
+      {type && <input type="hidden" name="typeId" value={type.id} />}
+      {type && <TypeHeader type={type} unit="sold" />}
+      <fieldset disabled={!canEdit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_1fr]">
+          <Field label="Name" hint="For example: Elevate.">
+            <input name="name" defaultValue={type?.name ?? ""} required maxLength={80} className={fieldClass} />
+          </Field>
+          <Field label="Price (£)" hint="VAT included.">
+            <input name="price" inputMode="decimal" defaultValue={penceToPounds(type?.pricePence)} required className={fieldClass} />
+          </Field>
+          <Field label="Places included" hint="Delegate places, 0 or more.">
+            <input type="number" min={0} max={20} step={1} name="placesIncluded" defaultValue={type?.placesIncluded ?? 1} required className={fieldClass} />
+          </Field>
+          <Field label="Stock" hint="Blank for no limit.">
+            <input type="number" min={1} step={1} name="capacity" defaultValue={type?.capacity ?? ""} className={fieldClass} />
+          </Field>
+        </div>
+        <Field
+          label="What it includes"
+          hint="One benefit per line, shown as a list on the event page and in the confirmation email. Places, stands and stage slots are listed for you if you leave them out."
+        >
+          <textarea name="description" defaultValue={type?.description ?? ""} rows={4} maxLength={1200} className={fieldClass} />
+        </Field>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="includesStand" defaultChecked={type?.includesStand ?? false} className="h-4 w-4 accent-ink" />
+            Includes a stand
+            {event.standSpaces != null && <span className="text-muted-foreground">(from the {event.standSpaces} stand spaces)</span>}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="includesStageSlot" defaultChecked={type?.includesStageSlot ?? false} className="h-4 w-4 accent-ink" />
+            Includes a stage slot
+            {event.stageSlots != null && <span className="text-muted-foreground">(from the {event.stageSlots} stage slots)</span>}
+          </label>
+        </div>
+        <SalesFields type={type} tz={event.timezone} nextSort={nextSort} />
+      </fieldset>
+      {canEdit && <TypeButtons type={type} label="package" />}
+    </form>
+  );
+}
+
+function AddonForm({
+  event,
+  type,
+  packages,
+  canEdit,
+  nextSort = 0,
+}: {
+  event: Event;
+  type: TypeRow | null;
+  packages: TypeRow[];
+  canEdit: boolean;
+  nextSort?: number;
+}) {
+  const offered = new Set(type ? type.addonForTypeIds : packages.filter((p) => p.placesIncluded > 0).map((p) => p.id));
+  return (
+    <form action={saveTicketTypeAction} className={cn("space-y-4", type && "rounded-2xl border border-rule p-4")}>
+      <input type="hidden" name="eventId" value={event.id} />
+      <input type="hidden" name="kind" value="addon" />
+      {type && <input type="hidden" name="typeId" value={type.id} />}
+      {type && <TypeHeader type={type} unit="places sold" />}
+      <fieldset disabled={!canEdit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_1fr]">
+          <Field label="Name" hint="For example: Extra exhibitor ticket.">
+            <input name="name" defaultValue={type?.name ?? "Extra exhibitor ticket"} required maxLength={80} className={fieldClass} />
+          </Field>
+          <Field label="Price per place (£)" hint="VAT included.">
+            <input name="price" inputMode="decimal" defaultValue={penceToPounds(type?.pricePence ?? 10000)} required className={fieldClass} />
+          </Field>
+          <Field label="Most per package" hint="Across all their orders.">
+            <input type="number" min={1} max={20} step={1} name="maxPerOrder" defaultValue={type?.maxPerOrder ?? 5} className={fieldClass} />
+          </Field>
+          <Field label="Places in all" hint="Blank for no limit.">
+            <input type="number" min={1} step={1} name="capacity" defaultValue={type?.capacity ?? ""} className={fieldClass} />
+          </Field>
+        </div>
+        <Field label="Description" hint="Optional. One line, shown on the exhibitor page.">
+          <input name="description" defaultValue={type?.description ?? ""} maxLength={300} className={fieldClass} />
+        </Field>
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-ink">Offered to holders of</legend>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {packages.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="addonFor" value={p.id} defaultChecked={offered.has(p.id)} className="h-4 w-4 accent-ink" />
+                {p.name}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <SalesFields type={type} tz={event.timezone} nextSort={nextSort} />
+      </fieldset>
+      {canEdit && <TypeButtons type={type} label="extra places" />}
     </form>
   );
 }

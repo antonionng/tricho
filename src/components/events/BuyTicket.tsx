@@ -34,6 +34,8 @@ type Quote = {
   onSale: boolean;
   /** Ticket types, when the event sells them. Empty for flat pricing. */
   types?: TypeQuote[];
+  /** Any ticket type is on sale, packages included, so the flat prices are not used. */
+  hasTypes?: boolean;
   /** In person: each place needs a named attendee. */
   inPerson?: boolean;
   email?: string | null;
@@ -134,6 +136,7 @@ export function BuyTicket({
   if (!quote.onSale) return null;
   const types = quote.types ?? [];
   const selected = types.find((t) => t.id === typeId) ?? null;
+  if (quote.hasTypes && types.length === 0) return note("Delegate tickets are not on sale right now.");
   if (types.length > 0 && !types.some((t) => t.state === "on_sale")) {
     const membersOnly = types.some((t) => t.state === "members_only");
     return note(

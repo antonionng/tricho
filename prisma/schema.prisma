@@ -662,6 +662,12 @@ model Event {
   /// Early bird, standard and so on. An event without any sells at the flat member and guest prices.
   ticketTypes    EventTicketType[]
   attendees      EventAttendee[]
+  /// Exhibitors and sponsors who bought a package.
+  exhibitors     EventExhibitor[]
+  /// Stage slots shared by every package that includes one. Null means only each package's own stock limits them.
+  stageSlots     Int?
+  /// Stand spaces shared by every package that includes a stand. Null means only each package's own stock limits them.
+  standSpaces    Int?
   /// Attendees can change their name, dietary and access details on their ticket page until then. Null means 48 hours before the start.
   detailsCloseAt DateTime?
 
@@ -1219,8 +1225,15 @@ model EventTicket {
   createdAt             DateTime     @default(now())
   /// One named person per place, for in-person events.
   attendees             EventAttendee[]
+  /// The company details, when this order is an exhibitor or sponsor package.
+  exhibitor             EventExhibitor?
+  /// For extra places bought as an add-on: the package order they belong to.
+  packageTicketId       String?
+  packageTicket         EventTicket? @relation("PackageExtras", fields: [packageTicketId], references: [id], onDelete: SetNull)
+  extras                EventTicket[] @relation("PackageExtras")
 
   @@index([eventId, status])
+  @@index([packageTicketId])
   @@index([email])
   @@index([ticketTypeId])
 }
@@ -1238,6 +1251,8 @@ model EventAttendee {
   accessNeeds   String?
   /// The buyer ticked "this is me" for this place.
   isBuyer       Boolean     @default(false)
+  /// A place included in a package that the buyer has not named yet. No e-ticket is sent until it is named.
+  awaitingName  Boolean     @default(false)
   /// Random and unguessable: it opens the attendee's ticket page and is what the door scans.
   code          String      @unique
   checkedInAt   DateTime?
@@ -1256,11 +1271,22 @@ model EventAttendee {
   @@index([email])
 }
 
-/// A kind of ticket for an event sold on Trichollective, such as early bird or standard.
+enum EventTicketKind {
+  /// A ticket for one person, such as early bird or standard.
+  attendee
+  /// An exhibitor or sponsor package, bought one at a time, with places included.
+  package
+  /// Extra places a package holder can add to their package.
+  addon
+}
+
+/// A kind of ticket for an event sold on Trichollective, such as early bird or standard,
+/// or an exhibitor package and the extra places its holders can add.
 model EventTicketType {
   id               String        @id @default(cuid())
   eventId          String
   event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  kind             EventTicketKind @default(attendee)
   name             String
   description      String        @default("")
   /// What everyone pays, in pence, VAT included.
@@ -1275,7 +1301,16 @@ model EventTicketType {
   salesStart       DateTime?
   /// Off sale from this moment, e.g. when early bird ends. Null means until the event starts.
   salesEnd         DateTime?
+  /// For an add-on, the most extra places one package can add across all its orders.
   maxPerOrder      Int           @default(4)
+  /// Places each one includes: one for attendee tickets and add-ons, the package's own number (which can be 0) for packages.
+  placesIncluded   Int           @default(1)
+  /// The package takes one of the event's stand spaces.
+  includesStand    Boolean       @default(false)
+  /// The package takes one of the event's stage slots.
+  includesStageSlot Boolean      @default(false)
+  /// For an add-on: the package types whose holders can buy it.
+  addonForTypeIds  String[]      @default([])
   sortOrder        Int           @default(0)
   /// Hidden from sale when off. Types with tickets sold are switched off, never deleted.
   active           Boolean       @default(true)
@@ -1284,6 +1319,36 @@ model EventTicketType {
   updatedAt        DateTime      @updatedAt
 
   @@index([eventId, sortOrder])
+}
+
+/// The company behind an exhibitor or sponsor package: invoicing, booklet and on-the-day details.
+model EventExhibitor {
+  id             String      @id @default(cuid())
+  eventId        String
+  event          Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketId       String      @unique
+  ticket         EventTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  companyName    String
+  contactName    String
+  contactEmail   String
+  contactPhone   String
+  website        String?
+  invoiceAddress String
+  vatNumber      String?
+  /// Random and unguessable: it opens the self-service page for naming places, the logo, booklet text and extra places.
+  manageCode     String      @unique
+  logoFileId     String?
+  logoUrl        String?
+  /// What the event booklet says about them.
+  bookletBlurb   String?     @db.Text
+  standNumber    String?
+  stageSlotAt    DateTime?
+  /// For the team only.
+  notes          String?     @db.Text
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([eventId])
 }
 
 enum EnrolmentStatus {

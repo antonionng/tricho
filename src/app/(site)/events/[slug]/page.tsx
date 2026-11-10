@@ -18,6 +18,8 @@ import {
   publicEventSelect,
 } from "@/components/editorial/events";
 import { BuyTicket, TicketReturnNotice } from "@/components/events/BuyTicket";
+import { BuyPackage, PackageReturnNotice, type PackageCard } from "@/components/events/BuyPackage";
+import { packageAvailability, packageIncludes } from "@/lib/packages";
 import { MemberPlace } from "@/components/events/MemberPlace";
 import { images, img } from "@/content/images";
 import { seatUsage, seatsLeft, typeAvailability, typeSeatsTaken, type TypeAvailability } from "@/lib/tickets";
@@ -44,7 +46,7 @@ const getEvent = cache(async (slug: string) => {
 const getTicketTypes = cache(async (eventId: string) =>
   prisma.eventTicketType
     .findMany({
-      where: { eventId, active: true },
+      where: { eventId, active: true, kind: "attendee" },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
@@ -58,6 +60,31 @@ const getTicketTypes = cache(async (eventId: string) =>
         salesEnd: true,
         maxPerOrder: true,
         active: true,
+      },
+    })
+    .catch(() => [])
+);
+
+const getPackages = cache(async (eventId: string) =>
+  prisma.eventTicketType
+    .findMany({
+      where: { eventId, active: true, kind: "package" },
+      orderBy: [{ sortOrder: "asc" }, { pricePence: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        pricePence: true,
+        memberPricePence: true,
+        membersOnly: true,
+        capacity: true,
+        salesStart: true,
+        salesEnd: true,
+        maxPerOrder: true,
+        active: true,
+        placesIncluded: true,
+        includesStand: true,
+        includesStageSlot: true,
       },
     })
     .catch(() => [])
@@ -129,6 +156,8 @@ export default async function EventPage({ params }: { params: Promise<Params> })
   // Ticket types, each with what is left. Shown to everyone at the public price; members see theirs at checkout.
   const usage = usageForLeft;
   const types = event.sellTickets ? await getTicketTypes(event.id) : [];
+  // Any ticket type on sale, packages included, turns the flat prices off.
+  const hasAnyTypes = event.sellTickets ? (await prisma.eventTicketType.count({ where: { eventId: event.id, active: true } }).catch(() => 0)) > 0 : false;
   const typeRows = types.map((t) => ({
     ...t,
     availability: typeAvailability(t, {
@@ -139,6 +168,20 @@ export default async function EventPage({ params }: { params: Promise<Params> })
     }),
   }));
   const tz = eventTimeZone(event.timezone);
+  // Exhibitor and sponsor packages, each with what is left of its stock, stands and stage slots.
+  const packages = event.sellTickets && !event.online && !isPast ? await getPackages(event.id) : [];
+  const packageCards: PackageCard[] = packages.map((p) => {
+    const a = packageAvailability(p, event, usage?.packageOrders ?? []);
+    return {
+      id: p.id,
+      name: p.name,
+      pricePence: p.pricePence,
+      includes: packageIncludes(p),
+      placesIncluded: p.placesIncluded,
+      status: availabilityText(a, tz),
+      canBuy: a.state === "on_sale",
+    };
+  });
   const map = !event.online && event.venueAddress ? mapHref([event.venue, event.venueAddress]) : null;
 
   return (
@@ -288,7 +331,15 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                     <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} />
                   </div>
                 )}
-                {!isPast && event.sellTickets && typeRows.length === 0 && (
+                {!isPast && event.sellTickets && typeRows.length === 0 && hasAnyTypes && (
+                  <div className="flex flex-col gap-2 border-t border-rule pt-6">
+                    <p className="label text-muted-foreground">Tickets</p>
+                    <p className="text-[15px] text-ink-2">
+                      Delegate tickets are not on sale yet.{packageCards.length > 0 && " Exhibitors and sponsors can book a package below."}
+                    </p>
+                  </div>
+                )}
+                {!isPast && event.sellTickets && typeRows.length === 0 && !hasAnyTypes && (
                   <div className="flex flex-col gap-4 border-t border-rule pt-6">
                     <div className="flex flex-col gap-1">
                       <p className="label text-muted-foreground">Tickets</p>
@@ -354,6 +405,30 @@ export default async function EventPage({ params }: { params: Promise<Params> })
           </div>
         </Container>
       </Section>
+
+      {packageCards.length > 0 && (
+        <Section tone="paper-2" id="exhibit">
+          <Container>
+            <div className="flex flex-col gap-10">
+              <div className="flex max-w-3xl flex-col gap-4">
+                <p className="label text-muted-foreground">Exhibit or sponsor</p>
+                <h2 className="display text-4xl leading-tight sm:text-5xl">Put your brand in front of the trichologists who recommend it.</h2>
+                <p className="lede">
+                  Every delegate at {event.title} works with hair and scalp clients, and many choose the products and services their clinics use. A
+                  package gets your company in the event booklet, and the larger ones add a stand, time on stage and places for your team.
+                </p>
+                <p className="text-[15px] text-ink-2">
+                  Prices include VAT, and you receive a VAT invoice in your company&apos;s name. Packages are booked separately from delegate tickets.
+                </p>
+              </div>
+              <Suspense fallback={null}>
+                <PackageReturnNotice />
+              </Suspense>
+              <BuyPackage eventId={event.id} slug={event.slug} packages={packageCards} />
+            </div>
+          </Container>
+        </Section>
+      )}
 
       {isPast && (
         <Section tone="paper-2">
