@@ -91,7 +91,7 @@ export function BuyExtras({
           {!busy && <ArrowRight />}
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground">The price includes VAT, and Stripe emails a VAT invoice in your company&apos;s name once you have paid.</p>
+      <p className="text-sm text-muted-foreground">Stripe emails an invoice in your company&apos;s name once you have paid.</p>
       {error && (
         <p className="text-sm text-destructive" role="alert">
           {error}

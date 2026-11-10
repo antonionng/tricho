@@ -13,7 +13,7 @@ export function checkoutTermsText(kind: "membership" | "ticket" | "course" | "pa
   const terms = `[terms of business](${site.url}/terms)`;
   const messages = {
     membership: `By paying, you agree to our ${terms} and ask us to start your membership straight away. You accept that you lose your 14-day right to cancel once it starts, and that payments are non-refundable. You can cancel at any time to stop the next renewal.`,
-    exhibitor: `By paying, you agree to our ${terms} on behalf of your company. Exhibitor and sponsor packages and extra places are non-refundable, as they are for an event on a set date. Stripe emails your VAT invoice once you have paid.`,
+    exhibitor: `By paying, you agree to our ${terms} on behalf of your company. Exhibitor and sponsor packages and extra places are non-refundable, as they are for an event on a set date. Stripe emails your invoice once you have paid.`,
     ticket: `By paying, you agree to our ${terms}. Event tickets are non-refundable, and the 14-day right to cancel does not apply to tickets for events on a set date.`,
     // Online courses are digital content: access starts at once, at the buyer's express request.
     course: `By paying, you agree to our ${terms} and ask for access to the course straight away. You accept that you lose your 14-day right to cancel once the course is opened to you, and that course fees are non-refundable.`,

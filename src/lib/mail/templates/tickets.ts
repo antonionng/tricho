@@ -209,7 +209,7 @@ export function packageConfirmedEmail(p: PackageEmailInput): Email {
   const places = p.named.length + p.waiting;
   const body = [
     `Hello ${firstNameOf(p.contactName)},`,
-    `Thank you for booking the ${p.packageName} package for ${p.companyName} at ${e.title} on ${day}. Your payment has been received, and Stripe sends your VAT invoice and receipt separately.`,
+    `Thank you for booking the ${p.packageName} package for ${p.companyName} at ${e.title} on ${day}. Your payment has been received, and Stripe sends your invoice and receipt separately.`,
     "## What your package includes",
     p.includes.map((l) => `- ${l}`).join("\n"),
     "## What we need from you",

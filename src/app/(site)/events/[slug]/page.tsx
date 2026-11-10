@@ -418,7 +418,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                   package gets your company in the event booklet, and the larger ones add a stand, time on stage and places for your team.
                 </p>
                 <p className="text-[15px] text-ink-2">
-                  Prices include VAT, and you receive a VAT invoice in your company&apos;s name. Packages are booked separately from delegate tickets.
+                  You receive an invoice in your company&apos;s name once you have paid. Packages are booked separately from delegate tickets.
                 </p>
               </div>
               <Suspense fallback={null}>
