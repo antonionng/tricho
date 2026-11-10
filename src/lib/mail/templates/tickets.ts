@@ -277,6 +277,30 @@ export function packageSoldAlert(t: {
   };
 }
 
+/** A package refunded in full: its extra places were cancelled too, and still need refunding in Stripe. */
+export function packageRefundedAlert(t: {
+  company: string;
+  packageName: string;
+  event: string;
+  eventId: string;
+  extraPlaces: number;
+  toRefund: { amount: string; paymentIntent: string | null }[];
+}): OwnerAlert {
+  const places = t.extraPlaces === 1 ? "1 extra place was" : `${t.extraPlaces} extra places were`;
+  return {
+    subject: `Package refunded: ${t.packageName} for ${t.company}, extra places to refund`,
+    heading: `${t.company}'s ${t.packageName} package for ${t.event} has been refunded in full. ${places} also cancelled; refund them in Stripe.`,
+    body: "Extra places are paid for separately, so they are not refunded automatically. Refund each payment below in the Stripe dashboard.",
+    facts: [
+      ["Company", t.company],
+      ["Event", t.event],
+      ["Extra places cancelled", String(t.extraPlaces)],
+      ...t.toRefund.map((r, i): [string, string] => [`Payment ${i + 1}`, `${r.amount}${r.paymentIntent ? ` (${r.paymentIntent})` : ""}`]),
+    ],
+    cta: { label: "View exhibitors", href: `/studio/events/${t.eventId}/exhibitors` },
+  };
+}
+
 const sampleEvent: EmailEvent = {
   id: "sample-event",
   slug: "dublin-case-round-october",

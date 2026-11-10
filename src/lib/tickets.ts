@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { alertOwners, deliverOnce } from "@/lib/mail/send";
 import { formatMoney, ticketSoldAlert } from "@/lib/mail/templates/billing";
-import { attendeeTicketEmail, packageConfirmedEmail, packageSoldAlert, TICKET_QR_CID, ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
+import { attendeeTicketEmail, packageConfirmedEmail, packageRefundedAlert, packageSoldAlert, TICKET_QR_CID, ticketConfirmedEmail } from "@/lib/mail/templates/tickets";
 import { eventDay } from "@/lib/mail/templates/members";
 import { detailsCloseAt, newAttendeeCode, placeholderRows, placeRefundPence } from "@/lib/attendees";
 import { eventTimeZone } from "@/lib/event-time";
@@ -229,7 +229,8 @@ function idOf(value: string | { id: string } | null | undefined) {
 export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Session) {
   const ticketId = session.metadata?.ticketId;
   if (!ticketId) return { ok: false as const, reason: "no-ticket-id" };
-  if (session.payment_status !== "paid") {
+  // A 100% discount code completes the checkout with nothing to pay: the order is still confirmed.
+  if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
     console.warn("[TICKETS] checkout completed without payment", { ticketId, status: session.payment_status });
     return { ok: false as const, reason: "unpaid" };
   }
@@ -252,7 +253,7 @@ export async function handleTicketCheckoutCompleted(session: Stripe.Checkout.Ses
   // Only a pending or lapsed hold becomes paid, so a retried event changes nothing.
   // A hold that lapsed is still honoured: the money has been taken.
   const updated = await prisma.eventTicket.updateMany({
-    where: { id: ticket.id, status: { in: ["pending", "cancelled"] } },
+    where: { id: ticket.id, OR: [{ status: "pending" }, { status: "cancelled", paidAt: null }] },
     data: {
       status: "paid",
       paidAt: new Date(),
@@ -452,7 +453,14 @@ export async function handleTicketRefund(source: Stripe.Charge | Stripe.PaymentI
 
   const tickets = await prisma.eventTicket.findMany({
     where: { stripePaymentIntentId: paymentIntentId, status: { not: "refunded" } },
-    select: { id: true, eventId: true, userId: true, event: { select: { slug: true } } },
+    select: {
+      id: true,
+      eventId: true,
+      userId: true,
+      event: { select: { slug: true, title: true } },
+      ticketType: { select: { kind: true, name: true } },
+      exhibitor: { select: { companyName: true } },
+    },
   });
   if (!tickets.length) return { ok: false as const, reason: "not-a-ticket" };
 
@@ -466,7 +474,46 @@ export async function handleTicketRefund(source: Stripe.Charge | Stripe.PaymentI
     await closeOrder(t);
     refresh(t.event.slug);
   }
+  for (const t of tickets) {
+    if (kindOf(t.ticketType) === "package") await cancelPackageExtras(t);
+  }
   return { ok: true as const, count: tickets.length };
+}
+
+/**
+ * A package refunded in full takes its extra places with it. They were paid
+ * separately, with their own payment intents, so they are cancelled here but
+ * never refunded automatically: the owners are told to refund them in Stripe.
+ * A cancelled order keeps its paidAt, so a retried checkout event never
+ * brings it back.
+ */
+async function cancelPackageExtras(pkg: {
+  id: string;
+  eventId: string;
+  event: { title: string };
+  ticketType: { name: string } | null;
+  exhibitor: { companyName: string } | null;
+}) {
+  const extras = await prisma.eventTicket.findMany({
+    where: { packageTicketId: pkg.id, status: { in: ["paid", "pending"] } },
+    select: { id: true, status: true, amount: true, currency: true, stripePaymentIntentId: true, attendees: { where: { cancelledAt: null }, select: { id: true } } },
+  });
+  if (!extras.length) return;
+  await prisma.eventTicket.updateMany({ where: { id: { in: extras.map((x) => x.id) } }, data: { status: "cancelled" } });
+  await prisma.eventAttendee.updateMany({ where: { ticketId: { in: extras.map((x) => x.id) }, cancelledAt: null }, data: { cancelledAt: new Date() } });
+  const paid = extras.filter((x) => x.status === "paid");
+  const places = paid.reduce((n, x) => n + x.attendees.length, 0);
+  if (!paid.length) return;
+  await alertOwners(
+    packageRefundedAlert({
+      company: pkg.exhibitor?.companyName ?? "An exhibitor",
+      packageName: pkg.ticketType?.name ?? "package",
+      event: pkg.event.title,
+      eventId: pkg.eventId,
+      extraPlaces: places,
+      toRefund: paid.map((x) => ({ amount: formatMoney(x.amount, x.currency) ?? "", paymentIntent: x.stripePaymentIntentId })),
+    })
+  );
 }
 
 /** After an order has no places left: mark it refunded and free the member's RSVP if they hold no other ticket. */
@@ -629,7 +676,8 @@ export type Attendee = {
 export async function loadAttendees(eventId: string): Promise<Attendee[]> {
   const [tickets, rsvps] = await Promise.all([
     prisma.eventTicket.findMany({
-      where: { eventId, status: { in: ["paid", "refunded"] } },
+      // Orders cancelled after payment (extra places on a refunded package) stay listed until refunded.
+      where: { eventId, OR: [{ status: { in: ["paid", "refunded"] } }, { status: "cancelled", paidAt: { not: null } }] },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
@@ -684,7 +732,7 @@ export async function loadAttendees(eventId: string): Promise<Attendee[]> {
       company: t.exhibitor?.companyName ?? t.packageTicket?.exhibitor?.companyName ?? null,
       ticketType: t.ticketType?.name ?? null,
       quantity: t.quantity,
-      status: t.status === "paid" ? "Paid" : "Refunded",
+      status: t.status === "paid" ? "Paid" : t.status === "refunded" ? "Refunded" : "Cancelled, to refund",
       amount: t.amount,
       at: t.paidAt ?? t.createdAt,
       people: t.attendees ?? [],

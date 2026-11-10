@@ -29,10 +29,10 @@ export default async function ExhibitorsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ notice?: string; tone?: string }>;
+  searchParams: Promise<{ notice?: string; tone?: string; saved?: string }>;
 }) {
   const { id } = await params;
-  const { notice, tone } = await searchParams;
+  const { notice, tone, saved } = await searchParams;
   const staff = await studioPage(`/studio/events/${id}/exhibitors`, "events.view");
   if (!staff) return <NoAccess what="events" />;
   const canEdit = staff.perms.has("events.edit");
@@ -74,6 +74,9 @@ export default async function ExhibitorsPage({
       />
 
       {notice && <Notice tone={tone === "danger" ? "danger" : "default"}>{notice}</Notice>}
+      {saved && !notice && (
+        <Notice>{`${all.find((r) => r.id === saved)?.companyName ?? "The exhibitor"}'s stand and stage details are saved.`}</Notice>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-4">
         <Stat label="Packages sold" value={paid.length} note={`${money(revenue)} including extra places, VAT included.`} />

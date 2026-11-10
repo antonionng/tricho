@@ -141,13 +141,13 @@ export default async function AttendeesPage({
                       </td>
                       <td className="px-4 py-3">{a.quantity}</td>
                       <td className="px-4 py-3">
-                        <Tag tone={a.status === "Refunded" ? "warn" : "positive"}>{a.status}</Tag>
+                        <Tag tone={a.status === "Paid" ? "positive" : "warn"}>{a.status}</Tag>
                       </td>
                       <td className="px-4 py-3">{a.amount != null ? money(a.amount) : ""}</td>
                       <td className="px-4 py-3 text-muted-foreground">{dateTime(a.at)}</td>
                     </tr>
                     {a.people.map((p) => {
-                      const cancelled = !!p.cancelledAt || a.status === "Refunded";
+                      const cancelled = !!p.cancelledAt || a.status !== "Paid";
                       return (
                         <tr key={p.id} className="bg-paper/60 text-xs">
                           <td className="py-2 pl-8 pr-4 text-ink">

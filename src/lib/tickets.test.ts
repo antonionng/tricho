@@ -246,7 +246,8 @@ describe("handleTicketCheckoutCompleted", () => {
     const r = await handleTicketCheckoutCompleted(session);
     expect(r).toMatchObject({ ok: true, already: false });
     const update = db.updateMany.mock.calls[0][0];
-    expect(update.where).toEqual({ id: "t1", status: { in: ["pending", "cancelled"] } });
+    // A lapsed hold is honoured, but an order cancelled after payment is never brought back.
+    expect(update.where).toEqual({ id: "t1", OR: [{ status: "pending" }, { status: "cancelled", paidAt: null }] });
     expect(update.data).toMatchObject({ status: "paid", stripePaymentIntentId: "pi_1", amount: 4000 });
     expect(db.rsvpCreateMany).toHaveBeenCalledWith({ data: [{ eventId: "e1", userId: "u1" }], skipDuplicates: true });
     const [ref, to, subject] = db.deliverOnce.mock.calls[0];
@@ -271,6 +272,16 @@ describe("handleTicketCheckoutCompleted", () => {
     db.findUnique.mockResolvedValue({ ...ticket, userId: null, priceType: "guest" });
     await handleTicketCheckoutCompleted(session);
     expect(db.rsvpCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("confirms an order a 100% discount code left with nothing to pay", async () => {
+    const free = { ...session, payment_status: "no_payment_required", payment_intent: null, amount_total: 0 } as unknown as Stripe.Checkout.Session;
+    const r = await handleTicketCheckoutCompleted(free);
+    expect(r).toMatchObject({ ok: true, already: false });
+    const update = db.updateMany.mock.calls[0][0];
+    expect(update.data).toMatchObject({ status: "paid", amount: 0 });
+    expect(update.data.stripePaymentIntentId).toBeUndefined();
+    expect(db.deliverOnce.mock.calls[0][0]).toBe("ticket-confirmed:t1");
   });
 
   it("ignores sessions that are not paid", async () => {
@@ -310,6 +321,33 @@ describe("handleTicketRefund", () => {
     const r = await handleTicketRefund(charge);
     expect(r.ok).toBe(false);
     expect(db.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("cancels a refunded package's extra places, without refunding them, and tells the owners", async () => {
+    db.findMany
+      .mockResolvedValueOnce([
+        {
+          id: "t_pkg",
+          eventId: "e1",
+          userId: null,
+          event: { slug: "whittlebury-2027", title: "Whittlebury" },
+          ticketType: { kind: "package", name: "Evolve" },
+          exhibitor: { companyName: "Follicle Labs" },
+        },
+      ])
+      .mockResolvedValueOnce([
+        { id: "x1", status: "paid", amount: 20_000, currency: "gbp", stripePaymentIntentId: "pi_x1", attendees: [{ id: "a1" }, { id: "a2" }] },
+        { id: "x2", status: "paid", amount: 10_000, currency: "gbp", stripePaymentIntentId: "pi_x2", attendees: [{ id: "a3" }] },
+      ]);
+    await handleTicketRefund("pi_pkg");
+    expect(db.findMany.mock.calls[1][0].where).toEqual({ packageTicketId: "t_pkg", status: { in: ["paid", "pending"] } });
+    expect(db.updateMany).toHaveBeenCalledWith({ where: { id: { in: ["x1", "x2"] } }, data: { status: "cancelled" } });
+    expect(db.attendeeUpdateMany.mock.calls.at(-1)![0].where).toEqual({ ticketId: { in: ["x1", "x2"] }, cancelledAt: null });
+    expect(db.refundCreate).not.toHaveBeenCalled();
+    expect(db.alertOwners).toHaveBeenCalledTimes(1);
+    const alert = db.alertOwners.mock.calls[0][0];
+    expect(alert.heading).toContain("3 extra places were also cancelled; refund them in Stripe");
+    expect(alert.facts).toContainEqual(["Payment 1", "£200.00 (pi_x1)"]);
   });
 
   it("does nothing for payments that are not tickets", async () => {

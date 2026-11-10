@@ -45,7 +45,8 @@ export async function nameExhibitorPlaceAction(form: FormData) {
   const name = attendeeName(form.get("name"));
   const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 200);
   if (!name) back({ notice: "Please give the person's full name." }, "#places");
-  if (!EMAIL.test(email)) back({ notice: `Please check the email address for ${name}, so their e-ticket reaches them.` }, "#places");
+  // Fixed wording: names and emails never go in the address.
+  if (!EMAIL.test(email)) back({ notice: "Please check the email address, so their e-ticket reaches them." }, "#places");
 
   const claimed = await prisma.eventAttendee.updateMany({
     where: { id: attendeeId, ticketId: ex.ticket.id, awaitingName: true, cancelledAt: null },

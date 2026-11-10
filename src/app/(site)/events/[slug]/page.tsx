@@ -156,6 +156,8 @@ export default async function EventPage({ params }: { params: Promise<Params> })
   // Ticket types, each with what is left. Shown to everyone at the public price; members see theirs at checkout.
   const usage = usageForLeft;
   const types = event.sellTickets ? await getTicketTypes(event.id) : [];
+  // Any ticket type on sale, packages included, turns the flat prices off.
+  const hasAnyTypes = event.sellTickets ? (await prisma.eventTicketType.count({ where: { eventId: event.id, active: true } }).catch(() => 0)) > 0 : false;
   const typeRows = types.map((t) => ({
     ...t,
     availability: typeAvailability(t, {
@@ -329,7 +331,15 @@ export default async function EventPage({ params }: { params: Promise<Params> })
                     <BuyTicket eventId={event.id} slug={event.slug} memberPriceGBP={event.memberPriceGBP} />
                   </div>
                 )}
-                {!isPast && event.sellTickets && typeRows.length === 0 && (
+                {!isPast && event.sellTickets && typeRows.length === 0 && hasAnyTypes && (
+                  <div className="flex flex-col gap-2 border-t border-rule pt-6">
+                    <p className="label text-muted-foreground">Tickets</p>
+                    <p className="text-[15px] text-ink-2">
+                      Delegate tickets are not on sale yet.{packageCards.length > 0 && " Exhibitors and sponsors can book a package below."}
+                    </p>
+                  </div>
+                )}
+                {!isPast && event.sellTickets && typeRows.length === 0 && !hasAnyTypes && (
                   <div className="flex flex-col gap-4 border-t border-rule pt-6">
                     <div className="flex flex-col gap-1">
                       <p className="label text-muted-foreground">Tickets</p>

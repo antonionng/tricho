@@ -41,5 +41,6 @@ export async function saveExhibitorAction(form: FormData) {
     before: { standNumber: ex.standNumber, stageSlotAt: ex.stageSlotAt, notes: ex.notes },
     after: data,
   });
-  back(`${ex.companyName} saved.`);
+  // A flag rather than the company name, so no company or personal details go in the address.
+  redirect(`/studio/events/${eventId}/exhibitors?saved=${encodeURIComponent(ex.id)}#ex-${ex.id}`);
 }

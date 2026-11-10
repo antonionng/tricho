@@ -376,3 +376,57 @@ describe("exhibitor packages", () => {
     });
   });
 });
+
+describe("package requests never reach the flat prices", () => {
+  const evolve = { ...standard, id: "tt_evolve", name: "Evolve", pricePence: 75_000, capacity: null, memberPricePence: null, maxPerOrder: 1, kind: "package", placesIncluded: 3, includesStand: true, includesStageSlot: true, addonForTypeIds: [] };
+  const company = { companyName: "Follicle Labs", contactName: "Sam", contactEmail: "sam@f.example", contactPhone: "07700 900123", invoiceAddress: "1 High St" };
+
+  it("refuses a package that has been switched off", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, ticketTypes: [{ ...evolve, active: false }] });
+    const res = await post({ ticketTypeId: "tt_evolve", exhibitor: company });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("The Evolve package is no longer on sale.");
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+    expect(m.checkout).not.toHaveBeenCalled();
+  });
+
+  it("refuses company details or a package code without a package on sale", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, ticketTypes: [] });
+    for (const body of [
+      { ticketTypeId: "tt_gone", exhibitor: company },
+      { exhibitor: company, name: "Sam", email: "sam@f.example" },
+      { packageCode: "CODE2345CODE2345", name: "Sam", email: "sam@f.example" },
+    ]) {
+      const res = await post(body);
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("This package is no longer on sale.");
+    }
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unknown ticket type rather than selling at the flat price", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, ticketTypes: [] });
+    const res = await post({ ticketTypeId: "tt_gone", name: "Niamh", email: "niamh@example.com" });
+    expect(res.status).toBe(400);
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("turns the flat prices off when an event has only packages on sale", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, ticketTypes: [evolve] });
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body).toMatchObject({ hasTypes: true, types: [] });
+    const res = await post({ name: "Niamh", email: "niamh@example.com", quantity: 1, attendees: [{ isBuyer: true }] });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Please choose a ticket type.");
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("keeps the flat prices when every type is switched off", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, ticketTypes: [{ ...evolve, active: false }, { ...standard, active: false }] });
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body).toMatchObject({ hasTypes: false, types: [] });
+    const res = await post({ name: "Niamh", email: "niamh@example.com", quantity: 1 });
+    expect(res.status).toBe(200);
+    expect(m.ticketCreate.mock.calls[0][0].data).toMatchObject({ ticketTypeId: null, amount: 6000 });
+  });
+});
