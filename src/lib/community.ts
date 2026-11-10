@@ -13,6 +13,7 @@ import {
   type KnownRoomId,
 } from "@/config/rooms";
 import { getAllRooms, getRooms } from "@/lib/rooms";
+import { tvForPosts, type TvCardVideo } from "@/lib/tv-data";
 
 /** Every raw `space` value that resolves to one of these rooms. */
 export function rawSpacesFor(roomIds: RoomId[]) {
@@ -116,9 +117,11 @@ export type FeedPost = {
   useful: number;
   reacted: boolean;
   media: PostMediaItem[];
+  /** The Trichollective TV video this post shares, if any. */
+  tv: TvCardVideo | null;
 };
 
-function toFeedPost(p: RawPost, allRooms: Room[], media: PostMediaItem[]): FeedPost {
+function toFeedPost(p: RawPost, allRooms: Room[], media: PostMediaItem[], tv: TvCardVideo | null): FeedPost {
   const space = normalizeSpace(p.space, allRooms);
   return {
     id: p.id,
@@ -141,6 +144,7 @@ function toFeedPost(p: RawPost, allRooms: Room[], media: PostMediaItem[]): FeedP
     useful: p._count.reactions,
     reacted: Array.isArray(p.reactions) ? p.reactions.length > 0 : false,
     media,
+    tv,
   };
 }
 
@@ -178,8 +182,9 @@ export async function getPosts({
     take,
     include: postInclude(userId),
   });
-  const media = await mediaForPosts(posts.map((p) => p.id));
-  return posts.map((p) => toFeedPost(p, allRooms, media.get(p.id) ?? []));
+  const ids = posts.map((p) => p.id);
+  const [media, tv] = await Promise.all([mediaForPosts(ids), tvForPosts(ids)]);
+  return posts.map((p) => toFeedPost(p, allRooms, media.get(p.id) ?? [], tv.get(p.id) ?? null));
 }
 
 /** The Today feed: every space the member can read, newest first. */

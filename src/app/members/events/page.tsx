@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, MapPin, Video } from "lucide-react";
+import { ArrowRight, MapPin, Tv, Video } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
@@ -70,6 +70,14 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
           going > 0
             ? `You're going to ${going} ${going === 1 ? "event" : "events"}. Everything members can come to is below.`
             : "Gatherings, masterclasses, case rounds and chapter meetups. Let us know you're coming so we can plan."
+        }
+        action={
+          <Link
+            href="/members/tv?shelf=masterclass"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-rule bg-card px-4 text-sm hover:border-ink/40"
+          >
+            <Tv className="h-4 w-4" /> Watch past masterclasses
+          </Link>
         }
       />
 

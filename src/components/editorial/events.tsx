@@ -147,7 +147,7 @@ export function eventLd(e: PublicEvent) {
 }
 
 /** A single event as a calm list row: date block, title, place and price. */
-export function EventRow({ event, past = false }: { event: PublicEvent; past?: boolean }) {
+export function EventRow({ event, past = false, recorded = false }: { event: PublicEvent; past?: boolean; recorded?: boolean }) {
   const tz = eventTimeZone(event.timezone);
   const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: tz }).format(event.startsAt);
   const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: tz }).format(event.startsAt);
@@ -168,6 +168,7 @@ export function EventRow({ event, past = false }: { event: PublicEvent; past?: b
           <div className="flex flex-wrap gap-2">
             <Pill>{EVENT_KIND_LABEL[event.kind]}</Pill>
             {past && <Pill>Past</Pill>}
+            {recorded && <Pill tone="ink">Recording for members</Pill>}
           </div>
           <h3 className="text-xl font-semibold leading-snug tracking-tight">{event.title}</h3>
           <p className="flex items-center gap-1.5 text-[14px] text-muted-foreground">

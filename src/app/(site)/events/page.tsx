@@ -14,6 +14,7 @@ import {
 } from "@/components/editorial/events";
 import { images, img } from "@/content/images";
 import { prisma } from "@/lib/prisma";
+import { recordingsForEvents } from "@/lib/tv-data";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -33,7 +34,7 @@ const crumbs = [
 
 const kindIcons = [Users, Presentation, MessagesSquare, CalendarDays];
 
-async function getEvents(): Promise<{ upcoming: PublicEvent[]; past: PublicEvent[] }> {
+async function getEvents(): Promise<{ upcoming: PublicEvent[]; past: PublicEvent[]; recorded: Set<string> }> {
   const now = new Date();
   try {
     const [upcoming, past] = await Promise.all([
@@ -49,16 +50,17 @@ async function getEvents(): Promise<{ upcoming: PublicEvent[]; past: PublicEvent
         select: publicEventSelect,
       }),
     ]);
-    return { upcoming, past };
+    const recordings = await recordingsForEvents(past.map((e) => e.id));
+    return { upcoming, past, recorded: new Set(recordings.keys()) };
   } catch (err) {
     // If the database is unreachable, show the honest empty state rather than an error page.
     console.error("[events] failed to load events", err);
-    return { upcoming: [], past: [] };
+    return { upcoming: [], past: [], recorded: new Set() };
   }
 }
 
 export default async function EventsPage() {
-  const { upcoming, past } = await getEvents();
+  const { upcoming, past, recorded } = await getEvents();
 
   return (
     <>
@@ -158,10 +160,14 @@ export default async function EventsPage() {
       {past.length > 0 && (
         <Section>
           <Container>
-            <SectionHeader eyebrow="Archive" title="See what past conferences and masterclasses covered." />
+            <SectionHeader
+              eyebrow="Archive"
+              title="See what past conferences and masterclasses covered."
+              body="Members can watch the masterclass and case round recordings on Trichollective TV."
+            />
             <ul className="mt-10 divide-y divide-rule border-y border-rule">
               {past.map((e) => (
-                <EventRow key={e.id} event={e} past />
+                <EventRow key={e.id} event={e} past recorded={recorded.has(e.id)} />
               ))}
             </ul>
           </Container>
