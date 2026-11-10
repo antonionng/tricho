@@ -154,8 +154,8 @@ export function consumerAccountAlert(a: { userId?: string | null; email: string;
     body: `They have been sent the welcome email for ${HUB_LABEL.toLowerCase()}. They cannot use the member area or the community.`,
     facts,
     cta: a.userId
-      ? { label: "Open their record in the Studio", href: `/studio/members/${a.userId}` }
-      : { label: "Open members in the Studio", href: "/studio/members" },
+      ? { label: "Open their record in the Studio", href: `/studio/consumers/${a.userId}` }
+      : { label: "Open consumers in the Studio", href: "/studio/consumers" },
     replyTo: a.email,
     tag: "consumer",
   };
