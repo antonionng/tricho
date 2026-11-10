@@ -121,6 +121,18 @@ async function main() {
     }
   }
 
+  // UK VAT added on top, for events whose prices exclude VAT. Found by its settings, so it is never created twice.
+  const rates = await stripe.taxRates.list({ active: true, inclusive: false, limit: 100 }, ...opts);
+  let vat = rates.data.find((r) => r.percentage === 20 && r.country === "GB" && /vat/i.test(r.display_name));
+  if (!vat) {
+    vat = await stripe.taxRates.create(
+      { display_name: "VAT", description: "UK VAT at 20%, added to event prices", percentage: 20, inclusive: false, country: "GB", jurisdiction: "GB", tax_type: "vat" },
+      ...opts
+    );
+  }
+  console.log(`${rates.data.includes(vat) ? "Found" : "Created"} the UK VAT tax rate (20%, added on top)`);
+  env.STRIPE_TAX_RATE_UK_VAT = vat.id;
+
   console.log(`\nAdd these in Vercel → Settings → Environment Variables (Production), then redeploy:\n`);
   for (const [k, v] of Object.entries(env)) console.log(`${k}=${v}`);
 }

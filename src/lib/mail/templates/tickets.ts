@@ -44,7 +44,23 @@ export type TicketEmailInput = {
   ticketType?: string | null;
   /** Everyone on the order, for in-person events. Each gets their own e-ticket. */
   attendees?: { name: string; email: string }[];
+  /** When VAT was added on top: the price before VAT and the VAT, already formatted. Amount is then the total. */
+  vat?: VatBreakdown | null;
 };
+
+/** The price before VAT and the VAT added, for VAT-on-top events. */
+export type VatBreakdown = { net: string; vat: string };
+
+/** "Paid" for VAT-inclusive prices; the price before VAT, the VAT and the total when VAT was added on top. */
+function paidFacts(amount: string | null, vat: VatBreakdown | null | undefined): [string, string][] {
+  if (!amount) return [];
+  if (!vat) return [["Paid", amount]];
+  return [
+    ["Price before VAT", vat.net],
+    ["VAT at 20%", vat.vat],
+    ["Total paid", amount],
+  ];
+}
 
 export function ticketConfirmedEmail(p: TicketEmailInput): Email {
   const e = p.event;
@@ -59,7 +75,7 @@ export function ticketConfirmedEmail(p: TicketEmailInput): Email {
     ["Tickets", p.quantity === 1 ? "1 ticket" : `${p.quantity} tickets`],
     ["Price", p.ticketType ? `${p.ticketType}, ${price.toLowerCase()}` : price],
   ];
-  if (p.amount) facts.push(["Paid", p.amount]);
+  facts.push(...paidFacts(p.amount, p.vat));
   if (e.joinUrl) facts.push(["Join online", e.joinUrl]);
   const people = p.attendees ?? [];
   if (people.length) facts.push([people.length === 1 ? "Attendee" : "Attendees", people.map((a) => `${a.name} (${a.email})`).join("\n")]);
@@ -188,8 +204,10 @@ export type PackageEmailInput = {
   manageHref: string;
   /** The package code, which also opens the self-service page from the event page. */
   code: string;
-  /** Extra places this package can add, when the team offers them. */
+  /** Extra places this package can add, when the team offers them. Price is as shown to buyers, e.g. "£100 + VAT". */
   extras: { name: string; price: string; max: number } | null;
+  /** When VAT was added on top: the price before VAT and the VAT. Amount is then the total. */
+  vat?: VatBreakdown | null;
 };
 
 /** The confirmation for an exhibitor or sponsor package, sent to the contact once Stripe confirms payment. */
@@ -204,7 +222,7 @@ export function packageConfirmedEmail(p: PackageEmailInput): Email {
     ["Where", eventWhere(e)],
     ...venueFacts(e),
   ];
-  if (p.amount) facts.push(["Paid", `${p.amount}, VAT included`]);
+  facts.push(...paidFacts(p.amount, p.vat).map(([k, v]): [string, string] => (k === "Paid" ? ["Paid", `${v}, VAT included`] : [k, v])));
   if (p.named.length) facts.push([p.named.length === 1 ? "Named place" : "Named places", p.named.map((a) => `${a.name} (${a.email})`).join("\n")]);
   const places = p.named.length + p.waiting;
   const body = [
@@ -315,12 +333,13 @@ const packageConfirmed = packageConfirmedEmail({
     "A 15-minute slot on the main stage.",
     "Your company in the event booklet and in our online promotion.",
   ],
-  amount: "£750.00",
+  amount: "£900.00",
+  vat: { net: "£750.00", vat: "£150.00" },
   named: [{ name: "Sam Patel", email: "sam@follicle-labs.example" }],
   waiting: 2,
   manageHref: "/events/dublin-case-round-october/exhibitor/7KQ2M9XRB4TZ8HCW",
   code: "7KQ2M9XRB4TZ8HCW",
-  extras: { name: "Extra exhibitor ticket", price: "£100.00", max: 5 },
+  extras: { name: "Extra exhibitor ticket", price: "£100 + VAT", max: 5 },
 });
 
 export const samples: EmailSample[] = [

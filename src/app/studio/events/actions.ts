@@ -284,50 +284,36 @@ export async function saveTicketTypeAction(form: FormData) {
 }
 
 /**
- * Fill an event with Karley's five packages and the extra places add-on, as a
- * starting point to edit. Only adds packages whose names the event does not
- * have yet, so pressing it twice changes nothing.
+ * Set an in-person event up with Karley's five packages and extra places, as
+ * for TRICHOLLECTIVE UK: prices before VAT, 20 stand spaces and 8 stage slots
+ * unless already set. Safe to press twice. Attendee tickets are left alone.
  */
 export async function addDefaultPackagesAction(form: FormData) {
   const staff = await requirePermission("events.edit");
   const eventId = s(form, "eventId", 64);
-  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, title: true, slug: true, online: true } });
-  if (!event) redirect(eventsUrl({ notice: "That event could not be found.", tone: "danger" }));
-  if (event.online) ticketTypesBack(event.id, "Exhibitor packages are for in-person events.", "danger", "packages");
-
-  const { DEFAULT_PACKAGES, DEFAULT_EXTRA_PLACES } = await import("@/lib/packages");
-  const existing = await prisma.eventTicketType.findMany({ where: { eventId: event.id, kind: { in: ["package", "addon"] } }, select: { name: true, kind: true } });
-  const have = new Set(existing.map((t) => t.name.toLowerCase()));
-  const added: string[] = [];
-  for (const p of DEFAULT_PACKAGES) {
-    if (have.has(p.name.toLowerCase())) continue;
-    await prisma.eventTicketType.create({
-      data: { ...p, eventId: event.id, kind: "package", maxPerOrder: 1, capacity: null, active: true },
-    });
-    added.push(p.name);
+  const { setupEventPackages } = await import("@/lib/package-setup");
+  const result = await setupEventPackages(prisma, eventId, { apply: true });
+  if ("error" in result) {
+    if (!(await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } }))) redirect(eventsUrl({ notice: result.error, tone: "danger" }));
+    ticketTypesBack(eventId, result.error, "danger", "packages");
   }
-  // Extra places are offered with every package that includes places; Studio can narrow it.
-  const withPlaces = await prisma.eventTicketType.findMany({ where: { eventId: event.id, kind: "package", placesIncluded: { gt: 0 } }, select: { id: true } });
-  if (!existing.some((t) => t.kind === "addon")) {
-    await prisma.eventTicketType.create({
-      data: { ...DEFAULT_EXTRA_PLACES, eventId: event.id, kind: "addon", placesIncluded: 1, active: true, addonForTypeIds: withPlaces.map((t) => t.id) },
-    });
-    added.push(DEFAULT_EXTRA_PLACES.name);
-  }
-  if (added.length) {
+  const r = result as Exclude<typeof result, { error: string }>;
+  if (r.changes.length) {
     await audit(staff, {
       action: "event.packages_default",
       targetType: "event",
-      targetId: event.id,
-      summary: `Added the standard exhibitor packages to "${event.title}": ${added.join(", ")}.`,
+      targetId: eventId,
+      summary: `Set up the standard exhibitor packages on "${r.event.title}".`,
+      after: { changes: r.changes },
     });
   }
   const { revalidatePath } = await import("next/cache");
-  revalidatePath(`/events/${event.slug}`);
+  const slug = (await prisma.event.findUnique({ where: { id: eventId }, select: { slug: true } }))?.slug;
+  if (slug) revalidatePath(`/events/${slug}`);
   ticketTypesBack(
-    event.id,
-    added.length
-      ? `Added ${added.join(", ")}. Please check the stock, sales dates and descriptions now, because they are on sale as soon as the event sells tickets.`
+    eventId,
+    r.changes.length
+      ? `${r.changes.join(" ")} Please check the stock and sales dates now, because packages are on sale as soon as the event sells tickets.`
       : "This event already has the standard packages.",
     undefined,
     "packages"

@@ -85,6 +85,8 @@ export type EventInput = {
   stageSlots: number | null;
   /** Stand spaces shared across exhibitor packages. Null means no event-wide limit. */
   standSpaces: number | null;
+  /** Prices are before VAT, and checkout adds UK VAT on top. */
+  pricesExcludeVat: boolean;
   ticketUrl: string | null;
   published: boolean;
   /** Sell tickets on Trichollective through Stripe. When on, any external ticket link is cleared. */
@@ -151,6 +153,7 @@ export function validateEventInput(raw: Raw): EventValidation {
     capacity: capacityRaw ? Math.max(0, Math.round(Number(capacityRaw))) || null : null,
     stageSlots: count("stageSlots"),
     standSpaces: count("standSpaces"),
+    pricesExcludeVat: flag(raw, "pricesExcludeVat"),
     ticketUrl: sellTickets ? null : cleanUrl(text(raw, "ticketUrl", 500)),
     published: flag(raw, "published"),
     sellTickets,

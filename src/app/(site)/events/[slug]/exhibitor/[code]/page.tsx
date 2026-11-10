@@ -11,6 +11,7 @@ import { BOOKLET_BLURB_MAX, addonsFor, extrasLeft, packageIncludes } from "@/lib
 import { seatUsage, typeAvailability } from "@/lib/tickets";
 import { eventTimeZone } from "@/lib/event-time";
 import { prisma } from "@/lib/prisma";
+import { priceText } from "@/lib/vat";
 import { nameExhibitorPlaceAction, saveExhibitorProfileAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +24,6 @@ export const metadata: Metadata = {
 type Params = { slug: string; code: string };
 type Search = { saved?: string; named?: string; notice?: string; package?: string; extras?: string };
 
-function money(pence: number) {
-  return pence % 100 === 0 ? `£${(pence / 100).toLocaleString("en-GB")}` : `£${(pence / 100).toFixed(2)}`;
-}
 
 function Banner({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "positive" }) {
   return (
@@ -62,7 +60,9 @@ export default async function ExhibitorPage({ params, searchParams }: { params: 
       bookletBlurb: true,
       standNumber: true,
       stageSlotAt: true,
-      event: { select: { id: true, slug: true, title: true, startsAt: true, detailsCloseAt: true, timezone: true, venue: true, city: true, online: true } },
+      event: {
+        select: { id: true, slug: true, title: true, startsAt: true, detailsCloseAt: true, timezone: true, venue: true, city: true, online: true, pricesExcludeVat: true },
+      },
       ticket: {
         select: {
           id: true,
@@ -286,12 +286,12 @@ export default async function ExhibitorPage({ params, searchParams }: { params: 
                 <h2 className="text-lg font-semibold text-ink">Bring more of your team</h2>
                 <p className="text-sm text-muted-foreground">
                   {extras.left > 0
-                    ? `You can add ${extras.left === 1 ? "one more place" : `up to ${extras.left} more places`} at ${money(extras.addon.pricePence)} each. Each person is sent their own e-ticket.`
+                    ? `You can add ${extras.left === 1 ? "one more place" : `up to ${extras.left} more places`} at ${priceText(extras.addon.pricePence, e.pricesExcludeVat)} each. Each person is sent their own e-ticket.`
                     : `${ex.companyName} already has every extra place available to its package.`}
                   {extras.addon.description ? ` ${extras.addon.description}` : ""}
                 </p>
               </div>
-              {extras.left > 0 && <BuyExtras eventId={e.id} packageCode={ex.manageCode} addon={extras.addon} left={extras.left} />}
+              {extras.left > 0 && <BuyExtras eventId={e.id} packageCode={ex.manageCode} addon={extras.addon} left={extras.left} excludesVat={e.pricesExcludeVat} />}
             </section>
           )}
 

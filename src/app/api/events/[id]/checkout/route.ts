@@ -26,6 +26,7 @@ import {
 import { attendeeRows, newAttendeeCode } from "@/lib/attendees";
 import { kindOf } from "@/lib/packages";
 import { startAddonCheckout, startPackageCheckout } from "@/lib/package-checkout";
+import { lineTotal, sellerVatLine, ukVatTaxRateId } from "@/lib/vat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,6 +63,7 @@ const eventSelect = {
   sellTickets: true,
   stageSlots: true,
   standSpaces: true,
+  pricesExcludeVat: true,
   ticketTypes: {
     where: { active: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] as Prisma.EventTicketTypeOrderByWithRelationInput[],
@@ -150,6 +152,8 @@ export async function GET(_req: Request, { params }: Params) {
       // In person, the buyer names each place. Their own email lets "this is me" fill a row.
       inPerson: !event.online,
       email: who?.email ?? null,
+      // Prices above are before VAT, and checkout adds UK VAT at 20% on top.
+      pricesExcludeVat: event.pricesExcludeVat,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
@@ -162,6 +166,11 @@ class SoldOut extends Error {
   ) {
     super(message);
   }
+}
+
+function vatInvoice(description: string) {
+  const footer = sellerVatLine();
+  return { enabled: true, invoice_data: { description, ...(footer ? { footer } : {}) } };
 }
 
 export async function POST(req: Request, { params }: Params) {
@@ -236,6 +245,11 @@ export async function POST(req: Request, { params }: Params) {
       if (!people.ok) return error(people.error, 400);
     }
 
+    // On a VAT-on-top event, find the tax rate before holding seats, so a Stripe problem never leaves a hold behind.
+    const excludesVat = event.pricesExcludeVat;
+    const taxRateId = excludesVat ? await ukVatTaxRateId(stripe) : null;
+    const charge = lineTotal(price.amountPence, quantity, excludesVat);
+
     // Hold the seats. The advisory lock serialises buyers for this event so two
     // people can never take the last place at the same moment.
     const ticket = await prisma.$transaction(async (tx) => {
@@ -265,7 +279,8 @@ export async function POST(req: Request, { params }: Params) {
           email,
           name,
           quantity,
-          amount: price.amountPence * quantity,
+          // What is actually charged, VAT included, so refunds share the right amount.
+          amount: charge.gross,
           currency: "gbp",
           priceType: price.priceType,
           ticketTypeId: type?.id ?? null,
@@ -292,8 +307,8 @@ export async function POST(req: Request, { params }: Params) {
             price_data: {
               currency: "gbp",
               unit_amount: price.amountPence,
-              // Event prices include VAT, like the membership prices.
-              tax_behavior: "inclusive",
+              // Event prices include VAT like the membership prices, unless the event adds it on top.
+              tax_behavior: excludesVat ? "exclusive" : "inclusive",
               product_data: {
                 name: ticketLineName(event),
                 description: type
@@ -303,9 +318,12 @@ export async function POST(req: Request, { params }: Params) {
                     : "Guest ticket",
               },
             },
+            ...(taxRateId ? { tax_rates: [taxRateId] } : {}),
           },
         ],
         customer_email: email,
+        // VAT-on-top events are mostly bought by businesses, so they get a VAT invoice.
+        ...(excludesVat ? { invoice_creation: vatInvoice(ticketLineName(event)) } : {}),
         locale: "en-GB",
         // Discount codes are created in the Stripe dashboard as promotion codes.
         allow_promotion_codes: true,

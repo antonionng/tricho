@@ -366,6 +366,18 @@ function EventForm({ event, prefill, partners }: { event: Event | null; prefill:
         </span>
       </label>
 
+      <label className="flex items-start gap-3 rounded-2xl border border-rule p-4 text-sm">
+        <input type="checkbox" name="pricesExcludeVat" defaultChecked={event?.pricesExcludeVat ?? false} className="mt-0.5 h-4 w-4 accent-ink" />
+        <span>
+          <span className="font-medium text-ink">Prices exclude VAT</span>
+          <span className="block text-muted-foreground">
+            Every price on this event, including ticket types, packages and extra places, is entered before VAT and shown as &ldquo;+ VAT&rdquo;.
+            Checkout adds UK VAT at 20% on top, and Stripe emails a VAT invoice. Leave it unticked to keep prices VAT-inclusive, as on the rest of
+            the site.
+          </span>
+        </span>
+      </label>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Guest price (£)">
           <input type="number" min={0} step={1} name="priceGBP" defaultValue={v ? v.priceGBP : (event?.priceGBP ?? 0)} className={fieldClass} />
@@ -436,7 +448,7 @@ function TicketTypesEditor({
         <h2 className="text-xl font-semibold text-ink">Ticket types</h2>
         <p className="text-sm text-muted-foreground">
           Add types such as early bird and standard to sell several kinds of ticket, each with its own price, places and sales dates. Prices
-          include VAT. The event&apos;s Places above still caps the total across every type.
+          {event.pricesExcludeVat ? " are before VAT, which checkout adds on top." : " include VAT."} The event&apos;s Places above still caps the total across every type.
           {!event.sellTickets && " Tick Sell tickets on Trichollective above for these to go on sale."}
           {types.some((t) => t.active)
             ? " Because this event has ticket types on sale, the flat guest and member prices are not used."
@@ -479,7 +491,7 @@ function TicketTypeForm({ event, type, canEdit, nextSort = 0 }: { event: Event; 
           <Field label="Name" hint="For example: Early bird, Standard, Student.">
             <input name="name" defaultValue={type?.name ?? ""} required maxLength={80} className={fieldClass} />
           </Field>
-          <Field label="Price (£)" hint="What everyone pays.">
+          <Field label="Price (£)" hint={event.pricesExcludeVat ? "What everyone pays, before VAT." : "What everyone pays."}>
             <input name="price" inputMode="decimal" defaultValue={penceToPounds(type?.pricePence)} required className={fieldClass} />
           </Field>
           <Field label="Member price (£)" hint="Optional. Leave blank for the same price.">
@@ -559,7 +571,7 @@ function PackagesEditor({
         <h2 className="text-xl font-semibold text-ink">Exhibitor and sponsor packages</h2>
         <p className="text-sm text-muted-foreground">
           Brands and clinics buy a package from the &ldquo;Exhibit or sponsor&rdquo; section of the event page, one at a time, with their company and
-          invoice details. Prices include VAT, and Stripe sends each business a VAT invoice. Stock sets how many of a package exist; the event&apos;s
+          invoice details. Prices {event.pricesExcludeVat ? "are before VAT, which checkout adds on top" : "include VAT"}, and Stripe sends each business a VAT invoice. Stock sets how many of a package exist; the event&apos;s
           stand spaces and stage slots above are shared by every package that includes one.
           {!event.sellTickets && " Tick Sell tickets on Trichollective above for these to go on sale."}
         </p>
@@ -569,8 +581,8 @@ function PackagesEditor({
         <form action={addDefaultPackagesAction} className="flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-rule p-4">
           <input type="hidden" name="eventId" value={event.id} />
           <p className="flex-1 text-sm text-ink-2">
-            Start from the standard five packages, from Sponsor at £150 to Elite at £1,000, and extra places at £100 each. You can change any of them
-            afterwards.
+            Start from the standard five packages, from Sponsor at £150 to Elite at £1,000, and extra places at £100 each, all before VAT. This also
+            sets the event&apos;s prices to exclude VAT and, if they are blank, 20 stand spaces and 8 stage slots. You can change any of it afterwards.
           </p>
           <SubmitButton size="sm" pendingLabel="Adding…">
             Add the standard packages
@@ -670,7 +682,7 @@ function PackageForm({ event, type, canEdit, nextSort = 0 }: { event: Event; typ
           <Field label="Name" hint="For example: Elevate.">
             <input name="name" defaultValue={type?.name ?? ""} required maxLength={80} className={fieldClass} />
           </Field>
-          <Field label="Price (£)" hint="VAT included.">
+          <Field label="Price (£)" hint={event.pricesExcludeVat ? "Before VAT, shown as + VAT." : "VAT included."}>
             <input name="price" inputMode="decimal" defaultValue={penceToPounds(type?.pricePence)} required className={fieldClass} />
           </Field>
           <Field label="Places included" hint="Delegate places, 0 or more.">
@@ -730,7 +742,7 @@ function AddonForm({
           <Field label="Name" hint="For example: Extra exhibitor ticket.">
             <input name="name" defaultValue={type?.name ?? "Extra exhibitor ticket"} required maxLength={80} className={fieldClass} />
           </Field>
-          <Field label="Price per place (£)" hint="VAT included.">
+          <Field label="Price per place (£)" hint={event.pricesExcludeVat ? "Before VAT, shown as + VAT." : "VAT included."}>
             <input name="price" inputMode="decimal" defaultValue={penceToPounds(type?.pricePence ?? 10000)} required className={fieldClass} />
           </Field>
           <Field label="Most per package" hint="Across all their orders.">

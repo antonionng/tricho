@@ -60,19 +60,27 @@ describe("Karley's default packages", () => {
   it("match the price list", () => {
     expect(DEFAULT_PACKAGES.map((p) => [p.name, p.pricePence / 100, p.placesIncluded, p.includesStand, p.includesStageSlot])).toEqual([
       ["Sponsor", 150, 0, false, false],
-      ["Exhibit", 250, 1, false, false],
+      ["Promote", 250, 1, false, false],
       ["Elevate", 500, 1, true, false],
       ["Evolve", 750, 3, true, true],
       ["Elite", 1000, 5, true, true],
     ]);
     expect(DEFAULT_EXTRA_PLACES).toMatchObject({ pricePence: 10_000, maxPerOrder: 5 });
+    expect(DEFAULT_PACKAGES.find((p) => p.name === "Promote")!.description).toBe(
+      "1 event ticket and promotion in the event materials and booklet, without stand space."
+    );
+  });
+
+  it("does not repeat the ticket count when Promote's description already gives it", () => {
+    const promote = DEFAULT_PACKAGES.find((p) => p.name === "Promote")!;
+    expect(packageIncludes(promote)).toEqual(["1 event ticket and promotion in the event materials and booklet, without stand space."]);
   });
 
   it("describe positioning as standard, priority and prime", () => {
     const stand = (name: string) => DEFAULT_PACKAGES.find((p) => p.name === name)!.description.split("\n")[0];
-    expect(stand("Elevate")).toMatch(/standard stand/);
-    expect(stand("Evolve")).toMatch(/priority/);
-    expect(stand("Elite")).toMatch(/prime stand/);
+    expect(stand("Elevate")).toMatch(/^Standard stand space/);
+    expect(stand("Evolve")).toMatch(/priority positioning/);
+    expect(stand("Elite")).toMatch(/prime positioning/);
   });
 });
 

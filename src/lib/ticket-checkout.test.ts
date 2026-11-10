@@ -376,3 +376,61 @@ describe("exhibitor packages", () => {
     });
   });
 });
+
+describe("prices before VAT", () => {
+  const early = { ...standard, id: "tt_early", name: "Early bird", pricePence: 12_500, memberPricePence: 11_250, capacity: 150, maxPerOrder: 4 };
+  beforeEach(() => {
+    process.env.STRIPE_TAX_RATE_UK_VAT = "txr_vat";
+    m.event.mockResolvedValue({ ...baseEvent, pricesExcludeVat: true, ticketTypes: [early] });
+  });
+
+  it("charges £150 for a £125 ticket, with a UK VAT tax rate and a VAT invoice", async () => {
+    const res = await post({ name: "Niamh Byrne", email: "niamh@example.com", ticketTypeId: "tt_early", quantity: 1 });
+    expect(res.status).toBe(200);
+    // The hold and later refunds use what is actually charged.
+    expect(m.ticketCreate.mock.calls[0][0].data).toMatchObject({ quantity: 1, amount: 15_000 });
+    const session = m.checkout.mock.calls[0][0];
+    expect(session.line_items[0]).toMatchObject({ quantity: 1, tax_rates: ["txr_vat"], price_data: { unit_amount: 12_500, tax_behavior: "exclusive" } });
+    expect(session.automatic_tax).toBeUndefined();
+    expect(session.invoice_creation.enabled).toBe(true);
+  });
+
+  it("adds VAT to the member price for the whole order", async () => {
+    m.auth.mockResolvedValue({ user: { id: "u1", email: "member@example.com", name: "Aisling" } });
+    m.membership.mockResolvedValue({ isActive: true });
+    await post({ ticketTypeId: "tt_early", quantity: 2 });
+    expect(m.ticketCreate.mock.calls[0][0].data).toMatchObject({ quantity: 2, amount: 27_000, priceType: "member" });
+  });
+
+  it("tells the ticket button that prices are before VAT", async () => {
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body.pricesExcludeVat).toBe(true);
+    expect(body.types[0].amountPence).toBe(12_500);
+  });
+
+  it("keeps VAT-inclusive events exactly as they were", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, pricesExcludeVat: false, ticketTypes: [early] });
+    await post({ name: "Niamh", email: "niamh@example.com", ticketTypeId: "tt_early", quantity: 1 });
+    expect(m.ticketCreate.mock.calls[0][0].data.amount).toBe(12_500);
+    const session = m.checkout.mock.calls[0][0];
+    expect(session.line_items[0].tax_rates).toBeUndefined();
+    expect(session.line_items[0].price_data.tax_behavior).toBe("inclusive");
+    expect(session.invoice_creation).toBeUndefined();
+  });
+
+  it("adds VAT to packages and extra places", async () => {
+    const elite = { ...early, id: "tt_elite", name: "Elite", pricePence: 100_000, capacity: null, kind: "package", placesIncluded: 0, includesStand: false, includesStageSlot: false, addonForTypeIds: [] };
+    const extra = { ...early, id: "tt_extra", name: "Extra exhibitor ticket", pricePence: 10_000, capacity: null, kind: "addon", maxPerOrder: 5, placesIncluded: 1, includesStand: false, includesStageSlot: false, addonForTypeIds: ["tt_elite"] };
+    m.event.mockResolvedValue({ ...baseEvent, online: false, pricesExcludeVat: true, stageSlots: null, standSpaces: null, ticketTypes: [elite, extra] });
+    m.exhibitorCreate.mockResolvedValue({ id: "ex" });
+    const company = { companyName: "Follicle Labs", contactName: "Sam", contactEmail: "sam@f.example", contactPhone: "07700 900123", invoiceAddress: "1 High St" };
+    await post({ ticketTypeId: "tt_elite", exhibitor: company });
+    expect(m.ticketCreate.mock.calls[0][0].data.amount).toBe(120_000);
+    expect(m.checkout.mock.calls[0][0].line_items[0]).toMatchObject({ tax_rates: ["txr_vat"], price_data: { unit_amount: 100_000, tax_behavior: "exclusive" } });
+
+    m.exhibitorFindFirst.mockResolvedValue({ ...company, manageCode: "CODE2345CODE2345", ticket: { id: "t_pkg", ticketTypeId: "tt_elite", ticketType: { kind: "package" } } });
+    await post({ ticketTypeId: "tt_extra", packageCode: "CODE2345CODE2345", quantity: 2, attendees: [{ name: "A" }, { name: "B" }] });
+    expect(m.ticketCreate.mock.calls[1][0].data.amount).toBe(24_000);
+    expect(m.checkout.mock.calls[1][0].line_items[0]).toMatchObject({ quantity: 2, tax_rates: ["txr_vat"] });
+  });
+});

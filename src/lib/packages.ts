@@ -28,7 +28,7 @@ export function kindOf(type: { kind?: string | null } | null | undefined): Ticke
 
 /** The most extra places an add-on can ever offer per package. */
 export const MAX_EXTRAS_LIMIT = 20;
-export const DEFAULT_EXTRAS_PER_PACKAGE = 5;
+export { DEFAULT_EXTRAS_PER_PACKAGE } from "@/lib/package-defaults";
 
 export type PackageRule = TicketTypeRule & {
   kind?: string | null;
@@ -38,85 +38,7 @@ export type PackageRule = TicketTypeRule & {
   addonForTypeIds?: string[];
 };
 
-export type PackageDefault = {
-  name: string;
-  pricePence: number;
-  placesIncluded: number;
-  includesStand: boolean;
-  includesStageSlot: boolean;
-  /** One benefit per line, shown as a list on the event page and in the confirmation email. */
-  description: string;
-  sortOrder: number;
-};
-
-/**
- * Karley's packages for TRICHOLLECTIVE UK, used to fill Studio with a starting
- * point. Everything can be changed in Studio afterwards.
- */
-export const DEFAULT_PACKAGES: PackageDefault[] = [
-  {
-    name: "Sponsor",
-    pricePence: 15_000,
-    placesIncluded: 0,
-    includesStand: false,
-    includesStageSlot: false,
-    description: "Your company listed in the event booklet that every delegate receives.",
-    sortOrder: 100,
-  },
-  {
-    name: "Exhibit",
-    pricePence: 25_000,
-    placesIncluded: 1,
-    includesStand: false,
-    includesStageSlot: false,
-    description: ["Your brand included in our promotion of the event.", "Your company listed in the event booklet.", "This package does not include a stand."].join("\n"),
-    sortOrder: 110,
-  },
-  {
-    name: "Elevate",
-    pricePence: 50_000,
-    placesIncluded: 1,
-    includesStand: true,
-    includesStageSlot: false,
-    description: ["A standard stand space in the exhibition area.", "Enhanced promotion of your brand before the event.", "Your company listed in the event booklet."].join("\n"),
-    sortOrder: 120,
-  },
-  {
-    name: "Evolve",
-    pricePence: 75_000,
-    placesIncluded: 3,
-    includesStand: true,
-    includesStageSlot: true,
-    description: [
-      "A stand space with priority positioning.",
-      "A 15-minute slot on the main stage.",
-      "Your company in the event booklet and in our online promotion.",
-    ].join("\n"),
-    sortOrder: 130,
-  },
-  {
-    name: "Elite",
-    pricePence: 100_000,
-    placesIncluded: 5,
-    includesStand: true,
-    includesStageSlot: true,
-    description: [
-      "A prime stand space in the exhibition area.",
-      "A 15-minute slot on the main stage.",
-      "Your company in the event booklet and in our online promotion.",
-      "Enhanced exposure in our social media and emails to the profession.",
-    ].join("\n"),
-    sortOrder: 140,
-  },
-];
-
-export const DEFAULT_EXTRA_PLACES = {
-  name: "Extra exhibitor ticket",
-  pricePence: 10_000,
-  maxPerOrder: DEFAULT_EXTRAS_PER_PACKAGE,
-  description: "A place for another member of your team, with their own e-ticket.",
-  sortOrder: 150,
-};
+export { DEFAULT_EXTRA_PLACES, DEFAULT_PACKAGES, DEFAULT_STAGE_SLOTS, DEFAULT_STAND_SPACES, type PackageDefault } from "@/lib/package-defaults";
 
 /** A package or add-on order that is paid or still held, for counting stock. */
 export type PackageOrder = {
@@ -198,12 +120,15 @@ export function addonsFor<T extends { kind?: string | null; addonForTypeIds?: st
 export function packageIncludes(type: Pick<PackageRule, "placesIncluded" | "includesStand" | "includesStageSlot"> & { description?: string | null }) {
   const lines: string[] = [];
   const places = Math.max(0, type.placesIncluded);
-  lines.push(places === 0 ? "No delegate places are included." : places === 1 ? "One delegate place, with its own e-ticket." : `${places} delegate places, each with its own e-ticket.`);
   const described = (type.description ?? "")
     .split(/\n+/)
     .map((l) => l.trim().replace(/^[-•*]\s*/, ""))
     .filter(Boolean);
   const mentions = (re: RegExp) => described.some((l) => re.test(l));
+  // A description that already says how many tickets are included is not repeated.
+  if (!mentions(/\b(tickets?|places?)\b/i)) {
+    lines.push(places === 0 ? "No delegate places are included." : places === 1 ? "One delegate place, with its own e-ticket." : `${places} delegate places, each with its own e-ticket.`);
+  }
   if (type.includesStand && !mentions(/\bstand\b/i)) lines.push("A stand space in the exhibition area.");
   if (type.includesStageSlot && !mentions(/\bstage\b/i)) lines.push("A slot on the main stage.");
   return [...lines, ...described];
