@@ -125,8 +125,7 @@ export function BuyPackage({ eventId, slug, packages }: { eventId: string; slug:
               Book the {pkg.name} package for {money(pkg.pricePence)}
             </h3>
             <p className="text-sm text-muted-foreground">
-              The price includes VAT. Stripe emails a VAT invoice made out to your company once you have paid, and you can add your VAT number there
-              too.
+              Stripe emails an invoice made out to your company once you have paid.
             </p>
           </div>
           <fieldset className="grid gap-3 sm:grid-cols-2">

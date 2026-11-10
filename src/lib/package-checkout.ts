@@ -22,10 +22,9 @@ import {
  * package or an add-on. Everything the buyer gives comes in the POST body and
  * is stored with the pending order, never put in a URL.
  *
- * Package checkouts turn on Stripe's invoice creation, so the business gets a
- * VAT invoice with its company name and VAT number, and Stripe's own tax ID
- * collection, so a buyer can add their VAT number there too. Prices include
- * VAT, like the rest of the site.
+ * Package checkouts turn on Stripe's invoice creation, so the business gets an
+ * invoice with its company name, and Stripe's own tax ID collection, so a buyer
+ * can add their VAT number there too. No VAT is charged on event prices for now.
  */
 
 export type CheckoutEvent = {
@@ -145,7 +144,7 @@ export async function startPackageCheckout(
     ],
     customer_email: d.contactEmail,
     customer_creation: "always",
-    // Businesses get a proper VAT invoice with their company and VAT number on it.
+    // Businesses get an invoice with their company name on it.
     invoice_creation: {
       enabled: true,
       invoice_data: {

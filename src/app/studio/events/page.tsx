@@ -559,7 +559,7 @@ function PackagesEditor({
         <h2 className="text-xl font-semibold text-ink">Exhibitor and sponsor packages</h2>
         <p className="text-sm text-muted-foreground">
           Brands and clinics buy a package from the &ldquo;Exhibit or sponsor&rdquo; section of the event page, one at a time, with their company and
-          invoice details. Prices include VAT, and Stripe sends each business a VAT invoice. Stock sets how many of a package exist; the event&apos;s
+          invoice details. Stripe sends each business an invoice. Stock sets how many of a package exist; the event&apos;s
           stand spaces and stage slots above are shared by every package that includes one.
           {!event.sellTickets && " Tick Sell tickets on Trichollective above for these to go on sale."}
         </p>
