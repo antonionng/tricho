@@ -16,6 +16,8 @@ import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { canPostInRoom, canReadRoom, normalizeSpace, professionById, roomById } from "@/config/rooms";
 import { getAllRooms } from "@/lib/rooms";
+import { tvForPosts } from "@/lib/tv-data";
+import { tvEmbedUrl, tvHref } from "@/lib/tv";
 
 export const metadata = { title: "Community" };
 
@@ -53,8 +55,10 @@ export default async function ThreadPage({
   });
   if (!post || post.hiddenAt) notFound();
 
-  const [allRooms, mediaByPost] = await Promise.all([getAllRooms(), mediaForPosts([post.id])]);
+  const [allRooms, mediaByPost, tvByPost] = await Promise.all([getAllRooms(), mediaForPosts([post.id]), tvForPosts([post.id])]);
   const media = mediaByPost.get(post.id) ?? [];
+  const tv = tvByPost.get(post.id) ?? null;
+  const tvEmbed = tv && (!tv.professionalOnly || ctx.professional) ? tvEmbedUrl(tv) : null;
   const space = normalizeSpace(post.space, allRooms);
   const room = roomById(space, allRooms);
   if (!canReadRoom(space, ctx.professional, allRooms)) {
@@ -124,6 +128,18 @@ export default async function ThreadPage({
         {post.title && <h1 className="display mt-5 text-3xl sm:text-4xl">{post.title}</h1>}
         {post.content && <div className="mt-4 whitespace-pre-line text-[16px] leading-[1.7] text-ink-2">{post.content}</div>}
         <PostMedia media={media} className="mt-5" />
+        {tv && (
+          <div className="mt-5 flex flex-col gap-2">
+            {tvEmbed && (
+              <div className="relative aspect-video overflow-hidden rounded-xl bg-ink">
+                <iframe src={tvEmbed} title={tv.title} className="absolute inset-0 h-full w-full" allow="fullscreen; picture-in-picture" allowFullScreen loading="lazy" />
+              </div>
+            )}
+            <Link href={tvHref(tv.slug)} className="self-start text-sm font-medium text-ink underline underline-offset-4">
+              {tvEmbed ? "Open it on Trichollective TV" : "Watch it on Trichollective TV"}
+            </Link>
+          </div>
+        )}
         <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-rule pt-4">
           <UsefulButton postId={post.id} count={post._count.reactions} reacted={post.reactions.length > 0} size="lg" />
           {post.author.id !== userId && <ReportButton postId={post.id} />}

@@ -23,6 +23,8 @@ import { images, img } from "@/content/images";
 import { seatUsage, seatsLeft, typeAvailability, typeSeatsTaken, type TypeAvailability } from "@/lib/tickets";
 import { eventTimeZone, mapHref, timeZoneLabel } from "@/lib/event-time";
 import { prisma } from "@/lib/prisma";
+import { recordingsForEvents } from "@/lib/tv-data";
+import { tvHref } from "@/lib/tv";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -113,6 +115,7 @@ export default async function EventPage({ params }: { params: Promise<Params> })
   if (!event) notFound();
 
   const isPast = (event.endsAt ?? event.startsAt) < new Date();
+  const recording = isPast ? (await recordingsForEvents([event.id])).get(event.id) : undefined;
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Events", path: "/events" },
@@ -161,6 +164,14 @@ export default async function EventPage({ params }: { params: Promise<Params> })
               </h1>
               <p className="lede max-w-2xl">{event.summary}</p>
               {event.presenters && <p className="text-ink-2">Presented by {event.presenters}.</p>}
+              {recording && (
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <Button asChild size="lg">
+                    <Link href={tvHref(recording)}>Watch the recording</Link>
+                  </Button>
+                  <span className="text-sm text-muted-foreground">On Trichollective TV, for members.</span>
+                </div>
+              )}
             </div>
             <div className="lg:col-span-5">
               <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-paper-2 lg:aspect-[4/5]">

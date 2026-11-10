@@ -15,6 +15,7 @@ import {
   Newspaper,
   Search,
   Sparkles,
+  Tv,
   UserRound,
   FileText,
   Gift,
@@ -34,6 +35,7 @@ const primary: NavItem[] = [
   { href: "/members/messages", label: "Messages", icon: MessageCircle },
   { href: "/members/people", label: "People", icon: Users },
   { href: "/members/events", label: "Events", icon: CalendarDays },
+  { href: "/members/tv", label: "Trichollective TV", icon: Tv },
   { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
   {
     href: "/members/learn",

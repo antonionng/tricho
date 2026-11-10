@@ -4,6 +4,7 @@ import { professionById } from "@/config/rooms";
 import type { FeedPost } from "@/lib/community";
 import { Avatar } from "@/components/members/Avatar";
 import { timeAgo } from "@/components/members/format";
+import { TvAttachment } from "@/components/tv/TvCard";
 import { PostMedia } from "./PostMedia";
 import { UsefulButton } from "./UsefulButton";
 
@@ -44,6 +45,7 @@ export function PostCard({ post, showSpace = true }: { post: FeedPost; showSpace
         )}
       </Link>
       <PostMedia media={post.media} className="mt-3" />
+      {post.tv && <TvAttachment video={post.tv} className="mt-3" />}
 
       <footer className="relative z-10 mt-4 flex items-center gap-2">
         <UsefulButton postId={post.id} count={post.useful} reacted={post.reacted} />

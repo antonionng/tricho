@@ -33,6 +33,8 @@ export const PERMISSIONS = [
   "podcast.view",
   "podcast.edit",
   "podcast.publish",
+  "tv.view",
+  "tv.edit",
   "subscribers.view",
   "subscribers.export",
   "listings.view",
@@ -67,6 +69,8 @@ export const ROLE_PERMISSIONS: Record<StaffRoleId, readonly Permission[]> = {
     "podcast.view",
     "podcast.edit",
     "podcast.publish",
+    "tv.view",
+    "tv.edit",
     "subscribers.view",
     "emails.view",
     "emails.test",
@@ -76,7 +80,7 @@ export const ROLE_PERMISSIONS: Record<StaffRoleId, readonly Permission[]> = {
     "courses.view",
     "courses.edit",
   ],
-  events: ["overview.view", "inbox.view", "events.view", "events.edit", "events.checkin", "emails.view"],
+  events: ["overview.view", "inbox.view", "events.view", "events.edit", "events.checkin", "tv.view", "tv.edit", "emails.view"],
   moderator: [
     "overview.view",
     "inbox.view",
@@ -116,8 +120,8 @@ export const STAFF_ROLE_PHRASE: Record<StaffRoleId, string> = {
 
 export const STAFF_ROLE_DESCRIPTION: Record<StaffRoleId, string> = {
   owner: "Owners can do everything in Studio, including choosing who is on the team and what each person can do.",
-  editor: "Editors write and publish Trichozette editions, podcast episodes, newsletters and announcements, and build courses.",
-  events: "Events staff create and publish events, approve the announcement emails that go with them, and check people in at the door.",
+  editor: "Editors write and publish Trichozette editions, podcast episodes, Trichollective TV videos, newsletters and announcements, and build courses.",
+  events: "Events staff create and publish events, approve the announcement emails that go with them, check people in at the door and put recordings on Trichollective TV.",
   moderator: "Moderators look after the community, review reports and listings, and can suspend members who break the rules.",
   support: "Support can see every part of Studio to help members, but cannot change anything or export personal data.",
 };
@@ -200,6 +204,7 @@ export type NavIcon =
   | "gazette"
   | "blog"
   | "podcast"
+  | "tv"
   | "subscribers"
   | "emails"
   | "agents"
@@ -228,6 +233,7 @@ export const NAV: NavItem[] = [
   { href: "/studio/blog", label: "Blog", icon: "blog", perm: "gazette.view", group: "publish" },
   { href: "/studio/podcast", label: "Podcast", icon: "podcast", perm: "podcast.view", group: "publish" },
   { href: "/studio/events", label: "Events", icon: "events", perm: "events.view", group: "publish" },
+  { href: "/studio/tv", label: "Trichollective TV", icon: "tv", perm: "tv.view", group: "publish" },
   { href: "/studio/courses", label: "Courses", icon: "verification", perm: "courses.view", group: "publish" },
   { href: "/studio/emails", label: "Emails", icon: "emails", perm: "emails.view", group: "publish" },
   { href: "/studio/members", label: "Members", icon: "members", perm: "members.view", group: "people" },
