@@ -51,6 +51,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // When the keyboard opens, resize the page instead of covering the message box.
+  interactiveWidget: "resizes-content",
   themeColor: "#f4f3f0",
   colorScheme: "light",
 };

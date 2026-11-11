@@ -295,7 +295,7 @@ export function MemberShell({
       {/* Top bar */}
       <header className={cn("sticky top-0 z-30 border-b border-rule bg-paper/92 backdrop-blur-xl transition-[margin] duration-200", open ? "lg:ml-64" : "lg:ml-[72px]")}>
         <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
-          <Link href="/members" className="lg:hidden" aria-label="Your community">
+          <Link href="/members" className="-ml-1 inline-flex min-h-11 items-center px-1 lg:hidden" aria-label="Your community">
             <BrandMark size="xs" />
           </Link>
           <form action="/members/people" className="hidden flex-1 max-w-md lg:block" role="search">
