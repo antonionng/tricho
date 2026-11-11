@@ -6,11 +6,11 @@ import { educatorMembership } from "@/config/subscriptions";
  * are published at /terms/educators and the version is saved with each
  * educator. Change EDUCATOR_TERMS_VERSION whenever the wording changes.
  *
- * Draft for legal review before launch: course ownership and licence, content
- * warranties and indemnity, and how VAT affects the revenue share.
+ * The revenue share is worked out on the price the learner pays, VAT included
+ * (see src/lib/revenue-split.ts), and the terms say so.
  */
-export const EDUCATOR_TERMS_VERSION = "2026-10-14";
-export const EDUCATOR_TERMS_UPDATED = "14 October 2026";
+export const EDUCATOR_TERMS_VERSION = "2026-11-11";
+export const EDUCATOR_TERMS_UPDATED = "11 November 2026";
 
 export type EducatorTermsSection = { id: string; heading: string; paragraphs: string[] };
 
@@ -62,9 +62,9 @@ export const educatorTerms: EducatorTermsSection[] = [
     id: "revenue",
     heading: "Revenue share and payouts",
     paragraphs: [
-      `You receive ${share}% of the amount each learner pays for your course, and Trichollective keeps the rest. We pay the card processing fees out of our share. If we agree a different share with you for a particular course, we will confirm it in writing before the course goes on sale.`,
+      `You receive ${share}% of the amount each learner pays for your course, including any VAT in the price, and Trichollective keeps the rest. We pay the card processing fees out of our share. If we agree a different share with you for a particular course, we will confirm it in writing before the course goes on sale.`,
       "To be paid you connect a Stripe account. Your share of each sale is transferred to it automatically when the learner pays, and Stripe pays it into your bank account on its usual schedule. Stripe's own terms apply to your Stripe account.",
-      "You are responsible for any tax due on your earnings.",
+      "You are responsible for any tax due on your earnings, including income tax and, if you are VAT registered and it applies, VAT on your share. We can give you a statement of your sales and earnings from your dashboard to help with this.",
     ],
   },
   {
@@ -72,6 +72,22 @@ export const educatorTerms: EducatorTermsSection[] = [
     heading: "Refunds",
     paragraphs: [
       "Learners agree when they buy that course fees are non-refundable once the course is opened to them. If we do refund a learner, for example because of a fault or a legal requirement, your share of that sale is reversed from your Stripe balance.",
+    ],
+  },
+  {
+    id: "learners",
+    heading: "Learners and their information",
+    paragraphs: [
+      `Learners are customers of ${site.name}. We look after their personal information under our privacy notice, and you see only how many learners you have and how they are getting on, not their contact details.`,
+      "You must not try to find out who your learners are, contact them outside Trichollective, or use anything you learn about them to market your own services, unless a learner chooses to get in touch with you themselves.",
+    ],
+  },
+  {
+    id: "responsibility",
+    heading: "Our responsibility",
+    paragraphs: [
+      `We take reasonable care in running the platform, taking payments and paying your share. Our responsibility to you is limited as set out in our terms of business, and nothing in these terms limits liability that cannot be limited by law, including for death or personal injury caused by negligence, or for fraud.`,
+      "You are responsible for your courses, including what they say about health, hair and scalp care, and for having suitable professional insurance for the work you do.",
     ],
   },
   {
@@ -87,6 +103,13 @@ export const educatorTerms: EducatorTermsSection[] = [
     heading: "Changes to these terms",
     paragraphs: [
       "We will give you at least 30 days' notice by email before these terms change. If you don't agree to the change, you can cancel before it takes effect.",
+    ],
+  },
+  {
+    id: "law",
+    heading: "Governing law",
+    paragraphs: [
+      "These terms are governed by the laws of England and Wales, and the courts of England and Wales can hear any dispute about them.",
     ],
   },
 ];
