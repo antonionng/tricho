@@ -9,6 +9,7 @@ import { PostCard } from "@/components/community/PostCard";
 import { Composer } from "@/components/community/Composer";
 import { SponsoredAd } from "@/components/community/SponsoredAd";
 import { activeAds, communityAds } from "@/content/community-ads";
+import { NewPostButton } from "@/components/community/NewPostButton";
 import { SpaceNav } from "@/components/community/SpaceNav";
 import { getMemberContext } from "@/lib/member";
 import { getPosts, postableRooms } from "@/lib/community";
@@ -48,11 +49,12 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
       <PageHeader
         label="Community"
         title={room?.label ?? "All spaces"}
-        lede={room?.blurb ?? "Conversation from every space you can read, newest first. Pinned posts from the team sit at the top."}
+        lede={<span className="hidden sm:inline">{room?.blurb ?? "Conversation from every space you can read, newest first. Pinned posts from the team sit at the top."}</span>}
+        className="!mb-3 sm:!mb-8"
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
-        <aside className="lg:sticky lg:top-20 lg:self-start">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+        <aside className="sticky top-14 z-20 -mx-4 border-b border-rule bg-paper/95 px-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:top-20 lg:mx-0 lg:self-start lg:border-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
           <SpaceNav active={space} professional={ctx.professional} rooms={allRooms} />
           {sideAd && (
             <div className="mt-6 hidden lg:block">
@@ -61,7 +63,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
           )}
         </aside>
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
           {locked ? (
             <div className="rounded-3xl border border-rule bg-card p-6 sm:p-8">
               <span className="grid h-11 w-11 place-items-center rounded-full bg-paper-2">
@@ -111,6 +113,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
           )}
         </div>
       </div>
+      {!locked && rooms.length > 0 && (!space || rooms.some((r) => r.id === space)) && <NewPostButton />}
     </MemberPage>
   );
 }
