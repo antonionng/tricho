@@ -36,6 +36,11 @@ describe("validateTicketType", () => {
         maxPerOrder: 4,
         sortOrder: 0,
         active: true,
+        kind: "attendee",
+        placesIncluded: 1,
+        includesStand: false,
+        includesStageSlot: false,
+        addonForTypeIds: [],
       },
     });
   });
@@ -67,5 +72,56 @@ describe("validateTicketType", () => {
   it("needs the sales window the right way round and complete", () => {
     expect(validateTicketType({ ...base, salesStart: "2027-01-02T09:00", salesEnd: "2027-01-01T09:00" }, "Europe/London").ok).toBe(false);
     expect(validateTicketType({ ...base, salesStart: "next week" }, "Europe/London").ok).toBe(false);
+  });
+});
+
+describe("validateTicketType for packages and extra places", () => {
+  const pkg = { ...base, name: "Evolve", price: "750", kind: "package", placesIncluded: "3", includesStand: "on", includesStageSlot: "on", memberPrice: "500", membersOnly: "on", maxPerOrder: "9" };
+
+  it("keeps a package's places, stand and stage slot, and sells it one at a time with no member price", () => {
+    const r = validateTicketType(pkg, "Europe/London");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data).toMatchObject({
+      kind: "package",
+      pricePence: 75_000,
+      placesIncluded: 3,
+      includesStand: true,
+      includesStageSlot: true,
+      maxPerOrder: 1,
+      memberPricePence: null,
+      membersOnly: false,
+      addonForTypeIds: [],
+    });
+  });
+
+  it("allows a package with no places, such as Sponsor, but not a missing or negative number", () => {
+    expect(validateTicketType({ ...pkg, placesIncluded: "0" }, "Europe/London")).toMatchObject({ ok: true, data: { placesIncluded: 0 } });
+    expect(validateTicketType({ ...pkg, placesIncluded: "" }, "Europe/London").ok).toBe(false);
+    expect(validateTicketType({ ...pkg, placesIncluded: "-1" }, "Europe/London").ok).toBe(false);
+  });
+
+  it("keeps a package's benefits one per line", () => {
+    const r = validateTicketType({ ...pkg, description: "  Prime stand \r\n\n A stage slot  " }, "Europe/London");
+    expect(r.ok && r.data.description).toBe("Prime stand\nA stage slot");
+  });
+
+  it("keeps only real packages on an add-on, and defaults it to five per package", () => {
+    const r = validateTicketType({ ...base, name: "Extra exhibitor ticket", price: "100", kind: "addon", maxPerOrder: "" }, "Europe/London", {
+      addonFor: ["p1", "p2", "p2", "stranger"],
+      packageIds: ["p1", "p2"],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data).toMatchObject({ kind: "addon", maxPerOrder: 5, placesIncluded: 1, addonForTypeIds: ["p1", "p2"], includesStand: false });
+  });
+
+  it("caps an add-on at twenty places per package", () => {
+    const r = validateTicketType({ ...base, kind: "addon", maxPerOrder: "50" }, "Europe/London");
+    expect(r.ok && r.data.maxPerOrder).toBe(20);
+  });
+
+  it("names the right thing when the name is missing", () => {
+    expect(validateTicketType({ ...pkg, name: "" }, "Europe/London")).toEqual({ ok: false, error: "Please give the package a name, such as Elevate." });
   });
 });

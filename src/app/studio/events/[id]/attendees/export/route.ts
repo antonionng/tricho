@@ -61,7 +61,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           p.dietary,
           p.accessNeeds,
           p.code,
-          p.cancelledAt || a.status === "Refunded" ? "Cancelled" : "Confirmed",
+          p.cancelledAt || a.status !== "Paid" ? "Cancelled" : "Confirmed",
           p.refundedPence != null ? (p.refundedPence / 100).toFixed(2) : "",
           p.checkedInAt?.toISOString() ?? "",
         ])

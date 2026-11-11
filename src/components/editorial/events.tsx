@@ -25,6 +25,8 @@ export const publicEventSelect = {
   priceGBP: true,
   memberPriceGBP: true,
   capacity: true,
+  stageSlots: true,
+  standSpaces: true,
   ticketUrl: true,
   sellTickets: true,
   presenters: true,

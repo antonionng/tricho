@@ -81,6 +81,10 @@ export type EventInput = {
   priceGBP: number;
   memberPriceGBP: number;
   capacity: number | null;
+  /** Stage slots shared across exhibitor packages. Null means no event-wide limit. */
+  stageSlots: number | null;
+  /** Stand spaces shared across exhibitor packages. Null means no event-wide limit. */
+  standSpaces: number | null;
   ticketUrl: string | null;
   published: boolean;
   /** Sell tickets on Trichollective through Stripe. When on, any external ticket link is cleared. */
@@ -125,6 +129,12 @@ export function validateEventInput(raw: Raw): EventValidation {
   const endsAt = zonedToDate(text(raw, "endsAt", 32), timezone);
   const online = flag(raw, "online");
   const capacityRaw = text(raw, "capacity", 8);
+  const count = (key: string) => {
+    const v = text(raw, key, 8);
+    if (!v) return null;
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
   const sellTickets = flag(raw, "sellTickets");
 
   const rest = {
@@ -139,6 +149,8 @@ export function validateEventInput(raw: Raw): EventValidation {
     priceGBP: pounds(text(raw, "priceGBP", 8)),
     memberPriceGBP: pounds(text(raw, "memberPriceGBP", 8)),
     capacity: capacityRaw ? Math.max(0, Math.round(Number(capacityRaw))) || null : null,
+    stageSlots: count("stageSlots"),
+    standSpaces: count("standSpaces"),
     ticketUrl: sellTickets ? null : cleanUrl(text(raw, "ticketUrl", 500)),
     published: flag(raw, "published"),
     sellTickets,

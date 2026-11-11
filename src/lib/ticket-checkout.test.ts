@@ -17,6 +17,8 @@ const m = vi.hoisted(() => ({
   ticketUpdateMany: vi.fn(),
   rsvpFindMany: vi.fn(),
   attendeeCreateMany: vi.fn(),
+  exhibitorCreate: vi.fn(),
+  exhibitorFindFirst: vi.fn(),
   lock: vi.fn(),
   checkout: vi.fn(),
 }));
@@ -34,12 +36,17 @@ vi.mock("@/lib/prisma", () => {
   };
   const eventRsvp = { findMany: (...a: unknown[]) => m.rsvpFindMany(...a) };
   const eventAttendee = { createMany: (...a: unknown[]) => m.attendeeCreateMany(...a) };
-  const tx = { eventTicket, eventRsvp, eventAttendee, $executeRaw: (...a: unknown[]) => m.lock(...a) };
+  const eventExhibitor = {
+    create: (...a: unknown[]) => m.exhibitorCreate(...a),
+    findFirst: (...a: unknown[]) => m.exhibitorFindFirst(...a),
+  };
+  const tx = { eventTicket, eventRsvp, eventAttendee, eventExhibitor, $executeRaw: (...a: unknown[]) => m.lock(...a) };
   return {
     prisma: {
       event: { findFirst: (...a: unknown[]) => m.event(...a) },
       eventTicket,
       eventRsvp,
+      eventExhibitor,
       $transaction: (fn: (t: typeof tx) => unknown) => fn(tx),
     },
   };
@@ -215,5 +222,211 @@ describe("in-person checkout", () => {
   it("says when a quote is for an in-person event", async () => {
     const body = await (await GET(new Request("http://x"), params)).json();
     expect(body.inPerson).toBe(true);
+  });
+});
+
+describe("exhibitor packages", () => {
+  const typeBase = { ...standard, capacity: null, memberPricePence: null, maxPerOrder: 1, addonForTypeIds: [] as string[] };
+  const evolve = { ...typeBase, id: "tt_evolve", name: "Evolve", pricePence: 75_000, kind: "package", placesIncluded: 3, includesStand: true, includesStageSlot: true };
+  const sponsor = { ...typeBase, id: "tt_sponsor", name: "Sponsor", pricePence: 15_000, kind: "package", placesIncluded: 0, includesStand: false, includesStageSlot: false };
+  const extra = {
+    ...typeBase,
+    id: "tt_extra",
+    name: "Extra exhibitor ticket",
+    pricePence: 10_000,
+    kind: "addon",
+    maxPerOrder: 5,
+    placesIncluded: 1,
+    includesStand: false,
+    includesStageSlot: false,
+    addonForTypeIds: ["tt_evolve"],
+  };
+  const company = {
+    companyName: "Follicle Labs",
+    contactName: "Sam Patel",
+    contactEmail: "sam@follicle.example",
+    contactPhone: "07700 900123",
+    website: "follicle.example",
+    invoiceAddress: "1 High Street\nNorthampton NN1 1AA",
+    vatNumber: "GB123456789",
+  };
+  const packageOrder = (typeId: string, kind = "package", extras: Record<string, unknown> = {}) => ({
+    id: `o_${Math.random()}`,
+    quantity: 1,
+    userId: null,
+    ticketTypeId: typeId,
+    packageTicketId: null,
+    ticketType: { kind, includesStand: kind === "package", includesStageSlot: kind === "package" },
+    _count: { attendees: 0 },
+    ...extras,
+  });
+
+  beforeEach(() => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, stageSlots: 2, standSpaces: 20, ticketTypes: [standard, evolve, sponsor, extra] });
+    m.exhibitorCreate.mockResolvedValue({ id: "ex_1" });
+    m.attendeeCreateMany.mockResolvedValue({ count: 3 });
+  });
+
+  it("keeps packages out of the attendee ticket list", async () => {
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body.types.map((t: { id: string }) => t.id)).toEqual(["tt_std"]);
+  });
+
+  it("does not count package orders against the event's delegate places", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, capacity: 1, ticketTypes: [standard, evolve] });
+    m.ticketFindMany.mockResolvedValue([packageOrder("tt_evolve")]);
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body.seatsLeft).toBe(1);
+  });
+
+  it("holds one package with the company details, named and waiting places, and a VAT invoice", async () => {
+    const res = await post({ ticketTypeId: "tt_evolve", quantity: 4, exhibitor: company, attendees: [{ name: "Sam Patel", email: "" }] });
+    expect(res.status).toBe(200);
+    expect(m.lock).toHaveBeenCalled();
+    expect(m.ticketCreate.mock.calls[0][0].data).toMatchObject({ ticketTypeId: "tt_evolve", quantity: 1, amount: 75_000, email: "sam@follicle.example", userId: null });
+    expect(m.exhibitorCreate.mock.calls[0][0].data).toMatchObject({
+      companyName: "Follicle Labs",
+      vatNumber: "GB123456789",
+      website: "https://follicle.example",
+      ticketId: "t_new",
+      eventId: "evt_1",
+    });
+    const rows = m.attendeeCreateMany.mock.calls[0][0].data;
+    expect(rows.map((r: { name: string; awaitingName: boolean }) => [r.name, r.awaitingName])).toEqual([
+      ["Sam Patel", false],
+      ["Follicle Labs, place 2", true],
+      ["Follicle Labs, place 3", true],
+    ]);
+    const session = m.checkout.mock.calls[0][0];
+    expect(session.line_items[0]).toMatchObject({ quantity: 1, price_data: { unit_amount: 75_000, tax_behavior: "inclusive" } });
+    expect(session.invoice_creation.enabled).toBe(true);
+    expect(session.invoice_creation.invoice_data.custom_fields).toContainEqual({ name: "VAT number", value: "GB123456789" });
+    expect(session.tax_id_collection).toEqual({ enabled: true });
+    // Company and contact details never travel in the Stripe URLs.
+    expect(`${session.success_url} ${session.cancel_url}`).not.toMatch(/Follicle|Sam|sam@/);
+  });
+
+  it("sells a sponsor package with no places", async () => {
+    const res = await post({ ticketTypeId: "tt_sponsor", exhibitor: company });
+    expect(res.status).toBe(200);
+    expect(m.attendeeCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("asks for the company details first", async () => {
+    const res = await post({ ticketTypeId: "tt_evolve", exhibitor: { ...company, invoiceAddress: "" } });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/invoice/);
+    expect(m.lock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a package once the shared stage slots are taken, checked inside the lock", async () => {
+    m.ticketFindMany.mockResolvedValue([packageOrder("tt_elite"), packageOrder("tt_evolve")]);
+    const res = await post({ ticketTypeId: "tt_evolve", exhibitor: company });
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("The Evolve package has sold out.");
+    expect(m.lock).toHaveBeenCalled();
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses packages for an online event", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: true, ticketTypes: [evolve] });
+    const res = await post({ ticketTypeId: "tt_evolve", exhibitor: company });
+    expect(res.status).toBe(400);
+  });
+
+  describe("extra places", () => {
+    const holder = {
+      companyName: "Follicle Labs",
+      contactName: "Sam Patel",
+      contactEmail: "sam@follicle.example",
+      manageCode: "ABCDEFGHJK234567",
+      ticket: { id: "t_pkg", ticketTypeId: "tt_evolve", ticketType: { kind: "package" } },
+    };
+    beforeEach(() => m.exhibitorFindFirst.mockResolvedValue(holder));
+    const people = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `Person ${i + 1}`, email: `p${i + 1}@follicle.example` }));
+
+    it("adds named places to a paid package at the add-on's price", async () => {
+      const res = await post({ ticketTypeId: "tt_extra", packageCode: "abcd-efgh-jk23-4567", quantity: 2, attendees: people(2) });
+      expect(res.status).toBe(200);
+      expect(m.exhibitorFindFirst.mock.calls[0][0].where).toMatchObject({ manageCode: "ABCDEFGHJK234567", ticket: { status: "paid" } });
+      expect(m.ticketCreate.mock.calls[0][0].data).toMatchObject({ ticketTypeId: "tt_extra", packageTicketId: "t_pkg", quantity: 2, amount: 20_000 });
+      expect(m.attendeeCreateMany.mock.calls[0][0].data).toHaveLength(2);
+      expect(m.checkout.mock.calls[0][0].invoice_creation.enabled).toBe(true);
+    });
+
+    it("allows no more than five across all of a package's orders", async () => {
+      m.ticketFindMany.mockResolvedValue([packageOrder("tt_extra", "addon", { quantity: 4, packageTicketId: "t_pkg" })]);
+      const res = await post({ ticketTypeId: "tt_extra", packageCode: holder.manageCode, quantity: 2, attendees: people(2) });
+      expect(res.status).toBe(409);
+      expect((await res.json()).error).toBe("Follicle Labs can add 1 more place.");
+      expect(m.ticketCreate).not.toHaveBeenCalled();
+    });
+
+    it("refuses a code that is not a paid package", async () => {
+      m.exhibitorFindFirst.mockResolvedValue(null);
+      const res = await post({ ticketTypeId: "tt_extra", packageCode: "WRONG", quantity: 1, attendees: people(1) });
+      expect(res.status).toBe(404);
+    });
+
+    it("refuses packages the add-on is not offered with", async () => {
+      m.exhibitorFindFirst.mockResolvedValue({ ...holder, ticket: { ...holder.ticket, ticketTypeId: "tt_sponsor" } });
+      const res = await post({ ticketTypeId: "tt_extra", packageCode: holder.manageCode, quantity: 1, attendees: people(1) });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("Extra exhibitor ticket is not available with your package.");
+    });
+  });
+});
+
+describe("package requests never reach the flat prices", () => {
+  const evolve = { ...standard, id: "tt_evolve", name: "Evolve", pricePence: 75_000, capacity: null, memberPricePence: null, maxPerOrder: 1, kind: "package", placesIncluded: 3, includesStand: true, includesStageSlot: true, addonForTypeIds: [] };
+  const company = { companyName: "Follicle Labs", contactName: "Sam", contactEmail: "sam@f.example", contactPhone: "07700 900123", invoiceAddress: "1 High St" };
+
+  it("refuses a package that has been switched off", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, ticketTypes: [{ ...evolve, active: false }] });
+    const res = await post({ ticketTypeId: "tt_evolve", exhibitor: company });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("The Evolve package is no longer on sale.");
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+    expect(m.checkout).not.toHaveBeenCalled();
+  });
+
+  it("refuses company details or a package code without a package on sale", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, ticketTypes: [] });
+    for (const body of [
+      { ticketTypeId: "tt_gone", exhibitor: company },
+      { exhibitor: company, name: "Sam", email: "sam@f.example" },
+      { packageCode: "CODE2345CODE2345", name: "Sam", email: "sam@f.example" },
+    ]) {
+      const res = await post(body);
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("This package is no longer on sale.");
+    }
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unknown ticket type rather than selling at the flat price", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, ticketTypes: [] });
+    const res = await post({ ticketTypeId: "tt_gone", name: "Niamh", email: "niamh@example.com" });
+    expect(res.status).toBe(400);
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("turns the flat prices off when an event has only packages on sale", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, online: false, ticketTypes: [evolve] });
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body).toMatchObject({ hasTypes: true, types: [] });
+    const res = await post({ name: "Niamh", email: "niamh@example.com", quantity: 1, attendees: [{ isBuyer: true }] });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Please choose a ticket type.");
+    expect(m.ticketCreate).not.toHaveBeenCalled();
+  });
+
+  it("keeps the flat prices when every type is switched off", async () => {
+    m.event.mockResolvedValue({ ...baseEvent, ticketTypes: [{ ...evolve, active: false }, { ...standard, active: false }] });
+    const body = await (await GET(new Request("http://x"), params)).json();
+    expect(body).toMatchObject({ hasTypes: false, types: [] });
+    const res = await post({ name: "Niamh", email: "niamh@example.com", quantity: 1 });
+    expect(res.status).toBe(200);
+    expect(m.ticketCreate.mock.calls[0][0].data).toMatchObject({ ticketTypeId: null, amount: 6000 });
   });
 });

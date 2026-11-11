@@ -24,6 +24,8 @@ import {
   type TicketTypeRule,
 } from "@/lib/tickets";
 import { attendeeRows, newAttendeeCode } from "@/lib/attendees";
+import { kindOf } from "@/lib/packages";
+import { startAddonCheckout, startPackageCheckout } from "@/lib/package-checkout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +41,9 @@ export const dynamic = "force-dynamic";
  * {ticketTypeId, quantity}, with each type's own price, window and limits.
  * In-person events also take one attendee per place (name, email, dietary
  * and access needs), stored with the pending order until payment.
+ * Exhibitor packages and their extra places are ticket types too: POST with a
+ * package's ticketTypeId takes {exhibitor, attendees}, and with an add-on's it
+ * takes {packageCode, quantity, attendees}. See src/lib/package-checkout.ts.
  */
 
 type Params = { params: Promise<{ id: string }> };
@@ -55,8 +60,10 @@ const eventSelect = {
   memberPriceGBP: true,
   published: true,
   sellTickets: true,
+  stageSlots: true,
+  standSpaces: true,
+  // Every type, switched off or not, so a request for one never falls through to the flat prices.
   ticketTypes: {
-    where: { active: true },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] as Prisma.EventTicketTypeOrderByWithRelationInput[],
     select: {
       id: true,
@@ -70,6 +77,11 @@ const eventSelect = {
       salesEnd: true,
       maxPerOrder: true,
       active: true,
+      kind: true,
+      placesIncluded: true,
+      includesStand: true,
+      includesStageSlot: true,
+      addonForTypeIds: true,
     },
   },
 } as const;
@@ -105,7 +117,8 @@ export async function GET(_req: Request, { params }: Params) {
   const holds = who
     ? await prisma.eventTicket.count({ where: { eventId: event.id, userId: who.userId, status: "paid" } })
     : 0;
-  const types = event.ticketTypes.map((t) => {
+  // Exhibitor packages are sold from their own section of the event page.
+  const types = event.ticketTypes.filter((t) => t.active && kindOf(t) === "attendee").map((t) => {
     const availability = typeAvailability(t, { eventStartsAt: event.startsAt, taken: typeSeatsTaken(t.id, usage.tickets), eventLeft: left, isMember });
     return {
       id: t.id,
@@ -134,6 +147,8 @@ export async function GET(_req: Request, { params }: Params) {
       hasTicket: holds > 0,
       onSale: event.startsAt.getTime() > Date.now(),
       types,
+      // Any ticket type on sale, packages included, turns the flat prices off.
+      hasTypes: event.ticketTypes.some((t) => t.active),
       // In person, the buyer names each place. Their own email lets "this is me" fill a row.
       inPerson: !event.online,
       email: who?.email ?? null,
@@ -161,6 +176,8 @@ export async function POST(req: Request, { params }: Params) {
       ticketTypeId?: unknown;
       attendees?: unknown;
       returnTo?: unknown;
+      exhibitor?: unknown;
+      packageCode?: unknown;
     };
 
     if (!process.env.STRIPE_SECRET_KEY) return error("Payments are not switched on yet. Please try again shortly.", 503);
@@ -171,10 +188,26 @@ export async function POST(req: Request, { params }: Params) {
 
     const who = await buyer();
     const isMember = !!who?.isMember;
-    const hasTypes = event.ticketTypes.length > 0;
+
+    // Packages and extra places have their own checkout. A request for one, or one
+    // carrying company details or a package code, never falls through to the flat prices.
+    const chosen = event.ticketTypes.find((t) => t.id === body.ticketTypeId);
+    if (chosen && kindOf(chosen) !== "attendee") {
+      if (!chosen.active) return error(kindOf(chosen) === "package" ? `The ${chosen.name} package is no longer on sale.` : `${chosen.name} is no longer on sale.`, 400);
+      const result =
+        kindOf(chosen) === "package" ? await startPackageCheckout(event, chosen, body, who) : await startAddonCheckout(event, chosen, body, who);
+      return NextResponse.json(result.body, { status: result.status });
+    }
+    if (body.exhibitor != null || body.packageCode != null) return error("This package is no longer on sale.", 400);
+
+    // Any ticket type on sale, of any kind, turns the flat prices off.
+    const activeTypes = event.ticketTypes.filter((t) => t.active);
+    const hasTypes = activeTypes.length > 0;
+    if (!hasTypes && body.ticketTypeId != null && body.ticketTypeId !== "") return error("These tickets are no longer on sale.", 400);
     let type: TicketTypeRule | null = null;
     if (hasTypes) {
-      type = event.ticketTypes.find((t) => t.id === body.ticketTypeId) ?? null;
+      type = activeTypes.find((t) => t.id === body.ticketTypeId && kindOf(t) === "attendee") ?? null;
+      if (!type && chosen) return error(`${chosen.name} tickets are no longer on sale.`, 400);
       if (!type) return error("Please choose a ticket type.", 400);
       if (type.membersOnly && !isMember) return error(`${type.name} tickets are for members. Please sign in as a member to buy one.`, 403);
     }

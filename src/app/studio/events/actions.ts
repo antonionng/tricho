@@ -206,12 +206,30 @@ export async function notifyMasterclassAction(form: FormData) {
   );
 }
 
-const TICKET_TYPE_FIELDS = ["name", "description", "price", "memberPrice", "membersOnly", "capacity", "salesStart", "salesEnd", "maxPerOrder", "sortOrder", "active"] as const;
+const TICKET_TYPE_FIELDS = [
+  "name",
+  "description",
+  "price",
+  "memberPrice",
+  "membersOnly",
+  "capacity",
+  "salesStart",
+  "salesEnd",
+  "maxPerOrder",
+  "sortOrder",
+  "active",
+  "kind",
+  "placesIncluded",
+  "includesStand",
+  "includesStageSlot",
+] as const;
 
-function ticketTypesBack(eventId: string, notice: string, tone?: string): never {
-  // tt=1 shows the notice beside the ticket types, where the page lands.
-  redirect(`${eventsUrl({ edit: eventId, notice, tone, tt: "1" })}#ticket-types`);
+function ticketTypesBack(eventId: string, notice: string, tone?: string, section: "tickets" | "packages" = "tickets"): never {
+  // tt=1 shows the notice beside the ticket types, tt=2 beside the packages, where the page lands.
+  redirect(`${eventsUrl({ edit: eventId, notice, tone, tt: section === "packages" ? "2" : "1" })}#${section === "packages" ? "packages" : "ticket-types"}`);
 }
+
+const kindWord = (kind: string) => (kind === "package" ? "package" : kind === "addon" ? "extra places" : "tickets");
 
 /** Add or change a ticket type. Prices and dates are checked by validateTicketType. */
 export async function saveTicketTypeAction(form: FormData) {
@@ -226,20 +244,27 @@ export async function saveTicketTypeAction(form: FormData) {
     const v = form.get(key);
     raw[key] = typeof v === "string" ? v : undefined;
   }
+  const before = typeId ? await prisma.eventTicketType.findFirst({ where: { id: typeId, eventId: event.id } }) : null;
+  if (typeId && !before) ticketTypesBack(event.id, "That ticket type could not be found.", "danger");
+  // A type keeps the kind it was created with, so sold packages never turn into tickets.
+  if (before) raw.kind = before.kind;
+  const section = raw.kind === "package" || raw.kind === "addon" ? "packages" : "tickets";
+  const packageIds = (await prisma.eventTicketType.findMany({ where: { eventId: event.id, kind: "package" }, select: { id: true } })).map((t) => t.id);
   const { validateTicketType } = await import("@/lib/ticket-types");
-  const checked = validateTicketType(raw, event.timezone);
-  if (!checked.ok) ticketTypesBack(event.id, checked.error, "danger");
+  const checked = validateTicketType(raw, event.timezone, {
+    addonFor: form.getAll("addonFor").filter((v): v is string => typeof v === "string"),
+    packageIds,
+  });
+  if (!checked.ok) ticketTypesBack(event.id, checked.error, "danger", section);
   const data = checked.data;
 
   if (typeId) {
-    const before = await prisma.eventTicketType.findFirst({ where: { id: typeId, eventId: event.id } });
-    if (!before) ticketTypesBack(event.id, "That ticket type could not be found.", "danger");
     await prisma.eventTicketType.update({ where: { id: typeId }, data });
     await audit(staff, {
       action: "event.ticket_type_edit",
       targetType: "event",
       targetId: event.id,
-      summary: `Updated the ${data.name} tickets for "${event.title}".`,
+      summary: `Updated the ${data.name} ${kindWord(data.kind)} for "${event.title}".`,
       before,
       after: data,
     });
@@ -249,13 +274,50 @@ export async function saveTicketTypeAction(form: FormData) {
       action: "event.ticket_type_create",
       targetType: "event",
       targetId: event.id,
-      summary: `Added ${data.name} tickets to "${event.title}".`,
+      summary: `Added ${data.name} ${kindWord(data.kind)} to "${event.title}".`,
       after: data,
     });
   }
   const { revalidatePath } = await import("next/cache");
   revalidatePath(`/events/${event.slug}`);
-  ticketTypesBack(event.id, `${data.name} tickets saved.`);
+  ticketTypesBack(event.id, `${data.name} ${kindWord(data.kind)} saved.`, undefined, section);
+}
+
+/**
+ * Set an in-person event up with Karley's five packages and extra places, as
+ * for TRICHOLLECTIVE UK, with 20 stand spaces and 8 stage slots unless already
+ * set. Safe to press twice. Attendee tickets are left alone.
+ */
+export async function addDefaultPackagesAction(form: FormData) {
+  const staff = await requirePermission("events.edit");
+  const eventId = s(form, "eventId", 64);
+  const { setupEventPackages } = await import("@/lib/package-setup");
+  const result = await setupEventPackages(prisma, eventId, { apply: true });
+  if ("error" in result) {
+    if (!(await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } }))) redirect(eventsUrl({ notice: result.error, tone: "danger" }));
+    ticketTypesBack(eventId, result.error, "danger", "packages");
+  }
+  const r = result as Exclude<typeof result, { error: string }>;
+  if (r.changes.length) {
+    await audit(staff, {
+      action: "event.packages_default",
+      targetType: "event",
+      targetId: eventId,
+      summary: `Set up the standard exhibitor packages on "${r.event.title}".`,
+      after: { changes: r.changes },
+    });
+  }
+  const { revalidatePath } = await import("next/cache");
+  const slug = (await prisma.event.findUnique({ where: { id: eventId }, select: { slug: true } }))?.slug;
+  if (slug) revalidatePath(`/events/${slug}`);
+  ticketTypesBack(
+    eventId,
+    r.changes.length
+      ? `${r.changes.join(" ")} Please check the stock and sales dates now, because packages are on sale as soon as the event sells tickets.`
+      : "This event already has the standard packages.",
+    undefined,
+    "packages"
+  );
 }
 
 /** Remove a ticket type nobody has bought. Types with tickets are switched off instead, so the records stay whole. */
@@ -265,12 +327,13 @@ export async function deleteTicketTypeAction(form: FormData) {
   const typeId = s(form, "typeId", 64);
   const type = await prisma.eventTicketType.findFirst({
     where: { id: typeId, eventId },
-    select: { id: true, name: true, event: { select: { title: true, slug: true } } },
+    select: { id: true, name: true, kind: true, event: { select: { title: true, slug: true } } },
   });
   if (!type) ticketTypesBack(eventId, "That ticket type could not be found.", "danger");
+  const section = type.kind === "attendee" ? "tickets" : "packages";
   const sold = await prisma.eventTicket.count({ where: { ticketTypeId: type.id, status: { in: ["paid", "refunded", "pending"] } } });
   if (sold > 0) {
-    ticketTypesBack(eventId, `${type.name} tickets have already been bought, so untick On sale to stop selling them instead of removing them.`, "danger");
+    ticketTypesBack(eventId, `${type.name} has already been bought, so untick On sale to stop selling it instead of removing it.`, "danger", section);
   }
   await prisma.eventTicketType.delete({ where: { id: type.id } });
   await audit(staff, {
@@ -281,7 +344,7 @@ export async function deleteTicketTypeAction(form: FormData) {
   });
   const { revalidatePath } = await import("next/cache");
   revalidatePath(`/events/${type.event.slug}`);
-  ticketTypesBack(eventId, `${type.name} tickets removed.`);
+  ticketTypesBack(eventId, `${type.name} removed.`, undefined, section);
 }
 
 /**
