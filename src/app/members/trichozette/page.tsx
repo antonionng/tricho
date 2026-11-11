@@ -45,7 +45,7 @@ export default async function GazettePage() {
       <section aria-labelledby="library" className="mb-14">
         <div className="mb-5 flex items-end justify-between gap-4 border-b border-rule pb-3">
           <h2 id="library" className="display text-2xl sm:text-3xl">The library</h2>
-          <Link href="/news" className="text-sm underline underline-offset-4">Latest news</Link>
+          <Link href="/news" className="inline-flex min-h-11 items-center text-sm underline underline-offset-4">Latest news</Link>
         </div>
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {library.map((e) => (
