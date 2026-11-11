@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Check, MapPin } from "lucide-react";
@@ -12,6 +13,8 @@ import { getEditions } from "@/content/gazette/loader";
 import { greeting, monthYear } from "@/components/members/format";
 import { Composer } from "@/components/community/Composer";
 import { PostCard } from "@/components/community/PostCard";
+import { SponsoredAd } from "@/components/community/SponsoredAd";
+import { activeAds, communityAds } from "@/content/community-ads";
 import { getMemberContext } from "@/lib/member";
 import { firstName, getTodayFeed, memberDirectoryWhere, postableRooms, rawSpacesFor } from "@/lib/community";
 import { profileCompleteness } from "@/lib/profile";
@@ -105,6 +108,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   ];
   const remaining = checklist.filter((c) => !c.done).length;
   const name = firstName(user.name);
+  const sideAd = activeAds(communityAds.sidebar)[0];
+  const feedAd = activeAds(communityAds.feed)[0];
 
   return (
     <MemberPage size="wide">
@@ -135,6 +140,32 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10">
         <div className="flex min-w-0 flex-col gap-4">
+          <Composer rooms={await postableRooms(ctx)} defaultSpace="lounge" chapter={user.chapter} collapsed name={name || null} />
+
+          <SectionLabel className="mt-4" action={<Link href="/members/community" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:underline">All spaces</Link>}>
+            Latest from the collective
+          </SectionLabel>
+          {feed.length === 0 ? (
+            <EmptyState
+              title="It's quiet here for now"
+              body="The community is just getting started. Introduce yourself, or ask the question you've been meaning to ask."
+              action={
+                <Link href="/members/community?space=introductions" className="text-sm font-medium underline underline-offset-4">
+                  Go to Introductions
+                </Link>
+              }
+            />
+          ) : (
+            feed.map((post, i) => (
+              <Fragment key={post.id}>
+                <PostCard post={post} />
+                {feedAd && i === Math.min(2, feed.length - 1) && <SponsoredAd ad={feedAd} variant="feed" />}
+              </Fragment>
+            ))
+          )}
+        </div>
+
+        <aside className="flex flex-col gap-4">
           {remaining > 0 && (
             <Card className="p-5">
               <div className="flex items-baseline justify-between gap-3">
@@ -173,27 +204,12 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
             </Card>
           )}
 
-          <Composer rooms={await postableRooms(ctx)} defaultSpace="lounge" chapter={user.chapter} collapsed name={name || null} />
-
-          <SectionLabel className="mt-4" action={<Link href="/members/community" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:underline">All spaces</Link>}>
-            Latest from the collective
-          </SectionLabel>
-          {feed.length === 0 ? (
-            <EmptyState
-              title="It's quiet here for now"
-              body="The community is just getting started. Introduce yourself, or ask the question you've been meaning to ask."
-              action={
-                <Link href="/members/community?space=introductions" className="text-sm font-medium underline underline-offset-4">
-                  Go to Introductions
-                </Link>
-              }
-            />
-          ) : (
-            feed.map((post) => <PostCard key={post.id} post={post} />)
+          {sideAd && (
+            <div className="hidden lg:block">
+              <SponsoredAd ad={sideAd} variant="side" />
+            </div>
           )}
-        </div>
 
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
           {user.chapter && (
             <Link
               href={`/members/chapters/${user.chapter.slug}`}
