@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -20,6 +21,8 @@ import {
   Gift,
   HeartHandshake,
   UserPlus,
+  PanelLeftClose,
+  PanelLeftOpen,
   Users,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
@@ -84,6 +87,21 @@ export function MemberShell({
   business?: boolean;
 }) {
   const pathname = usePathname();
+  // The rail starts collapsed to icons; a member's choice is remembered on this device.
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("member-rail") === "open") setOpen(true);
+    } catch {}
+  }, []);
+  const toggleRail = () => {
+    setOpen((o) => {
+      try {
+        window.localStorage.setItem("member-rail", o ? "closed" : "open");
+      } catch {}
+      return !o;
+    });
+  };
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
@@ -111,6 +129,7 @@ export function MemberShell({
 
   const linkClass = (active: boolean) =>
     cn(
+      !open && "justify-center px-0",
       "flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
       active ? "bg-ink text-paper" : "text-ink-2 hover:bg-paper-2 hover:text-ink"
     );
@@ -118,41 +137,69 @@ export function MemberShell({
   return (
     <div className="min-h-screen bg-paper">
       {/* Desktop rail */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-rule bg-paper lg:flex">
-        <div className="px-6 pt-7 pb-6">
-          <Link href="/members" aria-label="Your community">
-            <BrandMark size="sm" sub />
-          </Link>
+      <aside
+        data-open={open}
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-rule bg-paper transition-[width] duration-200 lg:flex",
+          open ? "w-64" : "w-[72px]"
+        )}
+      >
+        <div className={cn("flex items-center pt-6 pb-5", open ? "justify-between px-6" : "justify-center px-3")}>
+          {open && (
+            <Link href="/members" aria-label="Your community">
+              <BrandMark size="sm" sub />
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={toggleRail}
+            aria-label={open ? "Collapse menu" : "Expand menu"}
+            aria-expanded={open}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-ink-2 hover:bg-paper-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            {open ? <PanelLeftClose className="h-[18px] w-[18px] stroke-[1.6]" /> : <PanelLeftOpen className="h-[18px] w-[18px] stroke-[1.6]" />}
+          </button>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Member">
           <ul className="flex flex-col gap-0.5">
             {primary.map(({ href, label, icon: Icon, exact, children: sub }) => (
               <li key={href}>
-                <Link href={href} aria-current={isActive(href, exact) ? "page" : undefined} className={linkClass(isActive(href, exact))}>
-                  <Icon className="h-[18px] w-[18px] stroke-[1.6]" />
-                  <span className="flex-1">{label}</span>
-                  {href === "/members/messages" && messages > 0 && !isActive(href) && (
+                <Link
+                  href={href}
+                  title={open ? undefined : label}
+                  aria-current={isActive(href, exact) ? "page" : undefined}
+                  className={cn(linkClass(isActive(href, exact)), "relative")}
+                >
+                  <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.6]" />
+                  <span className={open ? "flex-1" : "sr-only"}>{label}</span>
+                  {!open && ((href === "/members/messages" && messages > 0 && !isActive(href)) || (href === "/members/referrals" && referrals > 0)) && (
+                    <span className="absolute right-2.5 top-2 h-2 w-2 rounded-full border border-paper bg-ink" aria-hidden />
+                  )}
+                  {open && href === "/members/messages" && messages > 0 && !isActive(href) && (
                     <Dot label={`${messages} unread ${messages === 1 ? "conversation" : "conversations"}`} />
                   )}
-                  {href === "/members/referrals" && referrals > 0 && (
+                  {open && href === "/members/referrals" && referrals > 0 && (
                     <span className="rounded-full bg-ink px-1.5 text-[11px] font-semibold text-paper" aria-label={`${referrals} new`}>
                       {referrals > 9 ? "9+" : referrals}
                     </span>
                   )}
                 </Link>
                 {sub && (
-                  <ul className="mt-0.5 mb-1 ml-[22px] flex flex-col gap-0.5 border-l border-rule pl-3">
+                  <ul className={cn("mt-0.5 mb-1 flex flex-col gap-0.5", open ? "ml-[22px] border-l border-rule pl-3" : "items-center")}>
                     {sub.map((c) => (
-                      <li key={c.href}>
+                      <li key={c.href} className={open ? undefined : "w-full"}>
                         <Link
                           href={c.href}
+                          title={open ? undefined : c.label}
                           aria-current={isActive(c.href) ? "page" : undefined}
                           className={cn(
-                            "flex min-h-10 items-center rounded-lg px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
+                            "flex min-h-10 items-center gap-3 rounded-lg text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
+                            open ? "px-3" : "justify-center",
                             isActive(c.href) ? "bg-paper-2 font-medium text-ink" : "text-ink-2 hover:bg-paper-2 hover:text-ink"
                           )}
                         >
-                          {c.label}
+                          {!open && <c.icon className="h-[18px] w-[18px] stroke-[1.6]" />}
+                          <span className={open ? undefined : "sr-only"}>{c.label}</span>
                         </Link>
                       </li>
                     ))}
@@ -166,21 +213,27 @@ export function MemberShell({
               {business && (
                 <Link
                   href="/members/business"
+                  title={open ? undefined : "Your business"}
                   aria-current={isActive("/members/business") ? "page" : undefined}
                   className={cn(
                     "flex min-h-10 items-center gap-3 rounded-xl border px-3 py-2 text-[15px] transition-colors",
+                    !open && "justify-center px-0",
                     isActive("/members/business") ? "border-ink bg-ink text-paper" : "border-rule text-ink-2 hover:border-ink/40 hover:text-ink"
                   )}
                 >
-                  <Building2 className="h-[18px] w-[18px] stroke-[1.6]" /> Your business
+                  <Building2 className="h-[18px] w-[18px] shrink-0 stroke-[1.6]" /> <span className={open ? undefined : "sr-only"}>Your business</span>
                 </Link>
               )}
               {isAdmin && (
                 <Link
                   href="/studio"
-                  className="flex min-h-10 items-center gap-3 rounded-xl border border-rule px-3 py-2 text-[15px] text-ink-2 hover:border-ink/40 hover:text-ink"
+                  title={open ? undefined : "Studio"}
+                  className={cn(
+                    "flex min-h-10 items-center gap-3 rounded-xl border border-rule px-3 py-2 text-[15px] text-ink-2 hover:border-ink/40 hover:text-ink",
+                    !open && "justify-center px-0"
+                  )}
                 >
-                  <LayoutDashboard className="h-[18px] w-[18px] stroke-[1.6]" /> Studio
+                  <LayoutDashboard className="h-[18px] w-[18px] shrink-0 stroke-[1.6]" /> <span className={open ? undefined : "sr-only"}>Studio</span>
                 </Link>
               )}
             </div>
@@ -190,8 +243,10 @@ export function MemberShell({
           <Link
             href="/members/profile"
             aria-current={isActive("/members/profile") ? "page" : undefined}
+            title={open ? undefined : "Profile and settings"}
             className={cn(
               "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors",
+              !open && "justify-center px-0",
               isActive("/members/profile") ? "bg-paper-2" : "hover:bg-paper-2"
             )}
           >
@@ -203,7 +258,7 @@ export function MemberShell({
                 {(name || "M").slice(0, 1).toUpperCase()}
               </span>
             )}
-            <span className="min-w-0 flex-1">
+            <span className={cn("min-w-0 flex-1", !open && "sr-only")}>
               <span className="block truncate text-sm font-medium">{name || "Member"}</span>
               <span className="block text-xs text-muted-foreground">Profile and settings</span>
             </span>
@@ -211,20 +266,26 @@ export function MemberShell({
           <div className="mt-1 flex flex-col gap-0.5">
             <Link
               href="/members/refer"
+              title={open ? undefined : "Invite a colleague"}
               aria-current={isActive("/members/refer") ? "page" : undefined}
               className={cn(
                 "flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm transition-colors",
+                !open && "justify-center px-0",
                 isActive("/members/refer") ? "bg-paper-2 text-ink" : "text-ink-2 hover:bg-paper-2 hover:text-ink"
               )}
             >
-              <UserPlus className="h-4 w-4 stroke-[1.6]" /> Invite a colleague
+              <UserPlus className="h-4 w-4 shrink-0 stroke-[1.6]" /> <span className={open ? undefined : "sr-only"}>Invite a colleague</span>
             </Link>
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-ink-2 hover:bg-paper-2 hover:text-ink"
+                title={open ? undefined : "Sign out"}
+                className={cn(
+                  "flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-ink-2 hover:bg-paper-2 hover:text-ink",
+                  !open && "justify-center px-0"
+                )}
               >
-                <LogOut className="h-4 w-4 stroke-[1.6]" /> Sign out
+                <LogOut className="h-4 w-4 shrink-0 stroke-[1.6]" /> <span className={open ? undefined : "sr-only"}>Sign out</span>
               </button>
             </form>
           </div>
@@ -232,7 +293,7 @@ export function MemberShell({
       </aside>
 
       {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-rule bg-paper/92 backdrop-blur-xl lg:ml-64">
+      <header className={cn("sticky top-0 z-30 border-b border-rule bg-paper/92 backdrop-blur-xl transition-[margin] duration-200", open ? "lg:ml-64" : "lg:ml-[72px]")}>
         <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
           <Link href="/members" className="lg:hidden" aria-label="Your community">
             <BrandMark size="xs" />
@@ -269,7 +330,7 @@ export function MemberShell({
         </div>
       </header>
 
-      <div className="pb-tabbar lg:ml-64 lg:pb-0">{children}</div>
+      <div className={cn("pb-tabbar transition-[margin] duration-200 lg:pb-0", open ? "lg:ml-64" : "lg:ml-[72px]")}>{children}</div>
 
       {/* Mobile tab bar */}
       <nav
