@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { subscriptionTiers } from "@/config/subscriptions";
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 import { SYSTEM_USER_EMAIL } from "@/agents/publish";
 import { foundingMemberPlacesLeft } from "@/lib/founding";
 import { sourceKey, sourceLabel, startOfToday } from "@/lib/members-filter";
@@ -53,7 +54,7 @@ export function signupsBySource(rows: SignupRow[]) {
 
 /** The figures at the top of the Overview: what has happened today. */
 export async function getToday(now = new Date()) {
-  const notSystem = { NOT: { email: SYSTEM_USER_EMAIL } };
+  const notSystem = { NOT: { email: SYSTEM_USER_EMAIL }, ...PROFESSIONAL_ACCOUNTS };
   const [today, placesLeft, irelandTotal] = await Promise.all([
     prisma.user.findMany({
       where: { ...notSystem, createdAt: { gte: startOfToday(now) } },
@@ -81,7 +82,7 @@ export async function getOverview() {
     const [users, drafts, openReports, events, subscribers, subscribers30, posts30, comments30, editions, episodes, recent] =
       await Promise.all([
         prisma.user.findMany({
-          where: { NOT: { email: SYSTEM_USER_EMAIL } },
+          where: { NOT: { email: SYSTEM_USER_EMAIL }, ...PROFESSIONAL_ACCOUNTS },
           select: { plan: true, isFounding: true, stripeCurrentPeriodEnd: true, createdAt: true },
         }),
         prisma.draft.groupBy({ by: ["kind"], where: { status: "draft", kind: { not: "event_prefill" } }, _count: { _all: true } }),

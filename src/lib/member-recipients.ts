@@ -44,11 +44,12 @@ export async function activeMemberRecipients(): Promise<MemberRecipient[]> {
   });
   const accounts = await prisma.user.findMany({
     where: { email: { not: null } },
-    select: { email: true, name: true, accessStatus: true },
+    select: { email: true, name: true, accessStatus: true, accountType: true },
   });
   // Every account is known, so a suspended or banned member is never added back from Stripe below.
   const byEmail = new Map(accounts.map((u) => [u.email!.toLowerCase(), u]));
-  const users = accounts.filter((u) => u.accessStatus === "active");
+  // Consumer accounts never get member emails, and are known here so Stripe can't add them back either.
+  const users = accounts.filter((u) => u.accessStatus === "active" && u.accountType !== "consumer");
 
   const recipients = new Map<string, MemberRecipient>();
   await inBatches(users, 8, async (u) => {

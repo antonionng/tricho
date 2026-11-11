@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { audit, requirePermission } from "@/lib/staff";
+import { emailEnquiryUpdates } from "@/lib/consumer-mail";
 
 function s(form: FormData, key: string, max = 200) {
   return String(form.get(key) ?? "").trim().slice(0, max);
@@ -30,6 +31,7 @@ export async function setEnquiryStatusAction(form: FormData) {
   if (!enquiry) back(form, "That enquiry no longer exists.", "danger");
 
   await prisma.enquiry.update({ where: { id }, data: { status: to, teamNote: teamNote ?? enquiry.teamNote } });
+  if (to === "closed" && enquiry.status !== "closed") await emailEnquiryUpdates([id], "closed");
   const summary =
     to === "closed"
       ? `Closed the enquiry from ${enquiry.name} to ${enquiry.listing.name}.`

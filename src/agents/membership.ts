@@ -1,3 +1,4 @@
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
@@ -169,6 +170,8 @@ export const membershipAgent: AgentDefinition = {
     const unfinished = await prisma.user.findMany({
       where: {
         onboardedAt: null,
+        // Consumers never onboard as professionals, so they must not get the nudge to.
+        ...PROFESSIONAL_ACCOUNTS,
         createdAt: { lte: new Date(now.getTime() - 3 * DAY), gte: new Date(now.getTime() - 30 * DAY) },
         email: { not: null },
         NOT: [{ email: SYSTEM_USER_EMAIL }, { role: "admin" }, { staffRole: { not: null } }],

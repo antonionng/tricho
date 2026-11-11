@@ -56,6 +56,8 @@ export type OwnerDigest = {
   dateLabel: string;
   subscribersBySource: { source: string; count: number }[];
   freeAccounts: number;
+  /** Members of the public with a free consumer account. Not counted in freeAccounts. */
+  consumerAccounts?: number;
   paidByPlan: { plan: string; count: number }[];
   listingsWaiting: number;
   enquiriesDelivered: number;
@@ -72,6 +74,7 @@ export function digestIsEmpty(d: OwnerDigest) {
   return (
     sum(d.subscribersBySource) +
       d.freeAccounts +
+      (d.consumerAccounts ?? 0) +
       sum(d.paidByPlan) +
       d.listingsWaiting +
       d.enquiriesDelivered +
@@ -88,7 +91,8 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function ownerDigestEmail(d: OwnerDigest): { subject: string; content: EmailContent } {
   const subscribers = sum(d.subscribersBySource);
   const paid = sum(d.paidByPlan);
-  const people = subscribers + d.freeAccounts + paid;
+  const consumers = d.consumerAccounts ?? 0;
+  const people = subscribers + d.freeAccounts + consumers + paid;
   const toReview = d.listingsWaiting + d.reportsOpen + d.contactMessages + d.partnerApplications;
 
   const heading =
@@ -102,6 +106,7 @@ export function ownerDigestEmail(d: OwnerDigest): { subject: string; content: Em
       subscribers ? `${subscribers} (${d.subscribersBySource.map((s) => `${s.source} ${s.count}`).join(", ")})` : "0",
     ],
     ["New free accounts", String(d.freeAccounts)],
+    ["New consumer accounts", String(consumers)],
     ["New paid members", paid ? `${paid} (${d.paidByPlan.map((p) => `${p.plan} ${p.count}`).join(", ")})` : "0"],
     ["Listings to review", String(d.listingsWaiting)],
     ["Directory enquiries", `${d.enquiriesDelivered} delivered, ${d.enquiriesHeld} held`],
@@ -151,6 +156,7 @@ const digest = ownerDigestEmail({
     { source: "guide", count: 2 },
   ],
   freeAccounts: 3,
+  consumerAccounts: 2,
   paidByPlan: [{ plan: "Professional", count: 1 }],
   listingsWaiting: 2,
   enquiriesDelivered: 1,

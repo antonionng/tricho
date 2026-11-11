@@ -7,16 +7,23 @@ import { ChevronDown, Menu, X, ArrowRight } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { primaryNav } from "@/config/site";
+import { HUB_LABEL, HUB_PATH } from "@/config/consumer";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
   // Checked in the browser so marketing pages can be served statically.
   const [signedIn, setSignedIn] = useState(false);
+  // Consumers have their own area, so their account link goes there instead of the community.
+  const [consumer, setConsumer] = useState(false);
   useEffect(() => {
     let alive = true;
     fetch("/api/auth/session")
       .then((r) => (r.ok ? r.json() : null))
-      .then((s) => alive && setSignedIn(!!s?.user))
+      .then((s) => {
+        if (!alive) return;
+        setSignedIn(!!s?.user);
+        setConsumer(s?.user?.accountType === "consumer");
+      })
       .catch(() => {});
     return () => {
       alive = false;
@@ -125,14 +132,19 @@ export function SiteHeader() {
 
           <div className="hidden xl:flex items-center gap-2 whitespace-nowrap">
             <Link
-              href={signedIn ? "/members" : "/login"}
+              href={signedIn ? (consumer ? HUB_PATH : "/members") : "/login"}
               className="rounded-full px-3 py-2 text-[14px] text-ink-2 hover:text-ink"
             >
-              {signedIn ? "Your community" : "Sign in"}
+              {signedIn ? (consumer ? HUB_LABEL : "Your community") : "Sign in"}
             </Link>
             {!signedIn && (
               <Link href="/signup" className="rounded-full px-3 py-2 text-[14px] text-ink-2 hover:text-ink">
-                Sign up free
+                Professional sign-up
+              </Link>
+            )}
+            {!(signedIn && !consumer) && (
+              <Link href="/find" className="rounded-full px-3 py-2 text-[14px] text-ink-2 hover:text-ink">
+                Find a professional
               </Link>
             )}
             <Button asChild>
@@ -240,11 +252,22 @@ export function SiteHeader() {
             </Button>
             {!signedIn && (
               <Button asChild size="lg" variant="outline" className="w-full">
-                <Link href="/signup">Create a free account</Link>
+                <Link href="/signup">Create a professional account</Link>
               </Button>
             )}
-            <Link href={signedIn ? "/members" : "/login"} className="flex min-h-11 items-center justify-center text-[15px] text-ink-2">
-              {signedIn ? "Go to your community" : "Sign in"}
+            {!signedIn && (
+              <p className="text-center text-[15px] text-ink-2">
+                Looking for help with your own hair or scalp?{" "}
+                <Link href="/signup/you" className="text-ink underline underline-offset-4">
+                  Create a free personal account.
+                </Link>
+              </p>
+            )}
+            <Link
+              href={signedIn ? (consumer ? HUB_PATH : "/members") : "/login"}
+              className="flex min-h-11 items-center justify-center text-[15px] text-ink-2"
+            >
+              {signedIn ? (consumer ? `Go to ${HUB_LABEL.toLowerCase()}` : "Go to your community") : "Sign in"}
             </Link>
           </div>
         </nav>

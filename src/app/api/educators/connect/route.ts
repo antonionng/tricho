@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
 import { ensureConnectAccount, onboardingLink } from "@/lib/educator-connect";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** Sends an educator to Stripe to set up (or finish setting up) the account their share is paid into. */
 export async function POST() {
-  const session = await auth();
+  const session = await professionalSession();
   if (!session?.user?.id) return NextResponse.redirect(new URL("/login?next=/members/educator", site.url), { status: 303 });
   if (!process.env.STRIPE_SECRET_KEY) return NextResponse.redirect(new URL("/members/educator?error=payments", site.url), { status: 303 });
   const profile = await prisma.educatorProfile.findUnique({ where: { userId: session.user.id }, select: { id: true, status: true, stripeAccountId: true, displayName: true } });

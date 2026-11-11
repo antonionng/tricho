@@ -1,3 +1,4 @@
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { normalizeSpace, roomById, type KnownRoomId } from "@/config/rooms";
@@ -102,6 +103,7 @@ export const communityAgent: AgentDefinition = {
         email: { not: SYSTEM_USER_EMAIL },
         role: { not: "admin" },
         staffRole: null,
+        ...PROFESSIONAL_ACCOUNTS,
       },
       select: {
         id: true,

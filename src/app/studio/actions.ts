@@ -55,7 +55,7 @@ export async function approveDraftAction(form: FormData) {
   const { staff, draft } = await requireDraftDecision(id);
   if (!draft) redirect(inboxUrl(form, { notice: "That draft no longer exists." }));
 
-  if ((draft.kind === "newsletter" || draft.kind === "announcement") && s(form, "confirm", 8) !== "yes") {
+  if ((draft.kind === "newsletter" || draft.kind === "announcement" || draft.kind === "consumer_digest") && s(form, "confirm", 8) !== "yes") {
     redirect(inboxUrl(form, { id, confirm: "1" }));
   }
 
@@ -90,7 +90,7 @@ export async function saveDraftAction(form: FormData) {
   if (!draft) redirect(inboxUrl(form, {}));
   const payload = payloadOf(draft);
   const next: Record<string, unknown> = { ...payload };
-  if (draft.kind === "email" || draft.kind === "newsletter") {
+  if (draft.kind === "email" || draft.kind === "newsletter" || draft.kind === "consumer_digest") {
     next.subject = s(form, "subject", 200) || title;
   }
   if (draft.kind === "email") {

@@ -432,9 +432,10 @@ export async function syncListingFromProfile(userId: string, { full = false }: {
   ]);
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true, profile: true },
+    select: { name: true, email: true, profile: true, accountType: true },
   });
-  if (!user) return null;
+  // A consumer account never has, claims or updates a directory listing, even one with the same email.
+  if (!user || user.accountType === "consumer") return null;
   const email = user.email?.toLowerCase();
   const listing = await prisma.directoryListing.findFirst({
     where: { OR: [{ userId }, ...(email ? [{ email, userId: null }] : [])] },

@@ -137,7 +137,7 @@ export default async function HomePage() {
                       </Link>
                     </Button>
                     <Button asChild size="xl" variant="outline">
-                      <Link href="/signup">Create a free account</Link>
+                      <Link href="/signup">Create a professional account</Link>
                     </Button>
                   </div>
                   <div className="flex flex-col gap-1">
@@ -146,6 +146,16 @@ export default async function HomePage() {
                   </div>
                 </>
               )}
+              <p className="text-[15px] text-ink-2">
+                Looking for help with your own hair or scalp?{" "}
+                <Link href="/find" className="text-ink underline underline-offset-4">
+                  Find a professional
+                </Link>{" "}
+                or{" "}
+                <Link href="/signup/you" className="text-ink underline underline-offset-4">
+                  create a free personal account.
+                </Link>
+              </p>
             </div>
           </div>
         </Container>

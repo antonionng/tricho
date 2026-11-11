@@ -27,6 +27,7 @@ import {
   welcomeEmail,
 } from "@/lib/mail/templates/billing";
 import { enquiryToPractitionerEmail } from "@/lib/mail/templates/directory";
+import { emailEnquiryUpdates } from "@/lib/consumer-mail";
 import { handleTicketWebhook } from "@/lib/tickets";
 import { handleCourseWebhook } from "@/lib/courses";
 import { handleEducatorWebhook } from "@/lib/educators";
@@ -141,7 +142,8 @@ export async function POST(req: Request) {
           // they sign in later with the same email.
           await prisma.user.upsert({
             where: { email },
-            update: data,
+            // Paying for a membership makes the account a professional one, so it can open what it paid for.
+            update: { ...data, accountType: "professional" },
             create: { email, name: session.customer_details?.name ?? null, ...data },
           });
         } else {
@@ -196,6 +198,7 @@ export async function POST(req: Request) {
                 tag: "enquiry",
               });
             }
+            await emailEnquiryUpdates(held.map((e) => e.id), "delivered");
             listingClaimed = claimed.count > 0;
             enquiriesReleased = held.length;
           }

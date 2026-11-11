@@ -4,6 +4,7 @@ import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { isBusinessAccount } from "@/lib/subscription";
 import { site } from "@/config/site";
+import { HUB_PATH } from "@/config/consumer";
 import { longDate } from "@/components/members/format";
 import { signOutAction } from "./profile/actions";
 import { unreadReferrals } from "./referrals/_data";
@@ -12,6 +13,8 @@ export const metadata = { robots: { index: false, follow: false } };
 
 export default async function MembersLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getMemberContext();
+  // Consumers have their own area and never see the member area or the community.
+  if (ctx.consumer) redirect(HUB_PATH);
   if (!ctx.session?.user) redirect("/login?next=/members");
 
   if (ctx.restricted && ctx.restricted.status !== "muted") {

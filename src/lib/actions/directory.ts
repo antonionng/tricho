@@ -3,12 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Profession, ListingKind, ListingStatus } from "@prisma/client";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { hasFullProfile, uniqueListingSlug } from "@/lib/directory";
 import { LISTING_COUNTRIES } from "@/content/chapters";
-import { getMemberContext } from "@/lib/member";
+import { getMemberContext, professionalSession } from "@/lib/member";
 import { alertOwners, deliver } from "@/lib/mail/send";
 import { listingReceivedEmail, newListingAlert } from "@/lib/mail/templates/directory";
 import { asCreateData, profileDataFromForm, syncListingFromProfile } from "@/lib/profile";
@@ -165,7 +164,8 @@ export async function reviewListing(formData: FormData) {
  * from the profile by syncListingFromProfile.
  */
 export async function publishMemberListing(formData: FormData) {
-  const session = await auth();
+  // Never a listing for a consumer account.
+  const session = await professionalSession();
   if (!session?.user?.id || !session.user.email) {
     redirect("/login");
   }

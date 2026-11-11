@@ -36,9 +36,11 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
   if (!session?.user?.id) return null;
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, name: true, staffRole: true, accessStatus: true },
+    select: { id: true, email: true, name: true, staffRole: true, accessStatus: true, accountType: true },
   });
   if (!user?.email) return null;
+  // Consumer accounts are members of the public: never on the team, even with the dev login.
+  if (user.accountType === "consumer") return null;
   if (user.accessStatus === "banned" || user.accessStatus === "suspended") return null;
 
   let role = (user.staffRole ?? null) as StaffRoleId | null;

@@ -198,6 +198,7 @@ export async function getTodayFeed({
 /** Only members with an active membership, or who have finished onboarding. */
 export function memberDirectoryWhere(): Prisma.UserWhereInput {
   return {
+    accountType: "professional",
     OR: [{ onboardedAt: { not: null } }, { stripeCurrentPeriodEnd: { gt: new Date() } }],
   };
 }

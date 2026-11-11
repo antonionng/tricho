@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
 
 /** Opens Stripe's billing page for the Educator membership, which has its own Stripe customer. */
 export async function POST() {
-  const session = await auth();
+  const session = await professionalSession();
   if (!session?.user?.id) return NextResponse.redirect(new URL("/login?next=/members/educator", site.url), { status: 303 });
   if (!process.env.STRIPE_SECRET_KEY) return new NextResponse("Stripe is not configured", { status: 503 });
   const profile = await prisma.educatorProfile.findUnique({ where: { userId: session.user.id }, select: { stripeCustomerId: true } });

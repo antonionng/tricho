@@ -188,6 +188,7 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
     title: "Resources",
     items: [
       { label: "Find a professional", href: "/find" },
+      { label: "Free account for your hair and scalp", href: "/signup/you" },
       { label: "Guides", href: "/guides" },
       { label: "Glossary", href: "/glossary" },
       { label: "About Trichollective", href: "/about" },

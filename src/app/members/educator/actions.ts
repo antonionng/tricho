@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { storeUpload } from "@/lib/storage";
 import { createCourse, saveDraft, submitForReview, type SaveResult } from "@/lib/course-builder";
@@ -17,7 +17,7 @@ import { startDraftFromForm } from "@/lib/course-draft-start";
  */
 
 async function me() {
-  const session = await auth();
+  const session = await professionalSession();
   const userId = session?.user?.id;
   if (!userId) return null;
   const profile = await prisma.educatorProfile.findUnique({ where: { userId } });

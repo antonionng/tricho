@@ -8,6 +8,8 @@ import { episodeIdFromRef, PODCAST_AGENT } from "@/agents/podcast";
 import { renderEmail } from "@/lib/mail/layout";
 import { draftEmailContent } from "@/lib/mail/templates/members";
 import { announcementEmail, newsletterEmail } from "@/lib/mail/templates/releases";
+import { consumerDigestEmail } from "@/lib/mail/templates/consumers";
+import { consumerDigestRecipients } from "@/lib/consumer-mail";
 import { roomById, normalizeSpace } from "@/config/rooms";
 import { getAllRooms } from "@/lib/rooms";
 import { Button } from "@/components/ui/button";
@@ -272,7 +274,9 @@ async function DraftDetail({
       ? await newsletterRecipients()
       : draft.kind === "announcement"
         ? await announcementRecipients()
-        : null;
+        : draft.kind === "consumer_digest"
+          ? await consumerDigestRecipients()
+          : null;
   const emailPreview =
     draft.kind === "email"
       ? draftEmailContent(draft, payload)
@@ -280,7 +284,9 @@ async function DraftDetail({
         ? newsletterEmail(draft, payload)
         : draft.kind === "announcement"
           ? announcementEmail(draft, payload)
-          : null;
+          : draft.kind === "consumer_digest"
+            ? consumerDigestEmail(draft, payload)
+            : null;
   const allRooms = await getAllRooms();
   const space = typeof payload.space === "string" ? roomById(normalizeSpace(payload.space, allRooms), allRooms) : null;
 
@@ -378,16 +384,18 @@ async function DraftDetail({
       )}
 
       {/* Newsletter and announcement confirm step */}
-      {open && (draft.kind === "newsletter" || draft.kind === "announcement") && recipients && (
+      {open && (draft.kind === "newsletter" || draft.kind === "announcement" || draft.kind === "consumer_digest") && recipients && (
         <div className="space-y-3 rounded-2xl border-2 border-ink bg-card p-5">
           <p className="font-medium text-ink">
-            Send this {draft.kind === "newsletter" ? "newsletter" : "announcement"} to {recipients.length}{" "}
+            Send this {draft.kind === "newsletter" ? "newsletter" : draft.kind === "consumer_digest" ? "digest" : "announcement"} to {recipients.length}{" "}
             {recipients.length === 1 ? "person" : "people"}?
           </p>
           <p className="text-sm text-ink-2">
             {draft.kind === "newsletter"
               ? "That's every subscriber who hasn't unsubscribed, plus every active member."
-              : "That's every member, every free account and every subscriber who still wants news of new releases."}{" "}
+              : draft.kind === "consumer_digest"
+                ? "That's every consumer account that opted in to news. Professionals and subscribers don't get it."
+                : "That's every member, every free account and every subscriber who still wants news of new releases."}{" "}
             It can&apos;t be unsent.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -440,7 +448,7 @@ async function DraftDetail({
                   <input name="to" type="email" defaultValue={String(payload.to ?? "")} className={fieldClass} />
                 </label>
               )}
-              {(draft.kind === "email" || draft.kind === "newsletter") && (
+              {(draft.kind === "email" || draft.kind === "newsletter" || draft.kind === "consumer_digest") && (
                 <label className="block space-y-1.5 text-sm">
                   <span className="font-medium">Subject line</span>
                   <input name="subject" defaultValue={String(payload.subject ?? draft.title)} className={fieldClass} />

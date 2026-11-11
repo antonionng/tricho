@@ -69,6 +69,18 @@ enum StaffRole {
   support
 }
 
+/// Professionals use the member area; consumers are members of the public in /hub. Kept apart from role, which billing overwrites.
+enum AccountType {
+  professional
+  consumer
+}
+
+/// How a consumer appears to other people: their first name or their random alias.
+enum ConsumerDisplayMode {
+  name
+  alias
+}
+
 enum AccessStatus {
   active
   suspended
@@ -148,6 +160,7 @@ model User {
   emailVerified       DateTime?
   image               String?
   role                UserRole     @default(individual)
+  accountType         AccountType  @default(professional)
   /// Set for the Trichollective team. Decides what they can do in Studio.
   staffRole           StaffRole?
   accessStatus        AccessStatus @default(active)
@@ -226,8 +239,46 @@ model User {
   verifications  VerificationRequest[] @relation("verificationSubject")
   orgMemberships OrganisationContact[]
 
+  consumerProfile ConsumerProfile?
+  savedListings   SavedListing[]
+  enquiries       Enquiry[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// A member of the public. Staff see the real identity; other people see the name or the alias.
+model ConsumerProfile {
+  id                  String              @id @default(cuid())
+  userId              String              @unique
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayMode         ConsumerDisplayMode @default(alias)
+  /// Random, e.g. "Willow-428". Never derived from the name or email.
+  alias               String              @unique
+  /// Seeds the generated avatar, so no photo is needed.
+  avatarSeed          String
+  region              String?
+  country             String?
+  /// Concern category ids from src/config/consumer.ts. Health data: only kept while healthDataConsentAt is set.
+  concerns            String[]            @default([])
+  marketingConsentAt  DateTime?
+  healthDataConsentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A professional a consumer saved from the directory.
+model SavedListing {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   DirectoryListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
 }
 
 model TrichologistProfile {
@@ -290,23 +341,24 @@ model DirectoryListing {
   reviewedAt     DateTime?
   reviewNote     String?
 
-  slug             String?   @unique
+  slug             String?        @unique
   headline         String?
-  country          String    @default("Ireland")
-  services         String[]  @default([])
+  country          String         @default("Ireland")
+  services         String[]       @default([])
   photoUrl         String?
-  isFounding       Boolean   @default(true)
+  isFounding       Boolean        @default(true)
   /// Free listings stay public until this date (90 days from approval). Claimed (paid) listings ignore it.
   freeUntil        DateTime?
-  isVerified       Boolean   @default(false)
-  acceptsReferrals Boolean   @default(true)
+  isVerified       Boolean        @default(false)
+  acceptsReferrals Boolean        @default(true)
   /// Dev seed rows. Never shown in production.
-  isSample         Boolean   @default(false)
+  isSample         Boolean        @default(false)
   /// Where the listing came from, e.g. "dublin", "instagram".
   source           String?
   /// Private token in an invitation link; cleared once the person submits their listing.
-  inviteToken      String?   @unique
+  inviteToken      String?        @unique
   enquiries        Enquiry[]
+  savedBy          SavedListing[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -488,6 +540,9 @@ model PendingSignup {
   city         String?
   country      String?
   heardFrom    String?
+  accountType  AccountType @default(professional)
+  /// Consumers only: ticked the unticked marketing opt-in on the form.
+  marketing    Boolean     @default(false)
   createdAt    DateTime    @default(now())
 }
 
@@ -591,6 +646,9 @@ model Enquiry {
   id        String           @id @default(cuid())
   listingId String
   listing   DirectoryListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  /// The consumer account that sent it, if they were signed in. Cleared when the account is deleted.
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   name      String
   email     String
   message   String           @db.Text
@@ -600,6 +658,7 @@ model Enquiry {
   createdAt DateTime         @default(now())
 
   @@index([listingId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model Referral {
@@ -623,53 +682,53 @@ model Referral {
 }
 
 model Event {
-  id             String        @id @default(cuid())
-  slug           String        @unique
-  title          String
-  kind           EventKind
-  summary        String
-  body           String?       @db.Text
-  startsAt       DateTime
-  endsAt         DateTime?
-  venue          String?
-  city           String?
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  title            String
+  kind             EventKind
+  summary          String
+  body             String?           @db.Text
+  startsAt         DateTime
+  endsAt           DateTime?
+  venue            String?
+  city             String?
   /// The venue's full postal address, for in-person events. Shown in ticket emails with a map link.
-  venueAddress   String?
-  online         Boolean       @default(false)
+  venueAddress     String?
+  online           Boolean           @default(false)
   /// The IANA time zone the event's times are shown in, e.g. "Europe/London".
-  timezone       String        @default("Europe/London")
-  priceGBP       Int           @default(0)
-  memberPriceGBP Int           @default(0)
-  capacity       Int?
+  timezone         String            @default("Europe/London")
+  priceGBP         Int               @default(0)
+  memberPriceGBP   Int               @default(0)
+  capacity         Int?
   /// External ticketing (e.g. Eventbrite) until native ticketing ships.
-  ticketUrl      String?
+  ticketUrl        String?
   /// The online joining link (for example Google Meet). Shown only to members who are going.
-  joinUrl        String?
-  published      Boolean       @default(false)
+  joinUrl          String?
+  published        Boolean           @default(false)
   /// Sell tickets on Trichollective through Stripe instead of an external link.
-  sellTickets    Boolean       @default(false)
+  sellTickets      Boolean           @default(false)
   /// Who presents it, e.g. "Adam Bond (LIVDOR) and Karley Weir". Shown on the event and in its announcement.
-  presenters     String?
+  presenters       String?
   /// The partner who sponsors it. A sponsored event is always labelled "Sponsored by".
   sponsorPartnerId String?
-  sponsor        Partner?      @relation("EventSponsor", fields: [sponsorPartnerId], references: [id], onDelete: SetNull)
+  sponsor          Partner?          @relation("EventSponsor", fields: [sponsorPartnerId], references: [id], onDelete: SetNull)
   /// When everyone was first told about this masterclass, so saving or republishing never notifies twice.
-  announcedAt    DateTime?
-  chapterId      String?
-  chapter        Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  rsvps          EventRsvp[]
-  tickets        EventTicket[]
+  announcedAt      DateTime?
+  chapterId        String?
+  chapter          Chapter?          @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  rsvps            EventRsvp[]
+  tickets          EventTicket[]
   /// Early bird, standard and so on. An event without any sells at the flat member and guest prices.
-  ticketTypes    EventTicketType[]
-  attendees      EventAttendee[]
+  ticketTypes      EventTicketType[]
+  attendees        EventAttendee[]
   /// Exhibitors and sponsors who bought a package.
-  exhibitors     EventExhibitor[]
+  exhibitors       EventExhibitor[]
   /// Stage slots shared by every package that includes one. Null means only each package's own stock limits them.
-  stageSlots     Int?
+  stageSlots       Int?
   /// Stand spaces shared by every package that includes a stand. Null means only each package's own stock limits them.
-  standSpaces    Int?
+  standSpaces      Int?
   /// Attendees can change their name, dietary and access details on their ticket page until then. Null means 48 hours before the start.
-  detailsCloseAt DateTime?
+  detailsCloseAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -745,63 +804,63 @@ model AgentSetting {
 
 /// Business and Premium Business partners shown on /partners. Only real, published partners appear.
 model Partner {
-  id            String         @id @default(cuid())
-  slug          String         @unique
-  name          String
+  id              String         @id @default(cuid())
+  slug            String         @unique
+  name            String
   /// "premium" or "business"
-  tier          String         @default("premium")
+  tier            String         @default("premium")
   /// Product category, e.g. "Devices", "Scalp care", "Education". At most two premium partners per category.
-  category      String
-  logoUrl       String?
-  blurb         String         @db.Text
-  website       String?
+  category        String
+  logoUrl         String?
+  blurb           String         @db.Text
+  website         String?
   /// The member perk, shown in the member area.
-  perk          String?        @db.Text
-  contactEmail  String?
+  perk            String?        @db.Text
+  contactEmail    String?
   /// Shown on the public partner page when set.
-  publicEmail   String?
-  publicPhone   String?
-  isFounding    Boolean        @default(false)
-  published     Boolean        @default(false)
-  featuredUntil DateTime?
+  publicEmail     String?
+  publicPhone     String?
+  isFounding      Boolean        @default(false)
+  published       Boolean        @default(false)
+  featuredUntil   DateTime?
   /// The sign-in email of the person who manages this page from the member area.
-  ownerEmail    String?        @unique
+  ownerEmail      String?        @unique
   /// Taken down by the Studio: hidden, and the owner can't republish it.
-  hidden        Boolean        @default(false)
+  hidden          Boolean        @default(false)
   /// "brand" (a paying, sponsored partner) or "charity" (a cause we support free, never labelled sponsored).
-  kind          String         @default("brand")
+  kind            String         @default("brand")
   /// A hex colour that themes a charity's page, e.g. "#E6007E".
-  accentColor   String?
+  accentColor     String?
   /// A wide banner image across the top of the page.
-  coverUrl      String?
-  coverFileId   String?
+  coverUrl        String?
+  coverFileId     String?
   /// A registered charity number, shown on the page.
-  charityNumber String?
+  charityNumber   String?
   /// One sentence under the name.
-  tagline       String?
+  tagline         String?
   /// The longer "Our story", paragraphs separated by a blank line.
-  story         String?        @db.Text
+  story           String?        @db.Text
   /// { value, label }[]: a few headline numbers.
-  highlights    Json?
+  highlights      Json?
   /// { title, body }[]: products or services.
-  offerings     Json?
+  offerings       Json?
   /// The main button on the page, e.g. "Book a demo".
-  ctaLabel      String?
-  ctaUrl        String?
+  ctaLabel        String?
+  ctaUrl          String?
   /// A YouTube or Vimeo link (Premium).
-  videoUrl      String?
+  videoUrl        String?
   /// { eyebrow?, title, body?, steps?: string[], ctaLabel?, ctaUrl? }[]: longer feature sections.
-  sections      Json?
-  photos        ProfilePhoto[]
-  logo          PartnerLogo?
-  logoFileId    String?
-  organisation  Organisation?
-  stats         PartnerStat[]
-  jobs          Job[]
+  sections        Json?
+  photos          ProfilePhoto[]
+  logo            PartnerLogo?
+  logoFileId      String?
+  organisation    Organisation?
+  stats           PartnerStat[]
+  jobs            Job[]
   /// Masterclasses and other events this partner sponsors.
-  sponsoredEvents Event[] @relation("EventSponsor")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  sponsoredEvents Event[]        @relation("EventSponsor")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([published, tier])
 }
@@ -1202,35 +1261,35 @@ model PartnerStat {
 
 /// A ticket bought on Trichollective for a paid event.
 model EventTicket {
-  id                    String       @id @default(cuid())
+  id                    String           @id @default(cuid())
   eventId               String
-  event                 Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event                 Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
   userId                String?
-  user                  User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user                  User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   email                 String
   name                  String?
-  quantity              Int          @default(1)
+  quantity              Int              @default(1)
   /// Total paid, in the smallest unit.
-  amount                Int          @default(0)
-  currency              String       @default("gbp")
+  amount                Int              @default(0)
+  currency              String           @default("gbp")
   /// "member" or "guest" price.
-  priceType             String       @default("guest")
+  priceType             String           @default("guest")
   /// The ticket type bought, when the event sells types. Null for flat-priced events.
   ticketTypeId          String?
   ticketType            EventTicketType? @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
-  status                TicketStatus @default(pending)
-  stripeSessionId       String?      @unique
+  status                TicketStatus     @default(pending)
+  stripeSessionId       String?          @unique
   stripePaymentIntentId String?
   paidAt                DateTime?
-  createdAt             DateTime     @default(now())
+  createdAt             DateTime         @default(now())
   /// One named person per place, for in-person events.
   attendees             EventAttendee[]
   /// The company details, when this order is an exhibitor or sponsor package.
   exhibitor             EventExhibitor?
   /// For extra places bought as an add-on: the package order they belong to.
   packageTicketId       String?
-  packageTicket         EventTicket? @relation("PackageExtras", fields: [packageTicketId], references: [id], onDelete: SetNull)
-  extras                EventTicket[] @relation("PackageExtras")
+  packageTicket         EventTicket?     @relation("PackageExtras", fields: [packageTicketId], references: [id], onDelete: SetNull)
+  extras                EventTicket[]    @relation("PackageExtras")
 
   @@index([eventId, status])
   @@index([packageTicketId])
@@ -1240,31 +1299,31 @@ model EventTicket {
 
 /// One named person on a ticket, for in-person events. Their code is on their e-ticket's QR code.
 model EventAttendee {
-  id            String      @id @default(cuid())
-  ticketId      String
-  ticket        EventTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  eventId       String
-  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  name          String
-  email         String
-  dietary       String?
-  accessNeeds   String?
+  id             String      @id @default(cuid())
+  ticketId       String
+  ticket         EventTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  eventId        String
+  event          Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name           String
+  email          String
+  dietary        String?
+  accessNeeds    String?
   /// The buyer ticked "this is me" for this place.
-  isBuyer       Boolean     @default(false)
+  isBuyer        Boolean     @default(false)
   /// A place included in a package that the buyer has not named yet. No e-ticket is sent until it is named.
-  awaitingName  Boolean     @default(false)
+  awaitingName   Boolean     @default(false)
   /// Random and unguessable: it opens the attendee's ticket page and is what the door scans.
-  code          String      @unique
-  checkedInAt   DateTime?
-  checkedInById String?
-  checkedInBy   User?       @relation("attendeeCheckIn", fields: [checkedInById], references: [id], onDelete: SetNull)
+  code           String      @unique
+  checkedInAt    DateTime?
+  checkedInById  String?
+  checkedInBy    User?       @relation("attendeeCheckIn", fields: [checkedInById], references: [id], onDelete: SetNull)
   /// The place was cancelled, by a full refund of the order or a refund of this place.
-  cancelledAt   DateTime?
+  cancelledAt    DateTime?
   /// What was refunded for this place alone, in pence, when the team refunded it in Studio.
-  refundedPence Int?
+  refundedPence  Int?
   stripeRefundId String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@index([eventId])
   @@index([ticketId])
@@ -1283,40 +1342,40 @@ enum EventTicketKind {
 /// A kind of ticket for an event sold on Trichollective, such as early bird or standard,
 /// or an exhibitor package and the extra places its holders can add.
 model EventTicketType {
-  id               String        @id @default(cuid())
-  eventId          String
-  event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  kind             EventTicketKind @default(attendee)
-  name             String
-  description      String        @default("")
+  id                String          @id @default(cuid())
+  eventId           String
+  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  kind              EventTicketKind @default(attendee)
+  name              String
+  description       String          @default("")
   /// What everyone pays, in pence, VAT included.
-  pricePence       Int
+  pricePence        Int
   /// What signed-in active members pay instead, in pence. Null means the same as everyone.
-  memberPricePence Int?
+  memberPricePence  Int?
   /// Only signed-in active members can buy it.
-  membersOnly      Boolean       @default(false)
+  membersOnly       Boolean         @default(false)
   /// Places of this type. Null means only the event's total limits it.
-  capacity         Int?
+  capacity          Int?
   /// On sale from this moment. Null means straight away.
-  salesStart       DateTime?
+  salesStart        DateTime?
   /// Off sale from this moment, e.g. when early bird ends. Null means until the event starts.
-  salesEnd         DateTime?
+  salesEnd          DateTime?
   /// For an add-on, the most extra places one package can add across all its orders.
-  maxPerOrder      Int           @default(4)
+  maxPerOrder       Int             @default(4)
   /// Places each one includes: one for attendee tickets and add-ons, the package's own number (which can be 0) for packages.
-  placesIncluded   Int           @default(1)
+  placesIncluded    Int             @default(1)
   /// The package takes one of the event's stand spaces.
-  includesStand    Boolean       @default(false)
+  includesStand     Boolean         @default(false)
   /// The package takes one of the event's stage slots.
-  includesStageSlot Boolean      @default(false)
+  includesStageSlot Boolean         @default(false)
   /// For an add-on: the package types whose holders can buy it.
-  addonForTypeIds  String[]      @default([])
-  sortOrder        Int           @default(0)
+  addonForTypeIds   String[]        @default([])
+  sortOrder         Int             @default(0)
   /// Hidden from sale when off. Types with tickets sold are switched off, never deleted.
-  active           Boolean       @default(true)
-  tickets          EventTicket[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  active            Boolean         @default(true)
+  tickets           EventTicket[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([eventId, sortOrder])
 }
@@ -1824,20 +1883,20 @@ model BlogArticle {
   featured    Boolean    @default(false)
 
   /// The question the post should answer, and the writer's brief.
-  targetQuery String     @default("")
-  brief       String?    @db.Text
+  targetQuery String   @default("")
+  brief       String?  @db.Text
   /// Extra URLs to read before writing, one per line.
   sourceUrls  String[]
   /// The AI writer's working state: { step, plan, notes, error, model }.
   ai          Json?
   /// "studio" when started by hand, "agent" when approved from an idea in the inbox.
-  origin      String     @default("studio")
+  origin      String   @default("studio")
 
   publishedAt DateTime?
   createdById String?
   updatedById String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([status, publishedAt])
 }

@@ -42,6 +42,13 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           ))}
         </ul>
         <p className="text-sm text-muted-foreground">
+          Looking for help with your own hair or scalp?{" "}
+          <Link href="/signup/you" className="text-ink underline underline-offset-4">
+            Create a free personal account
+          </Link>
+          .
+        </p>
+        <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="text-ink underline underline-offset-4">
             Sign in

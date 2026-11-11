@@ -12,6 +12,7 @@ import { listingCityPairs, searchListings, cityKey } from "@/lib/directory";
 import { FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { CONCERNS, isConcernId } from "@/config/consumer";
 
 export const metadata = pageMetadata({
   title: "Find a hair and scalp professional near you",
@@ -24,26 +25,49 @@ export const metadata = pageMetadata({
 export default async function DirectoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; discipline?: string }>;
+  searchParams: Promise<{ q?: string; discipline?: string; concern?: string }>;
 }) {
-  const { q = "", discipline = "" } = await searchParams;
+  const { q = "", discipline = "", concern: concernParam = "" } = await searchParams;
+  const concern = isConcernId(concernParam) ? concernParam : undefined;
   const disciplineId = DISCIPLINES.some((d) => d.id === discipline) ? (discipline as DisciplineId) : undefined;
   const onlyBusinesses = discipline === "businesses";
   const [listings, businesses, pairs] = await Promise.all([
-    onlyBusinesses ? Promise.resolve([]) : searchListings({ q, discipline: disciplineId }),
-    disciplineId ? Promise.resolve([]) : searchBusinesses(q),
+    onlyBusinesses ? Promise.resolve([]) : searchListings({ q, discipline: disciplineId, concern }),
+    disciplineId || concern ? Promise.resolve([]) : searchBusinesses(q),
     listingCityPairs(),
   ]);
-  const filtered = !!(q || disciplineId || onlyBusinesses);
+  const filtered = !!(q || disciplineId || onlyBusinesses || concern);
 
   const chip = (id: string, label: string) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (id) params.set("discipline", id);
+    if (concern && id !== "businesses") params.set("concern", concern);
     const active = (discipline || "") === id;
     return (
       <Link
         key={id || "all"}
+        href={`/directory${params.size ? `?${params}` : ""}`}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "shrink-0 rounded-full border px-4 py-2 text-sm transition-colors",
+          active ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink-2 hover:border-ink/40"
+        )}
+      >
+        {label}
+      </Link>
+    );
+  };
+
+  const concernChip = (id: string, label: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (disciplineId) params.set("discipline", disciplineId);
+    if (id) params.set("concern", id);
+    const active = (concern ?? "") === id;
+    return (
+      <Link
+        key={id || "any"}
         href={`/directory${params.size ? `?${params}` : ""}`}
         aria-current={active ? "page" : undefined}
         className={cn(
@@ -68,13 +92,22 @@ export default async function DirectoryPage({
             body="Cosmetic, clinical and medical hair and scalp professionals across Ireland and the UK. A person checks every listing before it appears."
           />
           <div className="mt-10 max-w-3xl">
-            <DirectorySearch defaultQuery={q} defaultDiscipline={discipline} />
+            <DirectorySearch defaultQuery={q} defaultDiscipline={discipline} concern={concern} />
           </div>
           <div className="mt-6 flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             {chip("", "Everyone")}
             {DISCIPLINES.map((d) => chip(d.id, d.name))}
             {chip("businesses", "Brands, clinics and charities")}
           </div>
+          {!onlyBusinesses && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm text-ink-2">What would you like help with?</p>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                {concernChip("", "Anything")}
+                {CONCERNS.map((c) => concernChip(c.id, c.short))}
+              </div>
+            </div>
+          )}
         </Container>
       </section>
 
@@ -95,6 +128,12 @@ export default async function DirectoryPage({
             Not sure who you need? Answer three questions
           </Link>
         </div>
+        <p className="-mt-4 mb-8 text-sm text-ink-2">
+          A free personal account lets you save professionals and follow your enquiries.{" "}
+          <Link href="/signup/you" className="text-ink underline underline-offset-4">
+            Create a free account.
+          </Link>
+        </p>
 
         {onlyBusinesses ? null : listings.length > 0 ? (
           <ul className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">

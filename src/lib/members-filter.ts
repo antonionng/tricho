@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { csvRow } from "@/lib/csv";
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 
 /**
  * Pure helpers for finding and exporting members in Studio. No database
@@ -112,7 +113,8 @@ function compActive(now: Date): Prisma.UserWhereInput {
 
 /** Turn Studio filters into a Prisma query. The system account that posts for the team is never listed. */
 export function buildMemberWhere(f: MemberFilters, now: Date, systemEmail: string): Prisma.UserWhereInput {
-  const and: Prisma.UserWhereInput[] = [{ NOT: { email: systemEmail } }];
+  // Consumers are not members: they get their own Studio view later.
+  const and: Prisma.UserWhereInput[] = [{ NOT: { email: systemEmail }, ...PROFESSIONAL_ACCOUNTS }];
 
   if (f.q) {
     and.push({

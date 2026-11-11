@@ -2,9 +2,19 @@ import { Search } from "lucide-react";
 import { DISCIPLINES } from "@/content/disciplines";
 
 /** Plain GET form so it works without JavaScript and produces shareable URLs. */
-export function DirectorySearch({ defaultQuery = "", defaultDiscipline = "" }: { defaultQuery?: string; defaultDiscipline?: string }) {
+export function DirectorySearch({
+  defaultQuery = "",
+  defaultDiscipline = "",
+  concern = "",
+}: {
+  defaultQuery?: string;
+  defaultDiscipline?: string;
+  /** Kept when searching again, so the chosen concern isn't lost. */
+  concern?: string;
+}) {
   return (
     <form action="/directory" method="get" className="w-full" role="search">
+      {concern && <input type="hidden" name="concern" value={concern} />}
       <div className="flex flex-col gap-2 rounded-3xl border border-ink/15 bg-card p-2 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.4)] sm:flex-row sm:items-center sm:rounded-full">
         <label className="flex flex-1 items-center gap-3 px-4">
           <Search className="h-5 w-5 shrink-0 opacity-50" aria-hidden />
