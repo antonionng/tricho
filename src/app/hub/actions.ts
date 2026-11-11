@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteConsumerAccount } from "@/lib/consumer-delete";
 import { consumerSession } from "@/lib/consumer-session";
 import { randomAlias, randomAvatarSeed } from "@/lib/consumer-alias";
 import { cleanFirstName } from "@/lib/signup-details";
@@ -91,17 +92,14 @@ export type DeleteState = { error: string } | null;
 /**
  * Deletes the account and everything that belongs to it. The profile and saved
  * professionals go with it; enquiries the professionals already received stay with them,
- * unlinked from the account.
+ * unlinked from the account, and ones still held for a professional who has not joined are deleted.
  */
 export async function deleteAccount(_prev: DeleteState, form: FormData): Promise<DeleteState> {
   const { userId, user } = await me();
   if (String(form.get("confirm") ?? "").trim().toLowerCase() !== "delete") {
     return { error: "Please type the word delete to confirm." };
   }
-  await prisma.$transaction([
-    prisma.pendingSignup.deleteMany({ where: { email: user.email ?? "" } }),
-    prisma.user.delete({ where: { id: userId } }),
-  ]);
+  await deleteConsumerAccount(userId, user.email);
   await signOut({ redirectTo: "/?account=deleted" });
   return null;
 }

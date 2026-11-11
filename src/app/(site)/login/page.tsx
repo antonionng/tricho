@@ -37,9 +37,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           .
         </p>
         <p className="text-center text-sm text-muted-foreground">
-          New to Trichollective?{" "}
+          New to Trichollective and work in hair or scalp care?{" "}
           <Link href="/signup" className="text-ink underline underline-offset-4">
-            Create a free account
+            Create a professional account.
+          </Link>
+        </p>
+        <p className="text-center text-sm text-muted-foreground">
+          Looking for help with your own hair or scalp?{" "}
+          <Link href="/signup/you" className="text-ink underline underline-offset-4">
+            Create a free personal account.
           </Link>
         </p>
       </div>

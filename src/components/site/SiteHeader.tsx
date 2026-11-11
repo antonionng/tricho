@@ -139,7 +139,12 @@ export function SiteHeader() {
             </Link>
             {!signedIn && (
               <Link href="/signup" className="rounded-full px-3 py-2 text-[14px] text-ink-2 hover:text-ink">
-                Sign up free
+                Professional sign-up
+              </Link>
+            )}
+            {!(signedIn && !consumer) && (
+              <Link href="/find" className="rounded-full px-3 py-2 text-[14px] text-ink-2 hover:text-ink">
+                Find a professional
               </Link>
             )}
             <Button asChild>
@@ -247,8 +252,16 @@ export function SiteHeader() {
             </Button>
             {!signedIn && (
               <Button asChild size="lg" variant="outline" className="w-full">
-                <Link href="/signup">Create a free account</Link>
+                <Link href="/signup">Create a professional account</Link>
               </Button>
+            )}
+            {!signedIn && (
+              <p className="text-center text-[15px] text-ink-2">
+                Looking for help with your own hair or scalp?{" "}
+                <Link href="/signup/you" className="text-ink underline underline-offset-4">
+                  Create a free personal account.
+                </Link>
+              </p>
             )}
             <Link
               href={signedIn ? (consumer ? HUB_PATH : "/members") : "/login"}

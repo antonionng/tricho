@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { deleteConsumerAccount } from "@/lib/consumer-delete";
 import { audit, requirePermission } from "@/lib/staff";
 
 /**
@@ -23,10 +24,7 @@ export async function deleteConsumerAction(form: FormData) {
   });
   if (!user || user.accountType !== "consumer") back("That isn't a consumer account, so it can't be deleted here.", "danger");
 
-  await prisma.$transaction([
-    prisma.pendingSignup.deleteMany({ where: { email: user!.email ?? "" } }),
-    prisma.user.delete({ where: { id } }),
-  ]);
+  await deleteConsumerAccount(id, user!.email);
   await audit(staff, {
     action: "consumer.delete",
     targetType: "consumer",

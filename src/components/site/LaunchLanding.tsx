@@ -294,7 +294,7 @@ export function LaunchLanding({
                   </Link>
                 </Button>
                 <Link href="/signup" className="text-[15px] text-ink underline underline-offset-4">
-                  Create a free account instead
+                  Create a professional account instead
                 </Link>
               </div>
             </div>

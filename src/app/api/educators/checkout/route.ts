@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { professionalSession } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { site } from "@/config/site";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  */
 export async function POST() {
   try {
-    const session = await auth();
+    const session = await professionalSession();
     const userId = session?.user?.id;
     const email = session?.user?.email?.toLowerCase();
     if (!userId || !email) return NextResponse.json({ error: "Please sign in first, so your courses and earnings are kept in your account." }, { status: 401 });

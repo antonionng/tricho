@@ -128,6 +128,12 @@ export default async function DirectoryPage({
             Not sure who you need? Answer three questions
           </Link>
         </div>
+        <p className="-mt-4 mb-8 text-sm text-ink-2">
+          A free personal account lets you save professionals and follow your enquiries.{" "}
+          <Link href="/signup/you" className="text-ink underline underline-offset-4">
+            Create a free account.
+          </Link>
+        </p>
 
         {onlyBusinesses ? null : listings.length > 0 ? (
           <ul className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">

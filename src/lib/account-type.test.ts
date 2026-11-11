@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { areaRedirect, isConsumer, isHubArea, isProfessionalArea, PROFESSIONAL_ACCOUNTS } from "./account-type";
 import { authConfig } from "@/auth.config";
@@ -71,4 +73,14 @@ describe("authorized() in the middleware", () => {
     expect(run("/hub", { accountType: "consumer" })).toBe(true);
     expect(run("/members", { accountType: "professional" })).toBe(true);
   });
+});
+
+describe("professional-only queries", () => {
+  it.each(["agents/announce.ts", "agents/community.ts", "agents/membership.ts", "lib/community.ts"])(
+    "%s leaves consumers out of its user queries",
+    (file) => {
+      const src = readFileSync(path.resolve(__dirname, "..", file), "utf8");
+      expect(src).toMatch(/PROFESSIONAL_ACCOUNTS|accountType: "professional"/);
+    }
+  );
 });

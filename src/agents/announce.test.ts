@@ -63,7 +63,7 @@ describe("announceMasterclass", () => {
   it("tells every active account in the app and drafts the email for approval", async () => {
     const r = await announceMasterclass("ev1");
     expect(r).toEqual({ notified: 3, drafted: true, firstTime: true });
-    expect(db.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { accessStatus: "active" } }));
+    expect(db.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { accessStatus: "active", accountType: "professional" } }));
     const rows = db.notification.createMany.mock.calls[0][0];
     expect(rows.skipDuplicates).toBe(true);
     expect(rows.data.map((d: { refKey: string }) => d.refKey)).toEqual(["masterclass:ev1:u1", "masterclass:ev1:u2", "masterclass:ev1:u3"]);

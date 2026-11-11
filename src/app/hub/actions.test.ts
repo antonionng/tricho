@@ -5,6 +5,7 @@ const db = vi.hoisted(() => ({
   user: { update: vi.fn((x) => x), delete: vi.fn((x) => x) },
   consumerProfile: { update: vi.fn((x) => x), findUnique: vi.fn() },
   pendingSignup: { deleteMany: vi.fn((x) => x) },
+  enquiry: { deleteMany: vi.fn((x) => x) },
   savedListing: { deleteMany: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => ops),
 }));
@@ -62,6 +63,8 @@ describe("hub actions", () => {
     await deleteAccount(null, form({ confirm: " Delete " }));
     expect(db.user.delete).toHaveBeenCalledWith({ where: { id: "c1" } });
     expect(db.pendingSignup.deleteMany).toHaveBeenCalledWith({ where: { email: "c@example.com" } });
+    // Enquiries still held for a professional who never joined were not delivered, so they go too.
+    expect(db.enquiry.deleteMany).toHaveBeenCalledWith({ where: { userId: "c1", status: "new" } });
     expect(auth.signOut).toHaveBeenCalled();
   });
 

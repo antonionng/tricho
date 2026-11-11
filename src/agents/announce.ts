@@ -1,3 +1,4 @@
+import { PROFESSIONAL_ACCOUNTS } from "@/lib/account-type";
 import { prisma } from "@/lib/prisma";
 import { eventAnnouncement, masterclassAnnouncement } from "@/lib/mail/templates/releases";
 import { eventDay } from "@/lib/mail/templates/members";
@@ -57,7 +58,7 @@ export async function announceMasterclass(eventId: string, { onlyFirstTime = fal
     if (onlyFirstTime && event.announcedAt) return null;
 
     const notice = masterclassNotice({ ...event, sponsorName: event.sponsor?.name ?? null });
-    const users = await prisma.user.findMany({ where: { accessStatus: "active" }, select: { id: true } });
+    const users = await prisma.user.findMany({ where: { accessStatus: "active", ...PROFESSIONAL_ACCOUNTS }, select: { id: true } });
     let notified = 0;
     for (let i = 0; i < users.length; i += BATCH) {
       const batch = users.slice(i, i + BATCH).map((u) => ({ userId: u.id, ...notice, refKey: masterclassRef(event.id, u.id) }));

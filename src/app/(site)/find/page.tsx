@@ -29,6 +29,12 @@ export default function FindPage() {
             Hair and scalp care spans three kinds of professional. These questions help you choose where to
             start. We don&apos;t diagnose, and we&apos;ll always tell you when a doctor should see you first.
           </p>
+          <p className="text-sm text-ink-2">
+            Want to keep track of the professionals you like? You can{" "}
+            <Link href="/signup/you?from=find" className="text-ink underline underline-offset-4">
+              create a free personal account.
+            </Link>
+          </p>
         </div>
         <div className="lg:col-span-7 lg:col-start-6">
           <FindFlow />

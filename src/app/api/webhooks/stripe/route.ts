@@ -142,7 +142,8 @@ export async function POST(req: Request) {
           // they sign in later with the same email.
           await prisma.user.upsert({
             where: { email },
-            update: data,
+            // Paying for a membership makes the account a professional one, so it can open what it paid for.
+            update: { ...data, accountType: "professional" },
             create: { email, name: session.customer_details?.name ?? null, ...data },
           });
         } else {
