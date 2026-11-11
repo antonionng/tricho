@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Lock } from "lucide-react";
@@ -6,6 +7,8 @@ import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
 import { PostCard } from "@/components/community/PostCard";
 import { Composer } from "@/components/community/Composer";
+import { SponsoredAd } from "@/components/community/SponsoredAd";
+import { activeAds, communityAds } from "@/content/community-ads";
 import { SpaceNav } from "@/components/community/SpaceNav";
 import { getMemberContext } from "@/lib/member";
 import { getPosts, postableRooms } from "@/lib/community";
@@ -32,6 +35,9 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
     postableRooms(ctx),
   ]);
 
+  const sideAd = activeAds(communityAds.sidebar)[0];
+  const feedAd = activeAds(communityAds.feed)[0];
+
   return (
     <MemberPage>
       {welcome && (
@@ -48,6 +54,11 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <SpaceNav active={space} professional={ctx.professional} rooms={allRooms} />
+          {sideAd && (
+            <div className="mt-6 hidden lg:block">
+              <SponsoredAd ad={sideAd} variant="side" />
+            </div>
+          )}
         </aside>
 
         <div className="flex min-w-0 flex-col gap-4">
@@ -89,7 +100,12 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
                   body="Be the first to start a conversation here. A question is often the best way in."
                 />
               ) : (
-                posts.map((post) => <PostCard key={post.id} post={post} showSpace={!space} />)
+                posts.map((post, i) => (
+                  <Fragment key={post.id}>
+                    <PostCard post={post} showSpace={!space} />
+                    {feedAd && i === Math.min(2, posts.length - 1) && <SponsoredAd ad={feedAd} variant="feed" />}
+                  </Fragment>
+                ))
               )}
             </>
           )}
