@@ -86,8 +86,8 @@ export default function PrivacyPage() {
               you used.
             </li>
             <li>
-              <strong>Enquiries:</strong> messages sent to professionals through the directory, and any
-              email you send us.
+              <strong>Enquiries:</strong> messages sent to professionals through the directory, applications
+              to be featured on the podcast or Trichollective TV, and any email you send us.
             </li>
             <li>
               <strong>Technical data:</strong> information needed to keep the site secure and working,
@@ -129,6 +129,11 @@ export default function PrivacyPage() {
               <strong>To send service messages</strong>, such as sign-in links, receipts, renewal
               reminders and notice that a free listing is about to lapse. Basis: performance of our
               contract, and our legitimate interest in running the service well.
+            </li>
+            <li>
+              <strong>To consider applications to be featured</strong> on the podcast or Trichollective
+              TV, and to reply to them. Basis: steps taken at your request before any agreement, and our
+              legitimate interest in choosing guests.
             </li>
             <li>
               <strong>To understand what brings people to the site</strong>, such as which event or

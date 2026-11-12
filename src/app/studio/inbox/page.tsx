@@ -318,6 +318,26 @@ async function DraftDetail({
       if (typeof v === "string" && v) facts.push([key.charAt(0).toUpperCase() + key.slice(1), v]);
     }
   }
+  if (draft.kind === "feature_application") {
+    for (const [key, label] of [
+      ["name", "Name"],
+      ["email", "Email"],
+      ["formatLabel", "Format"],
+      ["roleLabel", "Taking part"],
+      ["place", "Based in"],
+    ] as const) {
+      const v = payload[key];
+      if (typeof v === "string" && v) facts.push([label, v]);
+    }
+    if (typeof payload.userId === "string" && payload.userId) {
+      facts.push([
+        "Member",
+        <Link key="member" href={`/studio/members/${payload.userId}`} className="underline underline-offset-4">
+          Open their record
+        </Link>,
+      ]);
+    }
+  }
   if (typeof payload.sentCount === "number") facts.push(["Sent to", `${payload.sentCount} people`]);
 
   return (

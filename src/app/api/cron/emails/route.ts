@@ -71,7 +71,7 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
   const recent = { gte: since };
   const realUsers = { email: { not: null, notIn: [SYSTEM_USER_EMAIL] } };
 
-  const [subscriberRows, newUsers, listingsWaiting, enquiryRows, contacts, partners, reportsOpen] = await Promise.all([
+  const [subscriberRows, newUsers, listingsWaiting, enquiryRows, contacts, features, partners, reportsOpen] = await Promise.all([
     prisma.subscriber.findMany({ where: { createdAt: recent }, select: { email: true, source: true, createdAt: true } }),
     prisma.user.findMany({
       where: { ...realUsers, createdAt: recent },
@@ -80,6 +80,7 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
     prisma.directoryListing.count({ where: { status: "pending", isSample: false } }),
     prisma.enquiry.groupBy({ by: ["status"], where: { createdAt: recent }, _count: { _all: true } }),
     prisma.draft.findMany({ where: { kind: "contact", createdAt: recent }, select: { payload: true, createdAt: true } }),
+    prisma.draft.findMany({ where: { kind: "feature_application", createdAt: recent }, select: { payload: true, createdAt: true } }),
     prisma.draft.findMany({ where: { kind: "partner_enquiry", createdAt: recent }, select: { payload: true, createdAt: true } }),
     prisma.report.count({ where: { resolvedAt: null } }),
   ]);
@@ -111,6 +112,12 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
       source: "Contact form",
       at: c.createdAt,
     })),
+    ...features.map((f) => ({
+      name: payloadField(f.payload, "name") || null,
+      email: payloadField(f.payload, "email"),
+      source: "Feature application",
+      at: f.createdAt,
+    })),
     ...partners.map((p) => ({
       name: payloadField(p.payload, "name") || null,
       email: payloadField(p.payload, "email"),
@@ -141,6 +148,7 @@ async function gatherDigest(now: Date): Promise<OwnerDigest> {
     enquiriesDelivered: count("forwarded") + count("closed"),
     enquiriesHeld: count("new"),
     contactMessages: contacts.length,
+    featureApplications: features.length,
     partnerApplications: partners.length,
     reportsOpen,
     leads: newest,

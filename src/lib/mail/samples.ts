@@ -14,7 +14,7 @@ const people = (list: EmailSample[]) => list.filter((s) => s.audience !== "owner
 const alerts = [leads, directory, billing, members, tickets, releases, owners].flat().filter((s) => s.audience === "owners");
 
 export const emailGroups: { title: string; intro: string; samples: EmailSample[] }[] = [
-  { title: "Sign-in, sign-ups and enquiries", intro: "Sent the moment someone signs in, joins the list, contacts you or applies to partner.", samples: people(leads) },
+  { title: "Sign-in, sign-ups and enquiries", intro: "Sent the moment someone signs in, joins the list, contacts you, applies to be featured or applies to partner.", samples: people(leads) },
   { title: "Directory", intro: "Sent to practitioners as their listing is checked, goes live and receives enquiries.", samples: people(directory) },
   { title: "Membership and payments", intro: "Sent when someone pays, when a payment fails and when a membership ends.", samples: people(billing) },
   { title: "Invite colleagues", intro: "Sent to a member when a colleague who joined with their code makes a first payment and earns them a free month.", samples: people(referrals) },

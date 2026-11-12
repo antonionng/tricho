@@ -143,6 +143,7 @@ export async function FreeHome({ userId, email }: { userId: string; email: strin
         <Link href="/news" className="inline-flex min-h-10 items-center underline underline-offset-4">Latest news for practitioners</Link>
         <Link href="/guides" className="inline-flex min-h-10 items-center underline underline-offset-4">Guides to share with clients</Link>
         <Link href="/events" className="inline-flex min-h-10 items-center underline underline-offset-4">Upcoming conferences and masterclasses</Link>
+        <Link href="/featured" className="inline-flex min-h-10 items-center underline underline-offset-4">Apply to be featured</Link>
       </div>
     </MemberPage>
   );

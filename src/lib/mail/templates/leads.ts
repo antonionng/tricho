@@ -1,7 +1,8 @@
 /**
- * Sign-in, sign-ups, newsletter leads, contact messages and partner enquiries.
- * Each function returns { subject, content } for deliver(), or an OwnerAlert
- * for alertOwners(). `samples` feeds the Studio email gallery.
+ * Sign-in, sign-ups, newsletter leads, contact messages, feature applications
+ * and partner enquiries. Each function returns { subject, content } for
+ * deliver(), or an OwnerAlert for alertOwners(). `samples` feeds the Studio
+ * email gallery.
  */
 import { shortName } from "@/lib/names";
 import { site } from "@/config/site";
@@ -13,6 +14,7 @@ import type { EmailContent } from "../layout";
 import type { OwnerAlert } from "../send";
 import type { EmailSample } from "../catalogue";
 import { confirmLinkFor } from "@/lib/signin-link";
+import type { FeatureApplication } from "@/lib/feature-application";
 
 export type Email = { subject: string; content: EmailContent };
 
@@ -396,6 +398,56 @@ export function partnerAlert(e: PartnerEnquiry, draftId?: string): OwnerAlert {
 }
 
 // ---------------------------------------------------------------------------
+// Podcast and Trichollective TV applications
+// ---------------------------------------------------------------------------
+
+export function featureAcknowledgementEmail(a: FeatureApplication): Email {
+  return {
+    subject: "Your application to be featured has reached us",
+    content: {
+      preheader: "We read every application ourselves and will reply within five working days.",
+      eyebrow: "Be featured",
+      heading: "We've received your application and will reply within five working days.",
+      body: [
+        hello(a.name),
+        "Thank you for applying to be featured. We read every application ourselves. If we invite you, we'll agree the shape of the feature by email before anything is recorded.",
+        a.role === "host"
+          ? "You asked to lead the feature. If we go ahead, you can record it from where you already work, and we don't need to travel to you."
+          : "You asked to be interviewed. If we go ahead, you can join the conversation from where you already work.",
+        "Here is a copy of what you sent, for your records.",
+      ].join("\n\n"),
+      facts: [
+        ["Format", a.formatLabel],
+        ["Taking part", a.roleLabel],
+        ...(a.place ? ([["Based in", a.place]] as [string, string][]) : []),
+        ["What you'd like to share", a.share],
+      ],
+      secondary: { label: "Read about being featured", href: "/featured" },
+      reason: "You receive this because you applied to be featured on Trichollective.",
+    },
+  };
+}
+
+export function featureAlert(a: FeatureApplication, draftId?: string): OwnerAlert {
+  const facts: [string, string][] = [
+    ["Name", a.name],
+    ["Email", a.email],
+    ["Format", a.formatLabel],
+    ["Taking part", a.roleLabel],
+  ];
+  if (a.place) facts.push(["Based in", a.place]);
+  facts.push(["What they'd like to share", a.share]);
+  return {
+    subject: `Feature application: ${a.name} (${a.formatLabel})`,
+    heading: `${a.name} would like to be featured on ${a.formatLabel}.`,
+    body: "Reply to this email to write to them directly. The application is also waiting in the Studio inbox. They have been told to expect a reply within five working days.",
+    facts,
+    cta: { label: "Open in the Studio", href: draftId ? `/studio/inbox?id=${draftId}` : "/studio/inbox" },
+    replyTo: a.email,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Samples for the Studio gallery
 // ---------------------------------------------------------------------------
 
@@ -441,6 +493,27 @@ const sampleApplication: PartnerEnquiry = {
   message: "We would love to run a masterclass on scalp imaging at a future gathering.",
 };
 
+const sampleFeature: FeatureApplication = {
+  name: "Aoife Brennan",
+  email: "aoife@example.com",
+  share: "I run a head spa in Galway and would like to show how I explain a first scalp check to a client who has never had one.",
+  format: "podcast",
+  formatLabel: "The podcast",
+  role: "host",
+  roleLabel: "I'd like to lead the feature",
+  place: "Galway",
+};
+
+const sampleFeatureInterview: FeatureApplication = {
+  ...sampleFeature,
+  format: "tv",
+  formatLabel: "Trichollective TV",
+  role: "interview",
+  roleLabel: "I'd like to be interviewed",
+  place: "",
+  share: "I would like to talk about the moment I refer a client from the chair to a trichologist, and what I tell them before they go.",
+};
+
 const sampleEnquiry: PartnerEnquiry = {
   application: false,
   company: "Glenmore Clinic",
@@ -473,6 +546,9 @@ export const samples: EmailSample[] = [
   sample("newsletter-welcome", "Newsletter welcome", "Sent when someone subscribes to the newsletter anywhere else on the site.", "public", newsletterWelcomeEmail()),
   sample("contact-acknowledgement", "Contact acknowledgement", "Sent when someone sends a message through the contact page.", "public", contactAcknowledgementEmail(sampleContact)),
   ownerSample("alert-contact", "New contact message", "Sent to the owners when someone sends a message through the contact page.", contactAlert(sampleContact)),
+  sample("feature-application", "Feature application received", "Sent when a member applies to lead a feature on the podcast or Trichollective TV.", "public", featureAcknowledgementEmail(sampleFeature)),
+  sample("feature-application-interview", "Feature interview received", "Sent when a member applies to be interviewed on the podcast or Trichollective TV.", "public", featureAcknowledgementEmail(sampleFeatureInterview)),
+  ownerSample("alert-feature-application", "New feature application", "Sent to the owners when someone applies to be featured.", featureAlert(sampleFeature)),
   sample("partner-application-premium", "Premium Business application received", "Sent when a company applies for Premium Business.", "public", partnerAcknowledgementEmail(sampleApplication)),
   sample("partner-application", "Partner application received", "Sent when a company applies for Business or isn't sure which tier fits.", "public", partnerAcknowledgementEmail({ ...sampleApplication, tier: "Not sure yet" })),
   sample("business-enquiry", "Business enquiry received", "Sent when a company sends a general business enquiry.", "public", partnerAcknowledgementEmail(sampleEnquiry)),

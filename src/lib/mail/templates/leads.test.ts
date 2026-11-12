@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { absoluteUrl, esc, renderEmail } from "../layout";
-import { samples, signInLinkEmail, subscribeEmail } from "./leads";
+import { featureAcknowledgementEmail, samples, signInLinkEmail, subscribeEmail } from "./leads";
 
 describe("lead and sign-in emails", () => {
   it.each(samples.map((s) => [s.id, s] as const))("%s renders", (_id, s) => {
@@ -27,6 +27,24 @@ describe("lead and sign-in emails", () => {
     expect(html).toContain("Your sign-in code");
     expect(text).toContain("Your sign-in code: 482917");
     expect(email.content.cta?.href).toContain("/login/confirm");
+  });
+
+  it("tells someone leading a feature that they can record from where they work", () => {
+    const email = featureAcknowledgementEmail({
+      name: "Aoife Brennan",
+      email: "aoife@example.com",
+      share: "I would like to show how I explain a first scalp check.",
+      format: "podcast",
+      formatLabel: "The podcast",
+      role: "host",
+      roleLabel: "I'd like to lead the feature",
+      place: "Galway",
+    });
+    const { text } = renderEmail(email.content);
+    expect(text).toMatch(/record it from where you already work/i);
+    expect(text).toMatch(/don't need to travel/i);
+    expect(text).toContain("The podcast");
+    expect(text).toContain("Galway");
   });
 
   it("picks the confirmation that fits the sign-up source", () => {

@@ -6,6 +6,7 @@ export const KIND_LABEL: Record<string, string> = {
   newsletter: "Newsletter",
   partner_enquiry: "Partner enquiry",
   contact: "Contact message",
+  feature_application: "Feature application",
   announcement: "New release email",
   blog_idea: "Blog post idea",
 };

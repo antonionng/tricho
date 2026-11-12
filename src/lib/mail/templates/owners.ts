@@ -61,6 +61,7 @@ export type OwnerDigest = {
   enquiriesDelivered: number;
   enquiriesHeld: number;
   contactMessages: number;
+  featureApplications: number;
   partnerApplications: number;
   reportsOpen: number;
   leads: DigestLead[];
@@ -77,6 +78,7 @@ export function digestIsEmpty(d: OwnerDigest) {
       d.enquiriesDelivered +
       d.enquiriesHeld +
       d.contactMessages +
+      d.featureApplications +
       d.partnerApplications +
       d.reportsOpen ===
     0
@@ -89,7 +91,7 @@ export function ownerDigestEmail(d: OwnerDigest): { subject: string; content: Em
   const subscribers = sum(d.subscribersBySource);
   const paid = sum(d.paidByPlan);
   const people = subscribers + d.freeAccounts + paid;
-  const toReview = d.listingsWaiting + d.reportsOpen + d.contactMessages + d.partnerApplications;
+  const toReview = d.listingsWaiting + d.reportsOpen + d.contactMessages + d.featureApplications + d.partnerApplications;
 
   const heading =
     people > 0
@@ -106,6 +108,7 @@ export function ownerDigestEmail(d: OwnerDigest): { subject: string; content: Em
     ["Listings to review", String(d.listingsWaiting)],
     ["Directory enquiries", `${d.enquiriesDelivered} delivered, ${d.enquiriesHeld} held`],
     ["Contact messages", String(d.contactMessages)],
+    ["Feature applications", String(d.featureApplications)],
     ["Partner applications", String(d.partnerApplications)],
     ["Open reports", String(d.reportsOpen)],
   ];
@@ -156,6 +159,7 @@ const digest = ownerDigestEmail({
   enquiriesDelivered: 1,
   enquiriesHeld: 2,
   contactMessages: 1,
+  featureApplications: 1,
   partnerApplications: 0,
   reportsOpen: 1,
   leads: [

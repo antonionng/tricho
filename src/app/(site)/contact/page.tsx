@@ -18,6 +18,7 @@ const shortcuts = [
   { q: "Want to add or update your practice in the directory?", href: "/directory/list", label: "Go to your listing" },
   { q: "Looking for a professional near you?", href: "/find", label: "Find a professional" },
   { q: "Interested in a partnership or Premium Business?", href: "/for-business#apply", label: "Talk to us about a partnership" },
+  { q: "Want to be on the podcast or Trichollective TV?", href: "/featured", label: "Apply to be featured" },
 ];
 
 export default async function ContactPage({ searchParams }: { searchParams: Promise<{ topic?: string }> }) {

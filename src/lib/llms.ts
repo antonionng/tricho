@@ -110,6 +110,7 @@ export function llmsTxt(blogPosts: BlogPost[], courses: { slug: string; title: s
     link("Courses", "/learn", "Short CPD courses with a certificate."),
     ...courses.map((c) => link(c.title, `/courses/${c.slug}`, c.summary)),
     link("Trichozette", "/trichozette", "The monthly members' magazine."),
+    link("Be featured", "/featured", "Members can apply to join the podcast or Trichollective TV, or host a feature from where they work."),
     link("Events", "/events"),
     "",
     "## Optional",
