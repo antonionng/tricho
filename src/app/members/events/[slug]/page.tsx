@@ -10,6 +10,7 @@ import { Paywall } from "@/components/members/Paywall";
 import { Card, MemberPage } from "@/components/members/MemberPage";
 import { EventActions } from "@/components/members/EventActions";
 import { TicketReturnBanner } from "@/components/events/BuyTicket";
+import { RecordingPlayer, hasRecording } from "@/components/events/RecordingPlayer";
 import {
   EVENT_KIND_LABEL,
   eventPlace,
@@ -48,6 +49,7 @@ export default async function MemberEventPage({
       ...publicEventSelect,
       chapterId: true,
       joinUrl: true,
+      recordingUrl: true,
       rsvps: {
         orderBy: { createdAt: "asc" },
         select: {
@@ -77,6 +79,8 @@ export default async function MemberEventPage({
     .filter((u) => u.accessStatus === "active")
     .sort((a, b) => Number(b.id === userId) - Number(a.id === userId));
   const attending = going || hasTicket;
+  // The recording is for members, and only once the event has taken place.
+  const recording = past && hasRecording(event.recordingUrl);
   // The joining link is only ever shown to members who are going.
   const joinUrl = attending && event.online ? event.joinUrl : null;
   const gcal = googleCalendarHref({ ...event, joinUrl, pageUrl: absoluteUrl(`/members/events/${event.slug}`) });
@@ -112,6 +116,14 @@ export default async function MemberEventPage({
         <p className="text-[15px] leading-relaxed text-ink-2 sm:text-base">{event.summary}</p>
         {event.presenters && <p className="text-[15px] text-ink-2">Presented by {event.presenters}.</p>}
       </header>
+
+      {recording && (
+        <section className="mt-6 flex flex-col gap-3">
+          <h2 className="text-lg font-semibold tracking-[-0.01em]">Watch the recording</h2>
+          <RecordingPlayer url={event.recordingUrl} title={event.title} />
+          <p className="text-[13px] text-muted-foreground">This recording is for members. Please don&apos;t share it outside Trichollective.</p>
+        </section>
+      )}
 
       <Card className="mt-6 flex flex-col gap-5 p-5 sm:p-6">
         <dl className="flex flex-col gap-3 text-[15px]">

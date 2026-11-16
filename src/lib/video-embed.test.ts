@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseVideoUrl, videoEmbedUrl } from "./video-embed";
+import { parseRecordingUrl, parseVideoUrl, videoEmbedUrl, videoPageUrl } from "./video-embed";
 
 describe("parseVideoUrl", () => {
   it.each([
@@ -27,6 +27,36 @@ describe("parseVideoUrl", () => {
       expect(parseVideoUrl(url)).toBeNull();
     }
   );
+});
+
+describe("parseRecordingUrl", () => {
+  const id = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456";
+  it.each([
+    [`https://drive.google.com/file/d/${id}/view?usp=sharing`, id],
+    [`https://drive.google.com/file/d/${id}/preview`, id],
+    [`https://drive.google.com/open?id=${id}`, id],
+    [`drive.google.com/uc?id=${id}&export=download`, id],
+  ])("reads Google Drive link %s", (url, want) => {
+    expect(parseRecordingUrl(url)).toEqual({ provider: "drive", id: want });
+  });
+
+  it("still reads the lesson providers", () => {
+    expect(parseRecordingUrl("https://vimeo.com/76979871")).toEqual({ provider: "vimeo", id: "76979871" });
+    expect(parseRecordingUrl("https://youtu.be/dQw4w9WgXcQ")).toEqual({ provider: "youtube", id: "dQw4w9WgXcQ" });
+  });
+
+  it.each(["https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456", "https://drive.google.com/file/d/short/view", "https://example.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456/view", ""])(
+    "rejects %s",
+    (url) => {
+      expect(parseRecordingUrl(url)).toBeNull();
+    }
+  );
+
+  it("plays a Drive file from Drive's own preview address and links back to the file", () => {
+    expect(videoEmbedUrl({ provider: "drive", id })).toBe(`https://drive.google.com/file/d/${id}/preview`);
+    expect(videoPageUrl({ provider: "drive", id })).toBe(`https://drive.google.com/file/d/${id}/view`);
+    expect(videoEmbedUrl({ provider: "drive", id: "../../evil" })).toBeNull();
+  });
 });
 
 describe("videoEmbedUrl", () => {

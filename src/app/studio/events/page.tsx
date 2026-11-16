@@ -349,6 +349,20 @@ function EventForm({ event, prefill, partners }: { event: Event | null; prefill:
         </Field>
       </fieldset>
 
+      <Field
+        label="Recording"
+        hint="Optional. A Google Drive, Vimeo or YouTube link. Members can watch it on the event page once the event has taken place. On Google Drive, share the file so that anyone with the link can view it."
+      >
+        <input
+          type="url"
+          name="recordingUrl"
+          defaultValue={event?.recordingUrl ?? ""}
+          placeholder="https://drive.google.com/file/d/…/view"
+          maxLength={500}
+          className={fieldClass}
+        />
+      </Field>
+
       <Field label="Ticket link" hint="Optional. For example an Eventbrite page. Shown on the event and in Trichozette and newsletter.">
         <input type="url" name="ticketUrl" defaultValue={v ? v.ticketUrl : (event?.ticketUrl ?? "")} placeholder="https://www.eventbrite.co.uk/e/…" className={fieldClass} />
       </Field>

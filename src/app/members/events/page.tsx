@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, MapPin, Video } from "lucide-react";
+import { ArrowRight, MapPin, PlayCircle, Video } from "lucide-react";
 import { Pill } from "@/components/site/primitives";
 import { Paywall } from "@/components/members/Paywall";
 import { EmptyState, MemberPage, PageHeader } from "@/components/members/MemberPage";
@@ -9,7 +9,8 @@ import { AttendeeFaces } from "@/components/members/EventAttendees";
 import { TicketReturnBanner } from "@/components/events/BuyTicket";
 import { holdCutoff, seatsLeft } from "@/lib/tickets";
 import { eventDay, timeOfDay } from "@/components/members/format";
-import { EVENT_KIND_LABEL, formatPrice } from "@/components/editorial/events";
+import { hasRecording } from "@/components/events/RecordingPlayer";
+import { EVENT_KIND_LABEL, formatEventDate, formatPrice } from "@/components/editorial/events";
 import { getMemberContext } from "@/lib/member";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/config/site";
@@ -60,6 +61,16 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
     },
   });
   const going = events.filter((e) => e.rsvps.some((r) => r.userId === userId)).length;
+
+  // Past events with a recording, newest first, so a missed masterclass can still be watched.
+  const recordings = (
+    await prisma.event.findMany({
+      where: { published: true, recordingUrl: { not: null }, startsAt: { lt: now } },
+      orderBy: { startsAt: "desc" },
+      take: 20,
+      select: { id: true, slug: true, title: true, kind: true, summary: true, startsAt: true, presenters: true, recordingUrl: true },
+    })
+  ).filter((e) => hasRecording(e.recordingUrl));
 
   return (
     <MemberPage>
@@ -149,6 +160,40 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             );
           })}
         </ul>
+      )}
+
+      {recordings.length > 0 && (
+        <section className="mt-10">
+          <h2 className="display text-2xl sm:text-3xl">Watch again</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Recordings of masterclasses and gatherings you may have missed. For members only.</p>
+          <ul className="mt-4 flex flex-col gap-3">
+            {recordings.map((e) => {
+              return (
+                <li key={e.id} className="relative flex gap-4 rounded-2xl border border-rule bg-card p-4 sm:gap-5 sm:p-5">
+                  <div className="grid h-16 w-14 shrink-0 place-items-center rounded-2xl bg-ink text-paper sm:h-20 sm:w-16">
+                    <PlayCircle className="h-7 w-7 stroke-[1.5]" aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      <Pill>{EVENT_KIND_LABEL[e.kind]}</Pill>
+                      <Pill tone="ink">Recording</Pill>
+                    </div>
+                    <h3 className="mt-2 text-lg font-semibold leading-snug tracking-[-0.01em]">
+                      <Link href={`/members/events/${e.slug}`} className="after:absolute after:inset-0 after:rounded-2xl hover:underline">
+                        {e.title}
+                      </Link>
+                    </h3>
+                    <p className="mt-1 text-[13px] text-muted-foreground">
+                      {formatEventDate(e.startsAt)}
+                      {e.presenters ? `, with ${e.presenters}` : ""}
+                    </p>
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-2">{e.summary}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
     </MemberPage>
   );

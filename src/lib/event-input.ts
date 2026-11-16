@@ -1,5 +1,6 @@
 import type { EventKind } from "@prisma/client";
 import { DEFAULT_EVENT_TIMEZONE, EVENT_TIMEZONES } from "@/lib/event-time";
+import { parseRecordingUrl, videoPageUrl } from "@/lib/video-embed";
 
 /** Pure helpers for turning event form values (or an AI draft) into Event fields. */
 
@@ -57,6 +58,15 @@ export function cleanUrl(value: string) {
   }
 }
 
+/**
+ * A recording link, kept as the plain address of the video page on Google Drive, Vimeo or
+ * YouTube. Anything we can't read becomes null, and the form tells the editor why.
+ */
+export function cleanRecordingUrl(value: string) {
+  const parsed = parseRecordingUrl(value);
+  return parsed ? videoPageUrl(parsed) : null;
+}
+
 export function pounds(value: string) {
   const n = Math.round(Number(value || 0));
   return Number.isFinite(n) && n >= 0 ? n : 0;
@@ -93,6 +103,8 @@ export type EventInput = {
   presenters: string | null;
   /** The sponsoring partner's id, when the event is sponsored. */
   sponsorPartnerId: string | null;
+  /** Where the recording lives, shown to members once the event has taken place. */
+  recordingUrl: string | null;
 };
 
 export type RequiredEventField = "title" | "kind" | "summary" | "startsAt";
@@ -156,6 +168,7 @@ export function validateEventInput(raw: Raw): EventValidation {
     sellTickets,
     presenters: text(raw, "presenters", 200) || null,
     sponsorPartnerId: text(raw, "sponsorPartnerId", 64) || null,
+    recordingUrl: cleanRecordingUrl(text(raw, "recordingUrl", 500)),
   };
 
   const missing: RequiredEventField[] = [];
