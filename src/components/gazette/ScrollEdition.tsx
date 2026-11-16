@@ -16,6 +16,7 @@ import { ParallaxImage, Rise } from "./Parallax";
 import { artFor, coverImage, img } from "./art";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
+import { SeasonOverlay } from "./Season";
 
 const DISCIPLINE = { cosmetic: "Cosmetic", clinical: "Clinical · Trichology", medical: "Medical" } as const;
 
@@ -329,6 +330,7 @@ export function ScrollEdition({
       {/* Cover */}
       <ParallaxImage src={img(cover, 2200)} alt={cover.alt} className="h-[100svh]" priority strength={0.12}>
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/5 to-black/70" />
+        <SeasonOverlay season={edition.season} className="top-14" />
         <div className="absolute inset-x-0 top-16 flex justify-between px-5 mag-caps text-[9px] text-white/80 sm:px-10 sm:text-[10px]">
           <span>{editionLabel(edition)}</span>
           <span>{published}</span>

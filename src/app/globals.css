@@ -379,6 +379,62 @@
   }
 }
 
+/* Seasonal cover motion (see components/gazette/Season.tsx). */
+.season-flake {
+  top: -4%;
+  animation: season-snow linear infinite;
+  filter: blur(0.3px);
+}
+.season-light {
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  background: #fff6dc;
+  box-shadow: 0 0 6px 2px rgba(255, 236, 190, 0.75), 0 0 18px 4px rgba(255, 226, 160, 0.35);
+  animation: season-twinkle 2.4s ease-in-out infinite;
+}
+@keyframes season-snow {
+  from {
+    top: -4%;
+    transform: translateX(0);
+  }
+  to {
+    top: 104%;
+    transform: translateX(var(--drift, 0px));
+  }
+}
+@keyframes season-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .season-flake {
+    display: none;
+  }
+  .season-light {
+    animation: none;
+  }
+}
+
+/* The advent calendar block: doors that open on tap. */
+.advent-door {
+  perspective: 600px;
+}
+.advent-door > .advent-face {
+  transform-origin: left center;
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.7s;
+  backface-visibility: hidden;
+}
+.advent-door[data-open="true"] > .advent-face {
+  transform: rotateY(-105deg);
+  opacity: 0;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

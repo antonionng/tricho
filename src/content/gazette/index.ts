@@ -1,6 +1,7 @@
 import { editionsA } from "./editions-a";
 import { editionsB } from "./editions-b";
 import { editionsC } from "./editions-c";
+import { editionsD } from "./editions-d";
 import { archive2023 } from "./archive-2023";
 import { archive2024 } from "./archive-2024";
 import { archive2025 } from "./archive-2025";
@@ -22,19 +23,27 @@ const NEWS_TOPICS: Record<string, NewsItem["topics"]> = {
   "textured-hair-and-traction": ["products", "hair-loss", "research"],
   dublin: ["events", "regulation", "hair-loss", "products"],
   "ireland-in-review": ["regulation", "hair-loss", "research", "business"],
+  "ready-for-2027": ["regulation", "business", "hair-loss", "research", "products"],
 };
 
 /** Editions whose news page covers only the month before they were published. */
 const PAST_MONTH_NEWS = new Set(["ireland-in-review"]);
+/** Editions that look back over their own year: news from that calendar year only, up to eight items. */
+const YEAR_NEWS = new Set(["ready-for-2027"]);
 const DAY = 86_400_000;
 
 /** The news topics an edition draws on: its own list if given, otherwise the built-in map. */
 export function newsFor(e: Edition, topicsOverride?: NewsItem["topics"]): NewsItem[] {
   const topics = topicsOverride ?? NEWS_TOPICS[e.slug] ?? [];
   const recent = PAST_MONTH_NEWS.has(e.slug);
+  const year = YEAR_NEWS.has(e.slug);
   const until = Date.parse(e.published);
-  const pool = recent ? news.filter((n) => Date.parse(n.date) <= until && Date.parse(n.date) > until - 35 * DAY) : news;
-  const limit = recent ? 8 : 5;
+  const pool = recent
+    ? news.filter((n) => Date.parse(n.date) <= until && Date.parse(n.date) > until - 35 * DAY)
+    : year
+      ? news.filter((n) => n.date.startsWith(e.published.slice(0, 4)) && Date.parse(n.date) <= until)
+      : news;
+  const limit = recent || year ? 8 : 5;
   const scored = pool
     .map((n) => ({
       n,
@@ -78,7 +87,7 @@ export const byPeriodDesc = (a: Edition, b: Edition) =>
   (b.period ?? "").localeCompare(a.period ?? "") || a.number - b.number;
 
 /** The monthly magazine, newest first. Built-in editions only: server code reads src/content/gazette/loader.ts to include Studio editions. */
-export const editions: Edition[] = [...editionsA, ...editionsB, ...editionsC]
+export const editions: Edition[] = [...editionsA, ...editionsB, ...editionsC, ...editionsD]
   .map((e) => withNews(e))
   .sort(byNumberDesc);
 

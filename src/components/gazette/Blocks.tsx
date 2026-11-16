@@ -119,6 +119,61 @@ function Reveal({ block }: { block: Extract<Block, { type: "reveal" }> }) {
   );
 }
 
+function Advent({ block }: { block: Extract<Block, { type: "advent" }> }) {
+  const [open, setOpen] = useState<Set<number>>(new Set());
+  const toggle = (day: number) =>
+    setOpen((s) => {
+      const next = new Set(s);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  return (
+    <div className="my-6">
+      <div className="flex items-baseline justify-between gap-4 border-b border-black pb-2">
+        <p className="mag-caps text-[9.5px]">{block.title}</p>
+        <p className="mag-caps text-[9px] text-black/55" aria-live="polite">
+          {open.size} of {block.doors.length} opened
+        </p>
+      </div>
+      <ol className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {block.doors.map((d) => {
+          const isOpen = open.has(d.day);
+          return (
+            <li key={d.day} className="advent-door relative min-h-[150px]" data-open={isOpen}>
+              {/* Behind the door: the tip. */}
+              <div className="h-full border border-black/20 bg-white p-3">
+                <p className="mag-caps text-[8.5px] text-black/55">{d.day} December</p>
+                <p className="mag-didone mt-1 text-[16px] italic leading-tight">{d.title}</p>
+                <p className="mag-serif mt-2 text-[12.5px] leading-snug">{d.text}</p>
+              </div>
+              {/* The door itself. */}
+              <button
+                type="button"
+                onClick={() => toggle(d.day)}
+                aria-expanded={isOpen}
+                aria-label={isOpen ? `Close door ${d.day}` : `Open door ${d.day}: ${d.title}`}
+                className={cn(
+                  "advent-face absolute inset-0 flex flex-col items-start justify-between bg-[#0a0a0a] p-3 text-left text-white",
+                  isOpen && "pointer-events-none"
+                )}
+              >
+                <span className="mag-didone text-[44px] leading-none">{d.day}</span>
+                <span className="mag-caps text-[8.5px] text-white/70">Open</span>
+              </button>
+              {isOpen && (
+                <button type="button" onClick={() => toggle(d.day)} className="mag-caps absolute bottom-2 right-3 text-[8.5px] text-black/45 underline">
+                  Close
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 /** One block, magazine styled. `drop` gives a paragraph a Didone drop cap. */
 export function BlockView({ block, drop }: { block: Block; drop?: boolean }) {
   switch (block.type) {
@@ -158,6 +213,8 @@ export function BlockView({ block, drop }: { block: Block; drop?: boolean }) {
       return <Quiz block={block} />;
     case "reveal":
       return <Reveal block={block} />;
+    case "advent":
+      return <Advent block={block} />;
   }
 }
 

@@ -314,6 +314,7 @@ const NEW_BLOCK: Record<Block["type"], Block> = {
   checklist: { type: "checklist", title: "Checklist title", items: ["First item"] },
   quiz: { type: "quiz", question: "Write the question here.", options: ["First option", "Second option", "Third option"], answer: 0, explain: "Explain the correct answer here." },
   reveal: { type: "reveal", prompt: "Write the question here.", answer: "Write the answer here." },
+  advent: { type: "advent", title: "Calendar title", doors: [{ day: 1, title: "First door", text: "Write the tip behind the door here." }] },
 };
 
 /** Reads the blocks a page form posted under one prefix, such as "b." or "v0.b.". */
@@ -343,6 +344,17 @@ function readBlocks(form: FormData, prefix: string): Block[] {
         break;
       case "reveal":
         blocks.push({ type, prompt: k("prompt"), answer: k("answer") });
+        break;
+      case "advent":
+        blocks.push({
+          type,
+          title: k("title"),
+          doors: lines(k("doors")).flatMap((line) => {
+            const [day, title, ...rest] = line.split("|").map((x) => x.trim());
+            const n = Number(day);
+            return n >= 1 && n <= 31 && title && rest.length ? [{ day: n, title, text: rest.join(" | ") }] : [];
+          }),
+        });
         break;
     }
   }

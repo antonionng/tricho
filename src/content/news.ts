@@ -19,8 +19,52 @@ export type NewsItem = {
   )[];
 };
 
-/** Verified news items, newest first. Sources checked on 2026-09-30 and 2026-10-14. */
+/** Verified news items, newest first. Sources checked on 2026-09-30, 2026-10-14 and 2026-11-16. */
 export const news: NewsItem[] = [
+  {
+    id: "employment-rights-act-timeline-november-2026",
+    headline: "The government has updated its Employment Rights Act timeline, with unfair dismissal protection after six months from 1 January 2027",
+    summary: "The timeline updated on 5 November 2026 confirms that the employment tribunal time limit rose to six months on 1 October 2026 and the duty to take all reasonable steps to prevent sexual harassment, including by third parties, began on 30 October 2026. From 1 January 2027 unfair dismissal protection applies after six months' service, with no cap on compensation, and tipping law is strengthened. Bereavement leave, including for pregnancy loss, follows in April 2027 and flexible working changes in October 2027.",
+    whyItMatters: "Salon and clinic owners who employ staff should review probation periods, tipping and harassment policies before 1 January 2027.",
+    date: "2026-11-05",
+    source: "GOV.UK",
+    url: "https://www.gov.uk/government/publications/implementing-the-plan-to-make-work-pay-and-employment-rights-act/plan-to-make-work-pay-and-employment-rights-act-timeline-update",
+    disciplines: ["cosmetic", "clinical", "medical"],
+    topics: ["business", "regulation"],
+  },
+  {
+    id: "national-living-wage-1321-april-2027",
+    headline: "The National Living Wage will rise to £13.21 an hour from April 2027",
+    summary: "The government has accepted the Low Pay Commission's recommendations, raising the rate for workers aged 21 and over by 3.9% to £13.21 from April 2027. The rate for 18 to 20 year olds becomes £11.27, and the rate for 16 and 17 year olds and apprentices becomes £8.31.",
+    whyItMatters: "Practices with employees or apprentices should re-cost service prices and staffing budgets before April 2027.",
+    date: "2026-10-28",
+    source: "GOV.UK",
+    url: "https://www.gov.uk/government/news/lpc-recommendations-take-the-national-living-wage-to-1321",
+    disciplines: ["cosmetic", "clinical", "medical"],
+    topics: ["business"],
+  },
+  {
+    id: "england-consultation-high-risk-cosmetic-procedures",
+    headline: "England is consulting on limiting high-risk cosmetic procedures to regulated healthcare professionals",
+    summary: "The government proposes that high-risk injectable, laser and cosmetic surgery procedures be performed only by doctors, dentists, independent prescribing nurses, midwives and pharmacists, with cosmetic surgery limited to doctors. Clients would need to be 18 or over, breaches would be a criminal offence and the Care Quality Commission would enforce the rules. The consultation closes on 13 January 2027 and no start date has been set.",
+    whyItMatters: "Anyone offering laser or injectable treatments in England should read the proposals and respond before 13 January 2027.",
+    date: "2026-10-21",
+    source: "GOV.UK",
+    url: "https://www.gov.uk/government/consultations/restrictions-on-the-performance-of-high-risk-cosmetic-and-wellbeing-procedures-in-england",
+    disciplines: ["cosmetic", "clinical", "medical"],
+    topics: ["regulation"],
+  },
+  {
+    id: "extended-release-oral-minoxidil-phase-3-men",
+    headline: "An extended-release oral minoxidil has met its main goals in a Phase 3 trial in men with pattern hair loss",
+    summary: "In a company-reported Phase 3 study of 536 men, an 8.5 mg extended-release oral minoxidil (VDPHL01) increased non-vellus hair counts at six months compared with placebo. No treatment-related serious or cardiac adverse events were reported; unwanted hair growth and ankle swelling were the most common side effects. The results have not yet been peer reviewed and the medicine is not approved.",
+    whyItMatters: "Clients may ask about it, but it is pipeline news rather than a reason to change practice, and oral minoxidil remains a prescriber's decision.",
+    date: "2026-10-20",
+    source: "Practical Dermatology",
+    url: "https://practicaldermatology.com/news/phase-3-trial-of-oral-minoxidil-formulation-meets-primary-endpoints-in-male-pattern-hair-loss/2488751/",
+    disciplines: ["medical", "clinical"],
+    topics: ["hair-loss", "research"],
+  },
   {
     id: "smc-accepts-deuruxolitinib-scotland",
     headline: "The Scottish Medicines Consortium has accepted deuruxolitinib for adults with severe alopecia areata in NHSScotland",
@@ -136,6 +180,28 @@ export const news: NewsItem[] = [
     topics: ["regulation"],
   },
   {
+    id: "glp1-receptor-genetics-male-pattern-hair-loss",
+    headline: "A genetic study has linked GLP-1 receptor activity with male pattern hair loss",
+    summary: "An NYU Langone study published in the Journal of Investigative Dermatology used Mendelian randomisation to look at genetic data, and found that higher predicted GLP1R expression was associated with 7% higher odds of male pattern hair loss per standard deviation. The study did not look at people taking GLP-1 weight-loss medicines.",
+    whyItMatters: "Clients using weight-loss injections may ask about hair loss; this is an association in genetic data, not proof that the medicines cause it, so refer questions about medication to the prescriber.",
+    date: "2026-09-03",
+    source: "News-Medical",
+    url: "https://www.news-medical.net/news/20260903/Study-links-popular-weight-loss-drugs-to-increased-male-hair-loss.aspx",
+    disciplines: ["medical", "clinical", "cosmetic"],
+    topics: ["hair-loss", "research"],
+  },
+  {
+    id: "gb-cmr-substances-ban-august-2026",
+    headline: "Sixteen more substances are banned from cosmetics in Great Britain, with existing stock allowed until 14 February 2027",
+    summary: "The Cosmetic Products (Restriction of Chemical Substances) Regulations 2026 (SI 2026/23) add 16 substances classed as carcinogenic, mutagenic or toxic for reproduction to the GB banned list from 15 August 2026, including TPO. Products already on the market may be sold until 14 February 2027. The labelling threshold for formaldehyde-releasing preservatives is also lowered.",
+    whyItMatters: "Salons and clinics should check retail and back-bar stock with their suppliers before 14 February 2027; Northern Ireland follows the EU rules.",
+    date: "2026-08-15",
+    source: "legislation.gov.uk",
+    url: "https://www.legislation.gov.uk/uksi/2026/23/made",
+    disciplines: ["cosmetic"],
+    topics: ["regulation", "products"],
+  },
+  {
     id: "nice-recommends-deuruxolitinib-ta1178",
     headline: "NICE recommends deuruxolitinib for adults with severe alopecia areata",
     summary:
@@ -147,6 +213,17 @@ export const news: NewsItem[] = [
     url: "https://www.alopecia.org.uk/news/nice-recommends-deuruxolitinib-for-adults-with-severe-alopecia-areata",
     disciplines: ["medical", "clinical"],
     topics: ["hair-loss", "regulation"],
+  },
+  {
+    id: "eu-omnibus-ix-cmr-bans-february-2027",
+    headline: "New EU cosmetic ingredient bans apply from 1 February 2027",
+    summary: "The EU's Omnibus IX act adds eleven banned-substance entries and one restricted entry to the Cosmetics Regulation from 1 February 2027, including the colourants Basic Brown 16 and Basic Blue 99. New use limits also apply to CBD and BHA.",
+    whyItMatters: "Practices in Ireland and Northern Ireland should ask suppliers about reformulated products, particularly colour, before February 2027.",
+    date: "2026-07-09",
+    source: "Coslaw",
+    url: "https://coslaw.eu/omnibus-act-ix-new-ingredients-banned-in-the-eu-from-1-february-2027/",
+    disciplines: ["cosmetic"],
+    topics: ["regulation", "products"],
   },
   {
     id: "asa-cap-hair-loss-advertising-guidance",

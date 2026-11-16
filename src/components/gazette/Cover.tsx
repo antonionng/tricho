@@ -4,6 +4,7 @@ import { coverImage } from "./art";
 import { editionLabel, pageTitle, type Edition } from "@/content/gazette";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
+import { SeasonOverlay } from "./Season";
 
 /** Cover lines from the edition's features, newsstand style. */
 export function coverLinesFor(edition: Edition, n = 3) {
@@ -55,6 +56,7 @@ export function Cover({
         className="mag-bw object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/0 to-black/65" />
+      <SeasonOverlay season={edition.season} />
 
       {/* Dateline */}
       <div className="absolute inset-x-[5cqw] top-[3.4cqw] flex justify-between mag-caps text-[1.55cqw] tracking-[0.3em] text-white/85">

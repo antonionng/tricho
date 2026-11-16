@@ -15,7 +15,9 @@ export type Block =
   /** Interactive: pick an answer, then see the explanation. `answer` is the index of the correct option. */
   | { type: "quiz"; question: string; options: string[]; answer: number; explain: string }
   /** Interactive: tap to reveal the answer. */
-  | { type: "reveal"; prompt: string; answer: string };
+  | { type: "reveal"; prompt: string; answer: string }
+  /** Interactive: an advent calendar. Each door opens on tap to show one short, practical tip. */
+  | { type: "advent"; title: string; doors: { day: number; title: string; text: string }[] };
 
 /** A company at an event: the sponsor or an exhibitor. `logo` is filled on the server from the Partner table by slug. */
 export type PartnerEntry = {
@@ -122,6 +124,8 @@ export type Edition = {
   supportedBy?: { name: string; slug?: string; url: string; logo?: string; href?: string };
   /** Sources behind every factual claim. Shown at the end of the edition. */
   sources?: { label: string; url: string }[];
+  /** Seasonal dress for the cover: "christmas" adds snowfall and a strand of twinkling lights. */
+  season?: "christmas";
 };
 
 /** Pages the public may read before the membership gate (after cover + contents). */
