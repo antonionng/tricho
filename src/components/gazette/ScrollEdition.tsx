@@ -17,7 +17,7 @@ import { artFor, coverImage, img } from "./art";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
 import { SeasonOverlay } from "./Season";
-import { MusicToggle } from "./ChristmasMusic";
+import { MusicDock, MusicToggle, useChristmasMusicAutostart } from "./ChristmasMusic";
 import { ChristmasBand, ChristmasRule, isFestive } from "./Christmas";
 
 const DISCIPLINE = { cosmetic: "Cosmetic", clinical: "Clinical · Trichology", medical: "Medical" } as const;
@@ -282,6 +282,7 @@ export function ScrollEdition({
 }) {
   const [progress, setProgress] = useState(0);
   const [solid, setSolid] = useState(false);
+  useChristmasMusicAutostart(edition.season === "christmas");
 
   useEffect(() => {
     const onScroll = () => {
@@ -300,9 +301,11 @@ export function ScrollEdition({
       ? `Looking back at ${edition.period}`
       : new Date(edition.published).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   let articles = 0;
+  const christmas = edition.season === "christmas";
 
   return (
     <div className={cn("mag bg-[#fbfaf7] text-black", gazetteFonts)}>
+      {christmas && <MusicDock />}
       {/* Top bar */}
       <header
         className={cn(

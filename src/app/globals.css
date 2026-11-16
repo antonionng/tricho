@@ -429,6 +429,23 @@
   color: #9b1b2a;
 }
 
+/* The music dock's dancing bars. */
+.music-bar {
+  height: 40%;
+  animation: music-bar 0.9s ease-in-out infinite alternate;
+}
+@keyframes music-bar {
+  to {
+    height: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .music-bar {
+    animation: none;
+    height: 70%;
+  }
+}
+
 /* The advent townhouse and its full-screen gift reveal (components/gazette/AdventHouse.tsx). */
 .season-twinkle {
   animation: season-twinkle 2.4s ease-in-out infinite;

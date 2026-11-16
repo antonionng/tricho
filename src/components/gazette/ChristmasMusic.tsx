@@ -5,117 +5,81 @@ import { Music, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Christmas music for the Christmas edition: a music-box arrangement of two traditional carols,
- * Deck the Halls and Jingle Bells (both long out of copyright), played by the browser itself.
- * No audio files, nothing to license. Browsers only allow sound after the reader taps, so it starts
- * from the button; a reader who turned it on before hears it again from their first tap.
+ * Christmas music for the Christmas edition: carols performed by the U.S. Army Band, public domain
+ * (see public/music/christmas/SOURCES.md). MP3, so it plays on every phone, tablet and computer.
+ *
+ * It starts by itself. Browsers only allow sound to start on its own when they trust the site, so the
+ * edition tries to play the moment it opens, and where the browser says no (every iPhone, and most
+ * first visits elsewhere) it starts on the reader's first tap, click or key press anywhere on the page.
+ * Pausing is remembered: a reader who paused it isn't played music again on their next visit.
  */
 
-type Note = [string, number]; // pitch ("rest" for silence), length in beats
-
-const DECK: Note[] = [
-  ["G4", 1.5], ["F4", 0.5], ["E4", 1], ["D4", 1], ["C4", 1], ["D4", 1], ["E4", 1], ["C4", 1],
-  ["D4", 0.5], ["E4", 0.5], ["F4", 0.5], ["D4", 0.5], ["E4", 1.5], ["D4", 0.5], ["C4", 1], ["B3", 1], ["C4", 2],
-  ["G4", 1.5], ["F4", 0.5], ["E4", 1], ["D4", 1], ["C4", 1], ["D4", 1], ["E4", 1], ["C4", 1],
-  ["D4", 0.5], ["E4", 0.5], ["F4", 0.5], ["D4", 0.5], ["E4", 1.5], ["D4", 0.5], ["C4", 1], ["B3", 1], ["C4", 2],
-  ["D4", 1.5], ["E4", 0.5], ["F4", 1], ["D4", 1], ["E4", 1.5], ["F4", 0.5], ["G4", 1], ["D4", 1],
-  ["E4", 0.5], ["F#4", 0.5], ["G4", 1], ["A4", 0.5], ["B4", 0.5], ["C5", 1], ["B4", 1], ["A4", 1], ["G4", 2],
-  ["G4", 1.5], ["F4", 0.5], ["E4", 1], ["D4", 1], ["C4", 1], ["D4", 1], ["E4", 1], ["C4", 1],
-  ["A4", 0.5], ["A4", 0.5], ["A4", 0.5], ["A4", 0.5], ["G4", 1.5], ["F4", 0.5], ["E4", 1], ["D4", 1], ["C4", 2], ["rest", 2],
+const TRACKS = [
+  { src: "/music/christmas/here-we-come-a-wassailing.mp3", title: "Here We Come A-wassailing" },
+  { src: "/music/christmas/o-tannenbaum.mp3", title: "O Tannenbaum" },
+  { src: "/music/christmas/fum-fum-fum.mp3", title: "Fum, Fum, Fum" },
+  { src: "/music/christmas/hark-the-herald.mp3", title: "Hark! The Herald Angels Sing" },
+  { src: "/music/christmas/good-king-wenceslaus.mp3", title: "Good King Wenceslaus" },
 ];
-
-const JINGLE: Note[] = [
-  ["E4", 1], ["E4", 1], ["E4", 2], ["E4", 1], ["E4", 1], ["E4", 2], ["E4", 1], ["G4", 1], ["C4", 1.5], ["D4", 0.5], ["E4", 4],
-  ["F4", 1], ["F4", 1], ["F4", 1.5], ["F4", 0.5], ["F4", 1], ["E4", 1], ["E4", 1], ["E4", 0.5], ["E4", 0.5],
-  ["E4", 1], ["D4", 1], ["D4", 1], ["E4", 1], ["D4", 2], ["G4", 2],
-  ["E4", 1], ["E4", 1], ["E4", 2], ["E4", 1], ["E4", 1], ["E4", 2], ["E4", 1], ["G4", 1], ["C4", 1.5], ["D4", 0.5], ["E4", 4],
-  ["F4", 1], ["F4", 1], ["F4", 1.5], ["F4", 0.5], ["F4", 1], ["E4", 1], ["E4", 1], ["E4", 0.5], ["E4", 0.5],
-  ["G4", 1], ["G4", 1], ["F4", 1], ["D4", 1], ["C4", 3], ["rest", 3],
-];
-
-const SONG = [...DECK, ...JINGLE];
-const BEAT = 60 / 112;
-const SEMI: Record<string, number> = { C: -9, "C#": -8, D: -7, "D#": -6, E: -5, F: -4, "F#": -3, G: -2, "G#": -1, A: 0, "A#": 1, B: 2 };
-function freq(pitch: string) {
-  const m = /^([A-G]#?)(\d)$/.exec(pitch)!;
-  return 440 * Math.pow(2, (SEMI[m[1]] + (Number(m[2]) - 4) * 12) / 12);
-}
+const KEY = "trichozette:music:carols";
 
 /* One player for the whole page, shared by every button. */
-const KEY = "trichozette:music";
-let ctx: AudioContext | null = null;
-let master: GainNode | null = null;
-let timer: ReturnType<typeof setTimeout> | null = null;
-let playing = false;
+let audio: HTMLAudioElement | null = null;
+let track = 0;
+let state = { on: false, title: TRACKS[0].title };
+let pausedByHidden = false;
 const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
+const emit = () => {
+  state = { on: !!audio && !audio.paused, title: TRACKS[track].title };
+  listeners.forEach((l) => l());
+};
 
-function bell(at: number, f: number, len: number) {
-  if (!ctx || !master) return;
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, at);
-  g.gain.exponentialRampToValueAtTime(0.32, at + 0.006);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + Math.max(0.9, len * 1.6));
-  g.connect(master);
-  for (const [mult, type, level] of [
-    [1, "sine", 1],
-    [2, "triangle", 0.18],
-    [4.01, "sine", 0.06],
-  ] as const) {
-    const o = ctx.createOscillator();
-    const og = ctx.createGain();
-    o.type = type;
-    o.frequency.value = f * mult;
-    og.gain.value = level;
-    o.connect(og).connect(g);
-    o.start(at);
-    o.stop(at + Math.max(1, len * 1.7));
-  }
+function player() {
+  if (audio) return audio;
+  audio = new Audio(TRACKS[0].src);
+  audio.preload = "auto";
+  audio.volume = 0.6;
+  // Phones keep the sound inside the page rather than handing it to the lock screen as a podcast would.
+  audio.setAttribute("playsinline", "");
+  audio.addEventListener("ended", () => {
+    track = (track + 1) % TRACKS.length;
+    audio!.src = TRACKS[track].src;
+    void audio!.play().catch(() => {});
+    emit();
+  });
+  audio.addEventListener("play", emit);
+  audio.addEventListener("pause", emit);
+  return audio;
 }
 
-function schedule(from: number, startAt: number) {
-  if (!ctx || !playing) return;
-  let t = startAt;
-  let i = from;
-  // Queue about four seconds ahead, then come back for more.
-  while (t < ctx.currentTime + 4 && i < SONG.length) {
-    const [p, beats] = SONG[i];
-    if (p !== "rest") bell(t, freq(p), beats * BEAT);
-    t += beats * BEAT;
-    i++;
-  }
-  const next = i >= SONG.length ? 0 : i;
-  timer = setTimeout(() => schedule(next, t), Math.max(50, (t - ctx!.currentTime - 2) * 1000));
-}
-
-function start() {
-  if (playing) return;
-  const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  if (!AC) return;
-  ctx ??= new AC();
-  if (!master) {
-    master = ctx.createGain();
-    master.gain.value = 0.35;
-    master.connect(ctx.destination);
-  }
-  void ctx.resume();
-  playing = true;
-  schedule(0, ctx.currentTime + 0.1);
+function remember(on: boolean) {
   try {
-    localStorage.setItem(KEY, "on");
+    localStorage.setItem(KEY, on ? "on" : "off");
   } catch {}
-  emit();
 }
 
-function stop() {
-  playing = false;
-  if (timer) clearTimeout(timer);
-  timer = null;
-  void ctx?.suspend();
+function wanted() {
   try {
-    localStorage.setItem(KEY, "off");
-  } catch {}
-  emit();
+    return localStorage.getItem(KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+/** Plays from inside a tap or click, which every browser allows. Returns whether it started. */
+async function play() {
+  try {
+    await player().play();
+    remember(true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function pause() {
+  audio?.pause();
+  remember(false);
 }
 
 function subscribe(cb: () => void) {
@@ -123,25 +87,53 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
-export function useChristmasMusic() {
-  const on = useSyncExternalStore(subscribe, () => playing, () => false);
-  // A reader who left the music on last time hears it again from their first tap or key press.
+const GESTURES = ["pointerup", "touchend", "click", "keydown"] as const;
+
+/**
+ * Starts the music when the edition opens. Mount once per page (the Christmas edition does it in its top bar).
+ */
+export function useChristmasMusicAutostart(enabled: boolean) {
   useEffect(() => {
-    let wanted = false;
-    try {
-      wanted = localStorage.getItem(KEY) === "on";
-    } catch {}
-    if (!wanted) return;
-    const go = () => start();
-    window.addEventListener("pointerdown", go, { once: true });
-    window.addEventListener("keydown", go, { once: true });
-    return () => {
-      window.removeEventListener("pointerdown", go);
-      window.removeEventListener("keydown", go);
+    if (!enabled || !wanted()) return;
+    let armed = false;
+    const onGesture = (e: Event) => {
+      // The music buttons handle their own taps.
+      if ((e.target as Element | null)?.closest?.("[data-music-toggle]")) return;
+      if (state.on) return disarm();
+      void play().then((ok) => ok && disarm());
     };
-  }, []);
-  useEffect(() => () => stop(), []);
-  return { on, toggle: () => (playing ? stop() : start()) };
+    const disarm = () => {
+      if (!armed) return;
+      armed = false;
+      GESTURES.forEach((g) => window.removeEventListener(g, onGesture, true));
+    };
+    void play().then((ok) => {
+      if (ok) return;
+      armed = true;
+      GESTURES.forEach((g) => window.addEventListener(g, onGesture, { capture: true, passive: true }));
+    });
+    // Quiet when the reader switches tab or locks their phone, and back when they return.
+    const onVisible = () => {
+      if (document.hidden && state.on) {
+        pausedByHidden = true;
+        audio?.pause();
+      } else if (!document.hidden && pausedByHidden) {
+        pausedByHidden = false;
+        void audio?.play().catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      disarm();
+      document.removeEventListener("visibilitychange", onVisible);
+      audio?.pause();
+    };
+  }, [enabled]);
+}
+
+export function useChristmasMusic() {
+  const s = useSyncExternalStore(subscribe, () => state, () => state);
+  return { ...s, toggle: () => (s.on ? pause() : void play()) };
 }
 
 /** The music button. `light` for use over the cover photograph. */
@@ -151,6 +143,7 @@ export function MusicToggle({ light, compact, className }: { light?: boolean; co
   return (
     <button
       type="button"
+      data-music-toggle
       onClick={toggle}
       aria-pressed={on}
       className={cn(
@@ -160,8 +153,36 @@ export function MusicToggle({ light, compact, className }: { light?: boolean; co
         className
       )}
     >
-      <Icon className={cn("h-4 w-4", on && "animate-pulse")} />
+      <Icon className="h-4 w-4" />
       <span className={compact ? "hidden sm:inline" : undefined}>{on ? "Pause the music" : "Play Christmas music"}</span>
     </button>
+  );
+}
+
+/** A small floating player, shown while music plays, so pause is always one tap away on any screen. */
+export function MusicDock() {
+  const { on, title, toggle } = useChristmasMusic();
+  if (!on) return null;
+  return (
+    <div className="fixed left-1/2 top-[calc(4rem+env(safe-area-inset-top))] z-[60] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-[#9b1b2a] py-1.5 pl-4 pr-1.5 text-white shadow-lg xl:left-6 xl:top-auto xl:bottom-6 xl:translate-x-0">
+      <span aria-hidden className="flex h-4 items-end gap-[3px]">
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="music-bar w-[3px] rounded-sm bg-white" style={{ animationDelay: `${i * 0.18}s` }} />
+        ))}
+      </span>
+      <span className="truncate text-[12px]">
+        <span className="opacity-70">Now playing </span>
+        {title}
+      </span>
+      <button
+        type="button"
+        data-music-toggle
+        onClick={toggle}
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#9b1b2a]"
+        aria-label="Pause the music"
+      >
+        <Pause className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
