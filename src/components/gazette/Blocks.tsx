@@ -4,6 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import type { Block } from "@/content/gazette/types";
 import { cn } from "@/lib/utils";
 import { SeasonOverlay } from "./Season";
+import { Ornament } from "./Ornament";
 
 const LETTERS = ["i.", "ii.", "iii.", "iv.", "v.", "vi."];
 
@@ -131,37 +132,65 @@ function Advent({ block }: { block: Extract<Block, { type: "advent" }> }) {
     });
   return (
     <div className="my-6">
-      <div className="relative flex items-baseline justify-between gap-4 overflow-hidden bg-[#0a0a0a] px-4 pb-4 pt-8 text-white">
+      <div className="relative flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 overflow-hidden bg-[#0a0a0a] px-4 pb-4 pt-8 text-white">
         <SeasonOverlay season="christmas" className="opacity-80" />
-        <p className="mag-caps relative text-[9.5px]">{block.title}</p>
-        <p className="mag-caps relative text-[9px] text-white/70" aria-live="polite">
+        <p className="mag-caps relative whitespace-nowrap text-[9.5px]">{block.title}</p>
+        <p className="mag-caps relative whitespace-nowrap text-[9px] text-white/70" aria-live="polite">
           {open.size} of {block.doors.length} opened
         </p>
       </div>
-      <ol className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {block.doors.map((d) => {
+      {/* On phones the parcels sit in a row you swipe through; wider screens get a grid. */}
+      <ol className="-mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
+        {block.doors.map((d, i) => {
           const isOpen = open.has(d.day);
+          // Alternate the wrapping, so the grid reads like a table of parcels rather than a spreadsheet.
+          const light = i % 3 === 1;
           return (
-            <li key={d.day} className="advent-door relative min-h-[150px]" data-open={isOpen}>
+            <li key={d.day} className="advent-door relative min-h-[260px] w-[78%] shrink-0 snap-center sm:min-h-[170px] sm:w-auto" data-open={isOpen}>
               {/* Behind the door: the tip. */}
-              <div className="h-full border border-black/20 bg-white p-3">
-                <p className="mag-caps text-[8.5px] text-black/55">{d.day} December</p>
-                <p className="mag-didone mt-1 text-[16px] italic leading-tight">{d.title}</p>
-                <p className="mag-serif mt-2 text-[12.5px] leading-snug">{d.text}</p>
+              <div className="relative h-full overflow-hidden border border-black/20 bg-white p-3 pr-4">
+                <Ornament index={i} className="absolute -right-2 -top-2 h-14 w-14 text-black/10" />
+                <p className="mag-caps relative whitespace-nowrap text-[8.5px] text-black/55">{d.day} December</p>
+                <p className="mag-didone relative mt-1 text-[16px] italic leading-tight">{d.title}</p>
+                <p className="mag-serif relative mt-2 pb-5 text-[12.5px] leading-snug">{d.text}</p>
               </div>
-              {/* The door itself. */}
+              {/* The door itself: a parcel with a ribbon, a bow and a fine ornament. */}
               <button
                 type="button"
                 onClick={() => toggle(d.day)}
                 aria-expanded={isOpen}
                 aria-label={isOpen ? `Close door ${d.day}` : `Open door ${d.day}: ${d.title}`}
                 className={cn(
-                  "advent-face absolute inset-0 flex flex-col items-start justify-between bg-[#0a0a0a] p-3 text-left text-white",
+                  "advent-face advent-paper group absolute inset-0 overflow-hidden text-left",
+                  light ? "advent-paper-light bg-[#f3f1ec] text-black" : "bg-[#0a0a0a] text-white",
                   isOpen && "pointer-events-none"
                 )}
               >
-                <span className="mag-didone text-[44px] leading-none">{d.day}</span>
-                <span className="mag-caps text-[8.5px] text-white/70">Open</span>
+                {/* Ribbon */}
+                <span aria-hidden className={cn("absolute inset-y-0 left-[68%] w-[5px] border-x", light ? "border-black/70" : "border-white/55")} />
+                <span aria-hidden className={cn("absolute inset-x-0 top-[34%] h-[5px] border-y", light ? "border-black/70" : "border-white/55")} />
+                {/* Bow, with one warm light at its knot */}
+                <svg
+                  aria-hidden
+                  viewBox="0 0 40 24"
+                  className={cn("absolute left-[68%] top-[34%] h-9 w-14 -translate-x-[calc(50%-2.5px)] -translate-y-[calc(50%-2.5px)] fill-none", light ? "stroke-black/80" : "stroke-white/80")}
+                  strokeWidth={1.1}
+                >
+                  <path d="M20 12C14 2 4 2 5 8s9 5 15 4zM20 12c6-10 16-10 15-4s-9 5-15 4zM20 12l-6 11M20 12l6 11" />
+                </svg>
+                <span aria-hidden className="season-light absolute left-[68%] top-[34%] -translate-y-1/2 translate-x-[1.5px] scale-75" style={{ animationDelay: `${(i * 0.37) % 2.4}s` }} />
+                {/* Number and ornament */}
+                <span className="mag-didone absolute left-3 top-2 text-[46px] leading-none sm:text-[58px]">{d.day}</span>
+                <Ornament
+                  index={i}
+                  className={cn(
+                    "absolute bottom-4 left-3 h-16 w-16 transition-transform sm:h-20 sm:w-20 duration-500 group-hover:-rotate-6 group-hover:scale-110",
+                    light ? "text-black/80" : "text-white/85"
+                  )}
+                />
+                <span className={cn("mag-caps absolute bottom-3 right-3 text-[8.5px]", light ? "text-black/60" : "text-white/65")}>
+                  Open
+                </span>
               </button>
               {isOpen && (
                 <button type="button" onClick={() => toggle(d.day)} className="mag-caps absolute bottom-2 right-3 text-[8.5px] text-black/45 underline">
