@@ -17,6 +17,8 @@ import { artFor, coverImage, img } from "./art";
 import { gazetteFonts } from "./fonts";
 import { cn } from "@/lib/utils";
 import { SeasonOverlay } from "./Season";
+import { MusicToggle } from "./ChristmasMusic";
+import { ChristmasBand, ChristmasRule, isFestive } from "./Christmas";
 
 const DISCIPLINE = { cosmetic: "Cosmetic", clinical: "Clinical · Trichology", medical: "Medical" } as const;
 
@@ -314,6 +316,7 @@ export function ScrollEdition({
           </Link>
           <p className={cn("mag-didone truncate text-[18px] italic transition-opacity", solid ? "opacity-100" : "opacity-0")}>{edition.title}</p>
           <div className="flex items-center gap-5">
+            {edition.season === "christmas" && <MusicToggle compact />}
             {onPrint && (
               <button type="button" onClick={onPrint} className="mag-caps hidden items-center gap-2 text-[10px] lg:inline-flex">
                 <BookOpen className="h-4 w-4" /> Print edition
@@ -364,6 +367,7 @@ export function ScrollEdition({
             </p>
             <div className="hidden shrink-0 flex-col items-end gap-6 sm:flex">
               {edition.supportedBy && <BroughtBy by={edition.supportedBy} light />}
+              {edition.season === "christmas" && <MusicToggle light />}
               <a href="#contents" className="mag-caps inline-flex items-center gap-2 text-[10px] text-white/80">
                 Scroll to read <ArrowDown className="h-4 w-4 animate-bounce" />
               </a>
@@ -374,6 +378,7 @@ export function ScrollEdition({
               <BroughtBy by={edition.supportedBy} light />
             </div>
           )}
+          {edition.season === "christmas" && <MusicToggle light className="mt-5 sm:hidden" />}
         </div>
       </ParallaxImage>
 
@@ -414,7 +419,18 @@ export function ScrollEdition({
       {/* Features */}
       {edition.pages.map((page, i) => {
         const n = page.kind === "article" ? articles++ : articles;
-        return <Section key={i} edition={edition} page={page} index={i} articleCount={n} signedIn={signedIn} />;
+        const section = <Section key={i} edition={edition} page={page} index={i} articleCount={n} signedIn={signedIn} />;
+        if (!isFestive(edition, page)) return section;
+        // Christmas pages: a red ornament rule before them, red kickers and drop caps inside,
+        // and a greetings band before the first Christmas feature and before the closing page.
+        const firstInteractive = edition.pages.findIndex((p) => p.kind === "interactive") === i;
+        return (
+          <div key={i} className="season-festive">
+            {(firstInteractive || page.kind === "cta") && <ChristmasBand edition={edition} />}
+            {page.kind !== "letter" && <ChristmasRule />}
+            {section}
+          </div>
+        );
       })}
 
       {/* Sources */}

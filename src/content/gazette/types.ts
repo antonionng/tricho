@@ -17,7 +17,21 @@ export type Block =
   /** Interactive: tap to reveal the answer. */
   | { type: "reveal"; prompt: string; answer: string }
   /** Interactive: an advent calendar. Each door opens on tap to show one short, practical tip. */
-  | { type: "advent"; title: string; doors: { day: number; title: string; text: string }[] }
+  | {
+      type: "advent";
+      title: string;
+      doors: {
+        day: number;
+        title: string;
+        text: string;
+        /** The gift behind the door. With gifts, the calendar is drawn as the Christmas townhouse with the full-screen reveal. */
+        gift?: { label: string; href: string; note: string };
+        /** Still waiting on someone: the gift card says "Coming soon". */
+        pending?: string;
+        /** Set on the server for doors that haven't opened yet. Their title, text and gift are blanked. */
+        locked?: boolean;
+      }[];
+    }
   /** Interactive: twelve small challenges. Readers tick each day off and a strand of twelve lights comes on. */
   | { type: "twelvedays"; title: string; days: { title: string; text: string }[] };
 

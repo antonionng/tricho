@@ -5,6 +5,7 @@ import type { Block } from "@/content/gazette/types";
 import { cn } from "@/lib/utils";
 import { SeasonOverlay } from "./Season";
 import { Ornament } from "./Ornament";
+import { AdventHouse } from "./AdventHouse";
 
 const LETTERS = ["i.", "ii.", "iii.", "iv.", "v.", "vi."];
 
@@ -352,7 +353,7 @@ export function BlockView({ block, drop }: { block: Block; drop?: boolean }) {
     case "reveal":
       return <Reveal block={block} />;
     case "advent":
-      return <Advent block={block} />;
+      return block.doors.some((d) => d.gift || d.locked) ? <AdventHouse block={block} /> : <Advent block={block} />;
     case "twelvedays":
       return <TwelveDays block={block} />;
   }

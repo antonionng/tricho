@@ -53,7 +53,19 @@ export const BlockSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("advent"),
     title: text,
-    doors: z.array(z.object({ day: z.number().int().min(1).max(31), title: text, text })).min(1).max(31),
+    doors: z
+      .array(
+        z.object({
+          day: z.number().int().min(1).max(31),
+          title: text,
+          text,
+          gift: z.object({ label: text, href: text, note: text }).optional(),
+          pending: text.optional(),
+          locked: z.boolean().optional(),
+        })
+      )
+      .min(1)
+      .max(31),
   }),
   z.object({
     type: z.literal("twelvedays"),

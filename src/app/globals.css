@@ -421,6 +421,146 @@
   }
 }
 
+/* Christmas pages in a Christmas edition: red kickers and drop caps (components/gazette/Christmas.tsx). */
+.season-festive .mag-caps:not(.text-white, [class*="text-white/"]) {
+  color: #9b1b2a;
+}
+.season-festive .mag-drop::first-letter {
+  color: #9b1b2a;
+}
+
+/* The advent townhouse and its full-screen gift reveal (components/gazette/AdventHouse.tsx). */
+.season-twinkle {
+  animation: season-twinkle 2.4s ease-in-out infinite;
+}
+.advent-snow {
+  animation: advent-snow linear infinite;
+}
+@keyframes advent-snow {
+  to {
+    transform: translateY(480px);
+  }
+}
+.advent-house-door .advent-leaf {
+  transform-box: fill-box;
+  transform-origin: left center;
+  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.advent-house-door.open .advent-leaf {
+  transform: scaleX(0.04);
+}
+.advent-house-door.ready .advent-ring {
+  animation: advent-pulse 1.6s ease-in-out infinite;
+}
+.advent-house-door:focus-visible .advent-leaf {
+  stroke: #f2c45a;
+  stroke-width: 3;
+}
+@keyframes advent-pulse {
+  50% {
+    opacity: 0.2;
+  }
+}
+.advent-overlay {
+  animation: advent-fade 0.35s ease-out both;
+}
+@keyframes advent-fade {
+  from {
+    opacity: 0;
+  }
+}
+.advent-flake {
+  animation: advent-fall linear infinite;
+}
+@keyframes advent-fall {
+  to {
+    transform: translateY(110vh);
+  }
+}
+.advent-rays {
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.advent-rays.on {
+  opacity: 1;
+  animation: advent-spin 14s linear infinite;
+}
+@keyframes advent-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+.advent-box {
+  transform: translate(-50%, -140vh);
+}
+.advent-box.drop {
+  animation: advent-drop 0.75s cubic-bezier(0.3, 1.4, 0.5, 1) 0.15s forwards;
+}
+.advent-box.shake,
+.advent-box.pop {
+  transform: translate(-50%, -40%);
+}
+.advent-box.shake {
+  animation: advent-shake 0.5s ease-in-out 3;
+}
+.advent-box.card {
+  transform: translate(-50%, -60%) scale(0.8);
+  opacity: 0;
+  transition: opacity 0.4s, transform 0.4s;
+}
+@keyframes advent-drop {
+  to {
+    transform: translate(-50%, -40%);
+  }
+}
+@keyframes advent-shake {
+  25% {
+    transform: translate(-50%, -40%) rotate(-7deg);
+  }
+  75% {
+    transform: translate(-50%, -40%) rotate(7deg);
+  }
+}
+.advent-lid {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.7s;
+}
+.advent-box.pop .advent-lid,
+.advent-box.card .advent-lid {
+  transform: translate(90px, -220px) rotate(38deg);
+  opacity: 0;
+}
+.advent-confetti {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+}
+.advent-card {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.4);
+  transition: transform 0.6s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.4s;
+}
+.advent-card.on {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .advent-snow,
+  .advent-flake,
+  .advent-rays,
+  .advent-box {
+    display: none;
+  }
+  .advent-card {
+    transition: opacity 0.4s;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* The advent calendar block: doors that open on tap. */
 .advent-door {
   perspective: 600px;

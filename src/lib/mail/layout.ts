@@ -15,6 +15,9 @@ const C = {
   muted: "#5c5c59",
   fade: "#a3a29d",
   rule: "#e2e1dc",
+  /** Festive emails only: Christmas red and fairy-light gold. */
+  red: "#9b1b2a",
+  gold: "#f2c45a",
 };
 const SANS = "-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif";
 const SERIF = "'Bodoni 72',Didot,'Bodoni MT',Georgia,serif";
@@ -49,6 +52,13 @@ export type EmailContent = {
   reason?: string;
   /** Present on anything that isn't strictly transactional. */
   unsubscribeUrl?: string;
+  /**
+   * A Christmas header band across the top of the card, e.g. { band: "Door 5", sub: "Trichozette advent" }.
+   * Also turns the eyebrow and the button Christmas red. Everything else stays the brand layout.
+   */
+  festive?: { band: string; sub?: string };
+  /** A short quotation shown after the body, with who said it. */
+  quote?: { text: string; who: string };
 };
 
 export function absoluteUrl(href: string) {
@@ -107,6 +117,7 @@ function imageOf(img: EmailImage) {
 
 function textVersion(c: EmailContent) {
   const parts = [c.heading, "", c.body.trim()];
+  if (c.quote) parts.push("", `"${c.quote.text}"`, c.quote.who);
   if (c.facts?.length) parts.push("", ...c.facts.map(([k, v]) => `${k}: ${v}`));
   if (c.cta) parts.push("", `${c.cta.label}: ${absoluteUrl(c.cta.href)}`);
   if (c.code) {
@@ -135,8 +146,9 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
         .join("")}</table>`
     : "";
 
+  const accent = c.festive ? C.red : C.ink;
   const cta = c.cta
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 6px"><tr><td style="background:${C.ink};border-radius:999px"><a href="${esc(absoluteUrl(c.cta.href))}" style="display:inline-block;padding:14px 28px;font-family:${SANS};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px">${esc(c.cta.label)} &rarr;</a></td></tr></table>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 6px"><tr><td style="background:${accent};border-radius:999px"><a href="${esc(absoluteUrl(c.cta.href))}" style="display:inline-block;padding:14px 28px;font-family:${SANS};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px">${esc(c.cta.label)} &rarr;</a></td></tr></table>`
     : "";
   const secondary = c.secondary
     ? `<p style="margin:14px 0 0;font-size:14px"><a href="${esc(absoluteUrl(c.secondary.href))}" style="color:${C.ink};text-decoration:underline">${esc(c.secondary.label)}</a></p>`
@@ -154,6 +166,23 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
         <img src="cid:${esc(c.ticket.contentId)}" alt="QR code for ticket ${esc(c.ticket.code)}" width="200" height="200" style="display:block;margin:0 auto 12px;width:200px;height:200px;border:0">
         <p style="margin:0 0 6px;font-family:${SANS};font-size:11px;letter-spacing:0.18em;text-transform:uppercase;font-weight:700;color:${C.muted}">${esc(c.ticket.label)}</p>
         <p style="margin:0;font-family:${SANS};font-size:20px;line-height:1;letter-spacing:0.12em;font-weight:700;color:${C.ink}">${esc(c.ticket.code)}</p>
+      </td></tr></table>`
+    : "";
+
+  // Fairy lights are plain text bullets, not images or SVG, so every mail app shows them.
+  const lights = Array.from({ length: 13 }, () => "&#9679;").join("&nbsp;&nbsp;&nbsp;");
+  const band = c.festive
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td height="120" align="center" valign="top" style="background:${C.red};border-radius:18px 18px 0 0;padding:14px 24px 24px;text-align:center">
+    <p style="margin:0 0 14px;font-family:${SANS};font-size:10px;line-height:1;color:${C.gold};letter-spacing:0.1em;white-space:nowrap;overflow:hidden">${lights}</p>
+    <p style="margin:0;font-family:${SERIF};font-weight:400;font-size:40px;line-height:1.1;color:${C.paper}">${esc(c.festive.band)}</p>
+    ${c.festive.sub ? `<p style="margin:10px 0 0;font-family:${SANS};font-size:11px;line-height:1.4;letter-spacing:0.28em;text-transform:uppercase;font-weight:700;color:${C.paper}">${esc(c.festive.sub)}</p>` : ""}
+  </td></tr></table>`
+    : "";
+
+  const quote = c.quote
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 24px"><tr><td style="border-left:2px solid ${C.red};padding:4px 0 4px 18px">
+        <p style="margin:0 0 8px;font-family:${SERIF};font-style:italic;font-size:20px;line-height:1.4;color:${C.ink}">${esc(c.quote.text)}</p>
+        <p style="margin:0;font-family:${SANS};font-size:11px;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;color:${C.muted}">${esc(c.quote.who)}</p>
       </td></tr></table>`
     : "";
 
@@ -176,11 +205,13 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
   <a href="${home}" style="text-decoration:none;font-family:${SANS};font-size:24px;font-weight:800;letter-spacing:-0.06em;text-transform:uppercase;line-height:1"><span style="color:${C.ink}">Tricho</span><span style="color:${C.fade}">llective.</span></a>
 </td></tr>
 <tr><td style="background:${C.card};border-radius:18px;overflow:hidden">
-  ${img ? `<img src="${esc(img.url)}" alt="${esc(img.alt)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:18px 18px 0 0">` : ""}
+  ${band}
+  ${img ? `<img src="${esc(img.url)}" alt="${esc(img.alt)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:${c.festive ? "0" : "18px 18px 0 0"}">` : ""}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:36px 36px 34px;font-family:${SANS};font-size:16px;line-height:1.65;color:${C.ink2}">
-    ${c.eyebrow ? `<p style="margin:0 0 14px;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;font-weight:700;color:${C.muted}">${esc(c.eyebrow)}</p>` : ""}
+    ${c.eyebrow ? `<p style="margin:0 0 14px;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;font-weight:700;color:${c.festive ? C.red : C.muted}">${esc(c.eyebrow)}</p>` : ""}
     <h1 style="margin:0 0 20px;font-family:${SERIF};font-weight:400;font-size:34px;line-height:1.12;letter-spacing:-0.01em;color:${C.ink}">${esc(c.heading)}</h1>
     ${bodyToHtml(c.body)}
+    ${quote}
     ${ticket}
     ${facts}
     ${cta}

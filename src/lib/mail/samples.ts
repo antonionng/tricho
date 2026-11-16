@@ -8,10 +8,11 @@ import { samples as tickets } from "./templates/tickets";
 import { samples as releases } from "./templates/releases";
 import { samples as owners } from "./templates/owners";
 import { samples as pageAccess } from "./templates/page-access";
+import { samples as advent } from "./templates/advent";
 
 /** Every email the platform sends, grouped the way the Studio shows them. */
 const people = (list: EmailSample[]) => list.filter((s) => s.audience !== "owners");
-const alerts = [leads, directory, billing, members, tickets, releases, owners].flat().filter((s) => s.audience === "owners");
+const alerts = [leads, directory, billing, members, tickets, releases, advent, owners].flat().filter((s) => s.audience === "owners");
 
 export const emailGroups: { title: string; intro: string; samples: EmailSample[] }[] = [
   { title: "Sign-in, sign-ups and enquiries", intro: "Sent the moment someone signs in, joins the list, contacts you or applies to partner.", samples: people(leads) },
@@ -22,6 +23,7 @@ export const emailGroups: { title: string; intro: string; samples: EmailSample[]
   { title: "Members", intro: "Sent to members about replies, messages and the events they have booked.", samples: people(members) },
   { title: "Event tickets", intro: "Sent to anyone who buys a ticket for an event on Trichollective, member or guest.", samples: people(tickets) },
   { title: "New releases", intro: "Sent to members and subscribers when Karley approves an announcement in the inbox.", samples: people(releases) },
+  { title: "Trichozette advent", intro: "Sent from 1 to 12 December 2026: the 7am door email, and a note when a member claims a gift.", samples: people(advent) },
   { title: "Owner alerts", intro: "Sent to the owners so no lead, payment or report is missed.", samples: alerts },
 ];
 
