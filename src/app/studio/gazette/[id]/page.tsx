@@ -51,6 +51,7 @@ const BLOCK_LABEL: Record<Block["type"], string> = {
   quiz: "Quiz",
   reveal: "Reveal",
   advent: "Advent calendar",
+  twelvedays: "Twelve days",
 };
 
 const DISCIPLINE_LABEL = { cosmetic: "Cosmetic", clinical: "Clinical", medical: "Medical" } as const;
@@ -767,6 +768,20 @@ function BlockFields({ block: b, n }: { block: Block; n: (field: string) => stri
             className={fieldClass}
             aria-label="Doors, one per line: day | title | tip"
             placeholder="1 | Title | The tip behind the door"
+          />
+        </>
+      );
+    case "twelvedays":
+      return (
+        <>
+          <input name={n("title")} defaultValue={b.title} className={fieldClass} aria-label="Section title" />
+          <textarea
+            name={n("days")}
+            defaultValue={b.days.map((d) => `${d.title} | ${d.text}`).join("\n")}
+            rows={12}
+            className={fieldClass}
+            aria-label="Days, one per line: title | challenge"
+            placeholder="Title | The challenge for this day"
           />
         </>
       );

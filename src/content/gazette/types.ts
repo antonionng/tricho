@@ -17,7 +17,9 @@ export type Block =
   /** Interactive: tap to reveal the answer. */
   | { type: "reveal"; prompt: string; answer: string }
   /** Interactive: an advent calendar. Each door opens on tap to show one short, practical tip. */
-  | { type: "advent"; title: string; doors: { day: number; title: string; text: string }[] };
+  | { type: "advent"; title: string; doors: { day: number; title: string; text: string }[] }
+  /** Interactive: twelve small challenges. Readers tick each day off and a strand of twelve lights comes on. */
+  | { type: "twelvedays"; title: string; days: { title: string; text: string }[] };
 
 /** A company at an event: the sponsor or an exhibitor. `logo` is filled on the server from the Partner table by slug. */
 export type PartnerEntry = {

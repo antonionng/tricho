@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import type { Block } from "@/content/gazette/types";
 import { cn } from "@/lib/utils";
+import { SeasonOverlay } from "./Season";
 
 const LETTERS = ["i.", "ii.", "iii.", "iv.", "v.", "vi."];
 
@@ -130,9 +131,10 @@ function Advent({ block }: { block: Extract<Block, { type: "advent" }> }) {
     });
   return (
     <div className="my-6">
-      <div className="flex items-baseline justify-between gap-4 border-b border-black pb-2">
-        <p className="mag-caps text-[9.5px]">{block.title}</p>
-        <p className="mag-caps text-[9px] text-black/55" aria-live="polite">
+      <div className="relative flex items-baseline justify-between gap-4 overflow-hidden bg-[#0a0a0a] px-4 pb-4 pt-8 text-white">
+        <SeasonOverlay season="christmas" className="opacity-80" />
+        <p className="mag-caps relative text-[9.5px]">{block.title}</p>
+        <p className="mag-caps relative text-[9px] text-white/70" aria-live="polite">
           {open.size} of {block.doors.length} opened
         </p>
       </div>
@@ -166,6 +168,113 @@ function Advent({ block }: { block: Extract<Block, { type: "advent" }> }) {
                   Close
                 </button>
               )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+const TWELVE_DAYS_EVENT = "trichozette:twelvedays";
+function subscribeTwelveDays(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(TWELVE_DAYS_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(TWELVE_DAYS_EVENT, onChange);
+  };
+}
+
+const ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth"];
+
+function TwelveDays({ block }: { block: Extract<Block, { type: "twelvedays" }> }) {
+  const key = `trichozette:twelvedays:${block.title}`;
+  // Each reader's progress stays in their own browser, so the lights are still on when they come back.
+  // Without storage (private windows, blocked site data) it still works for the visit, in memory.
+  const [memory, setMemory] = useState("[]");
+  const raw = useSyncExternalStore(
+    subscribeTwelveDays,
+    () => {
+      try {
+        return localStorage.getItem(key) ?? memory;
+      } catch {
+        return memory;
+      }
+    },
+    () => "[]"
+  );
+  const done = useMemo(() => {
+    try {
+      const saved = JSON.parse(raw);
+      return new Set<number>(Array.isArray(saved) ? saved.filter((n): n is number => typeof n === "number") : []);
+    } catch {
+      return new Set<number>();
+    }
+  }, [raw]);
+  const toggle = (i: number) => {
+    const next = new Set(done);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
+    const value = JSON.stringify([...next]);
+    setMemory(value);
+    try {
+      localStorage.setItem(key, value);
+      window.dispatchEvent(new Event(TWELVE_DAYS_EVENT));
+    } catch {}
+  };
+  const all = done.size === block.days.length;
+  return (
+    <div className="my-6">
+      {/* The strand: one light per day, lit as each day is done. */}
+      <div className="relative overflow-hidden bg-[#0a0a0a] px-4 pb-6 pt-5 text-white">
+        <SeasonOverlay season="christmas" className="opacity-70" />
+        <p className="mag-caps relative text-[9.5px] text-white/70">{block.title}</p>
+        <p className="mag-didone relative mt-1 text-[24px] italic leading-tight" aria-live="polite">
+          {all ? "All twelve lights are on. Happy Christmas." : `${done.size} of ${block.days.length} lights on`}
+        </p>
+        <svg className="relative mt-4 h-10 w-full" viewBox="0 0 120 20" preserveAspectRatio="none" aria-hidden>
+          <path d="M0 3 Q60 22 120 3" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <ol className="absolute inset-x-4 bottom-6 flex justify-between" aria-hidden>
+          {block.days.map((_, i) => {
+            const t = (i + 0.5) / block.days.length;
+            const dip = 4 * t * (1 - t) * 18;
+            return (
+              <li
+                key={i}
+                className={cn(
+                  "h-3 w-3 rounded-full border transition-all duration-700",
+                  done.has(i) ? "season-light border-transparent" : "border-white/40 bg-white/5"
+                )}
+                style={{ transform: `translateY(${dip - 14}px)`, animationDelay: `${(i * 0.37) % 2.4}s` }}
+              />
+            );
+          })}
+        </ol>
+      </div>
+      <ol className="mt-3 grid gap-3 sm:grid-cols-2">
+        {block.days.map((d, i) => {
+          const isDone = done.has(i);
+          return (
+            <li key={i} className={cn("border p-4 transition-colors duration-500", isDone ? "border-black bg-[#0a0a0a] text-white" : "border-black/20 bg-white")}>
+              <p className={cn("mag-caps text-[8.5px]", isDone ? "text-white/60" : "text-black/55")}>
+                On the {ORDINALS[i] ?? `${i + 1}th`} day
+              </p>
+              <p className="mag-didone mt-1 text-[18px] italic leading-tight">{d.title}</p>
+              <p className="mag-serif mt-2 text-[13px] leading-snug">{d.text}</p>
+              <button
+                type="button"
+                onClick={() => toggle(i)}
+                aria-pressed={isDone}
+                className={cn(
+                  "mag-caps mt-3 inline-flex items-center gap-2 border px-3 py-2 text-[9px] transition-colors",
+                  isDone ? "border-white/50 text-white" : "border-black hover:bg-black hover:text-white"
+                )}
+              >
+                <span aria-hidden className={cn("h-2 w-2 rounded-full", isDone ? "season-light" : "border border-current")} />
+                {isDone ? "Done, light on" : "I've done this"}
+              </button>
             </li>
           );
         })}
@@ -215,6 +324,8 @@ export function BlockView({ block, drop }: { block: Block; drop?: boolean }) {
       return <Reveal block={block} />;
     case "advent":
       return <Advent block={block} />;
+    case "twelvedays":
+      return <TwelveDays block={block} />;
   }
 }
 

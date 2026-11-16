@@ -315,6 +315,7 @@ const NEW_BLOCK: Record<Block["type"], Block> = {
   quiz: { type: "quiz", question: "Write the question here.", options: ["First option", "Second option", "Third option"], answer: 0, explain: "Explain the correct answer here." },
   reveal: { type: "reveal", prompt: "Write the question here.", answer: "Write the answer here." },
   advent: { type: "advent", title: "Calendar title", doors: [{ day: 1, title: "First door", text: "Write the tip behind the door here." }] },
+  twelvedays: { type: "twelvedays", title: "Section title", days: [{ title: "First day", text: "Write the challenge for this day here." }] },
 };
 
 /** Reads the blocks a page form posted under one prefix, such as "b." or "v0.b.". */
@@ -354,6 +355,18 @@ function readBlocks(form: FormData, prefix: string): Block[] {
             const n = Number(day);
             return n >= 1 && n <= 31 && title && rest.length ? [{ day: n, title, text: rest.join(" | ") }] : [];
           }),
+        });
+        break;
+      case "twelvedays":
+        blocks.push({
+          type,
+          title: k("title"),
+          days: lines(k("days"))
+            .flatMap((line) => {
+              const [title, ...rest] = line.split("|").map((x) => x.trim());
+              return title && rest.length ? [{ title, text: rest.join(" | ") }] : [];
+            })
+            .slice(0, 12),
         });
         break;
     }

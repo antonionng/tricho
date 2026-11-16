@@ -15,9 +15,9 @@ export const editionsD: Edition[] = [
     slug: "ready-for-2027",
     title: "Ready for 2027",
     fade: "What changed this year, what changes next, and a calmer December.",
-    theme: "The year ahead",
+    theme: "The Christmas edition",
     standfirst:
-      "Our Christmas edition looks back at the research, regulation and business news that shaped 2026, and sets out what cosmetic, clinical and medical professionals can do now to be ready for 2027. Plus Adam Bond on laser and LED, and an advent calendar for a calmer front desk.",
+      "Our Christmas edition looks back at the research, regulation and business news that shaped 2026, and sets out what cosmetic, clinical and medical professionals can do now to be ready for 2027. Plus Adam Bond on laser and LED, an advent calendar for a calmer front desk, and twelve days of small gifts to your practice.",
     coverImageKey: "ed13",
     coverTone: "dark",
     season: "christmas",
@@ -253,6 +253,44 @@ export const editionsD: Edition[] = [
         ],
       },
       {
+        kind: "interactive",
+        kicker: "The twelve days of Christmas",
+        title: "Twelve days, twelve small gifts to your practice.",
+        intro:
+          "From 25 December to 5 January, take one small step a day for your clients, your team and yourself. Tick each one off as you go and watch the lights come on. Your progress stays in your own browser, so you can come back each day.",
+        blocks: [
+          {
+            type: "twelvedays",
+            title: "Light the strand",
+            days: [
+              { title: "Rest", text: "Close the diary, switch off notifications and take a full day away from the business. You will be better for it in January." },
+              { title: "Say thank you", text: "Send a short, personal thank-you to every member of your team. Name one thing each of them did this year that made a difference." },
+              { title: "Clear the inbox", text: "Answer or archive every message waiting from December, so the first morning back starts with a clean slate." },
+              { title: "Read one paper", text: "Pick one item from this edition's news page and read the original source in full, rather than the headline." },
+              { title: "Check your stock", text: "List any products affected by the new cosmetic ingredient bans and ask your supplier, in writing, what replaces them." },
+              { title: "Update your consultation form", text: "Make sure it asks about current medication, including finasteride and weight-loss injections, and about recent changes in mood or health." },
+              { title: "Review your referrals", text: "Write down who you refer to for medical assessment, and check their details are still correct. Share the list with your team." },
+              { title: "Re-cost your services", text: "With the National Living Wage rising to £13.21 in April, check that your prices still cover your time, products and team." },
+              { title: "Tidy your client notes", text: "Finish any incomplete notes from December. A colleague picking up the record should understand it without asking you." },
+              { title: "Plan one masterclass", text: "Choose one Trichollective masterclass or case round to join in the new year, and put it in your diary now." },
+              { title: "Reach out to a colleague", text: "Introduce yourself to someone from a different discipline in the community: a hairdresser, a trichologist or a doctor." },
+              { title: "Write three goals", text: "Write down three things you want your practice to do better in 2027. Keep them where you will see them every week." },
+            ],
+          },
+          {
+            type: "quiz",
+            question: "Which of these is your first deadline of 2027?",
+            options: [
+              "The EU cosmetic ingredient bans on 1 February",
+              "Unfair dismissal protection after six months' service, from 1 January",
+              "The National Living Wage rise in April",
+            ],
+            answer: 1,
+            explain: "From 1 January 2027, employees gain unfair dismissal protection after six months' service. Review probation periods before then. The EU bans follow on 1 February and the wage rise in April.",
+          },
+        ],
+      },
+      {
         kind: "partner",
         kicker: "Kiera SI",
         title: "Why the front desk decides more of your year than you think.",
@@ -304,7 +342,7 @@ export const editionsD: Edition[] = [
       },
       {
         kind: "cta",
-        kicker: "Join us for 2027",
+        kicker: "Happy Christmas",
         title: "Start the new year with colleagues from every discipline.",
         intro:
           "Masterclasses are open to every member, and non-members can buy a £20 guest ticket. Refer a friend and you both get a month free.",
@@ -313,6 +351,7 @@ export const editionsD: Edition[] = [
             type: "p",
             text: "Trichollective brings cosmetic, clinical and medical professionals together, online and in the room. Members read every edition of Trichozette, join masterclasses and case rounds, and can be found in the directory by clients and colleagues.",
           },
+          { type: "p", text: "From all of us at Trichollective, a happy Christmas and a healthy new year." },
         ],
         offers: ["account", "member", "business"],
       },

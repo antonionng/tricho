@@ -55,6 +55,11 @@ export const BlockSchema = z.discriminatedUnion("type", [
     title: text,
     doors: z.array(z.object({ day: z.number().int().min(1).max(31), title: text, text })).min(1).max(31),
   }),
+  z.object({
+    type: z.literal("twelvedays"),
+    title: text,
+    days: z.array(z.object({ title: text, text })).min(1).max(12),
+  }),
 ]);
 
 export const BLOCK_TYPES = ["p", "h", "list", "pull", "callout", "checklist", "quiz", "reveal"] as const satisfies readonly Block["type"][];
