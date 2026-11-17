@@ -366,7 +366,7 @@ async function uniqueEventSlug(title: string) {
   return `${base}-${Date.now().toString(36)}`;
 }
 
-const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "venueAddress", "timezone", "detailsCloseAt", "priceGBP", "memberPriceGBP", "capacity", "stageSlots", "standSpaces", "ticketUrl", "published", "sellTickets", "presenters", "sponsorPartnerId"] as const;
+const EVENT_FIELDS = ["title", "kind", "summary", "body", "startsAt", "endsAt", "online", "city", "venue", "venueAddress", "timezone", "detailsCloseAt", "priceGBP", "memberPriceGBP", "capacity", "stageSlots", "standSpaces", "ticketUrl", "published", "sellTickets", "presenters", "sponsorPartnerId", "recordingUrl"] as const;
 
 export async function saveEventAction(form: FormData) {
   const staff = await requirePermission("events.edit");
@@ -385,6 +385,16 @@ export async function saveEventAction(form: FormData) {
   }
   const data = checked.data;
   const title = data.title;
+  // A recording link we can't read is a typo, not something to quietly drop.
+  if (raw.recordingUrl?.trim() && !data.recordingUrl) {
+    redirect(
+      withParams("/studio/events", {
+        ...back,
+        notice: "We can't read the recording link. Paste the address of the video on Google Drive, Vimeo or YouTube.",
+        tone: "danger",
+      })
+    );
+  }
   // Only a real partner can sponsor an event.
   if (data.sponsorPartnerId && !(await prisma.partner.findUnique({ where: { id: data.sponsorPartnerId }, select: { id: true } }))) {
     data.sponsorPartnerId = null;

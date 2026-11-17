@@ -49,6 +49,16 @@ export type EmailContent = {
   reason?: string;
   /** Present on anything that isn't strictly transactional. */
   unsubscribeUrl?: string;
+  /** A partner brand shown beside the Trichollective wordmark, for emails sent with a partner. */
+  cobrand?: { name: string; logoUrl: string; url: string };
+  /** Large figures shown as tiles after the body, e.g. published industry statistics. */
+  stats?: { heading?: string; items: { value: string; label: string }[]; note?: string };
+  /** Small uppercase heading above the facts table. */
+  factsHeading?: string;
+  /** Where the figures come from, listed in the footer. */
+  sources?: { label: string; url: string }[];
+  /** Picture-led cards after the body: a full-width image (a GIF plays in most apps), a title and one sentence. */
+  features?: { title: string; text: string; image: { src: string; alt: string } }[];
 };
 
 export function absoluteUrl(href: string) {
@@ -107,7 +117,12 @@ function imageOf(img: EmailImage) {
 
 function textVersion(c: EmailContent) {
   const parts = [c.heading, "", c.body.trim()];
-  if (c.facts?.length) parts.push("", ...c.facts.map(([k, v]) => `${k}: ${v}`));
+  if (c.features?.length) parts.push("", ...c.features.map((f) => `${f.title.toUpperCase()}\n${f.text}`));
+  if (c.stats?.items.length) {
+    parts.push("", ...(c.stats.heading ? [c.stats.heading.toUpperCase(), ""] : []), ...c.stats.items.map((s) => `${s.value}: ${s.label}`));
+    if (c.stats.note) parts.push(c.stats.note);
+  }
+  if (c.facts?.length) parts.push("", ...(c.factsHeading ? [c.factsHeading.toUpperCase(), ""] : []), ...c.facts.map(([k, v]) => `${k}: ${v}`));
   if (c.cta) parts.push("", `${c.cta.label}: ${absoluteUrl(c.cta.href)}`);
   if (c.code) {
     parts.push("", `Your sign-in code: ${c.code}`, "If the button does not open your account, type this code on the sign-in page.");
@@ -116,7 +131,9 @@ function textVersion(c: EmailContent) {
   if (c.secondary) parts.push(`${c.secondary.label}: ${absoluteUrl(c.secondary.href)}`);
   if (c.signoff !== null) parts.push("", c.signoff ?? `${site.founder} and the Trichollective team`);
   parts.push("", "--", "Trichollective, the private home for hair and scalp professionals.", site.url);
+  if (c.cobrand) parts.push(`Sent with ${c.cobrand.name}, ${c.cobrand.url}`);
   if (c.reason) parts.push(c.reason);
+  if (c.sources?.length) parts.push("", "Sources:", ...c.sources.map((s) => `${s.label}: ${s.url}`));
   if (c.unsubscribeUrl) parts.push(`Unsubscribe: ${c.unsubscribeUrl}`);
   return parts.join("\n");
 }
@@ -133,6 +150,36 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
             `<tr><td style="padding:10px 12px 10px 0;border-bottom:1px solid ${C.rule};font-family:${SANS};font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:${C.muted};vertical-align:top;width:34%">${esc(k)}</td><td style="padding:10px 0;border-bottom:1px solid ${C.rule};font-family:${SANS};font-size:15px;color:${C.ink};vertical-align:top">${inline(v).replace(/\n/g, "<br>")}</td></tr>`
         )
         .join("")}</table>`
+    : "";
+
+  const features = c.features?.length
+    ? c.features
+        .map(
+          (f) =>
+            `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px"><tr><td style="border:1px solid ${C.rule};border-radius:16px;overflow:hidden;background:${C.card}">
+        <img src="${esc(f.image.src)}" alt="${esc(f.image.alt)}" width="526" style="display:block;width:100%;max-width:526px;height:auto;border:0;border-radius:16px 16px 0 0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:16px 18px 18px;font-family:${SANS}">
+          <p style="margin:0 0 4px;font-size:16px;font-weight:700;line-height:1.3;color:${C.ink}">${esc(f.title)}</p>
+          <p style="margin:0;font-size:15px;line-height:1.5;color:${C.ink2}">${inline(f.text)}</p>
+        </td></tr></table>
+      </td></tr></table>`
+        )
+        .join("\n")
+    : "";
+
+  const stats = c.stats?.items.length
+    ? `${c.stats.heading ? `<h2 style="font-family:${SANS};font-size:13px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:${C.ink};margin:28px 0 10px">${esc(c.stats.heading)}</h2>` : ""}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px"><tr>${c.stats.items
+        .map(
+          (s) =>
+            `<td width="${Math.floor(100 / c.stats!.items.length)}%" valign="top" style="background:${C.paper};border:1px solid ${C.rule};border-radius:14px;padding:16px 14px;text-align:left;font-family:${SANS}"><p style="margin:0 0 6px;font-size:28px;line-height:1;font-weight:700;letter-spacing:-0.02em;color:${C.ink}">${esc(s.value)}</p><p style="margin:0;font-size:13px;line-height:1.45;color:${C.muted}">${esc(s.label)}</p></td>`
+        )
+        .join(`<td width="10" style="width:10px"></td>`)}</tr></table>${
+        c.stats.note ? `<p style="margin:-10px 0 22px;font-family:${SANS};font-size:13px;line-height:1.5;color:${C.muted}">${esc(c.stats.note)}</p>` : ""
+      }`
+    : "";
+  const factsHeading = c.factsHeading && c.facts?.length
+    ? `<h2 style="font-family:${SANS};font-size:13px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:${C.ink};margin:28px 0 10px">${esc(c.factsHeading)}</h2>`
     : "";
 
   const cta = c.cta
@@ -173,7 +220,14 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.paper}"><tr><td align="center" style="padding:32px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
 <tr><td style="padding:0 8px 22px">
-  <a href="${home}" style="text-decoration:none;font-family:${SANS};font-size:24px;font-weight:800;letter-spacing:-0.06em;text-transform:uppercase;line-height:1"><span style="color:${C.ink}">Tricho</span><span style="color:${C.fade}">llective.</span></a>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td valign="middle" style="padding:0"><a href="${home}" style="text-decoration:none;font-family:${SANS};font-size:24px;font-weight:800;letter-spacing:-0.06em;text-transform:uppercase;line-height:1"><span style="color:${C.ink}">Tricho</span><span style="color:${C.fade}">llective.</span></a></td>
+    ${
+      c.cobrand
+        ? `<td valign="middle" align="right" style="padding:0;font-family:${SANS};font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:${C.fade};white-space:nowrap"><span style="vertical-align:middle">with</span>&nbsp;&nbsp;<a href="${esc(c.cobrand.url)}" style="text-decoration:none;vertical-align:middle"><img src="${esc(c.cobrand.logoUrl)}" alt="${esc(c.cobrand.name)}" width="132" height="44" style="display:inline-block;width:132px;height:44px;border:0;vertical-align:middle"></a></td>`
+        : ""
+    }
+  </tr></table>
 </td></tr>
 <tr><td style="background:${C.card};border-radius:18px;overflow:hidden">
   ${img ? `<img src="${esc(img.url)}" alt="${esc(img.alt)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:18px 18px 0 0">` : ""}
@@ -182,6 +236,9 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
     <h1 style="margin:0 0 20px;font-family:${SERIF};font-weight:400;font-size:34px;line-height:1.12;letter-spacing:-0.01em;color:${C.ink}">${esc(c.heading)}</h1>
     ${bodyToHtml(c.body)}
     ${ticket}
+    ${features}
+    ${stats}
+    ${factsHeading}
     ${facts}
     ${cta}
     ${code}
@@ -192,7 +249,15 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
 <tr><td style="padding:26px 8px 0;font-family:${SANS};font-size:12px;line-height:1.7;color:${C.muted}">
   <p style="margin:0 0 10px">${footerLinks}</p>
   <p style="margin:0 0 10px">Trichollective is the private home for cosmetic, clinical and medical hair and scalp professionals, founded by ${esc(site.founderFull)}.</p>
+  ${c.cobrand ? `<p style="margin:0 0 10px">Sent with <a href="${esc(c.cobrand.url)}" style="color:${C.muted};text-decoration:underline">${esc(c.cobrand.name)}</a>, a Trichollective partner.</p>` : ""}
   ${c.reason ? `<p style="margin:0 0 10px">${esc(c.reason)}</p>` : ""}
+  ${
+    c.sources?.length
+      ? `<p style="margin:0 0 10px">Sources: ${c.sources
+          .map((s) => `<a href="${esc(s.url)}" style="color:${C.muted};text-decoration:underline">${esc(s.label)}</a>`)
+          .join(`<span style="color:${C.fade}">&nbsp;·&nbsp;</span>`)}</p>`
+      : ""
+  }
   ${c.unsubscribeUrl ? `<p style="margin:0 0 10px"><a href="${esc(c.unsubscribeUrl)}" style="color:${C.muted};text-decoration:underline">Unsubscribe or change which emails you receive</a></p>` : ""}
   <p style="margin:16px 0 0;color:${C.fade}">Designed and managed by <a href="https://experrt.com" style="color:${C.fade};text-decoration:underline">experrt.com</a></p>
 </td></tr>

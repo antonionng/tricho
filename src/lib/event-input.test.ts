@@ -85,6 +85,13 @@ describe("validateEventInput", () => {
     published: "on",
   };
 
+  it("keeps a readable recording link as the plain video page and drops one it can't read", () => {
+    const drive = validateEventInput({ ...complete, recordingUrl: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456/view?usp=sharing" });
+    expect(drive.ok && drive.data.recordingUrl).toBe("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456/view");
+    const bad = validateEventInput({ ...complete, recordingUrl: "https://example.com/video.mp4" });
+    expect(bad.ok && bad.data.recordingUrl).toBeNull();
+  });
+
   it("accepts a complete event and normalises it", () => {
     const r = validateEventInput(complete);
     expect(r.ok).toBe(true);

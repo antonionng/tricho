@@ -645,6 +645,8 @@ model Event {
   ticketUrl      String?
   /// The online joining link (for example Google Meet). Shown only to members who are going.
   joinUrl        String?
+  /// Where the recording lives (Google Drive, Vimeo or YouTube). Shown to members once the event has taken place.
+  recordingUrl   String?
   published      Boolean       @default(false)
   /// Sell tickets on Trichollective through Stripe instead of an external link.
   sellTickets    Boolean       @default(false)

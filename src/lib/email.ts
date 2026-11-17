@@ -22,6 +22,7 @@ export type EmailAttachment = {
   filename: string;
   /** Base64. */
   content: string;
+  contentType?: string;
   contentId?: string;
 };
 
@@ -99,6 +100,7 @@ export async function sendEmail({ to, subject, text, html, replyTo, unsubscribeU
             attachments: attachments.map((a) => ({
               filename: a.filename,
               content: a.content,
+              ...(a.contentType ? { content_type: a.contentType } : {}),
               ...(a.contentId ? { content_id: a.contentId } : {}),
             })),
           }

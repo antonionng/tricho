@@ -33,6 +33,32 @@ async function inBatches<T, R>(items: T[], size: number, fn: (item: T) => Promis
 }
 
 /**
+ * Everyone with an account in good standing, free or paid, once per email, plus anyone Stripe
+ * shows as paying who has never signed in. Suspended and banned accounts are left out.
+ */
+export async function everyoneRecipients(): Promise<MemberRecipient[]> {
+  const fromStripe = await stripeMemberEmails().catch((error) => {
+    console.error("[MEMBER_RECIPIENTS] Stripe lookup failed", error);
+    return new Map<string, string | null>();
+  });
+  const accounts = await prisma.user.findMany({
+    where: { email: { not: null } },
+    select: { email: true, name: true, accessStatus: true },
+  });
+  const byEmail = new Map(accounts.map((u) => [u.email!.toLowerCase(), u]));
+  const recipients = new Map<string, MemberRecipient>();
+  for (const u of accounts) {
+    if (u.accessStatus !== "active") continue;
+    const email = u.email!.toLowerCase();
+    recipients.set(email, { email, name: u.name });
+  }
+  for (const [email, name] of fromStripe) {
+    if (!byEmail.has(email) && !recipients.has(email)) recipients.set(email, { email, name });
+  }
+  return [...recipients.values()];
+}
+
+/**
  * Every active member, once per email: paid, complimentary, or on a business seat, plus anyone
  * Stripe shows as paying. Accounts that are suspended or banned are left out. Members Stripe knows
  * about but the account does not are brought up to date on the way.
