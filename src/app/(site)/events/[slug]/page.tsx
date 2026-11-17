@@ -21,6 +21,8 @@ import { BuyTicket, TicketReturnNotice } from "@/components/events/BuyTicket";
 import { BuyPackage, PackageReturnNotice, type PackageCard } from "@/components/events/BuyPackage";
 import { packageAvailability, packageIncludes } from "@/lib/packages";
 import { MemberPlace } from "@/components/events/MemberPlace";
+import { RecordingGate } from "@/components/events/RecordingGate";
+import { hasRecording } from "@/components/events/RecordingPlayer";
 import { images, img } from "@/content/images";
 import { seatUsage, seatsLeft, typeAvailability, typeSeatsTaken, type TypeAvailability } from "@/lib/tickets";
 import { eventTimeZone, mapHref, timeZoneLabel } from "@/lib/event-time";
@@ -35,7 +37,7 @@ const getEvent = cache(async (slug: string) => {
   try {
     return await prisma.event.findFirst({
       where: { slug, published: true },
-      select: publicEventSelect,
+      select: { ...publicEventSelect, recordingUrl: true },
     });
   } catch (err) {
     console.error("[events] failed to load event", slug, err);
@@ -140,6 +142,8 @@ export default async function EventPage({ params }: { params: Promise<Params> })
   if (!event) notFound();
 
   const isPast = (event.endsAt ?? event.startsAt) < new Date();
+  // The link itself stays on the server; the page only learns that a recording exists.
+  const recorded = isPast && hasRecording(event.recordingUrl);
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Events", path: "/events" },
@@ -426,6 +430,18 @@ export default async function EventPage({ params }: { params: Promise<Params> })
               </Suspense>
               <BuyPackage eventId={event.id} slug={event.slug} packages={packageCards} />
             </div>
+          </Container>
+        </Section>
+      )}
+
+      {recorded && (
+        <Section id="recording">
+          <Container>
+            <div className="mb-8 flex flex-col gap-3">
+              <p className="label text-muted-foreground">Trichollective TV</p>
+              <h2 className="display text-4xl md:text-5xl">Watch the recording.</h2>
+            </div>
+            <RecordingGate slug={event.slug} title={event.title} />
           </Container>
         </Section>
       )}
