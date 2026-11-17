@@ -165,7 +165,13 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
       {recordings.length > 0 && (
         <section className="mt-10">
           <h2 className="display text-2xl sm:text-3xl">Watch again</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Recordings of masterclasses and gatherings you may have missed. For members only.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Recordings of masterclasses and gatherings you may have missed. For members only. They all play on{" "}
+            <Link href="/members/tv" className="underline underline-offset-4">
+              Trichollective TV
+            </Link>
+            .
+          </p>
           <ul className="mt-4 flex flex-col gap-3">
             {recordings.map((e) => {
               return (

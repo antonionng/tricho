@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
+  PlayCircle,
   ArrowUpRight,
   BookOpen,
   CalendarDays,
@@ -35,6 +36,7 @@ import { coverImage } from "@/components/gazette/art";
 import { gazetteFonts } from "@/components/gazette/fonts";
 import { DISCIPLINES } from "@/content/disciplines";
 import { listCourses } from "@/lib/course-catalogue";
+import { listRecordings, RECORDING_KIND_LABEL, recordingDate, recordingImage } from "@/lib/recordings";
 import { homeFaqs } from "@/content/faqs";
 import { flagshipTier, subscriptionTiers, FREE_LISTING_DAYS } from "@/config/subscriptions";
 import { getPublicStats, STAT_THRESHOLDS } from "@/lib/stats";
@@ -62,7 +64,7 @@ const pillars = [
 
 export default async function HomePage() {
   const courses = await listCourses();
-  const [stats, editions] = await Promise.all([getPublicStats(), getEditions()]);
+  const [stats, editions, recordings] = await Promise.all([getPublicStats(), getEditions(), listRecordings(3)]);
   const freeOffer = freeListingOfferLive();
   const proof = [
     stats.members >= STAT_THRESHOLDS.members && { value: stats.members, label: "members" },
@@ -510,6 +512,67 @@ export default async function HomePage() {
           </div>
         </Container>
       </section>
+
+      {/* 8b. Trichollective TV */}
+      {recordings.length > 0 && (
+        <Section>
+          <Container>
+            <div className="grid gap-10 lg:grid-cols-12">
+              <div className="lg:col-span-4">
+                <SectionHeader
+                  eyebrow="Trichollective TV"
+                  title={
+                    <>
+                      Missed a live session?
+                      <br />
+                      <span className="text-fade">The recording is on Trichollective TV.</span>
+                    </>
+                  }
+                  body="Every month members meet online for a masterclass and a case round. The recordings stay on the platform for members, so you can watch when you have the time, with the podcast alongside."
+                />
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <Button asChild size="lg">
+                    <Link href="/pricing">
+                      Become a member to watch <ArrowRight />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/tv">
+                      Go to Trichollective TV <ArrowRight />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+              <ul className="grid gap-4 sm:grid-cols-2 lg:col-span-8 lg:grid-cols-3">
+                {recordings.map((r) => (
+                  <li key={r.id}>
+                    <Link
+                      href={`/events/${r.slug}`}
+                      className="group flex h-full flex-col gap-3 rounded-3xl border border-rule bg-card p-5 transition-colors hover:border-ink"
+                    >
+                      <div className="relative aspect-video overflow-hidden rounded-2xl bg-ink text-paper">
+                        <Image
+                          src={img(images[recordingImage(r.kind)], 800)}
+                          alt={images[recordingImage(r.kind)].alt}
+                          fill
+                          sizes="(min-width: 1024px) 22vw, (min-width: 640px) 45vw, 100vw"
+                          className="mag-bw object-cover opacity-70 transition-transform duration-700 group-hover:scale-[1.03]"
+                        />
+                        <div className="absolute inset-0 grid place-items-center">
+                          <PlayCircle className="h-10 w-10 stroke-[1.25] drop-shadow transition-transform group-hover:scale-105" aria-hidden />
+                        </div>
+                      </div>
+                      <span className="label text-muted-foreground">{RECORDING_KIND_LABEL[r.kind] ?? "Session"} · {recordingDate(r.startsAt)}</span>
+                      <span className="text-lg font-semibold leading-snug tracking-tight">{r.title}</span>
+                      {r.presenters && <span className="text-[14px] text-muted-foreground">With {r.presenters}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Container>
+        </Section>
+      )}
 
       {/* 9. Pricing teaser */}
       <Section tone="paper-2">

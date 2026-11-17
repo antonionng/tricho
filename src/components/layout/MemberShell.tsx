@@ -24,6 +24,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Users,
+  Tv,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { signOutAction } from "@/app/members/profile/actions";
@@ -37,6 +38,7 @@ const primary: NavItem[] = [
   { href: "/members/messages", label: "Messages", icon: MessageCircle },
   { href: "/members/people", label: "People", icon: Users },
   { href: "/members/events", label: "Events", icon: CalendarDays },
+  { href: "/members/tv", label: "Trichollective TV", icon: Tv },
   { href: "/members/trichozette", label: "Trichozette", icon: Newspaper },
   {
     href: "/members/learn",

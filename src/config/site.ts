@@ -125,6 +125,18 @@ export const primaryNav: {
   { label: "Directory", href: "/directory" },
   { label: "Events", href: "/events" },
   {
+    label: "Trichollective TV",
+    href: "/tv",
+    menu: {
+      intro: "The live masterclasses and case rounds, recorded for members, and the podcast to listen to between them.",
+      items: [
+        { label: "Recordings", href: "/tv", description: "Every masterclass and case round, to watch when you have an hour." },
+        { label: "Podcast", href: "/podcast", description: "Conversations from the community, free to listen to." },
+        { label: "Live sessions", href: "/events", description: "Join the next masterclass or case round live." },
+      ],
+    },
+  },
+  {
     label: "Trichozette",
     href: "/trichozette",
     menu: {
@@ -133,7 +145,6 @@ export const primaryNav: {
         { label: "All editions", href: "/trichozette", description: "Interactive editions with quizzes and checklists." },
         { label: "Latest news", href: "/news", description: "Regulation, treatments and research, with sources." },
         { label: "Blog", href: "/blog", description: "Sourced posts on hair, scalp and practice." },
-        { label: "Podcast", href: "/podcast", description: "Conversations from the community." },
       ],
     },
   },
@@ -158,6 +169,7 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "Community", href: "/community" },
       { label: "Events", href: "/events" },
+      { label: "Trichollective TV", href: "/tv" },
       { label: "Trichozette", href: "/trichozette" },
       { label: "News", href: "/news" },
       { label: "Blog", href: "/blog" },
