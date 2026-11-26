@@ -25,7 +25,7 @@ export const editionsD: Edition[] = [
         kind: "letter",
         title: "So grab a cuppa and come with me.",
         blocks: [
-          { type: "p", text: "Hello everyone, and a big welcome to this edition of Trichozette!" },
+          { type: "p", text: "Hello everyone, and a big welcome to this edition of Trichozette." },
           {
             type: "p",
             text: "I want to start with a huge congratulations to Ashley-Marie Higgins, who won Pride of the Industry at the Pro Hair Awards, sponsored by Passion4hair. I've visited Ashley-Marie's salon before and recently went back to Manchester with Debbie Digby to spend time with her at Little Lady Locks. Having seen some of the work that goes into supporting children and young people experiencing hair loss, I was so pleased to see her get that recognition.",
@@ -51,6 +51,34 @@ export const editionsD: Edition[] = [
         title: "Twelve days of gifts for the people who look after hair and scalps.",
         intro:
           "One door opens here every morning from Saturday 12 to Wednesday 23 December. Behind each one is an offer from a brand we trust, something to learn or a little help for the year ahead, and every gift is free to claim with a Trichollective account.",
+      },
+      {
+        kind: "perspectives",
+        kicker: "Three perspectives",
+        title: "Knowing who to turn to gives a worried client a clear next step.",
+        intro:
+          "I always enjoy being in a room with people who see hair and scalp concerns from different perspectives. Knowing who to turn to makes it easier to give someone a clear next step when they're sitting in your chair, worried and unsure where to go.",
+        views: [
+          {
+            discipline: "cosmetic",
+            heading: "The hairdresser is often the first to notice.",
+            blocks: [
+              { type: "p", text: "A hairdresser might be the first to spot a change because they've seen that same client every six weeks for years." },
+            ],
+          },
+          {
+            discipline: "clinical",
+            heading: "The trichologist has time to look and listen.",
+            blocks: [
+              { type: "p", text: "In my role as a cosmetic trichologist, I can spend time looking at the hair and scalp and listening to what the client has noticed." },
+            ],
+          },
+          {
+            discipline: "medical",
+            heading: "The medical professional can investigate.",
+            blocks: [{ type: "p", text: "A dermatologist or another medical professional can investigate where that's needed." }],
+          },
+        ],
       },
       {
         kind: "article",
@@ -126,17 +154,13 @@ export const editionsD: Edition[] = [
       {
         kind: "article",
         kicker: "ART in London",
-        title: "Knowing who to turn to gives a worried client a clear next step.",
-        standfirst: "Karley spent time with colleagues from across the profession, and Brian Plunkett announced his retirement.",
+        title: "Brian Plunkett announced his retirement at ART in London.",
+        standfirst: "Karley spent the day with colleagues from across the profession.",
         imageKey: "london",
         blocks: [
           {
             type: "p",
             text: "At ART in London, I spent time with trichologist John Bellfield, dermatologist John English, Brian Plunkett and other colleagues from across the profession.",
-          },
-          {
-            type: "p",
-            text: "I always enjoy being in a room with people who see hair and scalp concerns from different perspectives. A hairdresser might be the first to spot a change because they've seen that same client every six weeks for years. In my role as a cosmetic trichologist, I can spend time looking at the hair and scalp and listening to what the client has noticed. A dermatologist or another medical professional can investigate where that's needed. Knowing who to turn to makes it easier to give someone a clear next step when they're sitting in your chair, worried and unsure where to go.",
           },
           {
             type: "p",
