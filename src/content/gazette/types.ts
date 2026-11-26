@@ -87,11 +87,16 @@ export type Page =
       /** The label on the page. Defaults to "Partner feature"; charities use "Charity feature" and are never labelled sponsored. */
       label?: string;
     }
+  /**
+   * The 12 Days of Christmas calendar (src/content/advent.ts): one door a day, opened and claimed
+   * inside the edition. `live` is filled on the server for each reader and never written by hand.
+   */
+  | { kind: "advent"; kicker: string; title: string; intro: string; live?: import("@/lib/advent").AdventLive }
   /** Join as a member or list a business. Shown to everyone, including readers without membership. */
   | { kind: "cta"; kicker: string; title: string; intro: string; blocks: Block[]; offers: ("account" | "member" | "business")[] };
 
 /** Page kinds that only built-in editions use. Studio cannot write them, so they have no form or schema there. */
-export type BuiltInOnlyKind = "gallery" | "people" | "partners" | "partner" | "cta";
+export type BuiltInOnlyKind = "gallery" | "people" | "partners" | "partner" | "advent" | "cta";
 
 export type Edition = {
   number: number;

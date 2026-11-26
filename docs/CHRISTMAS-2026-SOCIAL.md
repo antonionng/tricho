@@ -4,7 +4,7 @@ Handover for the social agent. Everything here is agreed unless it is marked **T
 
 ## What the campaign is
 
-Trichollective's **12 Days of Christmas** is a gift a day for hair and scalp professionals, from **Saturday 12 to Wednesday 23 December 2026**. One door opens each morning at midnight UK time on **trichollective.net/christmas**. Behind each door is an offer from a brand we trust, something to learn, or a little help for the year ahead.
+Trichollective's **12 Days of Christmas** is a gift a day for hair and scalp professionals, from **Saturday 12 to Wednesday 23 December 2026**. The doors live inside **the Christmas edition of Trichozette** (Edition 10, out Tuesday 1 December). One door opens each morning at midnight UK time. The short link **trichollective.net/christmas** takes people straight to the doors in the edition. Behind each door is an offer from a brand we trust, something to learn, or a little help for the year ahead.
 
 Social runs for **the whole of December, one post a day (31 posts)**, in three phases:
 
@@ -20,7 +20,7 @@ Social runs for **the whole of December, one post a day (31 posts)**, in three p
 
 How a claim works (use this wording when explaining it):
 
-1. Open today's door on trichollective.net/christmas.
+1. Open today's door in the Christmas edition of Trichozette (trichollective.net/christmas).
 2. Sign in or create a free account, then press **Claim this gift**.
 3. Your code appears straight away, and we email you a copy to keep.
 
@@ -47,9 +47,14 @@ Always use the tracked link for the platform, so the Studio report (`/studio/chr
 
 ## Look and feel
 
-Match the calendar page: a night scene in near-black (`#0B0B0B`) with warm gold (`#D9B56D`, highlight `#F5E3B3`), paper white text (`#F4F3F0`), soft falling snow, and a numbered panelled door that swings open on its left hinge to warm light. Type is Inter Tight for headlines and Inter for body.
+Match the calendar in the Christmas edition, which is in Trichollective's own black, white and paper. Do not introduce gold, red or green as campaign colours: the only colour is each partner's own, behind their door.
 
-- Daily door reveal: a short reel or animated post of the numbered door swinging open to the brand's colour and logo, with the offer headline. Screen-record the real door on `/christmas?day=N` (staff preview) if that is quickest.
+- Night scene in ink black (`#0B0B0B`) with soft white falling snow.
+- Doors are paper white (`#FBFAF7`) with a black hairline frame and a large black italic numeral; a door that has not opened yet is a white outline in the dark.
+- Headlines in the Trichozette Didone (Bodoni Moda), often italic; small labels in spaced capitals; body in the reading serif (Source Serif 4).
+- The door swings open on its left hinge to the partner's colour and logo, with white light and sparks.
+
+- Daily door reveal: a short reel or animated post of the numbered door swinging open to the brand's colour and logo, with the offer headline. Screen-record the real door on `/christmas?day=N` (staff preview, signed in) if that is quickest.
 - Brand colours for the open door: Secret Hair Solutions deep green `#29382F` with blush `#EBCCC2`; PRP Pure dark red `#3A0D0D` with their red `#FF0000`; Kiera SI black `#0B0B0B`; Little Lady Locks pink `#D4007A`.
 - Use each brand's own logo unaltered. Ask before using a brand's product photography.
 
@@ -80,7 +85,7 @@ Handles: PRP Pure `@prppure`, Little Lady Locks `@littleladylocks`, Secret Hair 
 
 | Date | Post | Headline (one sentence) | Format |
 |---|---|---|---|
-| Tue 1 | Announcement | "From 12 December we are opening one gift a day for the people who look after hair and scalps." | Reel: twelve closed doors in the snow |
+| Tue 1 | Christmas edition out + announcement | "The Christmas edition of Trichozette is out, and from 12 December it opens one gift a day for the people who look after hair and scalps." | Reel: the cover, then twelve closed doors in the snow |
 | Wed 2 | How it works | "Claiming a gift takes less than a minute with a free Trichollective account." | Carousel: the three steps |
 | Thu 3 | Why we are doing it | "This is our thank you for everything you have done for your clients this year." | Karley to camera |
 | Fri 4 | Sign-up push | "Create your free account now, so you are ready when the first door opens." | Static, link in bio |

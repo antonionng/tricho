@@ -1,5 +1,6 @@
 "use client";
 
+import { AdventSection } from "@/components/advent/AdventSection";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -254,6 +255,8 @@ function Section({ edition, page, index, articleCount, signedIn }: { edition: Ed
       return <Partners page={page} index={index} />;
     case "partner":
       return <PartnerFeature page={page} index={index} />;
+    case "advent":
+      return <AdventSection page={page} index={index} slug={edition.slug} />;
     case "cta":
       return <JoinCta page={page} index={index} slug={edition.slug} signedIn={signedIn} />;
   }

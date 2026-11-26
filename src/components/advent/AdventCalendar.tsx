@@ -6,6 +6,7 @@ import { ArrowUpRight, Check, Copy, Gift, Lock, Mail, Sparkles } from "lucide-re
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { ClaimReveal, PublicDoor } from "@/lib/advent";
+import { gazetteFonts } from "@/components/gazette/fonts";
 
 const STORAGE_KEY = "tc-12days-2026-opened";
 const SWING_MS = 1050;
@@ -55,6 +56,7 @@ export function AdventCalendar({
   signedIn,
   initialDoor,
   source,
+  basePath,
 }: {
   doors: PublicDoor[];
   signedIn: boolean;
@@ -62,6 +64,8 @@ export function AdventCalendar({
   initialDoor?: number | null;
   /** Where the visitor came from, recorded with a claim. */
   source?: string | null;
+  /** The page the calendar is on, so signing in brings the reader back to the same door. */
+  basePath: string;
 }) {
   const [opened, setOpened] = useState<number[]>([]);
   const [ready, setReady] = useState(false);
@@ -121,7 +125,7 @@ export function AdventCalendar({
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between gap-4 text-sm text-paper/60">
+      <div className="mag-caps mb-6 flex items-center justify-between gap-4 text-[9px] text-paper/60">
         <p aria-live="polite">
           {today === 0
             ? "The doors are still closed."
@@ -133,7 +137,7 @@ export function AdventCalendar({
               key={d.day}
               className={cn(
                 "h-1.5 w-5 rounded-full transition-colors duration-500",
-                d.open && opened.includes(d.day) ? "bg-[color:var(--gold)]" : d.open ? "bg-paper/40" : "bg-paper/12"
+                d.open && opened.includes(d.day) ? "bg-paper" : d.open ? "bg-paper/40" : "bg-paper/12"
               )}
             />
           ))}
@@ -164,7 +168,7 @@ export function AdventCalendar({
                   {d.door && (
                     <span className="advent-inside-content flex flex-col justify-between p-4 sm:p-5">
                       <span className="flex items-start justify-between gap-2">
-                        <span className="label text-paper/70">Day {d.day}</span>
+                        <span className="mag-caps text-[9px] text-paper/70">Day {d.day}</span>
                         {d.door.brand?.logoUrl ? (
                           <span className={cn("grid h-9 max-w-[62%] place-items-center rounded-lg px-2.5 shadow-lg", d.door.brand.logoOn === "dark" ? "bg-ink ring-1 ring-paper/15" : "bg-paper")}>
                             {/* Brand logos come from anywhere, so a plain img rather than next/image. */}
@@ -172,13 +176,13 @@ export function AdventCalendar({
                             <img src={d.door.brand.logoUrl} alt="" className="max-h-6 max-w-full object-contain" loading="lazy" />
                           </span>
                         ) : (
-                          <Gift className="h-5 w-5 stroke-[1.4] text-[color:var(--gold-2)]" />
+                          <Gift className="h-5 w-5 stroke-[1.4] text-paper" />
                         )}
                       </span>
                       <span className="flex flex-col gap-1.5">
-                        <span className="display text-[26px] leading-[1.02] text-paper sm:text-3xl">{d.door.headline}</span>
+                        <span className="mag-didone text-[30px] italic leading-[1] text-paper sm:text-[36px]">{d.door.headline}</span>
                         <span className="line-clamp-2 text-[13px] leading-snug text-paper/75">{d.door.brand?.name ?? "From Trichollective"}</span>
-                        <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-medium text-[color:var(--gold-2)]">
+                        <span className="mag-caps mt-1 inline-flex items-center gap-1 text-[9px] text-paper">
                           {d.door.claimable ? "See your gift" : "Open again"} <ArrowUpRight className="h-3.5 w-3.5" />
                         </span>
                       </span>
@@ -192,11 +196,11 @@ export function AdventCalendar({
                 <span className="advent-door" aria-hidden>
                   <span className="advent-door-face advent-door-front flex flex-col justify-between p-5 sm:p-6">
                     <span className="relative flex items-center justify-between">
-                      <span className={cn("label", d.open ? "text-[color:var(--gold-2)]/80" : "text-paper/35")}>{d.dateLabel}</span>
-                      {!d.open ? <Lock className="h-4 w-4 stroke-[1.4] text-paper/30" /> : isToday ? <Sparkles className="h-4 w-4 text-[color:var(--gold-2)]" /> : null}
+                      <span className="mag-caps text-[9px] opacity-70">{d.dateLabel}</span>
+                      {!d.open ? <Lock className="h-4 w-4 stroke-[1.4]" /> : isToday ? <Sparkles className="h-4 w-4 stroke-[1.4]" /> : null}
                     </span>
-                    <span className={cn("display relative text-[84px] leading-none sm:text-[104px]", d.open ? "advent-gold" : "text-paper/20")}>{d.day}</span>
-                    <span className={cn("relative text-[13px] font-medium", d.open ? "text-paper/80" : "text-paper/35")}>
+                    <span className="mag-didone relative text-[92px] italic leading-none sm:text-[118px]">{d.day}</span>
+                    <span className="mag-caps relative text-[9px] opacity-70">
                       {d.open ? (isToday ? "Today's door, tap to open" : "Tap to open") : "Opens at midnight"}
                     </span>
                     <span className="advent-knob" />
@@ -216,6 +220,7 @@ export function AdventCalendar({
             d={active}
             signedIn={signedIn}
             source={source ?? null}
+            basePath={basePath}
             reveal={reveals[active.day] ?? active.door.claimed}
             onReveal={(r) => setReveals((prev) => ({ ...prev, [active.day]: r }))}
           />
@@ -229,12 +234,14 @@ function GiftDialog({
   d,
   signedIn,
   source,
+  basePath,
   reveal,
   onReveal,
 }: {
   d: PublicDoor;
   signedIn: boolean;
   source: string | null;
+  basePath: string;
   reveal: ClaimReveal | null;
   onReveal: (r: ClaimReveal) => void;
 }) {
@@ -243,7 +250,7 @@ function GiftDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justClaimed, setJustClaimed] = useState(false);
-  const back = `/christmas?door=${d.day}`;
+  const back = `${basePath}?door=${d.day}`;
 
   async function claim() {
     setBusy(true);
@@ -268,11 +275,11 @@ function GiftDialog({
   const stagger = (i: number): CSSProperties => ({ animationDelay: `${0.12 + i * 0.09}s` });
 
   return (
-    <DialogContent className="max-h-[92dvh] gap-0 overflow-y-auto border-0 bg-card p-0 sm:max-w-lg">
-      <div className="advent-scene relative flex flex-col gap-5 overflow-hidden rounded-t-lg p-6 sm:p-8" style={{ background: `radial-gradient(90% 90% at 50% 0%, rgba(245,227,179,0.28), transparent 70%), ${accent}` }}>
+    <DialogContent className={cn(gazetteFonts, "max-h-[92dvh] gap-0 overflow-y-auto rounded-none border border-black bg-[#fbfaf7] p-0 sm:max-w-lg")}>
+      <div className="advent-scene relative flex flex-col gap-5 overflow-hidden p-6 sm:p-8" style={{ background: `radial-gradient(90% 90% at 50% 0%, rgba(255,255,255,0.2), transparent 70%), ${accent}` }}>
         <Sparks count={22} spread={230} />
         <div className="advent-rise relative flex items-center justify-between gap-3 pr-8" style={stagger(0)}>
-          <p className="label text-paper/75">
+          <p className="mag-caps text-[9px] text-paper/75">
             Day {d.day} · {d.dateLabel}
           </p>
           {door.brand?.logoUrl && (
@@ -282,30 +289,30 @@ function GiftDialog({
             </span>
           )}
         </div>
-        <p className="advent-rise display relative text-5xl leading-[0.95] text-paper sm:text-6xl" style={stagger(1)}>
+        <p className="advent-rise mag-didone relative text-[54px] italic leading-[0.95] text-paper sm:text-[68px]" style={stagger(1)}>
           {door.headline}
         </p>
-        <p className="advent-rise relative text-sm text-paper/75" style={stagger(2)}>
+        <p className="advent-rise mag-caps relative text-[9px] text-paper/75" style={stagger(2)}>
           {door.kind === "brand" ? `A gift from ${door.brand?.name}` : door.kind === "charity" ? `A cause we support: ${door.brand?.name}` : "A gift from Trichollective"}
         </p>
       </div>
 
       <div className="flex flex-col gap-5 p-6 sm:p-8">
-        <DialogTitle className="advent-rise text-xl font-semibold leading-snug tracking-tight" style={stagger(3)}>
+        <DialogTitle className="advent-rise mag-didone text-[26px] font-medium leading-[1.12]" style={stagger(3)}>
           {door.title}
         </DialogTitle>
         <DialogDescription asChild>
-          <div className="advent-rise space-y-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-2" style={stagger(4)}>
+          <div className="advent-rise mag-serif space-y-3 whitespace-pre-line text-[16px] leading-[1.6] text-black/80" style={stagger(4)}>
             {door.body}
           </div>
         </DialogDescription>
 
         {door.claimable && (
-          <div className="advent-rise relative rounded-2xl border border-dashed border-ink/30 bg-paper p-4 sm:p-5" style={stagger(5)}>
+          <div className="advent-rise relative border border-black bg-white p-4 sm:p-5" style={stagger(5)}>
             {reveal ? (
               <div className="relative flex flex-col gap-3">
                 {justClaimed && <Sparks count={16} spread={170} />}
-                <p className="label text-muted-foreground">{reveal.code ? "Your code" : "Your gift is claimed"}</p>
+                <p className="mag-caps text-[9px] text-black/60">{reveal.code ? "Your code" : "Your gift is claimed"}</p>
                 {reveal.code && <CodeChip code={reveal.code} />}
                 {reveal.redeem && <p className="text-[14px] leading-relaxed text-ink-2">{reveal.redeem}</p>}
                 <p className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
@@ -314,7 +321,7 @@ function GiftDialog({
               </div>
             ) : signedIn ? (
               <div className="flex flex-col gap-3">
-                <p className="label text-muted-foreground">Step 2 of 2</p>
+                <p className="mag-caps text-[9px] text-black/60">Step 2 of 2</p>
                 <p className="text-[14px] leading-relaxed text-ink-2">Press Claim to see {door.brand?.name}&rsquo;s gift, and we will email you a copy to keep.</p>
                 <button
                   type="button"
@@ -332,7 +339,7 @@ function GiftDialog({
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <p className="label text-muted-foreground">Claim your gift</p>
+                <p className="mag-caps text-[9px] text-black/60">Claim your gift</p>
                 <p className="text-[14px] leading-relaxed text-ink-2">
                   Gifts are free for everyone in the Trichollective community. Create a free account or sign in, and you will come straight back to this door to claim it.
                 </p>
@@ -388,7 +395,7 @@ function CodeChip({ code }: { code: string }) {
           // Clipboard blocked: the code is still on screen to copy by hand.
         }
       }}
-      className="flex w-full items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3.5 font-mono text-xl tracking-[0.12em] text-paper"
+      className="flex w-full items-center justify-between gap-3 bg-ink px-4 py-3.5 font-mono text-xl tracking-[0.12em] text-paper"
     >
       <span className="select-all">{code}</span>
       <span className="inline-flex items-center gap-1.5 font-sans text-[13px] tracking-normal text-paper/75">

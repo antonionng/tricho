@@ -68,7 +68,7 @@ const PRP_PURE: AdventBrand = {
 const KIERA: AdventBrand = {
   name: "Kiera SI",
   logoUrl: "/partners/kiera/logo.png",
-  accent: "#0B0B0B",
+  accent: "#1A1A1A",
   website: "https://kierasi.com",
 };
 

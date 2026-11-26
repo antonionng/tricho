@@ -1,6 +1,7 @@
 import { editionsA } from "./editions-a";
 import { editionsB } from "./editions-b";
 import { editionsC } from "./editions-c";
+import { editionsD } from "./editions-d";
 import { archive2023 } from "./archive-2023";
 import { archive2024 } from "./archive-2024";
 import { archive2025 } from "./archive-2025";
@@ -78,7 +79,7 @@ export const byPeriodDesc = (a: Edition, b: Edition) =>
   (b.period ?? "").localeCompare(a.period ?? "") || a.number - b.number;
 
 /** The monthly magazine, newest first. Built-in editions only: server code reads src/content/gazette/loader.ts to include Studio editions. */
-export const editions: Edition[] = [...editionsA, ...editionsB, ...editionsC]
+export const editions: Edition[] = [...editionsA, ...editionsB, ...editionsC, ...editionsD]
   .map((e) => withNews(e))
   .sort(byNumberDesc);
 
@@ -106,6 +107,7 @@ export function pageTitle(p: Page): string {
     case "people":
     case "partners":
     case "partner":
+    case "advent":
     case "cta":
       return p.title;
     case "image":
@@ -126,6 +128,7 @@ export function pageKicker(p: Page): string {
     case "people":
     case "partners":
     case "partner":
+    case "advent":
     case "cta":
       return p.kicker;
     case "image":

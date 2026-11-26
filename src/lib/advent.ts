@@ -96,3 +96,23 @@ export function publicDoors(openCount: number, claimedDoors: number[] = []): Pub
     };
   });
 }
+
+/** Where the calendar lives: inside the Christmas edition of Trichozette. */
+export const ADVENT_EDITION_SLUG = "the-christmas-edition";
+export const ADVENT_PATH = `/trichozette/${ADVENT_EDITION_SLUG}`;
+export const ADVENT_ANCHOR = "12-days";
+
+/** Everything the calendar needs for one reader, worked out on the server. */
+export type AdventLive = {
+  doors: PublicDoor[];
+  signedIn: boolean;
+  /** When the next door opens (ISO), or null once every door is open. */
+  nextOpens: string | null;
+  openCount: number;
+  /** A door to open straight away, from an email or social link (?door=4). */
+  initialDoor: number | null;
+  /** Where the reader came from, recorded with a claim. */
+  source: string | null;
+  /** Set when the team is looking ahead with ?day=N. */
+  preview: number | null;
+};

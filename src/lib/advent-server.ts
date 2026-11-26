@@ -2,6 +2,8 @@ import "server-only";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isBot, utcDay } from "@/lib/partner-stats";
+import { ADVENT_DAYS } from "@/content/advent";
+import { doorDate, openDoorCount, publicDoors, type AdventLive } from "@/lib/advent";
 
 export type AdventStatField = "opens" | "claims" | "clicks";
 
@@ -33,4 +35,29 @@ export async function claimedDoors(userId: string | null | undefined) {
   if (!userId) return [];
   const rows = await prisma.adventClaim.findMany({ where: { userId }, select: { door: true } }).catch(() => []);
   return rows.map((r) => r.door);
+}
+
+type Query = Record<string, string | string[] | undefined> | undefined;
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+
+/**
+ * The calendar as this reader should see it. The team (and local development) can look
+ * ahead with ?day=N to check a door before it opens.
+ */
+export async function adventLive(reader: { userId: string | null; isAdmin: boolean }, query: Query): Promise<AdventLive> {
+  const canPreview = reader.isAdmin || process.env.NODE_ENV !== "production";
+  const day = one(query?.day);
+  const preview = canPreview && day ? Math.max(0, Math.min(ADVENT_DAYS, Number.parseInt(day, 10) || 0)) : null;
+  const openCount = preview ?? openDoorCount();
+  const initialDoor = Number.parseInt(one(query?.door), 10) || null;
+  return {
+    doors: publicDoors(openCount, await claimedDoors(reader.userId)),
+    signedIn: !!reader.userId,
+    // December is GMT, so midnight in the UK is midnight UTC.
+    nextOpens: openCount >= ADVENT_DAYS ? null : `${doorDate(openCount + 1)}T00:00:00Z`,
+    openCount,
+    initialDoor,
+    source: one(query?.utm_source).slice(0, 40) || (initialDoor ? "link" : "trichozette"),
+    preview,
+  };
 }

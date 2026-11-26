@@ -7,6 +7,7 @@ import { getArchive, getEditionBySlug, getEditions } from "@/content/gazette/loa
 import { getMemberContext } from "@/lib/member";
 import { withPartnerLogos } from "@/lib/gazette-partners";
 import { isReviewLink } from "@/lib/review";
+import { adventLive } from "@/lib/advent-server";
 import { absoluteUrl, breadcrumbLd, JsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/config/site";
 
@@ -55,7 +56,12 @@ export default async function EditionPage({
   // Gated pages never leave the server for readers without access: only their titles do.
   // The gate carries the ways to join, so the edition's own join page isn't listed among them.
   const rest = edition.pages.slice(PUBLIC_PREVIEW_PAGES);
-  const visiblePages = full ? edition.pages : edition.pages.slice(0, PUBLIC_PREVIEW_PAGES);
+  const shown = full ? edition.pages : edition.pages.slice(0, PUBLIC_PREVIEW_PAGES);
+  // The 12 Days of Christmas page is worked out for each reader: which doors are open and which they have claimed.
+  const live = shown.some((p) => p.kind === "advent")
+    ? await adventLive({ userId: ctx.session?.user?.id ?? null, isAdmin: ctx.isAdmin }, await searchParams)
+    : null;
+  const visiblePages = live ? shown.map((p) => (p.kind === "advent" ? { ...p, live } : p)) : shown;
   const lockedTitles = full
     ? []
     : rest.filter((p) => p.kind !== "cta").map((p) => ({ kicker: pageKicker(p), title: pageTitle(p) }));

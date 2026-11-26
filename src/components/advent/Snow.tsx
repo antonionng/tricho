@@ -50,7 +50,7 @@ export function Snow({ className }: { className?: string }) {
           f.x = Math.random() * w;
         }
         ctx.globalAlpha = f.a;
-        ctx.fillStyle = f.r > 2 ? "#f5e3b3" : "#ffffff";
+        ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
         ctx.fill();

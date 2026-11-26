@@ -161,6 +161,17 @@ function planPage(edition: Edition, page: Page, index: number): Plan {
         ],
         running: `${page.label ?? "Partner feature"} · ${page.partner.name}`,
       };
+    case "advent":
+      // The doors only open on screen, so print lists when each one opens and where to find them.
+      return {
+        header: { kicker: page.kicker, title: page.title, standfirst: page.intro, tone: "section" },
+        units: [
+          // Dates only: what is behind a door never reaches the browser before it opens.
+          ...(page.live?.doors ?? []).map((d): Unit => ({ t: "glance", label: `Door ${d.day}`, value: `Opens on ${d.dateLabel}` })),
+          { t: "note", text: `Open each door and claim your gift in this edition online at trichollective.net/trichozette/${edition.slug}.` },
+        ],
+        running,
+      };
     case "cta":
       return {
         header: { kicker: page.kicker, title: page.title, standfirst: page.intro, tone: "section" },

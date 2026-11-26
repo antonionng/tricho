@@ -38,12 +38,12 @@ export function Countdown({ until, label }: { until: string; label: string }) {
   const units = parts(left ?? 0);
   return (
     <div className="flex flex-col gap-3" role="timer" aria-label={label}>
-      <p className="label text-paper/60">{label}</p>
+      <p className="mag-caps text-[9px] text-paper/60">{label}</p>
       <div className="flex gap-2 sm:gap-3">
         {units.map((u) => (
-          <div key={u.l} className="flex min-w-[64px] flex-col items-center rounded-2xl border border-[color:var(--gold)]/30 bg-paper/[0.04] px-3 py-3 backdrop-blur sm:min-w-[78px]">
-            <span className="advent-digit advent-gold display text-3xl leading-none sm:text-4xl">{left === null ? "--" : String(u.v).padStart(2, "0")}</span>
-            <span className="mt-1.5 text-[11px] uppercase tracking-[0.14em] text-paper/55">{u.l}</span>
+          <div key={u.l} className="flex min-w-[64px] flex-col items-center border border-paper/30 px-3 py-3 sm:min-w-[78px]">
+            <span className="advent-digit mag-didone text-[34px] leading-none text-paper sm:text-[42px]">{left === null ? "--" : String(u.v).padStart(2, "0")}</span>
+            <span className="mag-caps mt-2 text-[8px] text-paper/55">{u.l}</span>
           </div>
         ))}
       </div>
