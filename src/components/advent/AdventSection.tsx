@@ -6,6 +6,7 @@ import { Rise } from "@/components/gazette/Parallax";
 import { AdventCalendar } from "./AdventCalendar";
 import { Countdown } from "./Countdown";
 import { Snow } from "./Snow";
+import { TreeLine } from "./Festive";
 
 const STEPS = [
   { n: "1", title: "Open the door", body: "A new door opens every morning at midnight UK time, and every door you have opened stays open." },
@@ -18,9 +19,10 @@ export function AdventSection({ page, index, slug }: { page: Extract<Page, { kin
   const live = page.live;
   const basePath = `/trichozette/${slug}`;
   return (
-    <section id={`feature-${index}`} className="advent-scene scroll-mt-14 px-5 py-24 sm:px-10 md:py-32">
+    <section id={`feature-${index}`} className="advent-scene scroll-mt-14 px-5 pb-56 pt-24 sm:px-10 sm:pb-64 md:pt-32">
       {/* The anchor the daily emails and social posts link to. */}
       <span id="12-days" className="absolute -top-14" aria-hidden />
+      <TreeLine className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[220px] w-full sm:h-[260px]" />
       <Snow className="pointer-events-none absolute inset-0 -z-10 h-full w-full" />
       <div className="mx-auto max-w-[1240px]">
         <div className="grid gap-10 lg:grid-cols-12 lg:items-end">

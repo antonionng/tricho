@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Check, Copy, Gift, Lock, Mail, Sparkles } from "lucide-react";
+import { ArrowUpRight, Check, Copy, Gift, Lock, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { ClaimReveal, PublicDoor } from "@/lib/advent";
 import { gazetteFonts } from "@/components/gazette/fonts";
+import { Garland, Wreath } from "./Festive";
 
 const STORAGE_KEY = "tc-12days-2026-opened";
 const SWING_MS = 1050;
@@ -144,7 +145,7 @@ export function AdventCalendar({
         </div>
       </div>
 
-      <ol className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
+      <ol className="advent-grid grid grid-cols-2 gap-x-4 gap-y-11 pt-6 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-4">
         {doors.map((d) => {
           const isOpened = ready && d.open && opened.includes(d.day);
           const state = !d.open ? "locked" : swinging === d.day ? "opening" : isOpened ? "opened" : "ready";
@@ -152,6 +153,7 @@ export function AdventCalendar({
           const accent = d.door?.brand?.accent;
           return (
             <li key={d.day} id={`door-${d.day}`} className={cn("advent-tile scroll-mt-28", isToday && "advent-today")} data-state={state} data-shake={shaking === d.day ? "1" : undefined}>
+              <Garland offset={d.day} />
               <button
                 type="button"
                 onClick={() => open(d, opened)}
@@ -195,9 +197,9 @@ export function AdventCalendar({
                 {/* The door, hinged on the left. */}
                 <span className="advent-door" aria-hidden>
                   <span className="advent-door-face advent-door-front flex flex-col justify-between p-5 sm:p-6">
-                    <span className="relative flex items-center justify-between">
+                    <span className="relative flex items-start justify-between">
                       <span className="mag-caps text-[9px] opacity-70">{d.dateLabel}</span>
-                      {!d.open ? <Lock className="h-4 w-4 stroke-[1.4]" /> : isToday ? <Sparkles className="h-4 w-4 stroke-[1.4]" /> : null}
+                      {!d.open ? <Lock className="h-4 w-4 stroke-[1.4]" /> : <Wreath className="-mr-1 -mt-1 h-11 w-10" />}
                     </span>
                     <span className="mag-didone relative text-[92px] italic leading-none sm:text-[118px]">{d.day}</span>
                     <span className="mag-caps relative text-[9px] opacity-70">

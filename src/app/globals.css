@@ -616,6 +616,7 @@
   background: #0b0b0b;
 }
 /* A door that has not opened yet is only an outline in the dark. */
+.advent-tile[data-state="locked"] .advent-inside { opacity: 0; }
 .advent-tile[data-state="locked"] .advent-door-front {
   background: transparent;
   color: rgba(244, 243, 240, 0.35);
@@ -693,4 +694,37 @@
 @media (prefers-reduced-motion: reduce) {
   .advent-door, .advent-inside-content, .advent-frame { transition-duration: 0.01s !important; transition-delay: 0s !important; }
   .advent-today .advent-door-front, .advent-flare, .advent-spark, .advent-rise, .advent-tile[data-shake="1"] .advent-frame { animation: none !important; }
+}
+
+/* Christmas dressing for the 12 Days: fairy lights between the doors, wreaths and a tree line. */
+.advent-grid { --gap: 16px; }
+@media (min-width: 640px) { .advent-grid { --gap: 24px; } }
+.advent-garland {
+  position: absolute;
+  left: 0;
+  top: -24px;
+  width: calc(100% + var(--gap));
+  height: 26px;
+  pointer-events: none;
+  z-index: 1;
+}
+.advent-bulb {
+  position: absolute;
+  width: 7px;
+  height: 9px;
+  margin-left: -3.5px;
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+  background: #ffffff;
+  box-shadow: 0 0 10px 3px rgba(255, 246, 224, 0.75), 0 0 2px 1px #ffffff;
+  animation: advent-twinkle 2.2s ease-in-out infinite;
+}
+.advent-tree-light { animation: advent-twinkle 2s ease-in-out infinite; }
+.advent-star { animation: advent-twinkle 3s ease-in-out infinite; transform-origin: center; filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9)); }
+@keyframes advent-twinkle {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.25; }
+  60% { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .advent-bulb, .advent-tree-light, .advent-star { animation: none !important; }
 }
