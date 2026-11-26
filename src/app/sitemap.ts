@@ -30,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const staticPaths = [
     "/", "/pricing", "/founding", "/community", "/about", "/for-business", "/partners", "/jobs",
-    "/trichozette", "/news", "/learn", "/certification", "/educators", "/terms/educators", "/events", "/tv", "/chapters", "/blog", "/podcast", "/directory",
+    "/trichozette", "/news", "/learn", "/certification", "/educators", "/terms/educators", "/events", "/tv", "/christmas", "/chapters", "/blog", "/podcast", "/directory",
     "/directory/list", "/find", "/guides", "/glossary", "/contact", "/privacy", "/terms", "/cookies",
   ];
 

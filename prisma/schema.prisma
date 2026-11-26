@@ -1843,3 +1843,36 @@ model BlogArticle {
 
   @@index([status, publishedAt])
 }
+
+/// A gift claimed from the 12 Days of Christmas calendar (src/content/advent.ts).
+/// One per person per door; the code is only ever shown after a claim.
+model AdventClaim {
+  id        String    @id @default(cuid())
+  userId    String
+  email     String
+  /// The door number, 1 to 12.
+  door      Int
+  /// Where they came from: "email", "social", "site" or a utm_source.
+  source    String?
+  /// When the confirmation email with the code was sent.
+  emailedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, door])
+  @@index([door, createdAt])
+}
+
+/// Daily counts for each door of the 12 Days of Christmas, for the Studio report and the brands.
+model AdventStat {
+  id     String   @id @default(cuid())
+  door   Int
+  day    DateTime @db.Date
+  /// The door was opened on the calendar.
+  opens  Int      @default(0)
+  /// A signed-in person claimed the gift and saw the code.
+  claims Int      @default(0)
+  /// The button through to the brand or page was pressed.
+  clicks Int      @default(0)
+
+  @@unique([door, day])
+}
