@@ -4,7 +4,7 @@ import { BlockSchema, EditionMetaSchema, PageSchema } from "./schema";
 import type { BuiltInOnlyKind } from "./types";
 
 /** Kinds Studio cannot write; they are checked by the type system instead. */
-const BUILT_IN_ONLY: BuiltInOnlyKind[] = ["gallery", "people", "partners", "partner", "cta"];
+const BUILT_IN_ONLY: BuiltInOnlyKind[] = ["gallery", "people", "partners", "partner", "advent", "cta"];
 
 describe("Trichozette page schema", () => {
   it("accepts every written page of every built-in edition", () => {
