@@ -18,6 +18,7 @@ export const editionsD: Edition[] = [
       "Karley takes you out and about with Trichollective this season, from Little Lady Locks in Manchester to ART in London, with honest conversations from the clinic room, three things to get in place before 2027 and a gift a day from 12 to 23 December.",
     coverImageKey: "headSpa",
     coverTone: "dark",
+    festive: "christmas",
     audience: ["cosmetic", "clinical", "medical"],
     published: "2026-12-01",
     pages: [

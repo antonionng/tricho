@@ -1,6 +1,8 @@
 "use client";
 
 import { AdventSection } from "@/components/advent/AdventSection";
+import { LightString, TreeCluster, Wreath } from "@/components/advent/Festive";
+import { Snow } from "@/components/advent/Snow";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -332,6 +334,15 @@ export function ScrollEdition({
       {/* Cover */}
       <ParallaxImage src={img(cover, 2200)} alt={cover.alt} className="h-[100svh]" priority strength={0.12}>
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/5 to-black/70" />
+        {edition.festive === "christmas" && (
+          <>
+            <Snow className="pointer-events-none absolute inset-0 h-full w-full" />
+            {/* Fairy lights along the top of the cover, behind the bar. */}
+            <LightString swags={2} depth={26} className="absolute inset-x-0 top-0 flex sm:hidden" />
+            <LightString swags={4} depth={30} className="absolute inset-x-0 top-0 hidden sm:flex" />
+            <TreeCluster className="pointer-events-none absolute bottom-24 right-8 hidden h-[190px] w-[200px] opacity-95 md:block lg:right-14 [@media(max-height:720px)]:hidden" />
+          </>
+        )}
         <div className="absolute inset-x-0 top-16 flex justify-between px-5 mag-caps text-[9px] text-white/80 sm:px-10 sm:text-[10px]">
           <span>{editionLabel(edition)}</span>
           <span>{published}</span>
@@ -355,7 +366,10 @@ export function ScrollEdition({
               ))}
             </div>
           )}
-          <p className="mag-caps text-[10px] text-white/75">{edition.theme}</p>
+          <p className="mag-caps flex items-center gap-3 text-[10px] text-white/75">
+            {edition.festive === "christmas" && <Wreath className="h-10 w-9 text-white" />}
+            {edition.theme}
+          </p>
           <p className="mag-didone mt-3 font-medium leading-[0.86] tracking-[-0.025em]" style={{ fontSize: "min(14vw, 11svh)" }}>
             {edition.title}
           </p>

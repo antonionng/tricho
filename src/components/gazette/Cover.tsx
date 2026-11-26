@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { LightString } from "@/components/advent/Festive";
 import { img } from "@/content/images";
 import { coverImage } from "./art";
 import { editionLabel, pageTitle, type Edition } from "@/content/gazette";
@@ -55,6 +56,7 @@ export function Cover({
         className="mag-bw object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/0 to-black/65" />
+      {edition.festive === "christmas" && <LightString swags={2} depth={14} small className="absolute inset-x-0 top-0 flex" />}
 
       {/* Dateline */}
       <div className="absolute inset-x-[5cqw] top-[3.4cqw] flex justify-between mag-caps text-[1.55cqw] tracking-[0.3em] text-white/85">

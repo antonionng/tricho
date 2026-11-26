@@ -26,6 +26,37 @@ export function Garland({ offset = 0 }: { offset?: number }) {
   );
 }
 
+/**
+ * A string of fairy lights across the full width of whatever it sits in, in a number of swags.
+ * `scale` shrinks the bulbs for small covers on the shelf.
+ */
+export function LightString({ swags = 3, depth = 30, className, small }: { swags?: number; depth?: number; className?: string; small?: boolean }) {
+  const h = depth + 14;
+  return (
+    <div className={className} aria-hidden style={{ height: h, pointerEvents: "none" }}>
+      {Array.from({ length: swags }, (_, s) => (
+        <span key={s} style={{ position: "relative", flex: 1, height: h }}>
+          <svg viewBox={`0 0 100 ${h}`} preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
+            <path d={`M0,4 Q50,${2 * depth} 100,4`} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          </svg>
+          {[0.06, 0.2, 0.35, 0.5, 0.65, 0.8, 0.94].map((t, i) => (
+            <span
+              key={t}
+              className="advent-bulb"
+              style={{
+                left: `${t * 100}%`,
+                top: `${4 + (4 * depth - 8) * t * (1 - t)}px`,
+                animationDelay: `${((i + s * 3) * 0.37) % 2.2}s`,
+                ...(small ? { width: 3, height: 4, marginLeft: -1.5, boxShadow: "0 0 4px 1px rgba(255,246,224,0.8)" } : {}),
+              }}
+            />
+          ))}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** A wreath with a bow, hung on a door that is ready to open. */
 export function Wreath({ className }: { className?: string }) {
   const leaves = Array.from({ length: 16 }, (_, i) => i * (360 / 16));
@@ -72,6 +103,17 @@ const TREES: Tree[] = [
 ];
 
 const TONE = { back: "#2b2b2b", mid: "#55544f", front: "#fbfaf7" } as const;
+
+/** Three small firs for a corner of the cover: one white with lights and a star, two behind it. */
+export function TreeCluster({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 -8 230 220" className={className} aria-hidden>
+      <Fir x={52} h={104} tone="mid" />
+      <Fir x={186} h={126} tone="mid" />
+      <Fir x={118} h={176} tone="front" lights />
+    </svg>
+  );
+}
 
 function Fir({ x, h, tone, lights }: Tree) {
   const base = 196;

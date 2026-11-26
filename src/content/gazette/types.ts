@@ -125,6 +125,8 @@ export type Edition = {
    * the contents and the share card. Logo and partner-page link are filled from the Partner table.
    */
   supportedBy?: { name: string; slug?: string; url: string; logo?: string; href?: string };
+  /** Seasonal dressing on the cover: fairy lights, snow and trees for the Christmas edition. */
+  festive?: "christmas";
   /** Sources behind every factual claim. Shown at the end of the edition. */
   sources?: { label: string; url: string }[];
 };
